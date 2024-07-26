@@ -17,6 +17,8 @@ model.get_info(directly_print=True)
 #model.set_auto_print_difference_between_epochs(True,4)
 #model.set_auto_print_difference_between_epochs(True,5)
 
+
+
 model.cuda()
 if is_f16:
     input = input.to(torch.float16)
@@ -91,23 +93,41 @@ for epoch in range(iter_per_print*print_count):
             pass    
         pass    
     if True and "print zero grad ratio":
-        model.get_zero_grad_ratio(True)
+        if epoch%iter_per_print == iter_per_print-1:
+            result = model.get_zero_grad_ratio()
+            print("print zero grad ratio: ", result)
+            pass
         pass
     #optimizer.param_groups[0]["lr"] = 0.01
     optimizer.step()
+    if True and "print param overlap":
+        every = 100
+        if epoch%every == every-1:
+            model.print_param_overlap_ratio()
+            pass
+        pass
     if True and "print acc":
         if epoch%iter_per_print == iter_per_print-1:
-            model.eval()
-            pred = model(input)
-            #print(pred, "pred", __line__str())
-            #print(target, "target")
-            acc = bitwise_acc(pred, target)
-            print(epoch+1, "    ep/acc    ", acc)
-            if 1. == acc:
-                print(epoch+1, "    ep/acc    ", acc)
-                print(pred[:5], "pred", __line__str())
-                print(target[:5], "target")
-                break
+            with torch.inference_mode():
+                model.eval()
+                pred = model(input)
+                #print(pred, "pred", __line__str())
+                #print(target, "target")
+                acc = DigitalMapper_V1_1.bitwise_acc(pred, target)
+                model.set_acc(acc)
+                if 1. != acc:
+                    print(epoch+1, "    ep/acc    ", acc)
+                else:
+                    #print(epoch+1, "    ep/acc    ", acc)
+                    finished = model.can_convert_into_eval_only_mode()
+                    print(finished, "is param hard enough __line 1273")
+                    if finished[0]:
+                        print(pred[:5].T, "pred", __line__str())
+                        print(target[:5].T, "target")
+                        break
+                        pass
+                    pass
+                pass
             pass
         pass
 
