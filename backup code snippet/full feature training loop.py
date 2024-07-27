@@ -40,6 +40,20 @@ if is_f16:
 loss_function = torch.nn.MSELoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
+if True and "print parameters":
+    if True and "only the training params":
+        for name, p in zip(model._parameters, model.parameters()):
+            if p.requires_grad:
+                print(name, p)
+                pass
+            pass
+        pass
+    else:# prints all the params.
+        for name, p in zip(model._parameters, model.parameters()):
+            print(name, p)
+            pass
+        pass
+
 model.cuda()
 input = input.cuda()
 target = target.cuda()

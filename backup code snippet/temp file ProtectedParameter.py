@@ -8,7 +8,10 @@ import math
 
 
 
-'''style 1, if anything exceeds 7, anything exceeds 3 are compressed back a bit.'''
+'''style 1-1, if anything >7, then anything >3 are compressed back (towards 3) a bit.
+This also applies to the negative part.
+'''
+
 
 epi = 0.01
 threshold1 = 3.
@@ -173,6 +176,62 @@ self.protect_param_every____training = protect_param_every____training
 
 
 
+'''style 1-2, if anything >7, then anything >3 are compressed back (towards -3) a bit.
+Also, if anything <-7, then anything <-3 are compressed back (towards 3) a bit.
+This makes some param overlap or changes the sequence a bit. But it doesn't matter.
+
+This works with the set_acc function in the soft version of digital_mapper.
+
+'''
+            target_exceed = self.soft_clamp_threshold2+self.soft_clamp_threshold1-self.soft_clamp_margin
+            gt_t2 = self.raw_weight.gt(self.soft_clamp_threshold2)
+            if gt_t2.sum()>0:
+                print(self.raw_weight[gt_t2], "soft clamp positive.  __line 853")
+                pass
+            at_least_smt_gt_t2 = gt_t2.any(dim=1)
+            if at_least_smt_gt_t2.any().item():
+                the_max_value = self.raw_weight.max(dim=1, keepdim=True).values
+                gt_t1 = self.raw_weight.gt(self.soft_clamp_threshold1)
+                at_least_smt_gt_t2_expanded = at_least_smt_gt_t2[:, None].expand(-1, self.raw_weight.shape[1])
+                modify_these = gt_t1.logical_and(at_least_smt_gt_t2_expanded)
+                exceed = the_max_value+self.soft_clamp_threshold1
+                exceed = exceed.abs()+self.soft_clamp_epi#or exceed.mul(at_least_smt_gt_t2)+epi
+                mul_me = target_exceed/exceed
+                self.raw_weight.data = modify_these*((self.raw_weight+self.soft_clamp_threshold1)*mul_me-self.soft_clamp_threshold1)+(modify_these.logical_not())*self.raw_weight
+            pass
+        
+            # the negative part
+            lt_nt2 = self.raw_weight.lt(-1.*self.soft_clamp_threshold2)
+            if lt_nt2.sum()>0:
+                print(self.raw_weight[lt_nt2], "soft clamp negative.  __line 853")
+                pass
+            at_least_smt_lt_nt2 = lt_nt2.any(dim=1)
+            if at_least_smt_lt_nt2.any().item():
+                the_min_value = self.raw_weight.min(dim=1, keepdim=True).values
+                lt_nt1 = self.raw_weight.lt(-1.*self.soft_clamp_threshold1)
+                at_least_smt_lt_nt2_expanded = at_least_smt_lt_nt2[:, None].expand(-1, self.raw_weight.shape[1])
+                modify_these_negative = lt_nt1.logical_and(at_least_smt_lt_nt2_expanded)
+                exceed = the_min_value-self.soft_clamp_threshold1
+                exceed = exceed.abs()+self.soft_clamp_epi#or exceed.mul(at_least_smt_gt_t2)+epi
+                mul_me_negative = target_exceed/exceed
+                self.raw_weight.data = modify_these_negative*((self.raw_weight-self.soft_clamp_threshold1)*mul_me_negative+self.soft_clamp_threshold1) \
+                    +(modify_these_negative.logical_not())*self.raw_weight
+            pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -199,7 +258,7 @@ if self.update_count>=self.auto_merge_duration:
     self.update_count = 0
     with torch.no_grad():
         #this automatic modification may mess sometime.
-        boundary = self.raw_weight_boundary_for_f32
+        boundary = self.raw_weight_boundary_for_f32.detach().clone()
         if self.raw_weight.dtype == torch.float64:
             boundary *= 2.
             pass
