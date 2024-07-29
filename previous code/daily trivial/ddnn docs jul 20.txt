@@ -1,0 +1,203 @@
+【【【Grad_Balancer系列】】】
+
+
+暂时没用到。
+当一个tensor作为多个通道的输入时，会得到超过一个grad，这些grad会叠加。
+Grad_Balancer可以控制这个叠加的比例，避免不同后续通路回传的grad的尺寸差太多。
+
+class Grad_Balancer_2out_Function
+class Grad_Balancer_2out
+
+class Grad_Balancer_Function
+class Grad_Balancer
+
+
+
+【【【只有前向硬二值化的基底层】】】
+
+
+Binarize_Forward_only系列。
+只有forward path会进行一个硬二值化（直接和0.5比较），其他不影响。
+在这个项目里面，大概只有sigmoid出来的结果，很接近0或者1的时候，用这个给做成纯0或者1，
+得到我所谓的 standard 数值。
+
+class Binarize_Forward_only_Function
+class Binarize_Forward_only
+    包含
+        Binarize_Forward_only_Function
+
+
+
+【【【二值化层】】】
+
+Binarize系列。
+
+class Binarize
+    any in, non-standard out
+    进行的操作包括：
+    如果是01范围的输入，会被偏置到以0为分界。
+    （或者说，偏置只有第一次有，而后续的循环里面的内容是每一次都有）
+    [[[label]]]
+    x = GradientModification(x)，套用梯度调整层
+    x *= big_number
+    如果不是输出，那么会计算tanh，并跳转到[[[label]]]（因为是计算的tanh，所以不需要偏置）
+    如果是输出，会根据输出的取值范围，决定套用sigmoid或者tanh
+
+通过调用Binarize.create_xxx来得到4个特定情境的二值化层，他们分别接受以0或0.5为分界的数据，分别输出0或0.5为分界的数据。
+
+
+
+【【【DigitalMapper】】】
+
+class DigitalMapperFunction_v2
+    虽然可以接受任何范围的输入，但是只要有一个元素不是标准的某种二值化的范围，那么输出就无法进行任何保证。
+    推荐只使用标准np输出，那么会得到对应的标准np作为输出
+    通过直接的max函数来获取每一个输出所应该对应的输入，或者认为是一个标准的one hot编码的数据。
+    内部维持一个连续变化的生参数，但是使用的时候，，，，，，，
+    
+    生参数，，，，，，，，
+
+#111111111111111111111111
+#111111111111111111111111
+#111111111111111111111111
+#111111111111111111111111
+#111111111111111111111111
+#111111111111111111111111
+#111111111111111111111111
+
+
+class DigitalMapper_Non_standard
+    standard in, non-standard out
+    利用softmax的输出类似one hot编码，用这个输出和x作dot product，从而实现一个选线器的效果。
+    或者说，每一个输出直接拿一个输入来用。
+    但是softmax的输出不一定很二值化，导致会输出一个非标准的值。
+    进行的操作包括：
+        内部参数先自己过一次gramo
+        w = GradientModification(self.raw_weight)
+        内部参数过softmax
+        w_after_softmax = w.softmax(dim=1)
+        和x内积（实际用的矩阵乘法）
+        x = w_after_softmax.matmul(x)
+    次要细节：
+    额外的，每过一定的轮次，会对内部参数的范围进行一些调整，使softmax更安全。
+    
+class DigitalMapper_eval_only
+    输入输出范围同上。
+    只做一件事情：
+    x = input[:, self.indexes]
+    无法用于训练。属于是用训练好的层导出来的。
+    不保证我会不会发布一些只有这个类的结果，如果不知道这个工具的人，可能会挠头。
+
+class DigitalMapper
+    输入输出范围同上。
+    内部是一个DigitalMapperFunction_v2，方便使用。
+    进行的操作包括：
+
+    111111111111111111111111111
+    111111111111111111111111111
+    111111111111111111111111111
+    111111111111111111111111111
+    111111111111111111111111111
+        输入x和DigitalMapper_Non_standard相互作用，形成选线。
+        x = DigitalMapper_Non_standard(x)
+        二值化
+        x = Binarize_01_Forward_only(x)
+    重要的细节：
+        Binarize包括一个gramo在最后
+
+
+
+
+ok，继续，
+ok，继续，
+ok，继续，
+ok，继续，
+ok，继续，
+ok，继续，
+ok，继续，
+ok，继续，
+ok，继续，
+ok，继续，
+
+
+
+【【【门层系列】】】
+
+
+class AND_01(torch.nn.Module):
+class OR_01(torch.nn.Module):
+class XOR_01(torch.nn.Module):
+    standard in, standard out
+    进行的操作包括：
+        讲同一个门的所有输入加起来。（xor是乘起来）
+        x = x.sum(dim=2, keepdim=False)#dim=2
+        offset到适合的地方，方便后续二值化层
+        offset = float(self.input_per_gate)*-1.+1.
+        x = x + offset
+        二值化
+        x = Binarize_01_to_01(x)
+    重要的细节：
+        Binarize包括一个gramo在最后
+
+    同上
+
+
+
+【【【综合门层】】】
+
+
+class DigitalSignalProcessingUnit_layer(torch.nn.Module):
+    standard in, standard out
+    进行的操作包括：
+        用一个DigitalMapper，将输入的维度调整到适合该层。
+        x = DigitalMapper(x)
+        得到所有的单独的门层的结果
+        and_head = AND_01(x[:, and对应的输入])
+        or_head = OR_01(x[:, or对应的输入])              
+        xor_head = XOR_01(x[:, xor对应的输入])
+        额外搭配一个1，一个0
+        zeros = torch.zeros([input.shape[0],1])
+        ones = torch.ones([input.shape[0],1])
+        连起来，输出。
+        x = torch.concat([and_head, or_head, xor_head, zeros, ones],dim=1)
+    重要的细节：
+        单独的门层的输出的地方都有gramo，但是搭配的0和1没有。
+
+class DSPU
+    standard in, standard out
+    进行的操作包括：
+        DigitalSignalProcessingUnit_layer n次。
+        最后用DigitalMapper调整输出的维度
+        （或者说，mapper，gates，mapper，gates，mapper，gates，mapper，gates，mapper）
+    重要的细节：
+        最后的mapper的输出的地方包括一个gramo在最后
+
+
+
+
+
+总结。
+可学习参数只有一个，在digital mapper non standard里面。由于唯一用digital mapper non standard的就是digital mapper，所以不用具体追究。
+Gradient Modification（梯度调整层）总共有2个，一个在Binarize_base的最后，一个在digital mapper non standard直接用在唯一的可学习参数后面。
+Forward only(或者叫hard binarize，硬二值化，只二值化forward path，不影响backward path)，只有3个。
+Binarize_analog_to_01和Binarize_01_to_01的最后，以及DigitalMapper的最后，将输出彻底二值化。可以看到一个规律，就是，这3个层只是在原本的无法输出一个硬二值化的层的最后，加了一个硬二值化，他们内部的除了这个最后的硬二值化，前面都是一个各自对应的non standard的版本。
+
+
+
+
+
+
+
+
+
+
+#不慌。。还没开始。。
+# class ADC
+# class DAC
+# class mix signal processing unit.
+
+
+
+
+
+

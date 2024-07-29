@@ -370,6 +370,21 @@ class MirrorWithGramo(torch.nn.Module):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #//////////////////////////////////////////////
 #//////////////////////////////////////////////
 #//////////////////////////////////////////////
@@ -459,11 +474,36 @@ To get better precision, scale_back_to_np    [unfinished docs]
 
 
 [[[Gates layers]]]
-If the input is in wrong range, it's undefined behavior.
-If the input is in the mid, the output is useless.
+First, the most important thing you really MUST remember to use gates layers properly.
+All the gates layers in this project only accepts exactly (0., 1.) or (-1., 1.) range as input.
+If you have some input in (0.1, 0.8), it's undefined behavior.
+Use the scale_back_to_01 and scale_back_to_np function to scale the input while correct the range.
+If the input range is not semetric around the mid value, the scaling function will change
+the relationship against the mid value a bit. 
+If the input range is (0.1, 0.8), then, logically, 0.45 is the mid value.
+If you assume 0.5 as the mid value, ok I didn't prepare a tool for you. 
+Since the real range of output in such cases is a bit undefined.
+Should I use (0., 1.) as the output range, or (0., 0.875)?
+Maybe I would do something in the future.
+
+If the input is in the exact mid, the output is useless.
 I simply choose a random way to handle this, it only guarantees no nan or inf is provided.
 The XOR and NXOR use multiplication in training mode,
-which makes them 2 more sensitive to "out of range input" than others.
+which makes them 2 more sensitive to "out of range input" than others,
+if you use out of range range as input.
+
+
+Second, to protect the gradient, 
+you may need to modify the big_number of the first binarize layer in any gates layer.
+The principle is that, bigger input dim leads smaller big_number.
+If AND2 needs 6., AND3 needs something less than 6., maybe a 4. or 3..
+AND, NAND, OR, NOR use similar formula, while XOR, NXOR use another formula,
+and the formula affects the choice of big_number.
+Example in the documentation string in any gates layer.
+
+
+
+
 
 
 
@@ -472,6 +512,316 @@ unfinished docs
 
 
 '''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class BoundaryPair:
+    r""""""
+    __constants__ = ['lower','upper',]
+    lower:torch.Tensor
+    upper:torch.Tensor
+    def init(lower:torch.Tensor, upper:torch.Tensor)->None:
+        if len(lower.shape)!=1 or lower.shape[0]!=1:
+            raise Exception("Param:lower should be a scalar.")
+        if len(upper.shape)!=1 or upper.shape[0]!=1:
+            raise Exception("Param:upper should be a scalar.")
+        if lower.item()>=upper.item():
+            raise Exception("Lower should be less than upper.")
+
+        self.lower = lower        
+        self.upper = upper        
+        pass
+    
+    @staticmethod
+    def from_float(lower:float, upper:float):
+        if lower>=upper:
+            raise Exception("Lower should be less than upper.")
+        result = BoundaryPair(torch.tensor([lower]), torch.tensor([lower]))
+        return result
+
+    #def to_float(self)
+
+
+
+    写错了。。加一句input offset
+    def calc_boundary(self, output_is_01: bool, steps: int = 1, big_number:float = 1.):
+        r'''This function helps calculate the boundary of a specific step within binarization process.
+        It's mainly used in ADC and DAC layers.
+        
+        If the input for a binarize layer is within the range of (0, 1), 
+        the binarize layer firstly offset it to (-0.5, 0.5), then multiplies
+        it with the big_number param, and gets the range of (-0.5*big_number, 0.5*big_number).
+        Because we care about the backward propagation, the big_number is usually less than 20.
+        In a lot of tests, I simply use a number around 5 as the big_number.
+        This leads the output of a binarize layer not to fill all the (0, 1),
+        which is the theorimatic output range of sigmoid. When we need the binarized result 
+        as analog signal or real number and do the up coming calculation, we need to know
+        the possible range for every specific step, in order to get the maximum possible precision.
+        
+        example:
+        >>> unfinished docs
+        >>> input = Boundary_calc_helper_wrapper(0., 1.)
+        >>> output = Boundary_calc(True, input, 3, 5.)
+        >>> print(f'input:(0, 1) through 01_range 3 times with big_number = 5. is {output}')
+        '''
+        
+        lower_bound = self.lower
+        upper_bound = self.upper
+        
+        offset = 0.
+        if output_is_01:
+            offset = -0.5
+        
+        for _ in range(steps):
+            lower_bound = torch.sigmoid((lower_bound+offset)*big_number)
+            upper_bound = torch.sigmoid((upper_bound+offset)*big_number)
+        return BoundaryPair(lower_bound, upper_bound)
+
+    def scale_back_to_01(self, input:torch.Tensor)->torch.Tensor:
+        r"""
+        example:
+        >>> input = torch.tensor([0.1,0.9])
+        >>> bounds = Boundary_calc_helper_wrapper(0.1, 0.9)
+        >>> output = scale_back_to_01(input, bounds)
+        >>> print(output, "should be 0., 1.")
+        """
+        range_length = self.upper - self.lower
+        x = input - self.lower
+        x /= range_length
+        return x
+
+
+
+    def scale_back_to_np(self, input:torch.Tensor)->torch.Tensor:
+        r"""
+        example:
+        >>> input = torch.tensor([0.1,0.9])
+        >>> bounds = Boundary_calc_helper_wrapper(0.1, 0.9)
+        >>> output = scale_back_to_np(input, bounds)
+        >>> print(output, "should be -1., 1.")
+        """
+        mid_point = (self.lower + self.upper)/2.
+        half_range_length = (self.upper - self.lower)/2.
+        x = input - mid_point
+        x /= half_range_length
+        return x
+
+
+
+input = torch.tensor([0.1,0.9])
+bp = BoundaryPair.from_float(0.1, 0.9)
+print(bp.scale_back_to_01(input), "should be 0., 1.")
+print(bp.scale_back_to_np(input), "should be -1., 1.")
+
+big_number=1.
+bp = BoundaryPair.from_float(0., 1.)
+bound = bp.Boundary_calc(True, input, 1, big_number)
+print(bound, f'(0, 1) through sigmoid once.')
+bound = Boundary_calc(True, bound, 1, big_number)
+print(bound, f'(0, 1) through sigmoid twice.')
+
+big_number=2.
+input = Boundary_calc_helper_wrapper(0., 1.)
+bound = Boundary_calc(True, input, 1, big_number)
+print(bound, f'(0, 1) through sigmoid once with big number of {big_number}.')
+bound = Boundary_calc(True, bound, 1, big_number)
+print(bound, f'(0, 1) through sigmoid twice with big number of {big_number}.')
+
+input = Boundary_calc_helper_wrapper(0., 1.)
+output = Boundary_calc(True, input, 3, 5.)
+print(f'input:(0, 1) through 01_range 3 times with big_number = 5. is {output}')
+
+jhklfds = 890234
+
+
+
+
+
+
+
+
+
+# old code.
+# def Boundary_calc_helper_wrapper(lower_bound:float, upper_bound:float)->Tuple[torch.Tensor,torch.Tensor]:
+#     lower = torch.tensor([lower_bound], dtype=torch.float32)
+#     upper = torch.tensor([upper_bound], dtype=torch.float32)
+#     return (lower, upper)
+
+# def Boundary_calc_helper_unwrapper(input:Tuple[torch.Tensor,torch.Tensor])->Tuple[float, float]:
+#     return (input[0].item(), input[1].item())
+
+# def Boundary_calc(output_is_01: bool, bound:Tuple[torch.Tensor,torch.Tensor], \
+#                 steps: int = 1, big_number:float = 1.)->Tuple[torch.Tensor,torch.Tensor]:
+#     '''This function helps calculate the boundary of a specific step within binarization process.
+#     It's mainly used in ADC and DAC layers.
+    
+#     If the input for a binarize layer is within the range of (0, 1), 
+#     the binarize layer firstly offset it to (-0.5, 0.5), then multiplies
+#     it with the big_number param, and gets the range of (-0.5*big_number, 0.5*big_number).
+#     Because we care about the backward propagation, the big_number is usually less than 20.
+#     In a lot of tests, I simply use a number around 5 as the big_number.
+#     This leads the output of a binarize layer not to fill all the (0, 1),
+#     which is the theorimatic output range of sigmoid. When we need the binarized result 
+#     as analog signal or real number and do the up coming calculation, we need to know
+#     the possible range for every specific step, in order to get the maximum possible precision.
+    
+#     example:
+#     >>> input = Boundary_calc_helper_wrapper(0., 1.)
+#     >>> output = Boundary_calc(True, input, 3, 5.)
+#     >>> print(f'input:(0, 1) through 01_range 3 times with big_number = 5. is {output}')
+#     '''
+    
+#     if big_number<1.:
+#         raise Exception("Param:big_number is not big enough.")
+#         pass
+    
+#     lower_bound = bound[0]
+#     upper_bound = bound[1]
+    
+#     offset = 0.
+#     if output_is_01:
+#         offset = 0.5
+    
+#     for _ in range(steps):
+#         lower_bound = torch.sigmoid((lower_bound-offset)*big_number)
+#         upper_bound = torch.sigmoid((upper_bound-offset)*big_number)
+#     return (lower_bound, upper_bound)
+
+
+# big_number=1.
+# input = Boundary_calc_helper_wrapper(0., 1.)
+# bound = Boundary_calc(True, input, 1, big_number)
+# print(bound, f'(0, 1) through sigmoid once.')
+# bound = Boundary_calc(True, bound, 1, big_number)
+# print(bound, f'(0, 1) through sigmoid twice.')
+
+# big_number=2.
+# input = Boundary_calc_helper_wrapper(0., 1.)
+# bound = Boundary_calc(True, input, 1, big_number)
+# print(bound, f'(0, 1) through sigmoid once with big number of {big_number}.')
+# bound = Boundary_calc(True, bound, 1, big_number)
+# print(bound, f'(0, 1) through sigmoid twice with big number of {big_number}.')
+
+# input = Boundary_calc_helper_wrapper(0., 1.)
+# output = Boundary_calc(True, input, 3, 5.)
+# print(f'input:(0, 1) through 01_range 3 times with big_number = 5. is {output}')
+
+# jhklfds = 890234
+
+
+
+# Do I need this function?
+# def Boundary_blender(input:List[Tuple[torch.Tensor,torch.Tensor]])->Tuple[torch.Tensor,torch.Tensor]:
+#     '''
+#     >>> a = Boundary_calc_helper_wrapper(0.1, 0.9)
+#     >>> b = Boundary_calc_helper_wrapper(0.2, 0.7)
+#     >>> bounds = list()
+#     >>> bounds.append(a)
+#     >>> bounds.append(b)
+#     >>> blended_bound = Boundary_blender(bounds)
+#     '''
+#     lower:torch.Tensor = torch.zeros([1],dtype=torch.float32)
+#     upper:torch.Tensor = torch.zeros([1],dtype=torch.float32)
+    
+#     for b in input:
+#         lower += b[0]
+#         upper += b[1]
+#         pass
+#     lower/=len(input)
+#     upper/=len(input)
+#     return (lower, upper)
+
+
+# a = Boundary_calc_helper_wrapper(0.1, 0.9)
+# b = Boundary_calc_helper_wrapper(0.2, 0.7)
+# bounds = list()
+# bounds.append(a)
+# bounds.append(b)
+# blended_bound = Boundary_blender(bounds)
+# print(blended_bound)
+
+# fds = 432
+
+
+
+# def scale_back_to_01(input:torch.Tensor, bounds:Tuple[torch.Tensor,torch.Tensor])->torch.Tensor:
+#     r"""
+#     example:
+#     >>> input = torch.tensor([0.1,0.9])
+#     >>> bounds = Boundary_calc_helper_wrapper(0.1, 0.9)
+#     >>> output = scale_back_to_01(input, bounds)
+#     >>> print(output, "should be 0., 1.")
+#     """
+#     range_length = bounds[1]-bounds[0]
+#     x = input - bounds[0]
+#     x /= range_length
+#     return x
+
+# input = torch.tensor([0.1,0.9])
+# bounds = Boundary_calc_helper_wrapper(0.1, 0.9)
+# output = scale_back_to_01(input, bounds)
+# print(output, "should be 0., 1.")
+
+# fds=432
+
+
+# def scale_back_to_np(input:torch.Tensor, bounds:Tuple[torch.Tensor,torch.Tensor])->torch.Tensor:
+#     r"""
+#     example:
+#     >>> input = torch.tensor([0.1,0.9])
+#     >>> bounds = Boundary_calc_helper_wrapper(0.1, 0.9)
+#     >>> output = scale_back_to_np(input, bounds)
+#     >>> print(output, "should be -1., 1.")
+#     """
+#     mid_point = (bounds[0] + bounds[1])/2.
+#     half_range_length = (bounds[1]-bounds[0])/2.
+#     x = input - mid_point
+#     x /= half_range_length
+#     return x
+
+# input = torch.tensor([0.1,0.9])
+# bounds = Boundary_calc_helper_wrapper(0.1, 0.9)
+# output = scale_back_to_np(input, bounds)
+# print(output, "should be -1., 1.")
+
+# fds=432
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -590,33 +940,54 @@ class Binarize_base(torch.nn.Module):
     #     self.output_when_ambiguous = output
     #     pass
 
-    def set_big_number(self, big_number:float):
-        if big_number<1.:
-            raise Exception("Param:big_number is not big enough.")
-            pass
+    def set_big_number(self, big_number:float, \
+                I_know_Im_setting_a_value_which_may_be_less_than_1:bool = False):
+        if I_know_Im_setting_a_value_which_may_be_less_than_1:
+            # This case is a bit special. I made this dedicated for the gates layers.
+            if big_number<=0.:
+                raise Exception(
+                    '''Param:big_number is not big enough. 
+                    This I_know_Im_setting_a_value_which_may_be_less_than_1 is 
+                    designed only for the first binarize layer in gates layers. 
+                    If inputs doesn't accumulate enough gradient, you should 
+                    consider using some 0.01 as big_number to protect the 
+                    trainability of the intput-end of the model.''')
+                pass
+            
+        else:# The normal case
+            if big_number<1.:
+                raise Exception("Param:big_number is not big enough.")
+                pass
         self.big_number = big_number
         pass
 
 
+    def get_offset(self)->float:
+        if 0 == self.input_is_0_for_01__1_for_np__2_for_float:
+            return -0.5
+        else:
+            return 0.
+            pass
+        
+    def get_output_range(self)->
+
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         # Both modes need this.
-        ambiguous_at = 0.
-        if 0 == self.input_is_0_for_01__1_for_np__2_for_float:
-            ambiguous_at = 0.5
-            pass
+        
         
         if self.training:
             # If you know how pytorch works, you can comment this checking out.
             if not input.requires_grad:
-                raise Exception("Set x.requires_grad to True. If you know what you are doing, you can comment this line.")
+                raise Exception("Set input.requires_grad to True. If you know what you are doing, you can comment this line.")
             if len(input.shape)!=2:
                 raise Exception("GradientModification only accept rank-2 tensor. The shape should be[batch, something]")
 
             x = input
+            offset = self.get_offset()
             
             # The offset. This only works for 01 as input.
-            if 0. != ambiguous_at:
-                x = x - ambiguous_at
+            if 0. != offset:
+                x = x + offset
                 
             # this scaling also applies to real number as input.
             if self.big_number!=1.:
@@ -646,6 +1017,12 @@ class Binarize_base(torch.nn.Module):
                 If output is np, and output_when_ambiguous is  1., it needs < and >=.
                 If output is np, and output_when_ambiguous is not -1. or 1., it needs all 3 ops.
                 '''
+                
+                ambiguous_at = 0. #opposite of offset.
+                if 0 == self.input_is_0_for_01__1_for_np__2_for_float:
+                    ambiguous_at = 0.5
+                    pass
+                
                 if self.output_is_01:
                     if 0. == self.output_when_ambiguous:
                         return input.gt(ambiguous_at).to(self.output_dtype)
@@ -802,9 +1179,10 @@ class Binarize_float_to_01(torch.nn.Module):
         self.base.set_output_when_ambiguous(output)
         pass
     
-    def set_big_number(self, big_number:float):
+    def set_big_number(self, big_number:float, \
+                I_know_Im_setting_a_value_which_may_be_less_than_1:bool = False):
         '''Simply set it to the inner layer.'''
-        self.base.set_big_number(big_number)
+        self.base.set_big_number(big_number, I_know_Im_setting_a_value_which_may_be_less_than_1)
         pass
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -936,9 +1314,10 @@ class Binarize_float_to_np(torch.nn.Module):
         self.base.set_output_when_ambiguous(output)
         pass
     
-    def set_big_number(self, big_number:float):
+    def set_big_number(self, big_number:float, \
+                I_know_Im_setting_a_value_which_may_be_less_than_1:bool = False):
         '''Simply set it to the inner layer.'''
-        self.base.set_big_number(big_number)
+        self.base.set_big_number(big_number, I_know_Im_setting_a_value_which_may_be_less_than_1)
         pass
     
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -1019,9 +1398,10 @@ class Binarize_01(torch.nn.Module):
         self.base.set_output_when_ambiguous(output)
         pass
 
-    def set_big_number(self, big_number:float):
+    def set_big_number(self, big_number:float, \
+                I_know_Im_setting_a_value_which_may_be_less_than_1:bool = False):
         '''Simply set it to the inner layer.'''
-        self.base.set_big_number(big_number)
+        self.base.set_big_number(big_number, I_know_Im_setting_a_value_which_may_be_less_than_1)
         pass
     
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -1104,9 +1484,10 @@ class Binarize_01_to_np(torch.nn.Module):
         self.base.set_output_when_ambiguous(output)
         pass
 
-    def set_big_number(self, big_number:float):
+    def set_big_number(self, big_number:float, \
+                I_know_Im_setting_a_value_which_may_be_less_than_1:bool = False):
         '''Simply set it to the inner layer.'''
-        self.base.set_big_number(big_number)
+        self.base.set_big_number(big_number, I_know_Im_setting_a_value_which_may_be_less_than_1)
         pass
     
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -1190,9 +1571,10 @@ class Binarize_np(torch.nn.Module):
         self.base.set_output_when_ambiguous(output)
         pass
 
-    def set_big_number(self, big_number:float):
+    def set_big_number(self, big_number:float, \
+                I_know_Im_setting_a_value_which_may_be_less_than_1:bool = False):
         '''Simply set it to the inner layer.'''
-        self.base.set_big_number(big_number)
+        self.base.set_big_number(big_number, I_know_Im_setting_a_value_which_may_be_less_than_1)
         pass
     
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -1275,9 +1657,10 @@ class Binarize_np_to_01(torch.nn.Module):
         self.base.set_output_when_ambiguous(output)
         pass
 
-    def set_big_number(self, big_number:float):
+    def set_big_number(self, big_number:float, \
+                I_know_Im_setting_a_value_which_may_be_less_than_1:bool = False):
         '''Simply set it to the inner layer.'''
-        self.base.set_big_number(big_number)
+        self.base.set_big_number(big_number, I_know_Im_setting_a_value_which_may_be_less_than_1)
         pass
     
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -1411,173 +1794,6 @@ class Binarize_np_to_01(torch.nn.Module):
 
 
 
-#Below is untested.
-#Below is untested.
-#Below is untested.
-#Below is untested.
-#Below is untested.
-#Below is untested.
-#Below is untested.
-#Below is untested.
-
-
-
-
-
-
-
-
-def Boundary_calc_helper_wrapper(lower_bound:float, upper_bound:float)->Tuple[torch.Tensor,torch.Tensor]:
-    lower = torch.tensor([lower_bound], dtype=torch.float32)
-    upper = torch.tensor([upper_bound], dtype=torch.float32)
-    return (lower, upper)
-
-def Boundary_calc_helper_unwrapper(input:Tuple[torch.Tensor,torch.Tensor])->Tuple[float, float]:
-    return (input[0].item(), input[1].item())
-
-def Boundary_calc(output_is_01: bool, bound:Tuple[torch.Tensor,torch.Tensor], \
-                steps: int = 1, big_number:float = 1.)->Tuple[torch.Tensor,torch.Tensor]:
-    '''This function helps calculate the boundary of a specific step within binarization process.
-    It's mainly used in ADC and DAC layers.
-    
-    If the input for a binarize layer is within the range of (0, 1), 
-    the binarize layer firstly offset it to (-0.5, 0.5), then multiplies
-    it with the big_number param, and gets the range of (-0.5*big_number, 0.5*big_number).
-    Because we care about the backward propagation, the big_number is usually less than 20.
-    In a lot of tests, I simply use a number around 5 as the big_number.
-    This leads the output of a binarize layer not to fill all the (0, 1),
-    which is the theorimatic output range of sigmoid. When we need the binarized result 
-    as analog signal or real number and do the up coming calculation, we need to know
-    the possible range for every specific step, in order to get the maximum possible precision.
-    
-    example:
-    >>> input = Boundary_calc_helper_wrapper(0., 1.)
-    >>> output = Boundary_calc(True, input, 3, 5.)
-    >>> print(f'input:(0, 1) through 01_range 3 times with big_number = 5. is {output}')
-    '''
-    
-    if big_number<1.:
-        raise Exception("Param:big_number is not big enough.")
-        pass
-    
-    lower_bound = bound[0]
-    upper_bound = bound[1]
-    
-    offset = 0.
-    if output_is_01:
-        offset = 0.5
-    
-    for _ in range(steps):
-        lower_bound = torch.sigmoid((lower_bound-offset)*big_number)
-        upper_bound = torch.sigmoid((upper_bound-offset)*big_number)
-    return (lower_bound, upper_bound)
-
-
-# big_number=1.
-# input = Boundary_calc_helper_wrapper(0., 1.)
-# bound = Boundary_calc(True, input, 1, big_number)
-# print(bound, f'(0, 1) through sigmoid once.')
-# bound = Boundary_calc(True, bound, 1, big_number)
-# print(bound, f'(0, 1) through sigmoid twice.')
-
-# big_number=2.
-# input = Boundary_calc_helper_wrapper(0., 1.)
-# bound = Boundary_calc(True, input, 1, big_number)
-# print(bound, f'(0, 1) through sigmoid once with big number of {big_number}.')
-# bound = Boundary_calc(True, bound, 1, big_number)
-# print(bound, f'(0, 1) through sigmoid twice with big number of {big_number}.')
-
-# input = Boundary_calc_helper_wrapper(0., 1.)
-# output = Boundary_calc(True, input, 3, 5.)
-# print(f'input:(0, 1) through 01_range 3 times with big_number = 5. is {output}')
-
-# jhklfds = 890234
-
-
-
-# Do I need this function?
-# def Boundary_blender(input:List[Tuple[torch.Tensor,torch.Tensor]])->Tuple[torch.Tensor,torch.Tensor]:
-#     '''
-#     >>> a = Boundary_calc_helper_wrapper(0.1, 0.9)
-#     >>> b = Boundary_calc_helper_wrapper(0.2, 0.7)
-#     >>> bounds = list()
-#     >>> bounds.append(a)
-#     >>> bounds.append(b)
-#     >>> blended_bound = Boundary_blender(bounds)
-#     '''
-#     lower:torch.Tensor = torch.zeros([1],dtype=torch.float32)
-#     upper:torch.Tensor = torch.zeros([1],dtype=torch.float32)
-    
-#     for b in input:
-#         lower += b[0]
-#         upper += b[1]
-#         pass
-#     lower/=len(input)
-#     upper/=len(input)
-#     return (lower, upper)
-
-
-# a = Boundary_calc_helper_wrapper(0.1, 0.9)
-# b = Boundary_calc_helper_wrapper(0.2, 0.7)
-# bounds = list()
-# bounds.append(a)
-# bounds.append(b)
-# blended_bound = Boundary_blender(bounds)
-# print(blended_bound)
-
-# fds = 432
-
-
-
-def scale_back_to_01(input:torch.Tensor, bounds:Tuple[torch.Tensor,torch.Tensor])->torch.Tensor:
-    r"""
-    example:
-    >>> input = torch.tensor([0.1,0.9])
-    >>> bounds = Boundary_calc_helper_wrapper(0.1, 0.9)
-    >>> output = scale_back_to_01(input, bounds)
-    >>> print(output, "should be 0., 1.")
-    """
-    range_length = bounds[1]-bounds[0]
-    x = input - bounds[0]
-    x /= range_length
-    return x
-
-# input = torch.tensor([0.1,0.9])
-# bounds = Boundary_calc_helper_wrapper(0.1, 0.9)
-# output = scale_back_to_01(input, bounds)
-# print(output, "should be 0., 1.")
-
-# fds=432
-
-
-def scale_back_to_np(input:torch.Tensor, bounds:Tuple[torch.Tensor,torch.Tensor])->torch.Tensor:
-    r"""
-    example:
-    >>> input = torch.tensor([0.1,0.9])
-    >>> bounds = Boundary_calc_helper_wrapper(0.1, 0.9)
-    >>> output = scale_back_to_np(input, bounds)
-    >>> print(output, "should be -1., 1.")
-    """
-    mid_point = (bounds[0] + bounds[1])/2.
-    half_range_length = (bounds[1]-bounds[0])/2.
-    x = input - mid_point
-    x /= half_range_length
-    return x
-
-input = torch.tensor([0.1,0.9])
-bounds = Boundary_calc_helper_wrapper(0.1, 0.9)
-output = scale_back_to_np(input, bounds)
-print(output, "should be -1., 1.")
-
-fds=432
-
-
-
-
-
-fdsfds
-
-
 
 
 
@@ -1591,16 +1807,68 @@ class AND_01(torch.nn.Module):
     
     example:
     
-    >>> a = torch.tensor([[0.1],[0.9],[0.9],])
-    >>> b = torch.tensor([[0.1],[0.1],[0.9],])
-    >>> '''(optional) c = torch.tensor([[0.1],[0.1],[0.9],])'''
+    >>> a = torch.tensor([[0.1],[0.9],[0.9],], requires_grad=True)
+    >>> bound_of_a = Boundary_calc_helper_wrapper(0.1, 0.9)
+    >>> a = scale_back_to_01(a, bound_of_a)
+    >>> b = torch.tensor([[0.2],[0.2],[0.8],], requires_grad=True)
+    >>> bound_of_b = Boundary_calc_helper_wrapper(0.2, 0.8)
+    >>> b = scale_back_to_01(b, bound_of_b)
+    >>> '''(optional) c = torch.tensor([[0.3],[0.3],[0.7],], requires_grad=True)'''
+    >>> '''bound_of_c = Boundary_calc_helper_wrapper(0.3, 0.7)'''
+    >>> '''c = scale_back_to_01(c, bound_of_c)'''
     >>> input = torch.concat((a,b), 1)# dim = 1 !!!
     >>> ''' or input = torch.concat((a,b,c), 1) '''
     >>> layer = AND_01()
-    >>> result = layer(c)
+    >>> result = layer(input)
     
+    The evaluating mode is a bit different. It's a simply comparison.
+    It relies on the threshold. If the input doesn't use 0.5 as threshold, offset it.
+    
+    >>> a = torch.tensor([[0.1],[0.9],[0.9],]) # requires_grad doesn't matter in this case.
+    >>> b = torch.tensor([[0.2],[0.2],[0.8],])
+    >>> c = torch.tensor([[0.3],[0.3],[0.7],])
+    >>> input = torch.concat((a,b,c), 1) 
+    >>> layer = AND_01()
+    >>> layer.eval()
+    >>> result = layer(input)
+    
+    These 2 tests show how to protect the gradient.
+    Basically the big_number of the first binarize layer is the key.
+    By making it smaller, you make the gradient of inputs closer over each elements.
+    For AND gate, if it gets a lot False as input, the corresponding gradient is very small.
+
+    >>> a = torch.tensor([[0.],[1.],[1.],], requires_grad=True)
+    >>> b = torch.tensor([[0.],[0.],[1.],], requires_grad=True)
+    >>> input = torch.concat((a,b,b), 1) 
+    >>> layer = AND_01()
+    >>> layer.Binarize1.set_big_number(1., I_know_Im_setting_a_value_which_may_be_less_than_1=True)
+    >>> result = layer(input)
+    >>> print(result)
+    >>> g_in = torch.ones_like(result)
+    >>> torch.autograd.backward(result, g_in,inputs= input)
+    >>> print(input.grad)
+    >>> #more~
+    >>> input = torch.concat((a,b,b,b,b,b,b,b,b,b,b,b,b), 1) 
+    >>> layer = AND_01()
+    >>> layer.Binarize1.set_big_number(0.3, I_know_Im_setting_a_value_which_may_be_less_than_1=True)
+    >>> result = layer(input)
+    >>> print(result)
+    >>> g_in = torch.ones_like(result)
+    >>> torch.autograd.backward(result, g_in,inputs= input)
+    >>> print(input.grad)
+    
+    example for calculate the output range:
+    (remember to modify the function if you modified the forward function)
+    
+    >>> a = torch.tensor([[0.],[1.],], requires_grad=True)
+    >>> input = torch.concat((a,a), 1) 
+    >>> layer = AND_01()
+    >>> result = layer(input)
+    >>> print(result)
+    >>> print(layer.get_output_range(2), "the output range. Should be the same as the result.")
+
     If the performance doesn't meet your requirement, 
-    modify it. More explaination in the source code.
+    modify the binarize layers. More explaination in the source code.
     """
     
     def __init__(self, device=None, dtype=None) -> None:
@@ -1618,6 +1886,24 @@ class AND_01(torch.nn.Module):
         #self.Binarize3 = Binarize_01(6.)
         pass
     
+    def get_output_range(self, input_count:int, )->Tuple[torch.Tensor,torch.Tensor]:
+        '''Make sure all the inputs are in the (0., 1.) range.
+        Otherwise this function gives out wrong result.'''
+        #this function consists of 2 parts, the first part is fixed.
+        input_count_float = float(input_count)
+        offset = input_count_float*-1.+1.
+        lower = 0+offset
+        upper = input_count_float+offset
+        bounds = Boundary_calc_helper_wrapper(lower, upper)
+        
+        #this part is part 2. Make sure it's the same as the forward function.
+        bounds = Boundary_calc(True, bounds,1, big_number=self.Binarize1.base.big_number)
+        # bounds = Boundary_calc(True, bounds,1, big_number=self.Binarize2.base.big_number)
+        # bounds = Boundary_calc(True, bounds,1, big_number=self.Binarize3.base.big_number)
+        
+        return bounds
+        
+    
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.training:
             # If you know how pytorch works, you can comment this checking out.
@@ -1627,9 +1913,9 @@ class AND_01(torch.nn.Module):
                 raise Exception("Gates layers only accept rank-2 tensor. The shape should be[batch, all the inputs]")
             
             
-            #offset = float(input.shape[1])*-1.+0.5
+            offset = float(input.shape[1])*-1.+1.
             x = input.sum(dim=1, keepdim=True)
-            x = x+offset
+            x = x + offset
             x = self.Binarize1(x)
             
             # you may also needs some more Binarize layers.
@@ -1643,6 +1929,7 @@ class AND_01(torch.nn.Module):
             with torch.inference_mode():
                 x = input.gt(0.5)
                 x = x.all(dim=1, keepdim=True)
+                x = x.to(input.dtype)
                 return x
         #end of function
         
@@ -1650,56 +1937,579 @@ class AND_01(torch.nn.Module):
 
 
 
-a = torch.tensor([[0.1],[0.9],[0.9],])
-bound_of_a = Boundary_calc_helper_wrapper(0.1, 0.9)
-b = torch.tensor([[0.2],[0.2],[0.8],])
+
+# a = torch.tensor([[0.1],[0.9],[0.9],], requires_grad=True)
+# bound_of_a = Boundary_calc_helper_wrapper(0.1, 0.9)
+# a = scale_back_to_01(a, bound_of_a)
+# b = torch.tensor([[0.2],[0.2],[0.8],], requires_grad=True)
+# bound_of_b = Boundary_calc_helper_wrapper(0.2, 0.8)
+# b = scale_back_to_01(b, bound_of_b)
+# input = torch.concat((a,b), 1)# dim = 1 !!!
+# layer = AND_01()
+# result = layer(input)
+
+# '''These 2 tests show how to protect the gradient.
+# Basically the big_number of the first binarize layer is the key.
+# By making it smaller, you make the gradient of inputs closer over each elements.
+# For AND gate, if it gets a lot false as input, the corresponding gradient is very small.
+# '''
+# a = torch.tensor([[0.],[1.],[1.],], requires_grad=True)
+# b = torch.tensor([[0.],[0.],[1.],], requires_grad=True)
+# input = torch.concat((a,b,b), 1) 
+# layer = AND_01()
+# layer.Binarize1.set_big_number(1., I_know_Im_setting_a_value_which_may_be_less_than_1=True)
+# result = layer(input)
+# print(result)
+# g_in = torch.ones_like(result)
+# torch.autograd.backward(result, g_in,inputs= input)
+# print(input.grad)
+# #more~
+# input = torch.concat((a,b,b,b,b,b,b,b,b,b,b,b,b), 1) 
+# layer = AND_01()
+# layer.Binarize1.set_big_number(0.3, I_know_Im_setting_a_value_which_may_be_less_than_1=True)
+# result = layer(input)
+# print(result)
+# g_in = torch.ones_like(result)
+# torch.autograd.backward(result, g_in,inputs= input)
+# print(input.grad)
+
+# a = torch.tensor([[0.1],[0.9],[0.9],], requires_grad=True)
+# b = torch.tensor([[0.2],[0.2],[0.8],], requires_grad=True)
+# c = torch.tensor([[0.3],[0.3],[0.7],], requires_grad=True)
+# input = torch.concat((a,b,c), 1) 
+# layer = AND_01()
+# layer.eval()
+# result = layer(input)
+# print(result)
+
+# a = torch.tensor([[0.],[1.],], requires_grad=True)
+# input = torch.concat((a,a), 1) 
+# layer = AND_01()
+# result = layer(input)
+# print(result)
+# print(layer.get_output_range(2), "the output range. Should be the same as the result.")
+
+# fds=432
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Below is untested.
+#Below is untested.
+#Below is untested.
+#Below is untested.
+#Below is untested.
+#Below is untested.
+#Below is untested.
+#Below is untested.
+
+
+
+class OR_01(torch.nn.Module):
+    r""" 
+    OR gate. Takes any number of inputs. Range is (0., 1.).
+    1. is True.
+    
+    Notice: training mode uses arithmetic ops and binarize layers,
+    while eval mode uses simple comparison.
+    
+    example:
+    
+    >>> a = torch.tensor([[0.1],[0.9],[0.9],], requires_grad=True)
+    >>> bound_of_a = Boundary_calc_helper_wrapper(0.1, 0.9)
+    >>> a = scale_back_to_01(a, bound_of_a)
+    >>> b = torch.tensor([[0.2],[0.2],[0.8],], requires_grad=True)
+    >>> bound_of_b = Boundary_calc_helper_wrapper(0.2, 0.8)
+    >>> b = scale_back_to_01(b, bound_of_b)
+    >>> '''(optional) c = torch.tensor([[0.3],[0.3],[0.7],], requires_grad=True)'''
+    >>> '''bound_of_c = Boundary_calc_helper_wrapper(0.3, 0.7)'''
+    >>> '''c = scale_back_to_01(c, bound_of_c)'''
+    >>> input = torch.concat((a,b), 1)# dim = 1 !!!
+    >>> ''' or input = torch.concat((a,b,c), 1) '''
+    >>> layer = OR_01()
+    >>> result = layer(input)
+    
+    The evaluating mode is a bit different. It's a simply comparison.
+    It relies on the threshold. If the input doesn't use 0.5 as threshold, offset it.
+    
+    >>> a = torch.tensor([[0.1],[0.9],[0.9],]) # requires_grad doesn't matter in this case.
+    >>> b = torch.tensor([[0.2],[0.2],[0.8],])
+    >>> c = torch.tensor([[0.3],[0.3],[0.7],])
+    >>> input = torch.concat((a,b,c), 1) 
+    >>> layer = OR_01()
+    >>> layer.eval()
+    >>> result = layer(input)
+    
+    These 2 tests show how to protect the gradient.
+    Basically the big_number of the first binarize layer is the key.
+    By making it smaller, you make the gradient of inputs closer over each elements.
+    For OR gate, if it gets a lot True as input, the corresponding gradient is very small.
+
+    >>> a = torch.tensor([[0.],[1.],[1.],], requires_grad=True)
+    >>> b = torch.tensor([[0.],[0.],[1.],], requires_grad=True)
+    >>> input = torch.concat((a,b,b), 1) 
+    >>> layer = AND_01()
+    >>> layer.Binarize1.set_big_number(1., I_know_Im_setting_a_value_which_may_be_less_than_1=True)
+    >>> result = layer(input)
+    >>> print(result)
+    >>> g_in = torch.ones_like(result)
+    >>> torch.autograd.backward(result, g_in,inputs= input)
+    >>> print(input.grad)
+    >>> #more~
+    >>> input = torch.concat((a,b,b,b,b,b,b,b,b,b,b,b,b), 1) 
+    >>> layer = AND_01()
+    >>> layer.Binarize1.set_big_number(0.3, I_know_Im_setting_a_value_which_may_be_less_than_1=True)
+    >>> result = layer(input)
+    >>> print(result)
+    >>> g_in = torch.ones_like(result)
+    >>> torch.autograd.backward(result, g_in,inputs= input)
+    >>> print(input.grad)
+
+    example for calculate the output range:
+    (remember to modify the function if you modified the forward function)
+    
+    >>> a = torch.tensor([[0.],[1.],], requires_grad=True)
+    >>> input = torch.concat((a,a), 1) 
+    >>> layer = OR_01()
+    >>> result = layer(input)
+    >>> print(result)
+    >>> print(layer.get_output_range(2), "the output range. Should be the same as the result.")
+
+    If the performance doesn't meet your requirement, 
+    modify the binarize layers. More explaination in the source code.
+    """
+    
+    def __init__(self, device=None, dtype=None) -> None:
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        super().__init__()
+        
+        # The intermediate result will be binarized with following layers.
+        self.Binarize1 = Binarize_01(6.)
+        '''The only param is the big_number. 
+        Bigger big_number leads to more binarization and slightly bigger result range.
+        More layers leads to more binarization.
+        '''
+        # you may also needs some more Binarize layers.
+        #self.Binarize2 = Binarize_01(6.)
+        #self.Binarize3 = Binarize_01(6.)
+        pass
+    
+    def get_output_range(self, input_count:int, )->Tuple[torch.Tensor,torch.Tensor]:
+        '''Make sure all the inputs are in the (0., 1.) range.
+        Otherwise this function gives out wrong result.'''
+        #this function consists of 2 parts, the first part is fixed.
+        input_count_float = float(input_count)
+        offset = input_count_float*-1.+1.
+        lower = 0+offset
+        upper = input_count_float+offset
+        bounds = Boundary_calc_helper_wrapper(lower, upper)
+        
+        #this part is part 2. Make sure it's the same as the forward function.
+        bounds = Boundary_calc(True, bounds,1, big_number=self.Binarize1.base.big_number)
+        # bounds = Boundary_calc(True, bounds,1, big_number=self.Binarize2.base.big_number)
+        # bounds = Boundary_calc(True, bounds,1, big_number=self.Binarize3.base.big_number)
+        
+        return bounds
+        
+    
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if self.training:
+            # If you know how pytorch works, you can comment this checking out.
+            if not input.requires_grad:
+                raise Exception("Set x.requires_grad to True. If you know what you are doing, you can comment this line.")
+            if len(input.shape)!=2:
+                raise Exception("Gates layers only accept rank-2 tensor. The shape should be[batch, all the inputs]")
+            
+            
+            offset = float(input.shape[1])*-1.+1.
+            x = input.sum(dim=1, keepdim=True)
+            x = x + offset
+            x = self.Binarize1(x)
+            
+            # you may also needs some more Binarize layers.
+            # x = self.Binarize2(x)
+            # x = self.Binarize3(x)
+
+            return x
+
+            
+        else:#eval mode
+            with torch.inference_mode():
+                x = input.gt(0.5)
+                x = x.all(dim=1, keepdim=True)
+                x = x.to(input.dtype)
+                return x
+        #end of function
+        
+    pass
+
+
+
+
+# a = torch.tensor([[0.1],[0.9],[0.9],], requires_grad=True)
+# bound_of_a = Boundary_calc_helper_wrapper(0.1, 0.9)
+# a = scale_back_to_01(a, bound_of_a)
+# b = torch.tensor([[0.2],[0.2],[0.8],], requires_grad=True)
+# bound_of_b = Boundary_calc_helper_wrapper(0.2, 0.8)
+# b = scale_back_to_01(b, bound_of_b)
+# input = torch.concat((a,b), 1)# dim = 1 !!!
+# layer = AND_01()
+# result = layer(input)
+
+# '''These 2 tests show how to protect the gradient.
+# Basically the big_number of the first binarize layer is the key.
+# By making it smaller, you make the gradient of inputs closer over each elements.
+# For AND gate, if it gets a lot false as input, the corresponding gradient is very small.
+# '''
+# a = torch.tensor([[0.],[1.],[1.],], requires_grad=True)
+# b = torch.tensor([[0.],[0.],[1.],], requires_grad=True)
+# input = torch.concat((a,b,b), 1) 
+# layer = AND_01()
+# layer.Binarize1.set_big_number(1., I_know_Im_setting_a_value_which_may_be_less_than_1=True)
+# result = layer(input)
+# print(result)
+# g_in = torch.ones_like(result)
+# torch.autograd.backward(result, g_in,inputs= input)
+# print(input.grad)
+# #more~
+# input = torch.concat((a,b,b,b,b,b,b,b,b,b,b,b,b), 1) 
+# layer = AND_01()
+# layer.Binarize1.set_big_number(0.3, I_know_Im_setting_a_value_which_may_be_less_than_1=True)
+# result = layer(input)
+# print(result)
+# g_in = torch.ones_like(result)
+# torch.autograd.backward(result, g_in,inputs= input)
+# print(input.grad)
+
+# a = torch.tensor([[0.1],[0.9],[0.9],], requires_grad=True)
+# b = torch.tensor([[0.2],[0.2],[0.8],], requires_grad=True)
+# c = torch.tensor([[0.3],[0.3],[0.7],], requires_grad=True)
+# input = torch.concat((a,b,c), 1) 
+# layer = AND_01()
+# layer.eval()
+# result = layer(input)
+# print(result)
+
+# fds=432
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class AND_np(torch.nn.Module):
+    r""" 
+    AND gate. Takes any number of inputs. Range is (-1., 1.).
+    1. is True.
+    
+    Notice: training mode uses arithmetic ops and binarize layers,
+    while eval mode uses simple comparison.
+    
+    example:
+    
+    unfinished docs
+    
+    >>> a = torch.tensor([[0.1],[0.9],[0.9],], requires_grad=True)
+    >>> bound_of_a = Boundary_calc_helper_wrapper(0.1, 0.9)
+    >>> a = scale_back_to_01(a, bound_of_a)
+    >>> b = torch.tensor([[0.2],[0.2],[0.8],], requires_grad=True)
+    >>> bound_of_b = Boundary_calc_helper_wrapper(0.2, 0.8)
+    >>> b = scale_back_to_01(b, bound_of_b)
+    >>> '''(optional) c = torch.tensor([[0.3],[0.3],[0.7],], requires_grad=True)'''
+    >>> '''bound_of_c = Boundary_calc_helper_wrapper(0.3, 0.7)'''
+    >>> '''c = scale_back_to_01(c, bound_of_c)'''
+    >>> input = torch.concat((a,b), 1)# dim = 1 !!!
+    >>> ''' or input = torch.concat((a,b,c), 1) '''
+    >>> layer = AND_01()
+    >>> result = layer(input)
+    
+    The evaluating mode is a bit different. It's a simply comparison.
+    It relies on the threshold. If the input doesn't use 0.5 as threshold, offset it.
+    
+    >>> a = torch.tensor([[0.1],[0.9],[0.9],]) # requires_grad doesn't matter in this case.
+    >>> b = torch.tensor([[0.2],[0.2],[0.8],])
+    >>> c = torch.tensor([[0.3],[0.3],[0.7],])
+    >>> input = torch.concat((a,b,c), 1) 
+    >>> layer = AND_01()
+    >>> layer.eval()
+    >>> result = layer(input)
+    
+    These 2 tests show how to protect the gradient.
+    Basically the big_number of the first binarize layer is the key.
+    By making it smaller, you make the gradient of inputs closer over each elements.
+    For AND gate, if it gets a lot false as input, the corresponding gradient is very small.
+
+    >>> a = torch.tensor([[0.],[1.],[1.],], requires_grad=True)
+    >>> b = torch.tensor([[0.],[0.],[1.],], requires_grad=True)
+    >>> input = torch.concat((a,b,b), 1) 
+    >>> layer = AND_01()
+    >>> layer.Binarize1.set_big_number(1., I_know_Im_setting_a_value_which_may_be_less_than_1=True)
+    >>> result = layer(input)
+    >>> print(result)
+    >>> g_in = torch.ones_like(result)
+    >>> torch.autograd.backward(result, g_in,inputs= input)
+    >>> print(input.grad)
+    >>> #more~
+    >>> input = torch.concat((a,b,b,b,b,b,b,b,b,b,b,b,b), 1) 
+    >>> layer = AND_01()
+    >>> layer.Binarize1.set_big_number(0.3, I_know_Im_setting_a_value_which_may_be_less_than_1=True)
+    >>> result = layer(input)
+    >>> print(result)
+    >>> g_in = torch.ones_like(result)
+    >>> torch.autograd.backward(result, g_in,inputs= input)
+    >>> print(input.grad)
+
+    If the performance doesn't meet your requirement, 
+    modify the binarize layers. More explaination in the source code.
+    """
+    
+    def __init__(self, device=None, dtype=None) -> None:
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        super().__init__()
+        
+        # The intermediate result will be binarized with following layers.
+        self.Binarize1 = Binarize_01(6.)
+        '''The only param is the big_number. 
+        Bigger big_number leads to more binarization and slightly bigger result range.
+        More layers leads to more binarization.
+        '''
+        # you may also needs some more Binarize layers.
+        #self.Binarize2 = Binarize_01(6.)
+        #self.Binarize3 = Binarize_01(6.)
+        pass
+    
+    def get_output_range(self, input_count:int, )->Tuple[torch.Tensor,torch.Tensor]:
+        '''Make sure all the inputs are in the (0., 1.) range.
+        Otherwise this function gives out wrong result.'''
+        #this function consists of 2 parts, the first part is fixed.
+        input_count_float = float(input_count)
+        offset = input_count_float*-1.+1.
+        lower = 0+offset
+        upper = input_count_float+offset
+        bounds = Boundary_calc_helper_wrapper(lower, upper)
+        
+        #this part is part 2. Make sure it's the same as the forward function.
+        bounds = Boundary_calc(True, bounds,1, big_number=self.Binarize1.base.big_number)
+        # bounds = Boundary_calc(True, bounds,1, big_number=self.Binarize2.base.big_number)
+        # bounds = Boundary_calc(True, bounds,1, big_number=self.Binarize3.base.big_number)
+        
+        return bounds
+        
+    
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if self.training:
+            # If you know how pytorch works, you can comment this checking out.
+            if not input.requires_grad:
+                raise Exception("Set x.requires_grad to True. If you know what you are doing, you can comment this line.")
+            if len(input.shape)!=2:
+                raise Exception("Gates layers only accept rank-2 tensor. The shape should be[batch, all the inputs]")
+            
+            
+            offset = float(input.shape[1])*-1.+1.
+            x = input.sum(dim=1, keepdim=True)
+            x = x + offset
+            x = self.Binarize1(x)
+            
+            # you may also needs some more Binarize layers.
+            # x = self.Binarize2(x)
+            # x = self.Binarize3(x)
+
+            return x
+
+            
+        else:#eval mode
+            with torch.inference_mode():
+                x = input.gt(0.5)
+                x = x.all(dim=1, keepdim=True)
+                x = x.to(input.dtype)
+                return x
+        #end of function
+        
+    pass
+
+
+
+
+a = torch.tensor([[-0.9],[0.9],[0.9],], requires_grad=True)
+bound_of_a = Boundary_calc_helper_wrapper(-0.9, 0.9)
+a = scale_back_to_np(a, bound_of_a)
+b = torch.tensor([[-0.8],[-0.8],[0.8],], requires_grad=True)
 bound_of_b = Boundary_calc_helper_wrapper(0.2, 0.8)
-
-'''(optional) c = torch.tensor([[0.3],[0.3],[0.7],])'''
-'''bound_of_c = Boundary_calc_helper_wrapper(0.3, 0.7)'''
+b = scale_back_to_np(b, bound_of_b)
 input = torch.concat((a,b), 1)# dim = 1 !!!
-''' or input = torch.concat((a,b,c), 1) '''
+layer = AND_np()
+result = layer(input)
+
+'''These 2 tests show how to protect the gradient.
+Basically the big_number of the first binarize layer is the key.
+By making it smaller, you make the gradient of inputs closer over each elements.
+For AND gate, if it gets a lot false as input, the corresponding gradient is very small.
+'''
+a = torch.tensor([[0.],[1.],[1.],], requires_grad=True)
+b = torch.tensor([[0.],[0.],[1.],], requires_grad=True)
+input = torch.concat((a,b,b), 1) 
 layer = AND_01()
-result = layer(c)
-
-
-
-
-
-
-
-
-
-
-
+layer.Binarize1.set_big_number(1., I_know_Im_setting_a_value_which_may_be_less_than_1=True)
+result = layer(input)
+print(result)
+g_in = torch.ones_like(result)
+torch.autograd.backward(result, g_in,inputs= input)
+print(input.grad)
+#more~
+input = torch.concat((a,b,b,b,b,b,b,b,b,b,b,b,b), 1) 
 layer = AND_01()
-a = torch.tensor([[0.1],[0.9],[0.9],[0.9],])
-b = torch.tensor([[0.1],[0.1],[0.9],[0.9],])
-c = torch.tensor([[0.1],[0.1],[0.1],[0.9],])
-input = torch.concat((a,b,c), 1)
-input.requires_grad_()
-print(input)
-output = layer(input)
-print(output, "should be 0.0_, 0.0_, 0.0_, 0.9_")
-g_in = torch.ones_like(output)
-torch.autograd.backward(output, g_in,inputs= input)
+layer.Binarize1.set_big_number(0.3, I_know_Im_setting_a_value_which_may_be_less_than_1=True)
+result = layer(input)
+print(result)
+g_in = torch.ones_like(result)
+torch.autograd.backward(result, g_in,inputs= input)
 print(input.grad)
 
-
-
+a = torch.tensor([[0.1],[0.9],[0.9],], requires_grad=True)
+b = torch.tensor([[0.2],[0.2],[0.8],], requires_grad=True)
+c = torch.tensor([[0.3],[0.3],[0.7],], requires_grad=True)
+input = torch.concat((a,b,c), 1) 
 layer = AND_01()
 layer.eval()
-a = torch.tensor([[0.1],[0.9],[0.9],[0.9],])
-b = torch.tensor([[0.1],[0.1],[0.9],[0.9],])
-c = torch.tensor([[0.1],[0.1],[0.1],[0.9],])
-input = torch.concat((a,b,c), 1)
-output = layer(input)
-print(output, "should be 0., 0., 0., 1.")
+result = layer(input)
+print(result)
+
+fds=432
 
 
 
-fds = 432
-#c = torch.cat()
+
+
+
+
+
+
+
+
 
 
 
@@ -1763,7 +2573,7 @@ from 01, you can go to: 01
 '''to do list:
 unfinished docs
 __all__
-
+set big number 可能要允许设置小于1的数。。不然门层的可训练性可能会出问题。
 
 '''
 

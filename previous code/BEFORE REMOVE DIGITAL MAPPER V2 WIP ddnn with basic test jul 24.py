@@ -1859,17 +1859,6 @@ class DigitalMapper_V2(torch.nn.Module):
         one_hot_o_i[out_features_iota_o, index_of_max_o] = 1.
         return one_hot_o_i
     
-    def get_zero_grad_ratio(self, directly_print_out:float = False)->float:
-        result = 0.
-        if not self.raw_weight.grad is None:
-            flags = self.raw_weight.grad.eq(0.)
-            zero_grad_total_amount = flags.sum().item()
-            nelement = self.raw_weight.nelement()
-            result = float(zero_grad_total_amount)/nelement
-        if directly_print_out:
-            print("get_zero_grad_ratio:", result)
-        return result
-    
     def forward(self, input:torch.Tensor)->torch.Tensor:
         # If you know how pytorch works, you can comment this checking out.
         # if self.training and (not input.requires_grad):
@@ -3013,14 +3002,19 @@ class XOR_np(torch.nn.Module):
 
 class DigitalSignalProcessingUnit_layer(torch.nn.Module):
     r'''DSPU, Digital Signal Processing Unit.
+    
     It's a mapper followed by a compound gate layer.
+    
     
     unfinished docs
     It accepts standard binarized range as input, and 
     also outputs standard binarized range.
     
+    
+    
     This example shows how to handle pure digital signal.
     Only standard binary signals are allowed.
+    
     All the gates are 2-input, both-output.
     
     Basic idea:
@@ -3032,30 +3026,22 @@ class DigitalSignalProcessingUnit_layer(torch.nn.Module):
     >>> output = digital_mapper(output_unmapped)# the out_mapper
     '''
     #__constants__ = ['',]
-    
-    protect_param_every____training:int
-    training_count:int
 
     def __init__(self, in_features: int, \
-        SIG_single_input_gates: int, and_gates: int, or_gates: int, xor_gates: int, \
-            check_dimentions:bool = True, \
-                    protect_param_every____training:int = 20, \
+        single_input_gates: int, and_gates: int, or_gates: int, xor_gates: int, \
             scaling_ratio_for_gramo_in_mapper:float = 200., \
                     device=None, dtype=None) -> None:       #, debug_info = ""
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
         
-        if check_dimentions:
-            raise Exception("to do")
-        
-        
         self.in_mapper_in_features = in_features
-        self.in_mapper_out_features = SIG_single_input_gates+(and_gates+or_gates+xor_gates)*2
-        self.SIG_count = SIG_single_input_gates
+        self.in_mapper_out_features = single_input_gates+(and_gates+or_gates+xor_gates)*2
+        self.single_input_gate_count = single_input_gates
         self.and_gate_count = and_gates
         self.or_gate_count = or_gates
         self.xor_gate_count = xor_gates
-        self.update_gate_input_index()
+        
+        
         
         # Creates the layers.
         self.in_mapper = DigitalMapper_V2(self.in_mapper_in_features, self.in_mapper_out_features,
@@ -3070,9 +3056,6 @@ class DigitalSignalProcessingUnit_layer(torch.nn.Module):
        
         self.out_gramo = GradientModification()# I guess this should be default param.
        
-        # For the param protection.
-        self.protect_param_every____training = protect_param_every____training 
-        self.training_count = 0 
         #end of function        
         
     def accepts_non_standard_range(self)->bool:
@@ -3086,7 +3069,7 @@ class DigitalSignalProcessingUnit_layer(torch.nn.Module):
     def get_in_features(self)->int:
         return self.in_mapper_in_features
     def get_out_features(self)->int:
-        return self.SIG_count+self.in_mapper_out_features+2
+        return self.single_input_gate_count+self.in_mapper_out_features
         #old version. return self.in_mapper_out_features+2
     def get_mapper_raw_weight(self)->torch.nn.Parameter:
         return self.in_mapper.raw_weight
@@ -3116,127 +3099,7 @@ class DigitalSignalProcessingUnit_layer(torch.nn.Module):
         '''Simply sets the inner.'''
         self.in_mapper.set_auto_print_difference_between_epochs(set_to)        
         pass
-
-    def get_zero_grad_ratio(self, directly_print_out:float = False)->float:
-        return self.in_mapper.get_zero_grad_ratio(directly_print_out)
-    
-    def update_gate_input_index(self):
-        pos_to = 0
-        
-        pos_from = pos_to
-        pos_to += self.SIG_count#no *2
-        self.SIG_from = pos_from
-        self.SIG_to = pos_to
-            
-        pos_from = pos_to
-        pos_to += self.and_gate_count*2
-        self.and_gate_from = pos_from
-        self.and_gate_to = pos_to
-        
-        pos_from = pos_to
-        pos_to += self.or_gate_count*2
-        self.or_gate_from = pos_from
-        self.or_gate_to = pos_to
-        
-        pos_from = pos_to
-        pos_to += self.xor_gate_count*2
-        self.xor_gate_from = pos_from
-        self.xor_gate_to = pos_to
-        pass
-        #end of function.
-    def print_gate_input_index(self):
-        result_str = f'Single input gate:{self.SIG_from}>>>{self.SIG_to}, '
-        result_str += f'and gate:{self.and_gate_from}>>>{self.and_gate_to}, '
-        result_str += f'or gate:{self.or_gate_from}>>>{self.or_gate_to}, '
-        result_str += f'xor gate:{self.xor_gate_from}>>>{self.xor_gate_to}.'
-        print(result_str)        
-        pass
-    
-    def print_param_overlap_ratio(self):
-        with torch.no_grad():
-            the_max_index = self.in_mapper.raw_weight.data.max(dim=1).indices
-            the_dtype = torch.int32
-            if self.SIG_count>1:
-                total_overlap_count = 0
-                total_possible_count = self.SIG_count*(self.SIG_count-1)//2
-                for i in range(self.SIG_count-1):
-                    host_index = torch.tensor([self.SIG_from+(i)], dtype=the_dtype)
-                    guest_index = torch.linspace(self.SIG_from+(i+1)*2,
-                                            self.SIG_from+(self.SIG_count-1)*2,
-                                            self.SIG_count-i-1, dtype=the_dtype)
-                    flag_overlapped = the_max_index[guest_index].eq(the_max_index[host_index])
-                    #print(host_index, guest_index, flag_first_input_eq, flag_second_input_eq,flag_overlapped)
-                    total_overlap_count += int(flag_overlapped.sum().item())
-                    pass
-                overlap_ratio = float(total_overlap_count)/total_possible_count
-                print("SIG_overlap_ratio:", 
-                        f'{overlap_ratio:.4f}',", ", total_overlap_count,
-                        "/", total_possible_count)
-                pass#if self.SIG_gate_count>0:
-            
-            if self.and_gate_count>1:
-                total_overlap_count = 0
-                total_possible_count = self.and_gate_count*(self.and_gate_count-1)//2
-                for i in range(self.and_gate_count-1):
-                    host_index = torch.tensor([self.and_gate_from+(i)*2], dtype=the_dtype)
-                    guest_index = torch.linspace(self.and_gate_from+(i+1)*2,
-                                            self.and_gate_from+(self.and_gate_count-1)*2,
-                                            self.and_gate_count-i-1, dtype=the_dtype)
-                    flag_first_input_eq = the_max_index[guest_index].eq(the_max_index[host_index])
-                    flag_second_input_eq = the_max_index[guest_index+1].eq(the_max_index[host_index+1])
-                    flag_overlapped = flag_first_input_eq.logical_and(flag_second_input_eq)
-                    #print(host_index, guest_index, flag_first_input_eq, flag_second_input_eq,flag_overlapped)
-                    total_overlap_count += int(flag_overlapped.sum().item())
-                    pass
-                overlap_ratio = float(total_overlap_count)/total_possible_count
-                print("AND_overlap_ratio:", 
-                        f'{overlap_ratio:.4f}',", ", total_overlap_count,
-                        "/", total_possible_count)
-                pass#if self.and_gate_count>0:
-                
-            if self.or_gate_count>1:
-                total_overlap_count = 0
-                total_possible_count = self.or_gate_count*(self.or_gate_count-1)//2
-                for i in range(self.or_gate_count-1):
-                    host_index = torch.tensor([self.or_gate_from+(i)*2], dtype=the_dtype)
-                    guest_index = torch.linspace(self.or_gate_from+(i+1)*2,
-                                            self.or_gate_from+(self.or_gate_count-1)*2,
-                                            self.or_gate_count-i-1, dtype=the_dtype)
-                    flag_first_input_eq = the_max_index[guest_index].eq(the_max_index[host_index])
-                    flag_second_input_eq = the_max_index[guest_index+1].eq(the_max_index[host_index+1])
-                    flag_overlapped = flag_first_input_eq.logical_and(flag_second_input_eq)
-                    #print(host_index, guest_index, flag_first_input_eq, flag_second_input_eq,flag_overlapped)
-                    total_overlap_count += int(flag_overlapped.sum().item())
-                    pass
-                overlap_ratio = float(total_overlap_count)/total_possible_count
-                print("OR_overlap_ratio:", 
-                        f'{overlap_ratio:.4f}',", ", total_overlap_count,
-                        "/", total_possible_count)
-                pass#if self.or_gate_count>0:
-            
-            if self.xor_gate_count>1:
-                total_overlap_count = 0
-                total_possible_count = self.xor_gate_count*(self.xor_gate_count-1)//2
-                for i in range(self.xor_gate_count-1):
-                    host_index = torch.tensor([self.xor_gate_from+(i)*2], dtype=the_dtype)
-                    guest_index = torch.linspace(self.xor_gate_from+(i+1)*2,
-                                            self.xor_gate_from+(self.xor_gate_count-1)*2,
-                                            self.xor_gate_count-i-1, dtype=the_dtype)
-                    flag_first_input_eq = the_max_index[guest_index].eq(the_max_index[host_index])
-                    flag_second_input_eq = the_max_index[guest_index+1].eq(the_max_index[host_index+1])
-                    flag_overlapped = flag_first_input_eq.logical_and(flag_second_input_eq)
-                    #print(host_index, guest_index, flag_first_input_eq, flag_second_input_eq,flag_overlapped)
-                    total_overlap_count += int(flag_overlapped.sum().item())
-                    pass
-                overlap_ratio = float(total_overlap_count)/total_possible_count
-                print("XOR_overlap_ratio:", 
-                        f'{overlap_ratio:.4f}',", ", total_overlap_count,
-                        "/", total_possible_count)
-                pass#if self.xor_gate_count>0:
-            pass
-        pass
-    #end of function
-        
+     
     def forward(self, input:torch.Tensor)->torch.Tensor:
         '''This example only shows the training path.'''
         
@@ -3248,125 +3111,38 @@ class DigitalSignalProcessingUnit_layer(torch.nn.Module):
         if len(self.xor_gate.Binarize.gramos)>0:
             raise Exception("self.xor_gate has gramo !!!")
         
-        #param protection
-        if self.training_count<self.protect_param_every____training:
-            self.training_count +=1
-        else:
-            self.training_count = 0
-            # with torch.no_grad():
-            #     if self.print_overlapping_param:
-            #         #print("if self.print_overlapping_param   __line__   3174")
-            #         #print(self.in_mapper.raw_weight.data) 
-            #         #SIG = single input gate.
-            #         the_max_index = self.in_mapper.raw_weight.data.max(dim=1).indices
-            #         #print(the_max_index)
-            #         #single input gate, or the NOT gate.
-            #         the_dtype = torch.int32
-                    
-            #         if self.SIG_count>1:
-            #             total_overlap_count = 0
-            #             total_possible_count = self.SIG_count*(self.SIG_count-1)//2
-            #             for i in range(self.SIG_count-1):
-            #                 host_index = torch.tensor([self.SIG_from+(i)], dtype=the_dtype)
-            #                 guest_index = torch.linspace(self.SIG_from+(i+1)*2,
-            #                                         self.SIG_from+(self.SIG_count-1)*2,
-            #                                         self.SIG_count-i-1, dtype=the_dtype)
-            #                 flag_overlapped = the_max_index[guest_index].eq(the_max_index[host_index])
-            #                 #print(host_index, guest_index, flag_first_input_eq, flag_second_input_eq,flag_overlapped)
-            #                 total_overlap_count += int(flag_overlapped.sum().item())
-            #                 pass
-            #             overlap_ratio = float(total_overlap_count)/total_possible_count
-            #             print("SIG_overlap_ratio:", 
-            #                     f'{overlap_ratio:.4f}',", ", total_overlap_count,
-            #                     "/", total_possible_count)
-            #             pass#if self.SIG_gate_count>0:
-                    
-            #         if self.and_gate_count>1:
-            #             total_overlap_count = 0
-            #             total_possible_count = self.and_gate_count*(self.and_gate_count-1)//2
-            #             for i in range(self.and_gate_count-1):
-            #                 host_index = torch.tensor([self.and_gate_from+(i)*2], dtype=the_dtype)
-            #                 guest_index = torch.linspace(self.and_gate_from+(i+1)*2,
-            #                                         self.and_gate_from+(self.and_gate_count-1)*2,
-            #                                         self.and_gate_count-i-1, dtype=the_dtype)
-            #                 flag_first_input_eq = the_max_index[guest_index].eq(the_max_index[host_index])
-            #                 flag_second_input_eq = the_max_index[guest_index+1].eq(the_max_index[host_index+1])
-            #                 flag_overlapped = flag_first_input_eq.logical_and(flag_second_input_eq)
-            #                 #print(host_index, guest_index, flag_first_input_eq, flag_second_input_eq,flag_overlapped)
-            #                 total_overlap_count += int(flag_overlapped.sum().item())
-            #                 pass
-            #             overlap_ratio = float(total_overlap_count)/total_possible_count
-            #             print("AND_overlap_ratio:", 
-            #                     f'{overlap_ratio:.4f}',", ", total_overlap_count,
-            #                     "/", total_possible_count)
-            #             pass#if self.and_gate_count>0:
-                        
-            #         if self.or_gate_count>1:
-            #             total_overlap_count = 0
-            #             total_possible_count = self.or_gate_count*(self.or_gate_count-1)//2
-            #             for i in range(self.or_gate_count-1):
-            #                 host_index = torch.tensor([self.or_gate_from+(i)*2], dtype=the_dtype)
-            #                 guest_index = torch.linspace(self.or_gate_from+(i+1)*2,
-            #                                         self.or_gate_from+(self.or_gate_count-1)*2,
-            #                                         self.or_gate_count-i-1, dtype=the_dtype)
-            #                 flag_first_input_eq = the_max_index[guest_index].eq(the_max_index[host_index])
-            #                 flag_second_input_eq = the_max_index[guest_index+1].eq(the_max_index[host_index+1])
-            #                 flag_overlapped = flag_first_input_eq.logical_and(flag_second_input_eq)
-            #                 #print(host_index, guest_index, flag_first_input_eq, flag_second_input_eq,flag_overlapped)
-            #                 total_overlap_count += int(flag_overlapped.sum().item())
-            #                 pass
-            #             overlap_ratio = float(total_overlap_count)/total_possible_count
-            #             print("OR_overlap_ratio:", 
-            #                     f'{overlap_ratio:.4f}',", ", total_overlap_count,
-            #                     "/", total_possible_count)
-            #             pass#if self.or_gate_count>0:
-                    
-            #         if self.xor_gate_count>1:
-            #             total_overlap_count = 0
-            #             total_possible_count = self.xor_gate_count*(self.xor_gate_count-1)//2
-            #             for i in range(self.xor_gate_count-1):
-            #                 host_index = torch.tensor([self.xor_gate_from+(i)*2], dtype=the_dtype)
-            #                 guest_index = torch.linspace(self.xor_gate_from+(i+1)*2,
-            #                                         self.xor_gate_from+(self.xor_gate_count-1)*2,
-            #                                         self.xor_gate_count-i-1, dtype=the_dtype)
-            #                 flag_first_input_eq = the_max_index[guest_index].eq(the_max_index[host_index])
-            #                 flag_second_input_eq = the_max_index[guest_index+1].eq(the_max_index[host_index+1])
-            #                 flag_overlapped = flag_first_input_eq.logical_and(flag_second_input_eq)
-            #                 #print(host_index, guest_index, flag_first_input_eq, flag_second_input_eq,flag_overlapped)
-            #                 total_overlap_count += int(flag_overlapped.sum().item())
-            #                 pass
-            #             overlap_ratio = float(total_overlap_count)/total_possible_count
-            #             print("XOR_overlap_ratio:", 
-            #                     f'{overlap_ratio:.4f}',", ", total_overlap_count,
-            #                     "/", total_possible_count)
-            #             pass#if self.xor_gate_count>0:
-                    
-            #             pass
-                    
-            pass#end of param protection.
         
         x = input
         x = self.in_mapper(x)
-        not_head:torch.Tensor = self.single_input_gate(
-            x[:, self.SIG_from:self.SIG_to])
+        #print(x, "xxxxxxxx")
+        pos_to = 0
+        
+        pos_from = pos_to
+        pos_to += self.single_input_gate_count#no *2
+        #print(pos_from, "   pos_from/pos_to   ", pos_to)
+        not_head:torch.Tensor = self.single_input_gate(x[:, pos_from:pos_to])
         #print(not_head, "not_head")
             
-        and_head:torch.Tensor = self.and_gate(x[:, self.and_gate_from:self.and_gate_to])
+        pos_from = pos_to
+        pos_to += self.and_gate_count*2
+        #print(pos_from, "   pos_from/pos_to   ", pos_to)
+        and_head:torch.Tensor = self.and_gate(x[:, pos_from:pos_to])
         #print(and_head, "and_head")
-        
-        or_head = self.or_gate(x[:, self.or_gate_from:self.or_gate_to])  
+        pos_from = pos_to
+        pos_to += self.or_gate_count*2
+        or_head = self.or_gate(x[:, pos_from:pos_to])  
         #print(or_head, "or_head")
-        
-        xor_head = self.xor_gate(x[:, self.xor_gate_from:self.xor_gate_to])
+        pos_from = pos_to
+        pos_to += self.xor_gate_count*2
+        xor_head = self.xor_gate(x[:, pos_from:pos_to])
         #print(xor_head, "xor_head")
-        
-        neg_ones = torch.empty([input.shape[0],1])
-        neg_ones = neg_ones.fill_(-1.)
-        neg_ones = neg_ones.to(and_head.device).to(and_head.dtype)
-        ones = torch.ones([input.shape[0],1])
-        ones = ones.to(and_head.device).to(and_head.dtype)
+        # neg_ones = torch.empty([input.shape[0],1])
+        # neg_ones = neg_ones.fill_(-1.)
+        # neg_ones = neg_ones.to(and_head.device).to(and_head.dtype)
+        # ones = torch.ones([input.shape[0],1])
+        # ones = ones.to(and_head.device).to(and_head.dtype)
 
-        x = torch.concat([not_head, and_head, or_head, xor_head, neg_ones, ones],dim=1)
+        x = torch.concat([not_head, and_head, or_head, xor_head],dim=1)
         #x = torch.concat([and_head, or_head, xor_head, neg_ones, ones],dim=1)
         
         x = self.out_gramo(x)
@@ -3385,66 +3161,6 @@ class DigitalSignalProcessingUnit_layer(torch.nn.Module):
         return result
     
     pass
-
-# '''This is not a test. This is actually a reminder. The input and output sequence of gates 
-# layers are not very intuitive. If the gates are denoted as a,b,c, inputs are a1,a2,b1,b2, 
-# outputs are ao,-ao,bo,-bo, then the real sequence is:
-# input: a1,a2,b1,b2,c1,c2,d1,d2
-# output: a,b,c,d,-a,-b,-c,-d,-1,1
-# The last 2 are from neg_ones and ones. They are a bit similar to the bias in FCNN(wx+b).
-# '''
-# input = torch.tensor([[1., 2., 3.]], requires_grad=True)
-# layer = DigitalSignalProcessingUnit_layer(in_features=3,SIG_single_input_gates=2,and_gates=0,
-#                                 or_gates=0,xor_gates=0, protect_param_every____training=0)
-# print(layer.in_mapper.raw_weight.data.shape)
-# layer.in_mapper.raw_weight.data = torch.tensor([[ 1.,  0.,  0.],[ 0.,  1.,  0.],])
-# print(layer.in_mapper.raw_weight.data.shape)
-# layer.print_gate_input_index()
-# print(layer(input), "should be 1,2,-1,-2,-1,1, the last -1,1 are neg_ones and ones")
-
-# input = torch.tensor([[-1., 1.]], requires_grad=True)
-# layer = DigitalSignalProcessingUnit_layer(in_features=2,SIG_single_input_gates=0,and_gates=3,
-#                                 or_gates=0,xor_gates=0, protect_param_every____training=0)
-# print(layer.in_mapper.raw_weight.data.shape)
-# layer.in_mapper.raw_weight.data = torch.tensor([[1.,0.],[1.,0.],[1.,0.],[1.,0.],[1.,0.],[1.,0.],])
-# print(layer.in_mapper.raw_weight.data.shape)
-# layer.print_gate_input_index()
-# print(layer(input), "should be -1-1-1 1 1 1,-1,1, the last -1,1 are neg_ones and ones")
-
-# fds=432
-
-
-
-# '''parameter overlapping and protection test.'''
-# input = torch.tensor([[1., 2.]], requires_grad=True)
-# layer = DigitalSignalProcessingUnit_layer(in_features=2,
-#                 SIG_single_input_gates=0,and_gates=3,or_gates=0,xor_gates=0, 
-#                 check_dimentions=False, protect_param_every____training=0)
-# # 6 SIGs or 3 of any other gate.
-# #print(layer.in_mapper.raw_weight.data.shape)
-# layer.in_mapper.raw_weight.data = torch.tensor([
-#     [ 0.,  1.],[ 0.,  1.],[ 0.,  1.],[ 0.,  1.],[ 0.,  1.],[ 0.,  1.],])
-# layer.print_param_overlap_ratio()
-
-# input = torch.tensor([[-1.,-1.,-1.,]])#this doesn't matter.
-# layer = DigitalSignalProcessingUnit_layer(in_features=2,
-#                         SIG_single_input_gates=5,and_gates=3,or_gates=4,xor_gates=5,
-#                         check_dimentions=False, protect_param_every____training=0)
-# #print(layer.in_mapper.raw_weight.data.shape)
-# layer.in_mapper.raw_weight.data = torch.tensor([
-#         [5,2,3],[1,5,3],[1,2,3],[1,2,3],[1,2,3],
-#         [1,2,3],[1,2,3],[1,2,3],[1,6,3],[6,2,3],[1,2,3],
-#         [1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,6,3],[1,2,3],[1,6,3],[1,2,3],
-#         [1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,5,3],[1,2,3],[1,6,3],
-#                                                 ],dtype=torch.float32)
-# layer.print_param_overlap_ratio()
-
-# fds=432
-
-
-
-
-
 
 # '''This test shows the out_gramo is the only gramo in 
 # DigitalSignalProcessingUnit_layer class.
@@ -3501,7 +3217,7 @@ class DSPU(torch.nn.Module):
                     scaling_ratio_for_gramo_in_mapper:float = 200., \
                     scaling_ratio_for_gramo_in_mapper_for_first_layer:Optional[float] = None, \
                     scaling_ratio_for_gramo_in_mapper_for_out_mapper:Optional[float] = None, \
-                    protect_param_every____training:int = 20, \
+                    debug_print_raw_param_in_training_pass:bool = False, \
                     device=None, dtype=None) -> None:
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
@@ -3519,41 +3235,19 @@ class DSPU(torch.nn.Module):
         #debug_print_raw_param_in_training_pass
         self.first_layer = DigitalSignalProcessingUnit_layer(
             in_features, single_input_gates, and_gates, or_gates, xor_gates, 
-            scaling_ratio_for_gramo_in_mapper=scaling_ratio_for_gramo_in_mapper_for_first_layer, 
-            check_dimentions=False)#, debug_info = "first layer")
+            scaling_ratio_for_gramo_in_mapper=scaling_ratio_for_gramo_in_mapper_for_first_layer, )#, debug_info = "first layer")
         
         mid_width = self.first_layer.get_out_features()
         self.second_to_last_layers = torch.nn.modules.container.ModuleList( \
                 [DigitalSignalProcessingUnit_layer(mid_width, single_input_gates, 
                                                    and_gates, or_gates, xor_gates, 
-                        scaling_ratio_for_gramo_in_mapper=scaling_ratio_for_gramo_in_mapper,
-                        check_dimentions=False)   
+                        scaling_ratio_for_gramo_in_mapper=scaling_ratio_for_gramo_in_mapper)   
                     for i in range(num_layers-1)])
         self.num_layers = num_layers
            
         self.out_mapper = DigitalMapper_V2(mid_width, out_features,
                                        scaling_ratio_for_gramo=scaling_ratio_for_gramo_in_mapper_for_out_mapper)# , debug_info="out mapper")
-        
-
-        self.protect_param_every____training = protect_param_every____training 
-        self.training_count = 0 
-        self.set_protect_param_every____training(protect_param_every____training)
         #end of function        
-           
-    def set_protect_param_every____training(self, set_to= 20):
-        self.protect_param_every____training = set_to 
-        self.first_layer.protect_param_every____training = set_to
-        for layer in self.second_to_last_layers:
-            layer.protect_param_every____training = set_to
-            pass
-        pass 
-        
-    # def set_auto_print_overlapping_param(self, set_to:bool = True):
-    #     self.first_layer.print_overlapping_param = set_to
-    #     for layer in self.second_to_last_layers:
-    #         layer.print_overlapping_param = set_to
-    #         pass
-    #     pass
         
     def accepts_non_standard_range(self)->bool:
         return False
@@ -3685,24 +3379,6 @@ class DSPU(torch.nn.Module):
     #     pass
         #end of function
     
-    
-    
-    def get_zero_grad_ratio(self, directly_print_out:float = False)->List[float]:
-        result:List[float] = []
-        result.append(self.first_layer.get_zero_grad_ratio(directly_print_out))
-        for layer in self.second_to_last_layers:
-            result.append(layer.get_zero_grad_ratio(directly_print_out))
-            pass
-        result.append(self.out_mapper.get_zero_grad_ratio(directly_print_out))
-        return result
-    
-    def print_param_overlap_ratio(self):
-        self.first_layer.print_param_overlap_ratio()
-        for layer in self.second_to_last_layers:
-            layer.print_param_overlap_ratio()
-            pass
-        pass
-    
     def forward(self, input:torch.Tensor)->torch.Tensor:
         '''This example only shows the training path.'''
         x = input
@@ -3757,30 +3433,6 @@ def DSPU_adder_test(in_a:int, in_b:int, in_c:int, model:DSPU):
 
 
 
-# input = torch.ones([1,10], requires_grad=True)
-# layer = single_input_gate_np(1)
-# output = layer(input)
-# g_in = torch.zeros_like(output)
-# g_in[0,:5] = 1.
-# torch.autograd.backward(output, g_in, inputs=input)
-# print(g_in)
-# print(input.grad)
-# fds=432
-
-# '''and, or, xor takes any grad from its output and duplicate it to both input'''
-# input = torch.ones([1,10], requires_grad=True)
-# layer = AND_np(2,1)
-# output = layer(input)
-# g_in = torch.zeros_like(output)
-# g_in[0,:3] = 1.
-# torch.autograd.backward(output, g_in, inputs=input)
-# print(g_in)
-# print(input.grad)
-# fds=432
-
-#DigitalMapper_eval_only_v2
-
-
 
 
 
@@ -3796,15 +3448,13 @@ def DSPU_adder_test(in_a:int, in_b:int, in_c:int, model:DSPU):
 # target = torch.tensor([[-1.], [1.], [1.]])
 # model = DSPU(input.shape[1],target.shape[1],2,1,1,1,num_layers=1, scaling_ratio_for_gramo_in_mapper=200.)
 # model.get_info(directly_print=True)
-# model.set_auto_print_overlapping_param(True)
-# model.set_protect_param_every____training(0)
 # #model.set_auto_print_difference_between_epochs()
 
 # loss_function = torch.nn.MSELoss()
 # optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
 
 # iter_per_print = 1#111
-# print_count = 3
+# print_count = 566
 # for epoch in range(iter_per_print*print_count):
 #     model.train()
 #     pred = model(input)
@@ -3825,7 +3475,6 @@ def DSPU_adder_test(in_a:int, in_b:int, in_c:int, model:DSPU):
 #             make_grad_noisy(model, 2.)
 #             pass
 #         pass
-    
 #     if False and "print the grad":
 #         if epoch%iter_per_print == iter_per_print-1:
 #             print(model.first_layer.in_mapper.raw_weight.grad, "grad")
@@ -3963,8 +3612,6 @@ def DSPU_adder_test(in_a:int, in_b:int, in_c:int, model:DSPU):
 # model.get_info(directly_print=True)
 # #model.set_auto_print_difference_between_epochs()
 # #model.set_auto_print_difference_between_epochs(True,5)
-# # model.set_auto_print_overlapping_param(True)
-# # model.set_protect_param_every____training(0)
 # loss_function = torch.nn.MSELoss()
 # optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
 
@@ -3972,7 +3619,7 @@ def DSPU_adder_test(in_a:int, in_b:int, in_c:int, model:DSPU):
 # input = input.cuda()
 # target = target.cuda()
 # iter_per_print = 1#111
-# print_count = 3
+# print_count = 1555
 # for epoch in range(iter_per_print*print_count):
 #     model.train()
 #     pred = model(input)
@@ -4013,10 +3660,6 @@ def DSPU_adder_test(in_a:int, in_b:int, in_c:int, model:DSPU):
             
 #             pass    
 #         pass    
-#     if True and "print zero grad ratio":
-#         result = model.get_zero_grad_ratio()
-#         print("print zero grad ratio: ", result)
-#         pass
 #     #optimizer.param_groups[0]["lr"] = 0.01
 #     optimizer.step()
 #     if True and "print acc":
@@ -4091,42 +3734,23 @@ f16, bit=2,layer=6,gates=8,batch=100,lr=0.001,noise_base=1.2  not*3>>> random
 f16, bit=2,layer=6,gates=16,batch=100,lr=0.001,noise_base=1.2  not*3>>> random??
 
 '''
-
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-# 重复选线，要踢一个
-
-
 (bit, layer, gates, batch, lr, noise_base) = test_config_dispatcher(
-    bit=1,layer=3,gates=8,batch=50,lr=0.001,noise_base=1.2)
+    bit=2,layer=6,gates=16,batch=100,lr=0.001,noise_base=1.2)
 is_f16 = True
-iter_per_print = 111#1111
-print_count = 5555
+iter_per_print = 50#1111
+print_count = 20000
 
 (input, target) = data_gen_full_adder(bit,batch, is_output_01=False, is_cuda=True)
 # print(input[:5])
 # print(target[:5])
 
-model = DSPU(input.shape[1],target.shape[1],gates*2,gates,gates,gates,layer, 
+model = DSPU(input.shape[1],target.shape[1],gates*3,gates,gates,gates,layer, 
              scaling_ratio_for_gramo_in_mapper=1000.,
              scaling_ratio_for_gramo_in_mapper_for_first_layer=330.,
              scaling_ratio_for_gramo_in_mapper_for_out_mapper=1000.,)#1000,330,1000
 model.get_info(directly_print=True)
 #model.set_auto_print_difference_between_epochs(True,4)
 #model.set_auto_print_difference_between_epochs(True,5)
-
-#model.set_protect_param_every____training(0)
 
 model.cuda()
 if is_f16:
@@ -4201,20 +3825,8 @@ for epoch in range(iter_per_print*print_count):
             
             pass    
         pass    
-    if True and "print zero grad ratio":
-        if epoch%iter_per_print == iter_per_print-1:
-            result = model.get_zero_grad_ratio()
-            print("print zero grad ratio: ", result)
-            pass
-        pass
     #optimizer.param_groups[0]["lr"] = 0.01
     optimizer.step()
-    if True and "print param overlap":
-        every = 100
-        if epoch%every == every-1:
-            model.print_param_overlap_ratio()
-            pass
-        pass
     if True and "print acc":
         if epoch%iter_per_print == iter_per_print-1:
             model.eval()
