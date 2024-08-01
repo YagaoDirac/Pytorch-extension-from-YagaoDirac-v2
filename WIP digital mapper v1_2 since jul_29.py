@@ -691,7 +691,7 @@ class DigitalMapper_V1_2(torch.nn.Module):
     
     def __init__(self, in_features: int, out_features: int, \
                     auto_print_difference:bool = False, \
-                    scaling_ratio_for_learning_gramo:float = 100., \
+                    scaling_ratio_for_learning_gramo:Optional[float] = None, \
                     protect_param_every____training:int = 20, \
                     #raw_weight_boundary_for_f32:float = 15., \
                         shaper_factor = 1.01035, \
@@ -709,30 +709,39 @@ class DigitalMapper_V1_2(torch.nn.Module):
         # self.raw_weight_boundary_for_f32.requires_grad_(False)
         self.raw_weight = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
         self.__reset_parameters()
+        self.raw_weight_max = torch.nn.Parameter(torch.tensor([50.]), requires_grad=False)
+        self.raw_weight_min = torch.nn.Parameter(torch.tensor([-50.]), requires_grad=False)
         
-        self.ghost_weight_length = 0.
-        self.ghost_weight_length_max = 50.
-        self.ghost_weight_length_step = 0.05
+        self.with_ghost__sharped_mode = False
+        self.with_ghost = False
         
+        self.ghost_weight_length = torch.nn.Parameter(torch.tensor([0.]), requires_grad=False)
+        temp_the_log_of_in_features = torch.log(torch.tensor([in_features]))
+        temp_max_length = temp_the_log_of_in_features+50.# but 20 should also be enough.
+        self.ghost_weight_length_max = torch.nn.Parameter(temp_max_length, requires_grad=False)
+        self.ghost_weight_length_step = temp_the_log_of_in_features*0.005#or 0.02?
+        self.ghost_weight_length.data = self.ghost_weight_length.to(self.raw_weight.dtype)#?does this do anything?
+        
+        if scaling_ratio_for_learning_gramo is None:
+            scaling_ratio_for_learning_gramo = temp_the_log_of_in_features.item()*100
+            pass
         self.gramo_for_raw_weight = GradientModification(scaling_ratio=scaling_ratio_for_learning_gramo)
         
         self.set_auto_print_difference_between_epochs(auto_print_difference)
         
-        self.Final_Binarize_doesnt_need_gramo = Binarize.create_analog_to_np(needs_gramo=False)
+        self.out_binarize_doesnt_need_gramo = Binarize.create_analog_to_np(needs_gramo=False)
         self.out_gramo = GradientModification()
 
         #to keep track of the training.
         self.protect_param_every____training = protect_param_every____training 
-        self.training_count = 0 
-        
-        self.raw_weight_max = torch.nn.Parameter(torch.tensor([50.]), requires_grad=False)
-        self.raw_weight_min = torch.nn.Parameter(torch.tensor([-50.]), requires_grad=False)
+        self.protect_param__training_count = 0 
 
-        self.last_acc = torch.nn.Parameter(torch.tensor([0.5]), requires_grad=False)
+        #self.last_acc = torch.nn.Parameter(torch.tensor([0.5]), requires_grad=False)
         
         #threshold to be able to convert into eval only mode.
-        self.the_threshold__can_convert_to_eval_only_mode = torch.nn.Parameter(torch.tensor([0.51], **factory_kwargs), requires_grad=False)
-        self.the_threshold__can_convert_to_eval_only_mode.requires_grad_(False)
+        self.can_convert_to_eval_only_mode__the_threshold = torch.nn.Parameter(torch.tensor([0.51], **factory_kwargs), requires_grad=False)
+        self.can_convert_to_eval_only_mode__the_threshold.requires_grad_(False)
+        self.debug_least_strength_last_time = 0.
         pass
 
     def __reset_parameters(self) -> None:
@@ -752,13 +761,13 @@ class DigitalMapper_V1_2(torch.nn.Module):
         '''simply sets the inner'''
         self.gramo_for_raw_weight.set_scaling_ratio(scaling_ratio)
         pass
-    def set_the_threshold(self, the_threshold:float):
+    def set_can_convert_to_eval_only_mode__the_threshold(self, the_threshold:float):
         if the_threshold<=0.5:
             raise Exception("Param:the_threshold must > 0.5")
         if the_threshold>0.9:
             raise Exception("Trust me.")
-        self.the_threshold__can_convert_to_eval_only_mode = torch.nn.Parameter(torch.tensor([the_threshold], requires_grad=False))
-        self.the_threshold__can_convert_to_eval_only_mode.requires_grad_(False)
+        self.can_convert_to_eval_only_mode__the_threshold = torch.nn.Parameter(torch.tensor([the_threshold], requires_grad=False))
+        self.can_convert_to_eval_only_mode__the_threshold.requires_grad_(False)
         pass
     
     # def set_shaper_factor(self, shaper_factor:float, I_know_what_Im_doing = False):
@@ -793,39 +802,27 @@ class DigitalMapper_V1_2(torch.nn.Module):
     
     def try_increasing_ghost_weight_length(self):
         if 0. == self.ghost_weight_length:
-            self.ghost_weight_length = torch.log(torch.tensor([self.in_features], dtype=torch.float32)).item()
-            return
-        self.ghost_weight_length = self.ghost_weight_length + self.ghost_weight_length_step
+            the_log = torch.log(torch.tensor([self.in_features], dtype=torch.float32)).item()
+            the_log10 = the_log/torch.log(torch.tensor([10.], dtype=torch.float32))
+            log10_minus_1 = the_log10-1.5
+            if log10_minus_1>self.ghost_weight_length_step:
+                self.ghost_weight_length.data = log10_minus_1
+                self.ghost_weight_length.data = self.ghost_weight_length.to(self.raw_weight.dtype)
+                return
+        self.ghost_weight_length.data = self.ghost_weight_length + self.ghost_weight_length_step
         if self.ghost_weight_length > self.ghost_weight_length_max:
-            self.ghost_weight_length = self.ghost_weight_length_max
+            self.ghost_weight_length.data = self.ghost_weight_length_max
             pass
+        self.ghost_weight_length.data = self.ghost_weight_length.to(self.raw_weight.dtype)
         pass
     def try_decreasing_ghost_weight_length(self):
-        self.ghost_weight_length = self.ghost_weight_length - self.ghost_weight_length_step
+        self.ghost_weight_length.data = self.ghost_weight_length - self.ghost_weight_length_step
         if self.ghost_weight_length < 0.:
-            self.ghost_weight_length = 0.
+            self.ghost_weight_length.data = self.ghost_weight_length*0.
             pass
+        self.ghost_weight_length.data = self.ghost_weight_length.to(self.raw_weight.dtype)
         pass
     
-    def set_acc(self, acc:float, protect_param = False):#, threshold = 0.52):
-        '''When the acc is greater than 0.9, the raw_weight scales a bit. 
-        This leads the result of softmax goes a bit sharper.'''
-        self.last_acc = torch.nn.Parameter(torch.tensor([acc]), requires_grad=False)
-        
-        with torch.no_grad():
-            if 1. == acc:
-                self.try_increasing_ghost_weight_length()
-                #if self.can_convert_into_eval_only_mode(False)[1]<threshold:
-                #if acc>=0.995:
-                    #self.raw_weight.data = self.raw_weight.data *self.shaper_factor
-                pass
-            elif acc<0.9:
-                self.try_decreasing_ghost_weight_length()
-                pass
-                
-        if protect_param:
-            self.protect_raw_weight()
-        pass
     @staticmethod
     def bitwise_acc(a:torch.Tensor, b:torch.Tensor, print_out:bool = False)->float:
         temp = a.eq(b)
@@ -838,7 +835,15 @@ class DigitalMapper_V1_2(torch.nn.Module):
         return acc_float
         
         
-    def get_softmax_format(self, with_ghost_weight = False):
+    def get_softmax_format(self, with_ghost_weight :Optional[bool] = None):
+        raise Exception("unfinished.")
+        r'''When the input param:with_ghost_weight is None, it uses self.with_ghost.'''
+        if with_ghost_weight is None:
+            with_ghost_weight = self.with_ghost
+            pass
+        
+        # previous_with_ghost = self.with_ghost
+        # previous_with_ghost_            
         #raise Exception("untested.")
         with torch.no_grad():
             if with_ghost_weight:
@@ -856,9 +861,10 @@ class DigitalMapper_V1_2(torch.nn.Module):
         #print(self.raw_weight.mul(self.update_progress_factor()).softmax(dim=1))
         #end of function.
         
-    def get_index_format(self)->torch.Tensor:
-        index_of_max_o = self.raw_weight.max(dim=1).indices
-        return index_of_max_o
+    # duplicated.
+    # def get_index_format(self)->torch.Tensor:
+    #     index_of_max_o = self.raw_weight.max(dim=1).indices
+    #     return index_of_max_o
     def get_one_hot_format(self)->torch.Tensor:
         #raw_weight = torch.tensor([[1., 2., 3.], [4., 2., 3.], [4., 5., 8.], [6., 2., 9.],[6., 2., 9.], ])
         out_features_s = self.raw_weight.shape[0]
@@ -884,8 +890,10 @@ class DigitalMapper_V1_2(torch.nn.Module):
     def protect_raw_weight(self):
         with torch.no_grad():
             #step 1, move to prevent too big element.
-            move_left = self.raw_weight.max(dim=1,keepdim=True).value-self.raw_weight_max
-            move_left = move_left.maximum(torch.tensor([0.]))
+            #a = self.raw_weight.max(dim=1,keepdim=True).values
+            the_device = self.raw_weight.device
+            move_left = self.raw_weight.max(dim=1,keepdim=True).values-self.raw_weight_max
+            move_left = move_left.maximum(torch.tensor([0.], device=the_device))
             move_left = move_left.to(self.raw_weight.device).to(self.raw_weight.dtype)
             self.raw_weight.data = self.raw_weight-move_left
             
@@ -922,6 +930,20 @@ class DigitalMapper_V1_2(torch.nn.Module):
         pass
     #end of function.
 
+    def set_with_ghost(self, set_to:bool):
+        self.with_ghost = set_to
+        if (not set_to) and self.with_ghost__sharped_mode:
+            the_info = '''The self.with_ghost_test_sharped_mode priotizes over self.with_ghost
+            to control the sharpen behavior. Now self.with_ghost_test_sharped_mode is True, 
+            setting self.with_ghost to False doesn't change the behavior.'''
+            print(the_info)
+            pass
+        pass
+    def set_with_ghost__sharp_mode(self, set_to:bool):
+        '''Do NOT train the layer in sharp mode.'''
+        self.with_ghost__sharped_mode = set_to
+        pass
+
     def forward(self, input:torch.Tensor)->torch.Tensor:
         if len(input.shape)!=2:
             raise Exception("DigitalMapper only accept rank-2 tensor. The shape should be[batch, input dim]")
@@ -947,10 +969,10 @@ class DigitalMapper_V1_2(torch.nn.Module):
         
         # param protection!!!
         if self.training:
-            if self.training_count<self.protect_param_every____training:
-                self.training_count+=1
+            if self.protect_param__training_count<self.protect_param_every____training:
+                self.protect_param__training_count+=1
             else:
-                self.training_count = 1
+                self.protect_param__training_count = 1
                 self.protect_raw_weight()
                 pass
             pass
@@ -958,89 +980,95 @@ class DigitalMapper_V1_2(torch.nn.Module):
         x = input
         x = x.unsqueeze(dim=2)
         
-        w_after_gramo:torch.Tensor = self.gramo_for_raw_weight(self.raw_weight)
-        
-        ghost_weight = self.get_ghost_weight()
-        # the_max_index = self.raw_weight.max(dim=1,keepdim=False)
-        # ghost_weight = torch.zeros_like(self.raw_weight)
-        # ghost_weight[self.out_iota, the_max_index] = self.ghost_weight_length
-        
-        w_with_ghost = w_after_gramo + ghost_weight
-        
-        w_after_softmax = w_with_ghost.softmax(dim=1)
+        # old code.
+        #w_after_gramo:torch.Tensor = self.gramo_for_raw_weight(self.raw_weight)
+    
+        final_raw_weight = self.get_final_raw_weight(self.training)
+        w_after_softmax = final_raw_weight.softmax(dim=1)
         x = w_after_softmax.matmul(x)
         
         x = x.squeeze(dim = 2)
         
-        x = self.Final_Binarize_doesnt_need_gramo(x)
+        x = self.out_binarize_doesnt_need_gramo(x)
         x = self.out_gramo(x)#here is the only gramo.
         return x
     
-    def get_ghost_weight(self)->torch.tensor:
-        with torch.no_grad():
-            the_max_index = self.raw_weight.max(dim=1,keepdim=False)
-            ghost_weight = torch.zeros_like(self.raw_weight)
-            ghost_weight[self.out_iota, the_max_index] = self.ghost_weight_length
-            return ghost_weight
+    def get_final_raw_weight(self, training:bool)->torch.Tensor:
+        the_length = self.get_ghost_weight_length()
+        if training:
+            w_after_gramo:torch.Tensor = self.gramo_for_raw_weight(self.raw_weight)
+            the_result = DigitalMapper_V1_2.apply_ghost_weight(w_after_gramo,
+                        the_length,self.out_iota, self.get_max_index(), 
+                        training = training)
+            return the_result
+        else:
+            with torch.no_grad():
+                the_result = DigitalMapper_V1_2.apply_ghost_weight(self.raw_weight,
+                        the_length,self.out_iota, self.get_max_index(), 
+                        training = training)
+                return the_result
+        #end of function.
     
-    def max_weight_after_softmax(self, with_ghost_weight = False)->torch.Tensor:
-        with torch.no_grad():
-            
-            # the_max_index = self.raw_weight.max(dim=1,keepdim=False)
-            # ghost_weight = torch.zeros_like(self.raw_weight)
-            # ghost_weight[self.out_iota, the_max_index] = self.ghost_weight_length
-            ghost_weight = self.get_ghost_weight()
-            
-            w_with_ghost = self.raw_weight + ghost_weight
-            
-            after_softmax = w_with_ghost.softmax(dim=1)
-                #print(after_softmax)
-            max_strength_for_each_output = after_softmax.amax(dim=1, keepdim=True)
-                #print(max_strength_for_each_output, "max_strength_for_each_output", "line 909")
-            return max_strength_for_each_output
+    def set_ghost_weight_length_with_float(self, set_to:float):
+        self.ghost_weight_length.data = torch.tensor([set_to]).to(self.raw_weight.dtype)
+        self.ghost_weight_length.requires_grad_(False)
+        pass
     
-    # def before_step(self):
-        
-    #     '''This function provides a 10% chance to land a critital hit on the layer which deals 250% more damage.'''
-    #     if not self.raw_weight.grad is None:
-    #         if self.last_acc>self.critical_hit_threshold:
-    #             with torch.no_grad():
-    #                 the_max_index = self.raw_weight.max(dim=1, keepdim=False).indices
-    #                 #print(the_max_index, "the_max_index   line 1119")
-    #                 out_features_iota = torch.linspace(0,self.out_features-1,self.out_features,dtype=torch.int32)
-    #                 check_these_grad = self.raw_weight.grad[out_features_iota, the_max_index]
-    #                 #print(check_these_grad, "check_these_grad")
-    #                 flag_neg_grad = check_these_grad.lt(-0.001)
-    #                 #print(flag_neg_grad, "flag_neg_grad")
-    #                 result_of_max_weight_after_softmax = DigitalMapper_V1_2.max_weight_after_softmax(self.raw_weight.data)
-    #                 #print(result_of_max_weight_after_softmax, "result_of_max_weight_after_softmax")
-    #                 flag_top_maxsoft_big_enough = result_of_max_weight_after_softmax.gt(0.48)
-    #                 flag_top_maxsoft_big_enough = flag_top_maxsoft_big_enough.squeeze(dim = 1)
-    #                 #print(flag_top_maxsoft_big_enough, "flag_top_maxsoft_big_enough")
-    #                 hit_this_one = flag_neg_grad.logical_and(flag_top_maxsoft_big_enough)
-    #                 #print(hit_this_one, "hit_this_one")
-    #                 if hit_this_one.any():
-    #                     temp = hit_this_one*(-35.)+hit_this_one.logical_not()*self.raw_weight.data[out_features_iota, the_max_index]
-    #                     temp = temp.to(self.raw_weight.dtype)
-                        
-    #                     debug_index_before = self.raw_weight.data.max(dim=1).indices
-    #                     self.raw_weight.data[out_features_iota, the_max_index] = temp
-    #                     debug_index_after = self.raw_weight.data.max(dim=1).indices
-    #                     debug_amount_changed = debug_index_before.ne(debug_index_after).sum()
-    #                     if debug_amount_changed>0:
-    #                         print(debug_amount_changed.item(), "debug_amount_changed   __line 1084")
-    #                         pass
-                        
-    #                     self.critical_hit_threshold = self.critical_hit_threshold_original
-    #                 else:
-    #                     drag_factor = 0.002
-    #                     self.critical_hit_threshold = (1-drag_factor)*self.critical_hit_threshold+drag_factor*self.critical_hit_threshold_min
-    #                     pass
-                    
-                    
-    #             pass
-    #         pass
-    #     pass
+    def get_ghost_weight_length(self)->torch.nn.parameter.Parameter:
+        if self.with_ghost__sharped_mode:
+            return self.ghost_weight_length_max
+        elif self.with_ghost:
+            return self.ghost_weight_length
+        else:
+            return torch.nn.Parameter(torch.zeros([1,]), requires_grad=False)
+        #end of function.
+    
+    def get_max_index(self)->torch.Tensor:
+        the_max_index = self.raw_weight.max(dim=1,keepdim=False).indices
+        return the_max_index
+    
+    @staticmethod
+    def apply_ghost_weight(the_tensor : torch.Tensor, \
+            ghost_weight_length:torch.nn.parameter.Parameter, \
+            out_iota: torch.tensor, the_max_index: torch.tensor, training = False)->torch.Tensor:
+        if training:
+            if ghost_weight_length != 0.:
+                result = the_tensor.clone()
+                result[out_iota, the_max_index] = result[out_iota, the_max_index]+ghost_weight_length
+                pass
+            else:
+                result = the_tensor
+                pass
+            return result
+        else:#eval mode.
+            with torch.no_grad():
+                if ghost_weight_length != 0.:
+                    result = the_tensor.clone()
+                    result[out_iota, the_max_index] = result[out_iota, the_max_index]+ghost_weight_length
+                    pass
+                else:
+                    result = the_tensor
+                    pass
+                return result
+        #end of function.
+    
+    @staticmethod
+    def weight_after_softmax(input:torch.Tensor, training = False)->torch.Tensor:
+        if training:
+            after_softmax = input.softmax(dim=1)
+            return after_softmax
+        else:
+            with torch.no_grad():
+                after_softmax = input.softmax(dim=1)
+                return after_softmax
+                
+    
+    def before_test_sharped_mode(self):
+        self.test_sharped_mode = True
+        pass
+    def after_test_sharped_mode(self):
+        self.test_sharped_mode = False
+        pass
     
     def extra_repr(self) -> str:
         return f'Output is standard binary range. In_features={self.in_features}, out_features={self.out_features}'
@@ -1050,31 +1078,28 @@ class DigitalMapper_V1_2(torch.nn.Module):
         >>> [0] can(True) or cannot(False)
         >>> [1] The least "max strength" of each output. Only for debug.
         '''
-        with torch.no_grad():
-            # after_softmax = self.raw_weight.softmax(dim=1)
-            # #print(after_softmax)
-            # max_strength_for_each_output = after_softmax.amax(dim=1, keepdim=True)
-            # #print(max_strength_for_each_output, "max_strength_for_each_output", "line 909")
+        final_raw_weight = self.get_final_raw_weight(False)
+        w_after_softmax = DigitalMapper_V1_2.weight_after_softmax(final_raw_weight, training=False)
+        max_of_each_output = w_after_softmax.amax(dim=1)
+        least_strength = max_of_each_output.amin()
+        least_strength = least_strength.to(self.raw_weight.device)
+        #print(least_strength)
+        result_flag = least_strength>self.can_convert_to_eval_only_mode__the_threshold
+        result_flag = result_flag.to(self.raw_weight.device)
+        
+        if print_repeating_result:
+            least_strength_now = least_strength.item()
+            print(least_strength_now,"least_strength_now")
             
-            result_of_max_strength_for_each_output = self.max_weight_after_softmax(self.raw_weight)
-            least_strength = result_of_max_strength_for_each_output.amin()
-            least_strength = least_strength.to(self.raw_weight.device)
-            #print(least_strength)
-            result_flag = least_strength>self.the_threshold__can_convert_to_eval_only_mode
-            result_flag = result_flag.to(self.raw_weight.device)
+            # if least_strength_now<0.52 and least_strength_now>0.2:
+            #     if least_strength_now == self.debug_least_strength_last_time:
+            #         print(least_strength_now,"least_strength_now")
+            #         pass
+            #     pass
+            # self.debug_least_strength_last_time = least_strength_now
+            pass
             
-            if print_repeating_result:
-                least_strength_now = least_strength.item()
-                if least_strength_now<0.52 and least_strength_now>0.2:
-                    if least_strength_now == self.debug_least_strength_last_time:
-                        print(least_strength_now,"least_strength_now")
-                        pass
-                    pass
-                self.debug_least_strength_last_time = least_strength_now
-                pass
-            
-            
-            return (result_flag, least_strength)
+        return (result_flag, least_strength)
         
     # def convert_into_eval_only_mode(self)->DigitalMapper_eval_only:
     #     after_softmax = self.inner_raw.raw_weight.softmax(dim=1)
@@ -1095,116 +1120,77 @@ class DigitalMapper_V1_2(torch.nn.Module):
     pass
 
 
-还没测试的。
-get_ghost_weight
-can_convert_into_eval_only_mode的两个模式。
-干堆测试。
-
-layer = DigitalMapper_V1_2(3,1)
-#print(layer.raw_weight.shape)
-
-layer.raw_weight.data = torch.tensor([[0.1,0,0]])
-print(layer.can_convert_into_eval_only_mode())
-print(layer.get_softmax_format())
-print(layer.get_softmax_format(True))
-print("----------")
-layer.ghost_weight_length = 0.1
-print(layer.can_convert_into_eval_only_mode())
-print(layer.get_softmax_format())
-print(layer.get_softmax_format(True))
-print("----------")
-layer.ghost_weight_length = 0.
-layer.raw_weight.data = torch.tensor([[0.2,0,0]])
-print(layer.can_convert_into_eval_only_mode())
-print(layer.get_softmax_format())
-print(layer.get_softmax_format(True))
-
-fds=432
-input = torch.tensor([1.,2,3])
+# 还没测试的。
+# get_ghost_weight
+# can_convert_into_eval_only_mode的两个模式。
+# 干堆测试。
 
 
-
-
-# ''' top softmax == 0.5 problem'''
-# layer = DigitalMapper_V1_1(1,4)
-# layer.raw_weight.data = torch.ones_like(layer.raw_weight.data)
-# layer.set_acc()
-
-
-
-
-
-
-# '''before_step function test'''
-# layer = DigitalMapper_V1_1(3,4)
-# layer.set_acc(1.)
-# print(layer.raw_weight.shape)
-# layer.raw_weight.data = torch.tensor([
-#     [0.042,12.,0.042,],[12.,0.042,0.042,],[0.1,0.042,0.042,],[0.1,0.042,0.042,],])
-# layer.raw_weight.grad = torch.tensor([
-#     [0.042,-1., 0.042,],[-1.,0.042,0.042,],[1., 0.042,0.042,],[-1.,0.042,0.042,],])
-# layer.before_step()
-# print(layer.raw_weight.data)
-# fds=432
-# '''individual reference code. But they are actually very different.'''
-# a = torch.tensor([[12.,0,],[12.,0,],[1.,0.],[ 1.,0.],])
-# b = torch.tensor([[1., 0,],[-1.,0,],[1.,0,],[-1.,0,],])
-# the_max_index = a.max(dim=1, keepdim=False).indices
-# print(the_max_index, "the_max_index   line 1119")
-# out_features_iota = torch.linspace(0,4-1,4,dtype=torch.int32)
-# print(out_features_iota, "out_features_iota")
-# check_these_grad = b[out_features_iota, the_max_index]
-# print(check_these_grad, "check_these_grad")
-# hit_this_one = check_these_grad.lt(0.)
-# print(hit_this_one, "hit_this_one")
+# '''tests some validation function.'''
+# layer = DigitalMapper_V1_2(3,2)
+# #print(layer.raw_weight.shape)
+# layer.raw_weight.data = torch.tensor([[0.1,0,0],[0.2,0,0]])
+# layer.set_ghost_weight_length_with_float(0.1)
+# layer.set_with_ghost(False)
+# layer.set_with_ghost_test_sharped_mode(False)
+# print(layer.can_convert_into_eval_only_mode())
+# #print(layer.get_softmax_format())
+# print("----------")
+# layer.set_with_ghost(True)
+# print(layer.can_convert_into_eval_only_mode())
+# print("----------")
+# layer.set_with_ghost_test_sharped_mode(True)
+# #layer.raw_weight.data = torch.tensor([[0.2,0,0]])
+# print(layer.can_convert_into_eval_only_mode())
 # fds=432
 
+# '''with and w/o ghost weight'''
+# layer = DigitalMapper_V1_2(3,1)
+# input = torch.tensor([[1.,-1,-1]])
+# #print(layer.raw_weight.shape)
+# layer.raw_weight.data = torch.tensor([[0.6,0,0]])
+# print(layer.can_convert_into_eval_only_mode())
+# print(layer(input))
+# print("----------")
+# layer.raw_weight.data = torch.tensor([[0.8,0,0]])
+# print(layer.can_convert_into_eval_only_mode())
+# print(layer(input))
+# print("----------")
+# layer.raw_weight.data = torch.tensor([[0.6,0,0]])
+# layer.set_ghost_weight_length_with_float(0.2)
+# layer.set_with_ghost(True)
+# print(layer.can_convert_into_eval_only_mode())
+# print(layer(input))
+# fds=432
 
-
-# '''the 3rd part of the param protection. It makes sure at least something is >=1. for each output.'''
-# layer = DigitalMapper_V1_1(3,2)
-# print(layer.raw_weight.shape)
-# layer.raw_weight.data = torch.tensor([[0.9, 0., -1],[1.9, 0., -1],])
-# print(layer.raw_weight.shape)
+# # '''param protection'''
+# layer = DigitalMapper_V1_2(3,1)
+# layer.raw_weight.data = torch.tensor([[100.,0.,-100]])
 # layer.protect_raw_weight()
-# print(layer.raw_weight.shape)
 # print(layer.raw_weight)
 # fds=432
 
 
-# '''sharpen test.
-# 1, Too wide + all positive, passed.
-# 2, Too wide + all negative.'''
-# layer = DigitalMapper_V1_1(4444,1)
-# layer.raw_weight.data = torch.ones_like(layer.raw_weight.data)
-# layer.raw_weight.data[0,0] = torch.tensor([[1.01]])
-# # layer.raw_weight.data = torch.ones_like(layer.raw_weight.data)*-1.
-# # layer.raw_weight.data[0,:2] = torch.tensor([[-0.98,-0.99]])
-# layer.set_shaper_factor(1.0035,True)
-# at_least = 1
-# for epoch in range(at_least+1511):
-#     every = 100
-#     layer.set_acc(1.)
-#     if epoch >at_least and epoch%every == every-1:
-#         print(epoch,"---------------------")
-#         print(layer.raw_weight[0,:5])
-#         print(layer.can_convert_into_eval_only_mode())
-#         pass
-#     layer.protect_raw_weight()
-#     if epoch >at_least and epoch%every == every-1:
-#         print(layer.can_convert_into_eval_only_mode()[1], "The number __line 1077")
-#         pass
-#     pass
-# fds=432
-
-
 # '''basic 2 pass test.'''
-# input = torch.tensor([[-1.,1]], requires_grad=True)
-# layer = DigitalMapper_V1_1(2,3)
-# layer.raw_weight.data = torch.tensor([[1.,2],[1.,2],[1.,2],])
-# #print(layer.raw_weight.shape)
+# input = torch.tensor([[1.,-1,-1]], requires_grad=True)
+# layer = DigitalMapper_V1_2(3,2)
+# layer.raw_weight.data = torch.tensor([[0.6,0,0],[0.8,0,0],])
+# print(layer.raw_weight.shape)
 # pred = layer(input)
+# print(layer.raw_weight.shape)
 # #print(pred.shape)
+# print(pred, "pred")
+# g_in = torch.ones_like(pred)*10#0000 dosen't change any grad.
+# torch.autograd.backward(pred, g_in, inputs=[input,layer.raw_weight])
+# print(input.grad, "input.grad")
+# print(layer.raw_weight.grad, "layer.raw_weight.grad")
+
+# input = torch.tensor([[1.,-1,-1]], requires_grad=True)
+# layer = DigitalMapper_V1_2(3,2)
+# layer.raw_weight.data = torch.tensor([[0.6,0,0],[0.8,0,0],])
+# layer.set_ghost_weight_length_with_float(0.2)
+# layer.set_with_ghost(True)
+# pred = layer(input)
 # print(pred, "pred")
 # g_in = torch.ones_like(pred)*10#0000 dosen't change any grad.
 # torch.autograd.backward(pred, g_in, inputs=[input,layer.raw_weight])
@@ -1212,6 +1198,30 @@ input = torch.tensor([1.,2,3])
 # print(layer.raw_weight.grad, "layer.raw_weight.grad")
 # fds=432
 
+# '''the sharp mode. The sharp mode adds a super big ghost weight to the raw one.
+# It makes sure the top after-max-weight always greater than 0.5. 
+# In other words, it's digital.'''
+# layer = DigitalMapper_V1_2(999999,1)
+# layer.raw_weight.data = layer.raw_weight * 0.
+# layer.raw_weight.data[0,0] = 0.0001
+# layer.set_with_ghost__sharp_mode(True)
+# print(layer.can_convert_into_eval_only_mode())
+# fds=432
+
+
+# ????????????????
+# ????????????????
+# ????????????????
+# ????????????????
+# ????????????????
+# ????????????????
+# ????????????????
+# ????????????????
+# ????????????????
+# ????????????????
+# ????????????????
+# ????????????????
+# ????????????????
 # '''can_convert_into_eval_only_mode function shows if the difference between 
 # param is already big enough, and if it's safe to convert into pure binary mode.'''
 # layer = DigitalMapper_V1_1(2,3)
@@ -1224,163 +1234,7 @@ input = torch.tensor([1.,2,3])
 # print(torch.softmax(torch.tensor([[0.,0.85]]),dim=1)[0,1])
 # fds=432
 
-# '''set_acc() makes the selection a bit sharper. When it's sharp enough, the 
-# can_convert_into_eval_only_mode function return true.'''
-# layer = DigitalMapper_V1_1(2,1)
-# layer.raw_weight.data = torch.tensor([[1.,2],])
-# print(layer.get_softmax_format(), "layer.get_softmax_format   before")
-# layer.set_acc(0.9)
-# print(layer.raw_weight.data, "layer.raw_weight.data")
-# print(layer.get_softmax_format(), "layer.get_softmax_format   after")
 
-# layer = DigitalMapper_V1_1(2,1)
-# layer.raw_weight.data = torch.tensor([[0.,0.847],])
-# layer.set_the_threshold(0.7)
-# print(layer.can_convert_into_eval_only_mode(), "layer.can_convert_into_eval_only_mode   before")
-# layer.set_acc(0.9)
-# print(layer.can_convert_into_eval_only_mode(), "layer.can_convert_into_eval_only_mode   before")
-# fds=432
-
-
-
-
-
-# '''Param protection test. Real case vs equivalent individual code.'''
-# layer = DigitalMapper_V1_1(3,8,protect_param_every____training=0)
-# layer.raw_weight.data = torch.tensor([
-#     [-6., -3., 3.],[-6., -3., 6.],[-3., 0., 11.],[-6., 2., 12.],
-#     [-13., 0., 13.],[3., -3., -6.],[-3., -7., -12.],[-5., -10., -15.],
-#     ])
-# layer(torch.tensor([[1., 2., 3.]], requires_grad=True))
-# print(layer.raw_weight)
-# fds=432
-# '''Then ,the individual code.'''
-# epi = 0.01
-# threshold1 = 3.
-# threshold2 = 7.
-# margin = 1.
-
-# target_exceed = threshold2+threshold1-margin
-# test_weight = torch.tensor([
-#     [-6., -3., 3.],[-6., -3., 6.],[-3., 0., 11.],[-6., 2., 12.],
-#     [-13., 0., 13.],[3., -3., -6.],[-3., -7., -12.],[-5., -10., -15.],
-#     ])
-# gt_t2 = test_weight.gt(threshold2)
-# #print(gt_t2, "gt_t2")
-# at_least_smt_gt_t2 = gt_t2.any(dim=1)
-# #print(at_least_smt_gt_t2, "at_least_smt_gt_t2")
-# if at_least_smt_gt_t2.any().item():
-#     the_max_value = test_weight.max(dim=1, keepdim=True).values
-#     #print(the_max_value, "the_max_value")
-#     gt_t1 = test_weight.gt(threshold1)
-#     #print(gt_t1, "gt_t1")
-    
-#     at_least_smt_gt_t2_expanded = at_least_smt_gt_t2[:, None].expand(-1, test_weight.shape[1])
-#     #print(at_least_smt_gt_t2_expanded.shape, "at_least_smt_gt_t2_expanded.shape")
-    
-#     modify_these = gt_t1.logical_and(at_least_smt_gt_t2_expanded)
-#     #print(modify_these, "modify_these")
-    
-#     exceed = the_max_value+threshold1
-#     exceed = exceed.abs()+epi#or exceed.mul(at_least_smt_gt_t2)+epi
-#     #print(exceed, "exceed")
-    
-#     mul_me = target_exceed/exceed
-#     print(mul_me, "mul_me")
-#     test_weight = modify_these*((test_weight+threshold1)*mul_me-threshold1)+(modify_these.logical_not())*test_weight
-#     print(test_weight, "test_weight")
-# pass
-    
-# #test_weight2 = test_weight.detach().clone()*-1
-# #print(test_weight2, "test_weight2")
-# lt_nt2 = test_weight.lt(-1.*threshold2)
-# #print(lt_nt2, "lt_nt2")
-# at_least_smt_lt_nt2 = lt_nt2.any(dim=1)
-# #print(at_least_smt_lt_nt2, "at_least_smt_lt_nt2")
-# if at_least_smt_lt_nt2.any().item():
-#     the_min_value = test_weight.min(dim=1, keepdim=True).values
-#     #print(the_min_value, "the_min_value")
-#     lt_nt1 = test_weight.lt(-threshold1)
-#     #print(lt_nt1, "lt_nt1")
-    
-#     at_least_smt_lt_nt2_expanded = at_least_smt_lt_nt2[:, None].expand(-1, test_weight.shape[1])
-#     #print(at_least_smt_lt_nt2_expanded, "at_least_smt_lt_nt2_expanded")
-#     #print(at_least_smt_lt_nt2_expanded.shape, "at_least_smt_lt_nt2_expanded.shape")
-    
-#     modify_these_negative = lt_nt1.logical_and(at_least_smt_lt_nt2_expanded)
-#     #print(modify_these_negative, "modify_these_negative")
-    
-#     exceed = the_min_value-threshold1
-#     exceed = exceed.abs()+epi#or exceed.mul(at_least_smt_gt_t2)+epi
-#     #print(exceed, "exceed")
-    
-#     mul_me_negative = target_exceed/exceed
-#     print(mul_me_negative, "mul_me_negative")
-#     test_weight = modify_these_negative*((test_weight-threshold1)*mul_me_negative+threshold1) \
-#         +(modify_these_negative.logical_not())*test_weight
-#     print(test_weight, "test_weight")
-# pass
-# print("--------------SUMMARIZATION-----------")
-# print(layer.raw_weight, "real code.")
-# print(test_weight, "test code.")
-# print(layer.raw_weight.eq(test_weight))
-# print("they are a bit different. The test code only has soft clamping, but the real code has an extra hard clamp which it inherits from the old version.")
-# fds=432
-
-# layer = DigitalMapper_V1_1(6,1)
-# layer.raw_weight.data = torch.tensor([
-#     [-12., -7., -2., 2., 7., 12.]])
-# layer.protect_raw_weight()
-# print(layer.raw_weight, "from this")
-# print(layer.raw_weight[0,5]/layer.raw_weight[0,4], "================the ratio.")
-# layer.set_shaper_factor(1.2)
-# for _ in range(3):
-#     layer.set_acc(0.9)
-#     pass
-# print(layer.raw_weight, "after sets acc")
-# layer.protect_raw_weight()
-# print(layer.raw_weight, "after protects param.")
-# print(layer.raw_weight[0,5]/layer.raw_weight[0,4], "================the ratio.")
-# fds=432
-
-
-
-
-
-
-
-# '''This is an old test. The old version doesn't have a hard binarize layer. 
-# Now, only 2(or maybe 3?) of them still work.
-# Test for all the modes, and eval only layer.'''
-# print("All 4 prints below should be equal.")
-# x = torch.tensor([[5., 6., 7.], [8., 9., 13]], requires_grad=True)
-# layer = DigitalMapper_V1_1(3,5)
-# #print(layer(x))#the hardmax version doesn't have a binarize layer in it.
-# print(x[:,layer.get_index_format()])
-# print(layer.get_one_hot_format().matmul(x[:,:,None]).squeeze(dim=-1))
-# fds=432
-# #eval_only_layer = layer.get_eval_only()#not implemented yet. But planned.
-# #print(eval_only_layer(x))
-# print("All 4 prints above should be equal.")
-
-# fds=432
-
-
-# ''' probably not needed anymore'''
-# '''basic test. Also, the eval mode.'''
-# layer = DigitalMapper_V1_1(2,3)
-# # print(layer.raw_weight.data.shape)
-# layer.raw_weight.data=torch.Tensor([[2., -2.],[ 0.1, 0.],[ -2., 2.]])
-# # print(layer.raw_weight.data)
-# input = torch.tensor([[1., -1.]], requires_grad=True)
-# print(layer(input), "should be 1 1 0")
-
-# layer = DigitalMapper_V1_1(2,3)
-# layer.eval()
-# layer.raw_weight.data=torch.Tensor([[2., -2.],[ 0.1, 0.],[ -2., 2.]])
-# input = torch.tensor([[1., -1.]], requires_grad=True)
-# print(layer(input), "should be 1 1 -1")
-# fds=432
 
 def data_gen_for_digital_mapper_directly_test(batch:int, n_in:int, n_out:int, dtype = torch.float32)->Tuple[torch.Tensor, torch.Tensor]:
     input = torch.randint(0,2,[batch, n_in], dtype=torch.int8)
@@ -1390,104 +1244,113 @@ def data_gen_for_digital_mapper_directly_test(batch:int, n_in:int, n_out:int, dt
     target = input[:, answer_index]
     return input, target
 
-# '''some real training'''
-# batch = 100
-# n_in = 64
-# n_out = 32
-# (input, target) = data_gen_for_digital_mapper_directly_test(batch,n_in,n_out)
-# input.requires_grad_()
-# #input = torch.Tensor([[1., 1.],[1., -1.],[-1., 1.],[-1., -1.],])
-# #target = torch.Tensor([[1.],[1.],[-1.],[-1.],])
-# #print(input)
-# #print(target)
+'''some real training'''
+batch = 1234
+n_in = 1234
+n_out = 566
+(input, target) = data_gen_for_digital_mapper_directly_test(batch,n_in,n_out)
+input.requires_grad_()
+#input = torch.Tensor([[1., 1.],[1., -1.],[-1., 1.],[-1., -1.],])
+#target = torch.Tensor([[1.],[1.],[-1.],[-1.],])
+# print(input)
+# print(target)
 
-# model = DigitalMapper_V1_1(input.shape[1],target.shape[1])
-# model.set_scaling_ratio_for_raw_weight(500.)
-# model.set_shaper_factor(1.1)
-# loss_function = torch.nn.MSELoss()
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
-# if False:
-#     for name, p in zip(model._parameters, model.parameters()):
-#         print(name, p)
+model = DigitalMapper_V1_2(input.shape[1],target.shape[1])
+model.set_with_ghost(True)#this is only for single layer test!!!!
+#model.set_scaling_ratio_for_raw_weight(500.)#old.
+loss_function = torch.nn.MSELoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+if False:
+    for name, p in zip(model._parameters, model.parameters()):
+        print(name, p)
 
-# iter_per_print = 1#1111
-# print_count = 333
-# for epoch in range(iter_per_print*print_count):
-#     model.train()
-#     pred = model(input)
-#     #print(pred, "pred", __line__str())
-#     if False and "shape":
-#         print(pred.shape, "pred.shape")
-#         print(target.shape, "target.shape")
-#         fds=423
-#     if False and "print pred":
-#         if epoch%iter_per_print == iter_per_print-1:
-#             print(pred[:5], "pred")
-#             print(target[:5], "target")
-#             pass
-#         pass
-#     loss = loss_function(pred, target)
-#     optimizer.zero_grad()
-#     loss.backward()
-#     if False and "make_grad_noisy":
-#         make_grad_noisy(model, 1.5)
-#         pass
-#     if False and "print the grad":
-#         if epoch%iter_per_print == iter_per_print-1:
-#             print(model.raw_weight.grad, "grad")
-#             pass
-#         pass
-#     if False and "print the weight":
-#         if epoch%iter_per_print == iter_per_print-1:
-#             layer = model
-#             print(layer.raw_weight, "first_layer.in_mapper   before update")
-#             optimizer.step()
-#             print(layer.raw_weight, "first_layer.in_mapper   after update")
-#             pass    
-#         pass    
-#     if False and "print zero grad ratio":
-#         if epoch%iter_per_print == iter_per_print-1:
-#             result = model.get_zero_grad_ratio()
-#             print("print zero grad ratio: ", result)
-#             pass
-#         pass
-#     #optimizer.param_groups[0]["lr"] = 0.01
-#     optimizer.step()
-#     if False and "print param overlap":
-#         every = 1
-#         if epoch%every == every-1:
-#             model.print_param_overlap_ratio()
-#             pass
-#         pass
-#     if True and "print acc":
-#         if epoch%iter_per_print == iter_per_print-1:
-#             with torch.inference_mode():
-#                 model.eval()
-#                 pred = model(input)
-#                 #print(pred, "pred", __line__str())
-#                 #print(target, "target")
-#                 acc = DigitalMapper_V1_1.bitwise_acc(pred, target)
-#                 model.set_acc(acc)
-#                 if 1. != acc:
-#                     print(epoch+1, "    ep/acc    ", acc)
-#                 else:
-#                     #print(epoch+1, "    ep/acc    ", acc)
-#                     finished = model.can_convert_into_eval_only_mode()
-#                     print(finished, "is param hard enough __line 1273")
-#                     if finished[0]:
-#                         print(pred[:5].T, "pred", __line__str())
-#                         print(target[:5].T, "target")
-#                         break
-#                         pass
-#                     pass
-#                 pass
-#             pass
-#         pass
-# fds=432
+iter_per_print = 1#1111
+print_count = 333
+for epoch in range(iter_per_print*print_count):
+    model.train()
+    pred = model(input)
+    #print(pred, "pred", __line__str())
+    if False and "shape":
+        print(pred.shape, "pred.shape")
+        print(target.shape, "target.shape")
+        fds=423
+    if False and "print pred":
+        if epoch%iter_per_print == iter_per_print-1:
+            print(pred[:5], "pred")
+            print(target[:5], "target")
+            pass
+        pass
+    loss = loss_function(pred, target)
+    optimizer.zero_grad()
+    loss.backward()
+    if False and "make_grad_noisy":
+        make_grad_noisy(model, 1.5)
+        pass
+    if False and "print the grad":
+        if epoch%iter_per_print == iter_per_print-1:
+            print(model.raw_weight.grad, "grad")
+            pass
+        pass
+    if False and "print the weight":
+        if epoch%iter_per_print == iter_per_print-1:
+            layer = model
+            print(layer.raw_weight, "first_layer.in_mapper   before update")
+            optimizer.step()
+            print(layer.raw_weight, "first_layer.in_mapper   after update")
+            pass    
+        pass    
+    if False and "print zero grad ratio":
+        if epoch%iter_per_print == iter_per_print-1:
+            result = model.debug_get_zero_grad_ratio()
+            print("print zero grad ratio: ", result)
+            pass
+        pass
+    #optimizer.param_groups[0]["lr"] = 0.01
+    optimizer.step()
+    if False and "print param overlap":
+        every = 1
+        if epoch%every == every-1:
+            model.print_param_overlap_ratio()
+            pass
+        pass
+    if epoch%iter_per_print == iter_per_print-1:
+        with torch.inference_mode():
+            model.eval()
+            pred = model(input)
+            #print(pred, "pred", __line__str())
+            #print(target, "target")
+            acc_temp = DigitalMapper_V1_2.bitwise_acc(pred, target)
+            if 1. == acc_temp:
+                model.try_increasing_ghost_weight_length()
+                pass
+            if acc_temp<0.8:
+                model.try_decreasing_ghost_weight_length()
+                pass
+            
+            model.set_with_ghost__sharp_mode(True)
+            model.eval()
+            pred = model(input)
+            sharp_mode_acc = DigitalMapper_V1_2.bitwise_acc(pred, target)
+            
+            if 1. == sharp_mode_acc:#FINISHED
+                print(pred[:2,:7], "pred", __line__str())
+                print(target[:2,:7], "target")
+                print(model.ghost_weight_length, "model.ghost_weight_length")
+                print(epoch+1, "Training finished    __line  1256")
+                break
+            model.set_with_ghost__sharp_mode(False)
+            pass
+        
+            if 1. != acc_temp:
+                print(epoch+1, "    ep/raw mode acc    ", acc_temp)
+        pass
+    
+    pass# the training loop.
+fds=432
 
 
 
-class dry_stack_test_for_digital_mapper_v1_1(torch.nn.Module):
+class dry_stack_test_for_digital_mapper_v1_2(torch.nn.Module):
     def __init__(self, in_features: int, out_features: int, mid_width:int, num_layers:int, \
                     # auto_print_difference:bool = False, \
                     # scaling_ratio_for_learning_gramo:float = 100., \
@@ -1507,6 +1370,8 @@ class dry_stack_test_for_digital_mapper_v1_1(torch.nn.Module):
             for _ in range(num_layers-2)
         ])
         self.last_layer = DigitalMapper_V1_2(mid_width,out_features)
+        
+        self.sharpen_ratio = 0.
         pass
     #end of function
     def forward(self, input:torch.Tensor)->torch.Tensor:
@@ -1517,17 +1382,53 @@ class dry_stack_test_for_digital_mapper_v1_1(torch.nn.Module):
             pass
         x = self.last_layer(x)
         return x
+    @staticmethod
+    def get_rand_scalar()->float:
+        res = torch.rand([1,]).item()
+        return res
+    @staticmethod
+    def get_rand_bool(p:float)->bool:
+        r = torch.rand([1,]).item()
+        return r>p
+    
     def set_acc(self, acc:float):
         layer:DigitalMapper_V1_2
-        layer = self.first_layer
-        layer.set_acc(acc)
-        for layer in self.mid_layers:
-            layer.set_acc(acc)
-            pass
-        layer = self.last_layer
-        layer.set_acc(acc)
-        pass
         
+        if acc<0.95:
+            self.sharpen_ratio = self.sharpen_ratio-0.01
+            if self.sharpen_ratio<0.:
+                self.sharpen_ratio= 0.
+                pass
+            self.first_layer.try_decreasing_ghost_weight_length()
+            for layer in self.mid_layers:
+                layer.try_decreasing_ghost_weight_length()
+                pass
+            self.last_layer.try_decreasing_ghost_weight_length()
+            pass
+        if 1. == acc:
+            self.sharpen_ratio = self.sharpen_ratio+0.01
+            if self.sharpen_ratio>0.7:
+                self.sharpen_ratio = 0.7
+                pass
+            self.first_layer.try_increasing_ghost_weight_length()
+            for layer in self.mid_layers:
+                layer.try_increasing_ghost_weight_length()
+                pass
+            self.last_layer.try_increasing_ghost_weight_length()
+            pass
+        
+        self.re_rand_with_ghost()
+        pass
+    #end of function.
+
+    def re_rand_with_ghost(self):
+        self.first_layer.set_with_ghost(dry_stack_test_for_digital_mapper_v1_2.get_rand_bool(self.sharpen_ratio))
+        for layer in self.mid_layers:
+            layer.set_with_ghost(dry_stack_test_for_digital_mapper_v1_2.get_rand_bool(self.sharpen_ratio))
+            pass
+        self.last_layer.set_with_ghost(dry_stack_test_for_digital_mapper_v1_2.get_rand_bool(self.sharpen_ratio))
+        
+        # old code.
         # layer:DigitalMapper_V1_1
         # some_threshold = 0.52
         # layer = self.first_layer
@@ -1569,17 +1470,19 @@ class dry_stack_test_for_digital_mapper_v1_1(torch.nn.Module):
     
     def can_convert_into_eval_only_mode(self, epoch:int, print_repeating_result = False)->Tuple[torch.Tensor, torch.Tensor]:
         temp_list:List[Tuple[torch.Tensor, torch.Tensor]] = []
-        temp_list.append(self.first_layer.can_convert_into_eval_only_mode(print_repeating_result))
+        temp_list.append(self.first_layer.can_convert_into_eval_only_mode())
         layer:DigitalMapper_V1_2
         for layer in self.mid_layers:
-            temp_list.append(layer.can_convert_into_eval_only_mode(print_repeating_result))
+            temp_list.append(layer.can_convert_into_eval_only_mode())
             pass
-        temp_list.append(self.last_layer.can_convert_into_eval_only_mode(print_repeating_result))
+        temp_list.append(self.last_layer.can_convert_into_eval_only_mode())
         pass
         for obj in temp_list:
             print(f"{obj[1].item():.3f}", end=",,,")
             pass
-        print("    ", epoch, "    from dry stack test can_convert_into_eval_only_mode function.")
+        if print_repeating_result:
+            print("    ", epoch, "    from dry stack test can_convert_into_eval_only_mode function.")
+            pass
         the_flag = torch.tensor([True], device=self.first_layer.raw_weight.device)
         the_number = torch.tensor([1.], device=self.first_layer.raw_weight.device)
         for temp in temp_list:
@@ -1588,12 +1491,35 @@ class dry_stack_test_for_digital_mapper_v1_1(torch.nn.Module):
             pass
         return (the_flag, the_number)
     
-    def before_step(self):
-        self.first_layer.before_step()
+    # def before_step(self):
+    #     self.first_layer.before_step()
+    #     for layer in self.mid_layers:
+    #         layer.before_step()
+    #         pass
+    #     self.last_layer.before_step()
+    #     pass
+    
+    def before_test_sharped_mode(self):
+        self.first_layer.set_with_ghost(True)
         for layer in self.mid_layers:
-            layer.before_step()
+            layer.set_with_ghost(True)
             pass
-        self.last_layer.before_step()
+        self.last_layer.set_with_ghost(True)
+        pass
+        
+    def after_test_sharped_mode(self):
+        self.re_rand_with_ghost()
+        pass    
+    
+    def print_ghost_length(self):
+        print("ghost_length:", end="")
+        temp_list:List[float] = []
+        temp_list.append(self.first_layer.ghost_weight_length)
+        for layer in self.mid_layers:
+            temp_list.append(layer.ghost_weight_length)
+            pass
+        temp_list.append(self.last_layer.ghost_weight_length)
+        print(temp_list)
         pass
     
     pass
@@ -1613,8 +1539,8 @@ class dry_stack_test_for_digital_mapper_v1_1(torch.nn.Module):
 
 '''tests the dry stack.'''
 batch = 10
-n_in = 32
-n_out = 8
+n_in = 11
+n_out = 4
 mid_width = 32
 num_layers = 4
 iter_per_print = 100#1111
@@ -1631,7 +1557,7 @@ input.requires_grad_()
 # print(input, "input")
 # print(target, "target")
 
-model = dry_stack_test_for_digital_mapper_v1_1(input.shape[1],target.shape[1],mid_width,num_layers=num_layers)
+model = dry_stack_test_for_digital_mapper_v1_2(input.shape[1],target.shape[1],mid_width,num_layers=num_layers)
 loss_function = torch.nn.MSELoss()
 model.set_scaling_ratio_for_raw_weight(2000.)
 #model.first_layer.set_scaling_ratio_for_raw_weight(2000.)
@@ -1654,7 +1580,9 @@ if True and "print parameters":
 model.cuda()
 input = input.cuda()
 target = target.cuda()
+#print(model.first_layer.ghost_weight_length.dtype)
 model.half()
+#print(model.first_layer.ghost_weight_length.dtype)
 input = input.to(torch.float16)
 target = target.to(torch.float16)
 #print(model.first_layer.raw_weight.requires_grad)
@@ -1677,7 +1605,6 @@ for epoch in range(iter_per_print*print_count):
     loss = loss_function(pred, target)
     optimizer.zero_grad()
     loss.backward()
-    
     #if epoch>19:
     #print(model.first_layer.raw_weight_boundary_for_f32.item())
     #print(model.first_layer.raw_weight_boundary_for_f32.requires_grad)
@@ -1711,7 +1638,7 @@ for epoch in range(iter_per_print*print_count):
         pass
     #optimizer.param_groups[0]["lr"] = 0.01
     #print(model.first_layer.raw_weight.requires_grad,"    __line 1720")
-    model.before_step()
+#    model.before_step()
     optimizer.step()
     if False and "print param overlap":
         every = 1
@@ -1736,47 +1663,49 @@ for epoch in range(iter_per_print*print_count):
             pass    
         pass    
     
-    if True and "print acc":
-        with torch.inference_mode():
-            #every = 10
-            #if epoch%every == every-1:
-            model.eval()
-            pred = model(input)
-            #print(pred, "pred", __line__str())
-            #print(target, "target")
-            acc = DigitalMapper_V1_2.bitwise_acc(pred, target)
-            
-            # if 1. == acc and epoch>700:
-            #     if epoch%50 == 42:
-            #         temp = model.first_layer.raw_weight[0].detach().clone()
-            #         temp2 = temp.sort(descending=True).values
-            #         print(temp2[:4], "after sortation.")
-            #         fds=432
-                
-            if 1.!=acc:
-                print(epoch+1, "    ep/acc    ", acc)
-                pass
-            model.set_acc(acc)
-            if epoch%iter_per_print == iter_per_print-1:
-                if 1. != acc:
-                    print(epoch+1, "    ep/acc    ", acc)
-            if 1. == acc:
-                finished = model.can_convert_into_eval_only_mode(epoch)
-                if finished[0].logical_not():
-                    if epoch%iter_per_print == iter_per_print-1:
-                        print(epoch+1, "    ep/acc    ", acc,"    is param hard enough:", f"{finished[1].item():.4f}", "    __line 1515")
-                        pass
-                    pass
-                else:
-                    print(pred[:2,:7], "pred", __line__str())
-                    print(target[:2,:7], "target")
-                    print(pred.ne(target).sum(), "   wrong in total.")
-                    print(epoch, "epoch. Finished.")
-                    break
-                    
-                pass
+    with torch.inference_mode():
+        #every = 10
+        #if epoch%every == every-1:
+        model.eval()
+        pred = model(input)
+        #print(pred, "pred", __line__str())
+        #print(target, "target")
+        acc = DigitalMapper_V1_2.bitwise_acc(pred, target)
+        model.set_acc(acc)
+        
+        if model.sharpen_ratio>0. and model.sharpen_ratio<0.7:
+            print(model.sharpen_ratio, "model.sharpen_ratio")
             pass
-        pass
+        
+        model.before_test_sharped_mode()
+        model.eval()
+        pred = model(input)
+        sharp_mode_acc = DigitalMapper_V1_2.bitwise_acc(pred, target)
+
+        #if epoch%iter_per_print == iter_per_print-1:
+        if acc!=1. or sharp_mode_acc != 1.:
+            print(epoch+1, "    ep/acc    ", acc, "    /   sharp mode acc",sharp_mode_acc)
+            pass
+        
+        if 1. == sharp_mode_acc:
+            finished = model.can_convert_into_eval_only_mode(epoch, print_repeating_result=True)
+            if finished[0].logical_not():
+                if epoch%iter_per_print == iter_per_print-1:
+                    print(epoch+1, "    ep/acc    ", acc,"    is param hard enough:", f"{finished[1].item():.4f}", "    __line 1515")
+                    pass
+                pass
+            else:
+                #congrats. Training finished.
+                print(pred[:2,:7], "pred", __line__str())
+                print(target[:2,:7], "target")
+                print(pred.ne(target).sum(), "   wrong in total.")
+                print(epoch, "epoch.   Finished.")
+                model.print_ghost_length()
+                break
+            pass
+        model.after_test_sharped_mode()
+            
+         
 
 fds=432
 
