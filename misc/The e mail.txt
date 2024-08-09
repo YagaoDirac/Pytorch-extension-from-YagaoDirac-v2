@@ -1,0 +1,16 @@
+Hi, sorry for disturbing you in such a rude way. I'm not seeking for job.
+I think I found something interesting in low level algorithm optimization.
+The code with test code is here:
+https://github.com/YagaoDirac/Pytorch-extension-from-YagaoDirac-v2/blob/main/v2%20with%20basic%20test.py
+
+Basically, it speeds the trains by at least 10x times according to my test. And it replaces resnet completely, which allow us to stack the building blocks in absolutely new and exciting ways. It may also solve the trainability problem in RNN, the pattern collapse problem in GAN, and the effitience problem in reinforcement learning.
+
+I'm a hobbist in China. I'm recently busy learning electronics. I don't have any plan to study what I found any further. 
+If the result is good enough, please consider posting the paper on arxiv so everyone can access it.
+
+Li
+
+
+
+
+Let me summarize it a bit. It's basically another implementation of a linear layer(or dense layer in tensorflow), which protects the gradient much better in the backward path. It speeds the training process, while provides more flexibility when we design the macro structure of a model.

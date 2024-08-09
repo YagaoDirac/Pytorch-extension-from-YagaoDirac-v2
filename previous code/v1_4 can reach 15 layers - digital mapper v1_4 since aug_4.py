@@ -146,13 +146,21 @@ class GradientModification(torch.nn.Module):
         return GradientModificationFunction.apply(x, self.scaling_ratio, self.epi, \
                                                    self.div_me_when_g_too_small)
     def set_scaling_ratio(self, scaling_ratio:float)->None:
-        self.scaling_ratio = torch.nn.Parameter(torch.tensor([scaling_ratio], requires_grad=False))
+        the_device = self.scaling_ratio.device
+        the_dtype = self.scaling_ratio.dtype
+        self.scaling_ratio.data = torch.tensor([scaling_ratio], device=the_device, dtype=the_dtype)
         self.scaling_ratio.requires_grad_(False)
+        pass
     def set_epi(self, epi:float)->None:
-        self.epi = torch.nn.Parameter(torch.tensor([epi], requires_grad=False))
+        the_device = self.epi.device
+        the_dtype = self.epi.dtype
+        self.epi.data = torch.tensor([epi], device=the_device, dtype=the_dtype)
         self.epi.requires_grad_(False)
+        pass
     def set_div_me_when_g_too_small(self, div_me_when_g_too_small:float)->None:
-        self.div_me_when_g_too_small = torch.nn.Parameter(torch.tensor([div_me_when_g_too_small], requires_grad=False))
+        the_device = self.div_me_when_g_too_small.device
+        the_dtype = self.div_me_when_g_too_small.dtype
+        self.div_me_when_g_too_small.data = torch.tensor([div_me_when_g_too_small], device=the_device, dtype=the_dtype)
         self.div_me_when_g_too_small.requires_grad_(False)
         pass
 
@@ -708,7 +716,7 @@ class DigitalMapper_V1_4(torch.nn.Module):
     def __init__(self, in_features: int, out_features: int, \
                     auto_print_difference:bool = False, \
                     scaling_ratio_for_learning_gramo:Optional[float] = None, \
-                    protect_param_every____training:int = 5, \
+                    #protect_param_every____training:int = 5, \
                     #raw_weight_boundary_for_f32:float = 15., \
                         training_ghost_weight_probability = 0., \
                             eval_mode_0_is_raw__1_is_sharp = 0, \
@@ -727,7 +735,7 @@ class DigitalMapper_V1_4(torch.nn.Module):
         self.out_features = out_features
         self.sqrt_of_out_features = torch.nn.Parameter(torch.sqrt(torch.tensor([out_features])), requires_grad=False)
         self.out_iota = torch.nn.Parameter(torch.linspace(0,out_features-1, out_features, dtype=torch.int32), requires_grad=False)
-
+          
         # self.raw_weight_boundary_for_f32 = torch.nn.Parameter(torch.tensor([raw_weight_boundary_for_f32]), requires_grad=False)
         # self.raw_weight_boundary_for_f32.requires_grad_(False)
         self.raw_weight = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
@@ -755,15 +763,14 @@ class DigitalMapper_V1_4(torch.nn.Module):
             scaling_ratio_for_learning_gramo = scaling_ratio_for_learning_gramo_tensor.item()
             pass
         self.gramo_for_raw_weight = GradientModification(scaling_ratio=scaling_ratio_for_learning_gramo)
-
         self.set_auto_print_difference_between_epochs(auto_print_difference)
 
         self.out_binarize_does_NOT_need_gramo = Binarize.create_analog_to_np(needs_gramo=False)
         self.out_gramo = GradientModification()
 
         #to keep track of the training.
-        self.protect_param_every____training = protect_param_every____training
-        self.protect_param__training_count = 0
+        # self.protect_param_every____training = protect_param_every____training
+        # self.protect_param__training_count = 0
 
         #self.last_acc = torch.nn.Parameter(torch.tensor([0.5]), requires_grad=False)
 
@@ -791,7 +798,11 @@ class DigitalMapper_V1_4(torch.nn.Module):
     def outputs_non_standard_range(self)->bool:
         return not self.outputs_standard_range()
 
-
+    
+    def reset_scaling_ratio_for_raw_weight(self):
+        '''simply sets the inner'''
+        self.gramo_for_raw_weight.set_scaling_ratio((self.log_of_in_features*self.sqrt_of_out_features).item()*10.)
+        pass
     def scale_the_scaling_ratio_for_raw_weight(self, by:float):
         '''simply sets the inner'''
         self.gramo_for_raw_weight.set_scaling_ratio((self.gramo_for_raw_weight.scaling_ratio*by).item())
@@ -1023,10 +1034,12 @@ class DigitalMapper_V1_4(torch.nn.Module):
         #use self.raw_weight_before.nelement() == 0 to test it.
         if self.raw_weight_before.nelement() != 0:
             ne_flag = self.raw_weight_before.data.ne(self.raw_weight)
-            if ne_flag.any()>0:
-                to_report_from = self.raw_weight_before[ne_flag]
+            nan_inf_flag = self.raw_weight_before.data.isnan().logical_and(self.raw_weight_before.data.isinf())
+            report_these_flag = ne_flag.logical_and(nan_inf_flag.logical_not())
+            if report_these_flag.any()>0:
+                to_report_from = self.raw_weight_before[report_these_flag]
                 to_report_from = to_report_from[:16]
-                to_report_to = self.raw_weight[ne_flag]
+                to_report_to = self.raw_weight[report_these_flag]
                 to_report_to = to_report_to[:16]
                 line_number_info = "    Line number: "+str(sys._getframe(1).f_lineno)
                 print("Raw weight changed, from:\n", to_report_from, ">>>to>>>\n",
@@ -1041,10 +1054,12 @@ class DigitalMapper_V1_4(torch.nn.Module):
 
         if self.training:
             with torch.no_grad():
-                self.protect_raw_weight()
                 self.anti_nan_for_raw_weight()
+                self.protect_raw_weight()
                 
                 if self.training_ghost_weight_probability!=0.:
+                        
+                    #debug_local_var_raw_weight = self.raw_weight.data
                         
                     the_max_o_1 = self.raw_weight.max(dim=1,keepdim=True)
                     the_max_index_o = the_max_o_1.indices.squeeze(dim=1)
@@ -1053,9 +1068,12 @@ class DigitalMapper_V1_4(torch.nn.Module):
                     exp_of_raw_weight_o_i = torch.exp(self.raw_weight)#-the_max_value_o_1) not needed. After protection, it's <=0.
                     sum_of_exp_o = exp_of_raw_weight_o_i.sum(dim=1, keepdim=False)
                     sum_of_exp_o_1 = sum_of_exp_o.unsqueeze(dim=1)
-                    the_softmax_o_i = exp_of_raw_weight_o_i/(sum_of_exp_o_1+0.00001)
+                    the_softmax_o_i = exp_of_raw_weight_o_i/sum_of_exp_o_1
 
                     if torch.isnan(the_softmax_o_i).any():
+                        fds = 432
+                        pass
+                    if torch.isinf(the_softmax_o_i).any():
                         fds = 432
                         pass
 
@@ -1072,21 +1090,34 @@ class DigitalMapper_V1_4(torch.nn.Module):
 
                     #exp_of_the_amax = torch.exp(the_max.values)
 
-                    top_of_exp_o = exp_of_raw_weight_o_i[self.out_iota,the_max_index_o]
+                    #top_of_exp_o = exp_of_raw_weight_o_i[self.out_iota,the_max_index_o]#always 1. opt able.
                     #top_of_exp_o_1 = top_of_exp_o.unsqueeze(dim=1)
-                    sum_of_exp_with_out_top_one_o = sum_of_exp_o - top_of_exp_o
-                    The_A_prime_o = sum_of_exp_with_out_top_one_o*1.09#1.0833333
+                    sum_of_exp_with_out_top_one_o = sum_of_exp_o - 1.#top_of_exp_o always 1...
+                    new_top_of_exp_o = sum_of_exp_with_out_top_one_o*1.084#1.0833333
                     #temp = flag_sharpen_these*(The_A_prime)+(flag_sharpen_these.logical_not())*top_of_exp
-                    log_of_The_A_prime_o = (The_A_prime_o+0.000001).log()
+                    new__RAW__top_raw_weight_o = new_top_of_exp_o.log()
                     #temp = temp.log()
-                    The_raw_ghost_length_o = log_of_The_A_prime_o-self.raw_weight[self.out_iota,the_max_index_o]
+                    
+                    if torch.isnan(new__RAW__top_raw_weight_o).any():
+                        fds = 432
+                        pass
+                    if torch.isinf(new__RAW__top_raw_weight_o).any():
+                        fds = 432
+                        pass
+                    
+                    new__RAW__top_raw_weight_o.nan_to_num_(0.)#inf becomes super big but normal number.
+                    
+                    new_top_raw_weight_o = flag_sharpen_these_o*new__RAW__top_raw_weight_o
+                    new_top_raw_weight_o = new_top_raw_weight_o.maximum(torch.zeros([1,], dtype= new_top_raw_weight_o.dtype, device=new_top_raw_weight_o.device ))
+                    
+                    The_raw_ghost_length_o = new_top_raw_weight_o-self.raw_weight[self.out_iota,the_max_index_o]
 
-                    The_ghost_length_o = flag_sharpen_these_o*(The_raw_ghost_length_o)
+                    #The_ghost_length_o = flag_sharpen_these_o*(The_raw_ghost_length_o)
                     #The_ghost_length_o = The_ghost_length_o.nan_to_num(-4242.)
                     
                     ghost_weight_o_i = torch.zeros_like(self.raw_weight)
-                    ghost_weight_o_i[self.out_iota,the_max_index_o] = The_ghost_length_o
-                    ghost_weight_o_i.nan_to_num_(0.)
+                    ghost_weight_o_i[self.out_iota,the_max_index_o] = The_raw_ghost_length_o
+                    #ghost_weight_o_i.nan_to_num_(0.)
                     #self.raw_weight.data[self.out_iota,the_max_index] = temp
                     pass
                 pass
@@ -1140,12 +1171,16 @@ class DigitalMapper_V1_4(torch.nn.Module):
 
     def anti_nan_for_raw_weight(self):
         with torch.no_grad():
-            flag_nan = torch.isnan(self.raw_weight)
-            if flag_nan.any():
-                print(flag_nan.sum().item(), "  <- elements of raw_weight became nan.  Probably the scaling_ratio of gramo is too big.  __line 1113")
+            flag_nan_and_neg_inf = self.raw_weight.isnan().logical_or(self.raw_weight.isneginf())
+            flag_pos_inf = self.raw_weight.isposinf()
+            if flag_nan_and_neg_inf.any():
+                print(flag_nan_and_neg_inf.sum().item(), "  <- elements of raw_weight became nan or neg inf.  Probably the scaling_ratio of gramo is too big.  __line 1113")
                 pass
             self.raw_weight.nan_to_num_(0.)
-            self.raw_weight.data = flag_nan*torch.rand_like(self.raw_weight)*self.log_of_in_features*0.1+flag_nan.logical_not()*self.raw_weight
+            '''self.raw_weight_min == -30.-self.log_of_in_features'''
+            self.raw_weight.data = flag_nan_and_neg_inf*(self.raw_weight_min+torch.rand_like(self.raw_weight)*self.log_of_in_features)+flag_nan_and_neg_inf.logical_not()*self.raw_weight
+            self.raw_weight.data = flag_pos_inf*torch.rand_like(self.raw_weight)*self.log_of_in_features*-1.+flag_pos_inf.logical_not()*self.raw_weight
+
 
             # flag_nan_after = torch.isnan(self.raw_weight)
             # if flag_nan.any():
@@ -1339,8 +1374,11 @@ class DigitalMapper_V1_4(torch.nn.Module):
         By cooking, I mean the softmax operation.
         '''
         with torch.no_grad():
-            self.protect_raw_weight()
             self.anti_nan_for_raw_weight()
+            self.protect_raw_weight()
+            
+            #debug_local_var_raw_weight = self.raw_weight.data
+            
             the_max_o_1 = self.raw_weight.max(dim=1,keepdim=True)
             the_max_index_o = the_max_o_1.indices.squeeze(dim=1)
             #the_max_value_o_1 = the_max_o_1.values
@@ -1350,42 +1388,47 @@ class DigitalMapper_V1_4(torch.nn.Module):
             #sum_of_exp_o_1 = sum_of_exp_o.unsqueeze(dim=1)
             the_softmax_o_i = exp_of_raw_weight_o_i/(sum_of_exp_o_1+0.00001)
             
-            top_cooked_weight_o_1 = the_softmax_o_i[self.out_iota,the_max_index_o]
-            top_cooked_weight_o_1 = top_cooked_weight_o_1.unsqueeze(dim=1)
-            flag_weight_too_hard_o_1:torch.Tensor = top_cooked_weight_o_1.gt(0.6)
-
-            #exp_of_the_amax = torch.exp(the_max.values)
-
             top_cooked_weight_o = the_softmax_o_i[self.out_iota,the_max_index_o]
+            flag_weight_too_hard_o:torch.Tensor = top_cooked_weight_o.gt(0.6)
 
 
-            top_of_exp_o_1 = exp_of_raw_weight_o_i[self.out_iota,the_max_index_o]
-            top_of_exp_o_1 = top_of_exp_o_1.unsqueeze(dim=1)
-            sum_of_exp_with_out_top_one_o_1 = sum_of_exp_o_1 - top_of_exp_o_1
-            The_A_prime_o_1 = sum_of_exp_with_out_top_one_o_1*1.08
-            temp_o_1 = flag_weight_too_hard_o_1*(The_A_prime_o_1)+(flag_weight_too_hard_o_1.logical_not())*top_of_exp_o_1
-            temp_o = temp_o_1.squeeze(dim=1)
-            temp_log_o = temp_o.log()
-            if print_out_level>0:
-                raise Exception("unfinished.")
-            self.raw_weight.data[self.out_iota,the_max_index_o] = temp_log_o
-
-            #then step2.
-
-            # param protection!!!
-            if self.protect_param__training_count<self.protect_param_every____training:
-                self.protect_param__training_count+=1
-            else:
-                self.protect_param__training_count = 1
-                if print_out_level>1:
-                    raise Exception("unfinished.")
-                self.protect_raw_weight()
-                pass
+            #top_of_exp_o_1 = exp_of_raw_weight_o_i[self.out_iota,the_max_index_o] #in safe softmax, it's always 1.
+            #top_of_exp_o_1 = top_of_exp_o_1.unsqueeze(dim=1)
+            sum_of_exp_o = sum_of_exp_o_1.squeeze(dim = 1)
+            sum_of_exp_with_out_top_one_o = sum_of_exp_o - 1.#top_of_exp_o_1 it's always 1.
+            new_top_of_exp_o = sum_of_exp_with_out_top_one_o*1.084#0.52/0.48 is around 1.084
+            
+            temp_new_top_o = new_top_of_exp_o.log()
+            flag_pos_inf_after_log = temp_new_top_o.isposinf()
+            temp_new_top_o.nan_to_num_(0.)
+            flag_useful = flag_weight_too_hard_o.logical_and(flag_pos_inf_after_log.logical_not())
+            new_top_o = flag_useful*temp_new_top_o
+            self.raw_weight.data[self.out_iota,the_max_index_o] = new_top_o
+            
+            #debug_new_softmax =  self.raw_weight.data.softmax(dim=1)
             pass
+            # if print_out_level>0:
+            #     raise Exception("unfinished.")
+
+            # old code.
+            #then step2.
+            # param protection!!!
+            # if self.protect_param__training_count<self.protect_param_every____training:
+            #     self.protect_param__training_count+=1
+            # else:
+            #     self.protect_param__training_count = 1
+            #     if print_out_level>1:
+            #         raise Exception("unfinished.")
+            #     self.protect_raw_weight()
+            #     pass
+            # pass
         pass
     #end of function
 
     def protect_raw_weight(self, anti_nan = True):
+        '''Moves everything between 0 and ~-30
+        
+        Call this after anti_nan()'''
         with torch.no_grad():
             #step 0, anti nan.
             if anti_nan:
@@ -1404,7 +1447,7 @@ class DigitalMapper_V1_4(torch.nn.Module):
             #a = self.raw_weight.max(dim=1,keepdim=True).values
             the_device = self.raw_weight.device
             move_left = self.raw_weight.max(dim=1,keepdim=True).values#-self.raw_weight_max this is 0.
-            move_left = move_left.maximum(torch.tensor([0.], device=the_device))
+            #move_left = move_left.maximum(torch.tensor([0.], device=the_device))# don't do this.
             move_left = move_left.to(self.raw_weight.device).to(self.raw_weight.dtype)
             self.raw_weight.data = self.raw_weight-move_left
 
@@ -1419,6 +1462,26 @@ class DigitalMapper_V1_4(torch.nn.Module):
 
     pass
 fast_traval____end_of_digital_mapper_layer_class = 432
+
+
+# # '''the protection in forward pass!!!!!'''
+# layer = DigitalMapper_V1_4(3,2, training_ghost_weight_probability= 1.)
+# layer.raw_weight.data = torch.tensor([[-11, -11.,0.],[-0.1,0.,-0.1,],])
+# input = torch.tensor([[1.,2,3.]])
+# layer(input)
+# # layer.anti_nan_for_raw_weight()
+# # print(layer.raw_weight)
+# fds=432
+
+
+
+# '''anti_nan_for_raw_weight'''
+# layer = DigitalMapper_V1_4(6,1)
+# layer.raw_weight.data = torch.tensor([[torch.nan, torch.inf, torch.inf*-1, 0.,1, -1.]])
+# layer.anti_nan_for_raw_weight()
+# print(layer.raw_weight)
+# fds=432
+
 
 # '''scaling ratio test'''
 # layer = DigitalMapper_V1_4(2,1)
@@ -1435,6 +1498,12 @@ fast_traval____end_of_digital_mapper_layer_class = 432
 # print(layer.gramo_for_raw_weight.scaling_ratio)
 # layer = DigitalMapper_V1_4(200,100)
 # print(layer.gramo_for_raw_weight.scaling_ratio)
+# layer = DigitalMapper_V1_4(2,1)
+# print(layer.gramo_for_raw_weight.scaling_ratio)
+# layer.scale_the_scaling_ratio_for_raw_weight(2.)
+# print(layer.gramo_for_raw_weight.scaling_ratio)
+# layer.reset_scaling_ratio_for_raw_weight()
+# print(layer.gramo_for_raw_weight.scaling_ratio)
 # fds=432
 
 
@@ -1448,19 +1517,13 @@ fast_traval____end_of_digital_mapper_layer_class = 432
 
 
 # '''the core protection of v1_3. What would it be in v1_4?'''
-# layer = DigitalMapper_V1_4(4,2, protect_param_every____training=0)
-# optim = torch.optim.SGD(layer.parameters(), lr=1 )
-# layer.raw_weight.data = torch.tensor([[1., 0.,0.,], [0.,2., 0.,],])
-# #layer.raw_weight.data = torch.tensor([[-0.5186,  0.0922,  0.5863,  0.4118],
-#  #       [ 0.1524,  0.0863,  0.3626,  0.5213]])
-# optim.zero_grad()
-# #layer.before_step()
-# #layer.raw_weight.grad = torch.tensor([[-0.5, 0.,0.,],[-1., 0.,0.,],])#pseudo backward.
-# optim.step()
+# layer = DigitalMapper_V1_4(4,2)#, protect_param_every____training=0)
+# layer.raw_weight.data = torch.tensor([[0., 0.,1.,], [0.,2., 0.,],])
 # print(layer.raw_weight.data)
 # layer.after_step()
 # print(layer.raw_weight.data)
-# print(layer.can_convert_into_eval_only_mode(), "should be around 0.52")
+# print(layer.raw_weight.data.softmax(dim=1))
+# print(layer.can__old_func__convert_into_eval_only_mode(), "should be around 0.52")
 # fds=432
 
 
@@ -1603,8 +1666,8 @@ fast_traval____single_layer_training_test = 432
 # # print(input)
 # # print(target)
 
-# model = DigitalMapper_V1_4(input.shape[1],target.shape[1],protect_param_every____training=20)
-# model.scale_the_scaling_ratio_for_raw_weight(0.5)#0.1(slower),0.2(slow)//0.5,1,2,5ok//7is bad.
+# model = DigitalMapper_V1_4(input.shape[1],target.shape[1])#,protect_param_every____training=20)
+# #model.scale_the_scaling_ratio_for_raw_weight(0.5)#0.1(slower),0.2(slow)//0.5,1,2,5ok//7is bad.
 # #model.set_training_ghost_weight_probability(0.)#0(1,1,1)/0.01(3,2,2)/0.05(3,3,3)/0.5(10,11)/0.95(100)
 # loss_function = torch.nn.MSELoss()
 # optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
@@ -1710,7 +1773,7 @@ class dry_stack_test_for_digital_mapper_v1_4(torch.nn.Module):
                         scaling_ratio_scaled_by = 1., \
                     # auto_print_difference:bool = False, \
                     # scaling_ratio_for_learning_gramo:float = 100., \
-                    protect_param_every____training:int = 1, \
+                    #protect_param_every____training:int = 1, \
                     # raw_weight_boundary_for_f32:float = 15., \
                     #     shaper_factor = 1.0035, \
                     device=None, dtype=None) -> None:   #, debug_info = ""
@@ -1724,15 +1787,17 @@ class dry_stack_test_for_digital_mapper_v1_4(torch.nn.Module):
         if mid_width<out_features:
             raise Exception("Prepare for your 0.50x acc.")
         
+        
+        
         '''according to test. training_ghost_weight_probability from 0.5 to 0.8 all works. 
         But for only 1 layer, 0 works much better. It's true hyperparam.'''
 
-        self.first_layer = DigitalMapper_V1_4(in_features,mid_width,training_ghost_weight_probability=training_ghost_weight_probability, protect_param_every____training = protect_param_every____training)
+        self.first_layer = DigitalMapper_V1_4(in_features,mid_width,training_ghost_weight_probability=training_ghost_weight_probability)
         self.mid_layers = torch.nn.ModuleList([
-            DigitalMapper_V1_4(mid_width,mid_width,training_ghost_weight_probability=training_ghost_weight_probability, protect_param_every____training = protect_param_every____training)
+            DigitalMapper_V1_4(mid_width,mid_width,training_ghost_weight_probability=training_ghost_weight_probability)
             for _ in range(num_layers-2)
         ])
-        self.last_layer = DigitalMapper_V1_4(mid_width,out_features,training_ghost_weight_probability=training_ghost_weight_probability, protect_param_every____training = protect_param_every____training)
+        self.last_layer = DigitalMapper_V1_4(mid_width,out_features,training_ghost_weight_probability=training_ghost_weight_probability)
 
         self.all_layers:List[DigitalMapper_V1_4] = []
         self.all_layers.append(self.first_layer)
@@ -1854,11 +1919,19 @@ class dry_stack_test_for_digital_mapper_v1_4(torch.nn.Module):
         #     pass
         # pass
     
+    
+    def reset_scaling_ratio_for_raw_weight(self):
+        '''simply sets the inner'''
+        layer:DigitalMapper_V1_4
+        for layer in self.all_layers:
+            layer.reset_scaling_ratio_for_raw_weight()
+            pass
+        pass
     def scale_the_scaling_ratio_for_raw_weight(self, by:float):
         '''simply sets the inner'''
         layer:DigitalMapper_V1_4
-        for layer in self.mid_layers:
-            self.scale_the_scaling_ratio_for_raw_weight(by)
+        for layer in self.all_layers:
+            layer.scale_the_scaling_ratio_for_raw_weight(by)
             pass
         pass
 
@@ -1976,7 +2049,7 @@ class dry_stack_test_for_digital_mapper_v1_4(torch.nn.Module):
 
     def print__old_func__can_convert_into_eval_only_mode(self):
         self.first_layer.can__old_func__convert_into_eval_only_mode(True)
-        for layer in self.mid_layers:
+        for layer in self.all_layers:
             layer.can__old_func__convert_into_eval_only_mode(True)
             pass
         self.last_layer.can__old_func__convert_into_eval_only_mode(True)
@@ -2014,16 +2087,32 @@ class dry_stack_test_for_digital_mapper_v1_4(torch.nn.Module):
 '''aug 5'''
 '''b 50_000,i40,o20,m80,l10   ghost_weight_p = 0.5   scaling_ratio_scaled_by = 0.2(900)/0.5(>500)/1(300)/2(no)/5(no)/10(no)'''
 '''b 50_000,i40,o20,m80,l10   ghost_weight_p = 0.(>1k)/0.2(>1k)/0.4(>1k)/0.5(240,350,350)/0.6(300,300,250)/0.7(160,450,260)/0.8(370,400,170)/0.9(>1k)   scaling_ratio_scaled_by = 1'''
+
+'''aug 7'''
+'''b 50_000,i40,o20,m80,l10   ghost_weight_p = 0.5   scaling_ratio_scaled_by = 0.2(1340)/0.5(550)/1(334,222)/2(>600)/5(>600)/10()'''
+'''b 50_000,i40,o20,m80,l10   ghost_weight_p = 0(>600)/0.1(>800)/0.3(>800)/0.4(234)/0.5(guess300)/0.8(250)/0.9(>600)/1.(>600)   scaling_ratio_scaled_by = 1'''
+'''b 50_000,i40,o20,m80,l10   ghost_weight_p = 0.6   scaling_ratio_scaled_by = 1   mse(270,570,310)/l1loss(230,250,210)'''
+'''b 50_000,i30,o10,m60,l15   ghost_weight_p = 0.6   scaling_ratio_scaled_by = 0.2(>1k)/0.5(660)/1(440)/2(>1k)   '''
+'''b 50_000,i30,o10,m60,l15   ghost_weight_p = 0(>1k)/0.02(>1k)/0.05(520)/0.1(310)/0.2(450)/0.3(420)/0.4(350)/0.6(440)/0.8(260)/1(310)/       scaling_ratio_scaled_by = 1   '''
+'''b 50_000,i30,o10,m60,l15   ghost_weight_p = 0.6   scaling_ratio_scaled_by = 1   mse(300,450,620)/l1loss(230,330,290)'''
+'''upper mse as default. Lower, l1loss(abs loss) as default.'''
+'''some crazy test. b 50_000,i30,o10,m40,l50   0.6, 0.002  >35k 4k to 0.75.'''
+'''how about the fast start      5 to 50,3 to 100,2 to 200,1 to 500, 0.5'''
+'''b 50_000,i20,o10,m40,l20   ghost_weight_p = 0.6   scaling_ratio_scaled_by = 0.2()/0.5(>6k 600to0.8)/1(760)/2(>1k 500to0.8)   '''
+#后续计划
+#梯度里面如果双数字化会不会比较好？
 fast_traval____dry_stack_test = 432
 batch = 50_000
-n_in = 40
-n_out = 20
-mid_width = 80
-num_layers = 10
-ghost_weight_p = 0.8##
-scaling_ratio_scaled_by = 1.#1.
+n_in = 20
+n_out = 10
+mid_width = 40
+num_layers = 20
+ghost_weight_p = 0.6##
+scaling_ratio_scaled_by = 0.5#1.
 iter_per_print = 50#1111
 print_count = 333333
+# start_scaling_mul = 3.
+# start_scaling_epoch = 100
 
 (input, target) = data_gen_for_digital_mapper_directly_test(batch,n_in,n_out)
 input.requires_grad_()
@@ -2033,12 +2122,14 @@ input.requires_grad_()
 # print(target, "target")
 
 model = dry_stack_test_for_digital_mapper_v1_4(input.shape[1],target.shape[1],mid_width,num_layers=num_layers, training_ghost_weight_probability=ghost_weight_p, scaling_ratio_scaled_by = scaling_ratio_scaled_by)
+#model.scale_the_scaling_ratio_for_raw_weight(3.)
 model.print_scaling_ratio_for_raw_weight()
 #model.first_layer.set_scaling_ratio_for_raw_weight(model.first_layer.gramo_for_raw_weight.scaling_ratio*0.5)
 #model.last_layer.set_scaling_ratio_for_raw_weight(model.last_layer.gramo_for_raw_weight.scaling_ratio*0.5)
 #model.mid_layers[0].set_scaling_ratio_for_raw_weight(model.first_layer.gramo_for_raw_weight.scaling_ratio*100.)
 
-loss_function = torch.nn.MSELoss()
+#loss_function = torch.nn.MSELoss()#
+loss_function = torch.nn.L1Loss()#
 optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
 if True and "print parameters":
     if True:# and "only the training params":
@@ -2068,6 +2159,9 @@ previous_sharp_acc = 0.
 previous_raw_acc = 0.
 
 for epoch in range(iter_per_print*print_count):
+    if 100 == epoch:
+        model.reset_scaling_ratio_for_raw_weight()
+        pass
     model.train()
     pred = model(input)
     #print(pred, "pred", __line__str())
@@ -2124,7 +2218,7 @@ for epoch in range(iter_per_print*print_count):
 
             pass
         pass
-    if True and "print strong grad ratio":#############################
+    if False and "print strong grad ratio":#############################
         if epoch%iter_per_print == iter_per_print-1:
             model.print_strong_grad_ratio()
             # 看这里

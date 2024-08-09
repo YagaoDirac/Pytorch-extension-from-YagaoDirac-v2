@@ -1,3 +1,10 @@
+# 后续计划。
+# 简化版本的gramo
+# x的归一化。
+# 直接堆叠测试。
+# 结合relu，tanh，sigmoid测试。
+
+
 ''' This file is not temparorily completely testes.
 The Mirror looks like useless. I'm so sad.
 
@@ -183,38 +190,22 @@ Maybe the Mirror withOUT gramo is the best.. I expect the last one to be the bes
 '''
 
 
-from typing import Any, List, Optional, Self
-import torch
+from typing import Any, List, Tuple, Optional, Self
 import math
-
-__all__ = [
-    'make_grad_noisy',
-    'GradientModification',
-    'MirrorLayer',
-    'MirrorWithGramo',
-    'GradientModificationFunction', #Should I expose this?
-    'Linear_with_gramo', #Should I rename this one? Or somebody help me with the naming?
-    ]
+import torch
 
 
-def make_grad_noisy(model:torch.nn.Module, noise_base:float = 1.2):
-    for p in model.parameters():
-        if p.requires_grad and (not p.grad is None):
-            temp = torch.randn_like(p.grad)
-            noise_factor = torch.pow(noise_base, temp)
-            with torch.no_grad():
-                #p.grad = p.grad.detach().clone().mul(noise_factor)
-                p.grad = p.grad.detach().mul(noise_factor)
-                pass
-            pass
-        pass
-    pass
+# __all__ = [
+#     'make_grad_noisy',
+#     'GradientModification',
+#     'MirrorLayer',
+#     'MirrorWithGramo',
+#     'GradientModificationFunction', #Should I expose this?
+#     'Linear_gramo', #Should I rename this one? Or somebody help me with the naming?
+#     ]
 
-# p = torch.nn.Parameter(torch.tensor([42.]))
-# p.grad = torch.tensor([1.])
-# p.grad = p.grad.detach().clone().mul(torch.tensor([1.23]))
-# print(p.grad)
-# fds=432
+
+
 
 
 
@@ -272,13 +263,14 @@ def make_grad_noisy(model:torch.nn.Module, noise_base:float = 1.2):
 #the old one is from mid in 2022
 #the new one is from early in 2024.
 
+
 class GradientModificationFunction(torch.autograd.Function):
     r'''input param:
     >>> x:torch.Tensor (must be set as require_grad = True)
     >>> scaling_ratio = torch.tensor([1.])
     >>> epi = torch.tensor([1e-5])
     >>> div_me_when_g_too_small = torch.tensor([1e-3])
-    
+
     retur type: torch.Tensor
     '''
     @staticmethod
@@ -294,8 +286,8 @@ class GradientModificationFunction(torch.autograd.Function):
         div_me_when_g_too_small = args[3]
         # the default values:
         # scaling_ratio = torch.tensor([1.])
-        # epi = torch.tensor([0.00001]) 
-        # div_me_when_g_too_small = torch.tensor([0.001]) 
+        # epi = torch.tensor([0.00001])
+        # div_me_when_g_too_small = torch.tensor([0.001])
         # the definition of the 3 param are different from the previous version
         if len(x.shape)!=2:
             raise Exception("GradientModificationFunction only accept rank-2 tensor. The shape should be[batch, something]")
@@ -317,14 +309,14 @@ class GradientModificationFunction(torch.autograd.Function):
         # original_shape = g.shape
         # if len(g.shape) == 1:
         #     g = g.unsqueeze(1)
-        # protection against div 0    
+        # protection against div 0
         length:torch.Tensor = g.mul(g).sum(dim=1,).sqrt()
         too_small:torch.Tensor = length.le(epi)
         div_me = too_small.logical_not()*length + too_small*div_me_when_g_too_small
         div_me = div_me.unsqueeze(dim=1)
         div_me = div_me.to(g.dtype)
         g_out:torch.Tensor = g/div_me
-        
+
         scaling_ratio = scaling_ratio.to(g.dtype)
         if 1.!=scaling_ratio.item():
             g_out *= scaling_ratio
@@ -333,6 +325,7 @@ class GradientModificationFunction(torch.autograd.Function):
         return g_out, None, None, None
 
     pass  # class
+
 
 
 # '''dtype adaption.'''
@@ -421,7 +414,7 @@ class GradientModification(torch.nn.Module):
     To access the learning rate, you usually need some thing like:
     lr:float = optimizer.param_groups[0]["lr"]
     """
-    scaling_ratio:torch.Tensor
+
     def __init__(self, scaling_ratio:float = 1., \
                        epi=1e-5, \
                        div_me_when_g_too_small = 1e-3, \
@@ -433,12 +426,9 @@ class GradientModification(torch.nn.Module):
         self.epi.requires_grad_(False)
         self.div_me_when_g_too_small = torch.nn.Parameter(torch.tensor([div_me_when_g_too_small]), requires_grad=False)
         self.div_me_when_g_too_small.requires_grad_(False)
-        #raise Exception("untested")
         pass
     def forward(self, x:torch.Tensor)->torch.Tensor:
         # If you know how pytorch works, you can comment this checking out.
-        if not x.requires_grad:
-            raise Exception("Set x.requires_grad to True. If you know what you are doing, you can comment this line.")
 
         if len(x.shape)!=2:
             raise Exception("GradientModification only accept rank-2 tensor. The shape should be[batch, something]")
@@ -448,18 +438,27 @@ class GradientModification(torch.nn.Module):
         return GradientModificationFunction.apply(x, self.scaling_ratio, self.epi, \
                                                    self.div_me_when_g_too_small)
     def set_scaling_ratio(self, scaling_ratio:float)->None:
-        self.scaling_ratio = torch.nn.Parameter(torch.tensor([scaling_ratio], requires_grad=False))
+        the_device = self.scaling_ratio.device
+        the_dtype = self.scaling_ratio.dtype
+        self.scaling_ratio.data = torch.tensor([scaling_ratio], device=the_device, dtype=the_dtype)
         self.scaling_ratio.requires_grad_(False)
+        pass
     def set_epi(self, epi:float)->None:
-        self.epi = torch.nn.Parameter(torch.tensor([epi], requires_grad=False))
+        the_device = self.epi.device
+        the_dtype = self.epi.dtype
+        self.epi.data = torch.tensor([epi], device=the_device, dtype=the_dtype)
         self.epi.requires_grad_(False)
+        pass
     def set_div_me_when_g_too_small(self, div_me_when_g_too_small:float)->None:
-        self.div_me_when_g_too_small = torch.nn.Parameter(torch.tensor([div_me_when_g_too_small], requires_grad=False))
+        the_device = self.div_me_when_g_too_small.device
+        the_dtype = self.div_me_when_g_too_small.dtype
+        self.div_me_when_g_too_small.data = torch.tensor([div_me_when_g_too_small], device=the_device, dtype=the_dtype)
         self.div_me_when_g_too_small.requires_grad_(False)
         pass
 
     def extra_repr(self) -> str:
         return f'scaling_ratio={self.scaling_ratio.item():.4e}, epi={self.epi.item():.4e}, div_me_when_g_too_small={self.div_me_when_g_too_small.item():.4e}'
+
 
 # '''all the setters'''
 # model = GradientModification()
