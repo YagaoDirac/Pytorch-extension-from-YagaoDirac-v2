@@ -336,89 +336,6 @@ def debug_strong_grad_ratio(parameter:torch.nn.parameter.Parameter, log10_diff =
     return result
 
 
-# backup code.
-    # def debug_get_zero_grad_ratio(self, directly_print_out:float = False)->float:
-    #     with torch.no_grad():
-    #         result = 0.
-    #         if not self.raw_weight_o_i.grad is None:
-    #             flags = self.raw_weight_o_i.grad.eq(0.)
-    #             total_amount = flags.sum().item()
-    #             result = float(total_amount)/self.raw_weight_o_i.nelement()
-    #         if directly_print_out:
-    #             print("get_zero_grad_ratio:", result)
-    #         return result
-
-
-    # def debug_strong_grad_ratio(self, log10_diff = -2., epi_for_w = 0.01, epi_for_g = 0.01, \
-    #                             print_out = False)->float:
-    #     #epi_for_w/epi_for_g<math.pow(10, log10_diff)*0.999??????
-    #     if self.raw_weight_o_i.grad is None:
-    #         if print_out:
-    #             print(0., "inside debug_micro_grad_ratio function __line 1082")
-    #             pass
-    #         return 0.
-
-    #     the_device=self.raw_weight_o_i.device
-    #     epi_for_w_tensor = torch.tensor([epi_for_w], device=the_device)
-    #     raw_weight_abs = self.raw_weight_o_i.abs()
-    #     flag_w_big_enough = raw_weight_abs.gt(epi_for_w_tensor)
-
-    #     epi_for_g_tensor = torch.tensor([epi_for_g], device=the_device)
-    #     raw_weight_grad_abs = self.raw_weight_o_i.grad.abs()
-    #     flag_g_big_enough = raw_weight_grad_abs.gt(epi_for_g_tensor)
-
-    #     ten = torch.tensor([10.], device=the_device)
-    #     log10_diff_tensor = torch.tensor([log10_diff], device=the_device)
-    #     corresponding_g = raw_weight_grad_abs*torch.pow(ten, log10_diff_tensor)
-    #     flag_w_lt_corresponding_g = raw_weight_abs.lt(corresponding_g)
-
-    #     flag_useful_g = flag_w_big_enough.logical_and(flag_g_big_enough).logical_and(flag_w_lt_corresponding_g)
-    #     result = (flag_useful_g.sum().to(torch.float32)/self.raw_weight_o_i.nelement()).item()
-    #     if print_out:
-    #         print(result, "inside debug_micro_grad_ratio function __line 1082")
-    #         pass
-    #     return result
-
-
-    # def debug_strong_grad_ratio(self, log10_diff = -2., epi_for_w = 0.01, epi_for_g = 0.01, \
-    #                             print_out = False)->float:
-    #     #epi_for_w/epi_for_g<math.pow(10, log10_diff)*0.999??????
-    #     if self.raw_weight_o_i.grad is None:
-    #         if print_out:
-    #             print(0., "inside debug_micro_grad_ratio function __line 1082")
-    #             pass
-    #         return 0.
-
-    #     the_device=self.raw_weight_o_i.device
-    #     epi_for_w_tensor = torch.tensor([epi_for_w], device=the_device)
-    #     raw_weight_abs = self.raw_weight_o_i.abs()
-    #     flag_w_big_enough = raw_weight_abs.gt(epi_for_w_tensor)
-
-    #     epi_for_g_tensor = torch.tensor([epi_for_g], device=the_device)
-    #     raw_weight_grad_abs = self.raw_weight_o_i.grad.abs()
-    #     flag_g_big_enough = raw_weight_grad_abs.gt(epi_for_g_tensor)
-
-    #     ten = torch.tensor([10.], device=the_device)
-    #     log10_diff_tensor = torch.tensor([log10_diff], device=the_device)
-    #     corresponding_g = raw_weight_grad_abs*torch.pow(ten, log10_diff_tensor)
-    #     flag_w_lt_corresponding_g = raw_weight_abs.lt(corresponding_g)
-
-    #     flag_useful_g = flag_w_big_enough.logical_and(flag_g_big_enough).logical_and(flag_w_lt_corresponding_g)
-    #     result = (flag_useful_g.sum().to(torch.float32)/self.raw_weight_o_i.nelement()).item()
-    #     if print_out:
-    #         print(result, "inside debug_micro_grad_ratio function __line 1082")
-    #         pass
-    #     return result
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -516,21 +433,14 @@ def floats_into_int(input:torch.Tensor)->torch.Tensor:
 # fds=432
 
 
-def data_gen_for_directly_stacking_test(batch:int, n_in:int, n_out:int, dtype = torch.float32, is_input_01 = False)->Tuple[torch.Tensor, torch.Tensor]:
-    if is_input_01:
-        input = torch.randint(0,2,[batch, n_in])
-    else:
-        input = torch.randint(0,2,[batch, n_in])*2-1
-        pass
+
+def data_gen_for_digital_mapper_directly_test(batch:int, n_in:int, n_out:int, dtype = torch.float32)->Tuple[torch.Tensor, torch.Tensor]:
+    input = torch.randint(0,2,[batch, n_in], dtype=torch.int8)
+    input = input*2-1
     input = input.to(dtype)
     answer_index = torch.randint(0,n_in,[n_out])
     target = input[:, answer_index]
     return input, target
-
-# a,b = data_gen_for_directly_stacking_test(5,3,2)
-# print(a)
-# print(b)
-# fds=423
 
 
 
@@ -592,33 +502,16 @@ def data_gen_full_adder(bits:int, batch:int, is_output_01:bool, is_cuda:bool=Tru
 # fds=432
 
 
-# old version.
-# def bitwise_acc(a:torch.Tensor, b:torch.Tensor, print_out:bool = False)->float:
-#     temp = a.eq(b)
-#     temp = temp.sum().to(torch.float32)
-#     acc = temp/float(a.shape[0]*a.shape[1])
-#     acc_float = acc.item()
-#     if print_out:
-#         print("{:.4f}".format(acc_float), "<- the accuracy")
-#         pass
-#     return acc_float
-#     pass
-
-def bitwise_acc(a:torch.Tensor, b:torch.Tensor, print_out_when_exact_one = True, \
-                print_out:bool = False)->float:
-    with torch.no_grad():
-        temp = a.eq(b)
-        if temp.all() and print_out_when_exact_one:
-            print(1., "(NO ROUNDING!!!)   <- the accuracy    inside bitwise_acc function __line 859 ")
-            return 1.
-        temp = temp.sum().to(torch.float32)
-        acc = temp/float(a.shape[0]*a.shape[1])
-        acc_float = acc.item()
-        if print_out:
-            print("{:.4f}".format(acc_float), "<- the accuracy")
-            pass
-        return acc_float
-
+def bitwise_acc(a:torch.Tensor, b:torch.Tensor, print_out:bool = False)->float:
+    temp = a.eq(b)
+    temp = temp.sum().to(torch.float32)
+    acc = temp/float(a.shape[0]*a.shape[1])
+    acc_float = acc.item()
+    if print_out:
+        print("{:.4f}".format(acc_float), "<- the accuracy")
+        pass
+    return acc_float
+    pass
 # a = torch.tensor([[1,1,],[1,1,],[1,1,],])
 # b = torch.tensor([[1,1,],[1,1,],[1,1,],])
 # bitwise_acc(a,b, print_out=True)
@@ -628,18 +521,3 @@ def bitwise_acc(a:torch.Tensor, b:torch.Tensor, print_out_when_exact_one = True,
 # bitwise_acc(a,b, print_out=True)
 # fds=432
 
-
-
-
-
-def debug_Rank_1_parameter_to_List_float(input:torch.nn.parameter.Parameter)->List[float]:
-    result : List[float] = []
-    for i in range(input.shape[0]):
-        result.append(input[i].item())
-        pass
-    return result
-# p = torch.nn.Parameter(torch.tensor([1., 2., 3.]))
-# l = debug_Rank_1_parameter_to_List_float(p)
-# print(p)
-# print(l)
-# fds=432
