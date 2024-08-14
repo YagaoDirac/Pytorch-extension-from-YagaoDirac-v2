@@ -17,7 +17,6 @@ class DigitalMapperFunction_v2_1(torch.autograd.Function):
     forward input list:
     >>> x = args[0]# shape must be [batch, in_features]
     >>> raw_weight:torch.Tensor = args[1]# shape must be [out_features, in_features], must requires grad.
-    >>> threshold_for_random:torch.Tensor = args[2]# 0.5< <1. Random result below this acc will be suppressed.
     backward input list:
     >>> g_in #shape of g_in must be [batch, out_features]
     '''
@@ -25,8 +24,6 @@ class DigitalMapperFunction_v2_1(torch.autograd.Function):
     def forward(ctx: Any, *args: Any, **kwargs: Any)->Any:
         x = args[0]# shape must be [batch, in_features]
         raw_weight:torch.Tensor = args[1]# shape must be [out_features, in_features]
-        threshold_for_random:torch.Tensor = args[2]
-        
                 
         #print(out_features_iota, "out_features_iota")
         index_of_max_o = raw_weight.max(dim=1).indices
@@ -46,7 +43,7 @@ class DigitalMapperFunction_v2_1(torch.autograd.Function):
         out_features_s = torch.tensor(raw_weight.shape[0], device=raw_weight.device)
         raw_weight_shape = torch.tensor(raw_weight.shape, device=raw_weight.device)
         x_needs_grad = torch.tensor([x.requires_grad], device=x.device)
-        ctx.save_for_backward(x, index_of_max_o, out_features_s, raw_weight_shape, x_needs_grad, threshold_for_random)
+        ctx.save_for_backward(x, index_of_max_o, out_features_s, raw_weight_shape, x_needs_grad)
         return output
 
     @staticmethod
@@ -59,8 +56,7 @@ class DigitalMapperFunction_v2_1(torch.autograd.Function):
         out_features_s:torch.Tensor
         raw_weight_shape:torch.Tensor
         x_needs_grad:torch.Tensor
-        threshold_for_random:torch.Tensor
-        x, index_of_max_o, out_features_s, raw_weight_shape, x_needs_grad, threshold_for_random = ctx.saved_tensors
+        x, index_of_max_o, out_features_s, raw_weight_shape, x_needs_grad = ctx.saved_tensors
             
         # print(g_in, "g_in", __line__str())
             
@@ -77,27 +73,11 @@ class DigitalMapperFunction_v2_1(torch.autograd.Function):
         # print(grad_for_raw_weight__raw__o_i, "grad_for_raw_weight__raw__o_i after sum, the final result.")
         #print(grad_for_raw_weight__raw__o_i.shape, "grad_for_raw_weight__raw__o_i.shape. Should be ", raw_weight.shape)
         
-        # Pure random is p=0.5 in binary context. Pure random should be suppressed otherwise the training is stopped.
-        # The formula is like,
-        # p*i-(1-p)*d == 0.
-        # p is the threshold of random. i is the increasement and d is the decreasement.
-        # d/i == p/(1-p) == 1/(1-p)-1
-        # but I want (d-i)/i , it's 1/(1-p)-2. In code, it's neg_g_enhancing_factor
-        # the protection is (d-i)/i must >0.
-        # In code, it's between 0.17 and 2, corresponding to 54% to 75%
-        
-        neg_g_enhancing_factor:torch.Tensor = 1/(1-threshold_for_random)-2
-        neg_g_enhancing_factor.nan_to_num_(0.)
-        neg_g_enhancing_factor = neg_g_enhancing_factor.maximum(torch.tensor([0.17], device=threshold_for_random.device, dtype=threshold_for_random.dtype))
-        neg_g_enhancing_factor = neg_g_enhancing_factor.minimum(torch.tensor([2.], device=threshold_for_random.device, dtype=threshold_for_random.dtype))
-        if threshold_for_random>=0.75:
-            neg_g_enhancing_factor = torch.tensor([2.], device=threshold_for_random.device, dtype=threshold_for_random.dtype)
-            pass
         flag_neg_of_grad_for_raw_weight__raw__o_i = grad_for_raw_weight__raw__o_i.lt(0.)
-        grad_for_raw_weight_o_i = flag_neg_of_grad_for_raw_weight__raw__o_i*grad_for_raw_weight__raw__o_i*neg_g_enhancing_factor+grad_for_raw_weight__raw__o_i
+        grad_for_raw_weight_o_i = flag_neg_of_grad_for_raw_weight__raw__o_i*grad_for_raw_weight__raw__o_i*3.+grad_for_raw_weight__raw__o_i
 
         if x_needs_grad.logical_not():
-            return None, grad_for_raw_weight_o_i, None
+            return None, grad_for_raw_weight_o_i
 
         in_features_s = x.shape[1]
         out_features_iota_o = torch.linspace(0, out_features_s-1, out_features_s, dtype=torch.int32)
@@ -121,14 +101,14 @@ class DigitalMapperFunction_v2_1(torch.autograd.Function):
         # print(grad_for_x_b_i, "grad_for_x_b_i")
         #print(grad_for_x_b_i.shape, "grad_for_x_b_i.shape")
                 
-        return grad_for_x_b_i, grad_for_raw_weight_o_i, None
+        return grad_for_x_b_i, grad_for_raw_weight_o_i
 
     pass  # class
 
 # '''single layer grad backward test.'''
 # x = torch.tensor([[1.11]])
 # w = torch.tensor([[1.21], [1.22], ], requires_grad=True)
-# pred:torch.Tensor = DigitalMapperFunction_v2_1.apply(x, w, torch.tensor([0.54]))
+# pred:torch.Tensor = DigitalMapperFunction_v2_1.apply(x, w)
 # print(pred, "pred")
 # pred.backward(torch.tensor([[1.31, -1.32]]))
 # print(w.grad, "w.grad")
@@ -342,7 +322,6 @@ class DigitalMapper_V2_1(torch.nn.Module):
     def __init__(self, in_features: int, out_features: int, needs_out_gramo = True, \
                     auto_print_difference:bool = False, \
                     scale_the_scaling_ratio_for_learning_gramo = 1., \
-                    epoch_factor = 1., \
                     #protect_param_every____training:int = 5, \
                     device=None, dtype=None) -> None:   #, debug_info = ""
 
@@ -358,11 +337,6 @@ class DigitalMapper_V2_1(torch.nn.Module):
         self.sqrt_of_out_features = torch.nn.Parameter(torch.sqrt(torch.tensor([out_features])), requires_grad=False)
         #self.out_iota = torch.nn.Parameter(torch.linspace(0,out_features-1, out_features, dtype=torch.int32), requires_grad=False)
         self.needs_out_gramo = needs_out_gramo
-
-        if epoch_factor<=0 or epoch_factor>100:
-            raise Exception("emmmm")
-        self.epoch_factor = torch.nn.Parameter(torch.tensor([epoch_factor]), requires_grad=False)
-        self.epoch = torch.nn.Parameter(torch.tensor([0]), requires_grad=False)
 
         self.raw_weight_o_i = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
         self.__reset_parameters__the_plain_rand01_style()
@@ -408,12 +382,6 @@ class DigitalMapper_V2_1(torch.nn.Module):
         self.gramo_for_raw_weight.set_scaling_ratio(scaling_ratio)
         pass
 
-    def set_epoch_factor(self, epoch_factor:float):
-        self.epoch_factor = torch.nn.Parameter(torch.tensor([epoch_factor]), requires_grad=False)
-        pass
-    def set_epoch(self, epoch:int):
-        self.epoch = torch.nn.Parameter(torch.tensor([epoch]), requires_grad=False)
-        pass
 
     def set_auto_print_difference_between_epochs(self, set_to:bool = True):
         with torch.no_grad():
@@ -527,13 +495,8 @@ class DigitalMapper_V2_1(torch.nn.Module):
                 pass
 
             x = input
-            
-            w_after_gramo = self.gramo_for_raw_weight(self.raw_weight_o_i.view([1, -1])).view([self.out_features,self.in_features])
-            
-            self.epoch.data = self.epoch + 1
-            threshold_for_random = self.epoch_factor/(self.epoch+1.)+0.5
-            
-            x = DigitalMapperFunction_v2_1.apply(x, w_after_gramo, threshold_for_random)
+            w_after_gramo = self.gramo_for_raw_weight(self.raw_weight_o_i)
+            x = DigitalMapperFunction_v2_1.apply(x, w_after_gramo)
 
 #            x = self.out_binarize_does_NOT_need_gramo(x)
             if self.needs_out_gramo:
@@ -563,6 +526,31 @@ class DigitalMapper_V2_1(torch.nn.Module):
         #raise Exception("untested")
         return result
     
+    # def after_step(self, print_out_level = 0):
+    #     '''the algorithm:
+    #     the top raw weight element is a, the exp(a) is A
+    #     the exp(...) or all other sums up to B
+    #     so:
+    #     A == k*(A+B), where k is the softmax result of the top element.
+    #     (I'm not going to figure k out.)
+
+    #     Then, I need a new A' to make the k back to 0.52, it's like:
+    #     A' == 0.52*(A'+B)
+    #     B is known,
+    #     0.48A' == 0.52B
+    #     A' == 1.08B
+    #     then, log(A') is what I need.
+
+    #     The code is like, i manually calc ed the softmax, so I can access the intermidiate result.
+    #     The max index of the raw weight is also of the cooked weight.
+    #     By cooking, I mean the softmax operation.
+    #     '''
+    #     with torch.no_grad():
+    #         #self.anti_nan_for_raw_weight()
+    #         self.protect_raw_weight()
+    #         pass
+    #     pass
+    # #end of function
 
     def protect_raw_weight(self, report_nan_and_inf = False):
         '''
@@ -644,21 +632,19 @@ fast_traval____end_of_digital_mapper_layer_class = 432
 # fds=432
 # eval_only_layer = layer.get_eval_only()
 # print(eval_only_layer(x))
-# print("All 5 prints above should be equal.")
+# print("All 4 prints above should be equal.")
 # fds=432
-
 
 
 # '''basic test. Also, the eval mode.'''
 # layer = DigitalMapper_V2_1(2,3, needs_out_gramo=False)
-# #layer.scale_the_scaling_ratio_for_raw_weight(1.)
-# layer.set_epoch(1000000)
+# layer.scale_the_scaling_ratio_for_raw_weight(1.)
 # # print(layer.raw_weight.data.shape)
 # layer.raw_weight_o_i.data=torch.Tensor([[1., 0.5],[ 0.1, 0.],[ 0.5, 1]])
 # layer.raw_weight_o_i.requires_grad_(True)
 # print(layer.raw_weight_o_i.requires_grad)
 # # print(layer.raw_weight.data)
-# input = torch.tensor([[1., -1.01]], requires_grad=True)
+# input = torch.tensor([[1., -1.]], requires_grad=True)
 # pred:torch.Tensor = layer(input)
 # print(pred, "should be 1 1 -1")
 # pred.backward(torch.tensor([[1.1, -1.2, 1.3]])*1.)

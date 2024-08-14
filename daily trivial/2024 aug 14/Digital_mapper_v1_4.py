@@ -4,7 +4,6 @@ import math
 import torch
 
 #my customized.
-from util import data_gen_for_digital_mapper_directly_test
 from ParamMo import GradientModification
 from Binarize import Binarize
 
@@ -445,23 +444,10 @@ class DigitalMapper_V1_4(torch.nn.Module):
             x = x.unsqueeze(dim=2)
 
             # old code.
-            w_after_gramo:torch.Tensor = self.gramo_for_raw_weight(self.raw_weight)
+            #w_after_gramo:torch.Tensor = self.gramo_for_raw_weight(self.raw_weight)
+            #final_raw_weight = self.get_final_raw_weight(self.training)
 
-            #w_after_gramo:torch.Tensor = self.gramo_for_raw_weight(self.raw_weight.view(1,-1)).view(self.out_features, self.in_features)
-            #上面这一句改了，重新测。
-            #上面这一句改了，重新测。
-            上面这一句改了，重新测。
-            #上面这一句改了，重新测。
-            #上面这一句改了，重新测。
-            #上面这一句改了，重新测。
-            #上面这一句改了，重新测。
-            #上面这一句改了，重新测。
-            #上面这一句改了，重新测。
-            #上面这一句改了，重新测。
-            #上面这一句改了，重新测。
-            #上面这一句改了，重新测。
-            
-            
+            w_after_gramo:torch.Tensor = self.gramo_for_raw_weight(self.raw_weight)
             if self.training_ghost_weight_probability!=0.:
                 w_with_ghost = w_after_gramo+ghost_weight_o_i
                 w_after_softmax = w_with_ghost.softmax(dim=1)
@@ -479,7 +465,7 @@ class DigitalMapper_V1_4(torch.nn.Module):
 
 
             x = self.out_binarize_does_NOT_need_gramo(x)
-            x = self.out_gramo(x)
+            x = self.out_gramo(x)#here is the only gramo.
             return x
         else:#eval mode.
             if 0 == self.eval_mode_0_is_raw__1_is_sharp:
@@ -938,7 +924,6 @@ fast_traval____end_of_digital_mapper_layer_class = 432
 # torch.autograd.backward(pred, g_in, inputs=[input,layer.raw_weight])
 # print(input.grad, "input.grad")
 # print(layer.raw_weight.grad, "layer.raw_weight.grad")
-# fds=432
 
 # print("summarize. The first 2 got the same grad for input. The third is to sharp, it's really untrainable.")
 
@@ -977,7 +962,7 @@ fast_traval____end_of_digital_mapper_layer_class = 432
 
 
 
-# fast_traval____single_layer_training_test = 432
+fast_traval____single_layer_training_test = 432
 # '''some real training'''
 # batch = 50_000
 # n_in = 2566
@@ -1070,7 +1055,7 @@ fast_traval____end_of_digital_mapper_layer_class = 432
 
 #             print(epoch+1, "    ep/   raw/sharp mode acc    ",f"{raw_mode_acc:.3f}"," / ", f"{sharp_mode_acc:.3f}")
 #             if 1. == sharp_mode_acc:#FINISHED
-#                 print(sharp_mode_pred[:2,:7], "pred")
+#                 print(sharp_mode_pred[:2,:7], "pred", __line__str())
 #                 print(target[:2,:7], "target")
 #                 print(model.can__old_func__convert_into_eval_only_mode(), "THIS ONE IS NOT IMPORTANT.model.can_convert_into_eval_only_mode")
 #                 print(epoch+1, "Training finished    __line  1256")
@@ -1381,193 +1366,183 @@ class dry_stack_test_for_digital_mapper_v1_4(torch.nn.Module):
     pass
 
 fast_traval____dry_stack_test = 432
-batch = 50_000
-n_in = 20
-n_out = 10
-mid_width = 40
-num_layers = 15
-ghost_weight_p = 0.6##
-scaling_ratio_scaled_by = 0.5#1.
-iter_per_print = 50#1111
-print_count = 333333
-# start_scaling_mul = 3.
-# start_scaling_epoch = 100
+# batch = 50_000
+# n_in = 20
+# n_out = 10
+# mid_width = 40
+# num_layers = 20
+# ghost_weight_p = 0.6##
+# scaling_ratio_scaled_by = 0.5#1.
+# iter_per_print = 50#1111
+# print_count = 333333
+# # start_scaling_mul = 3.
+# # start_scaling_epoch = 100
 
-(input, target) = data_gen_for_digital_mapper_directly_test(batch,n_in,n_out)
-input.requires_grad_()
-#input = torch.Tensor([[1., 1.],[1., -1.],[-1., 1.],[-1., -1.],])
-#target = torch.Tensor([[1.],[1.],[-1.],[-1.],])
-# print(input, "input")
-# print(target, "target")
+# (input, target) = data_gen_for_digital_mapper_directly_test(batch,n_in,n_out)
+# input.requires_grad_()
+# #input = torch.Tensor([[1., 1.],[1., -1.],[-1., 1.],[-1., -1.],])
+# #target = torch.Tensor([[1.],[1.],[-1.],[-1.],])
+# # print(input, "input")
+# # print(target, "target")
 
-model = dry_stack_test_for_digital_mapper_v1_4(input.shape[1],target.shape[1],mid_width,num_layers=num_layers, training_ghost_weight_probability=ghost_weight_p, scaling_ratio_scaled_by = scaling_ratio_scaled_by)
-#model.scale_the_scaling_ratio_for_raw_weight(10.)
-model.print_scaling_ratio_for_raw_weight()
-#model.first_layer.set_scaling_ratio_for_raw_weight(model.first_layer.gramo_for_raw_weight.scaling_ratio*0.5)
-#model.last_layer.set_scaling_ratio_for_raw_weight(model.last_layer.gramo_for_raw_weight.scaling_ratio*0.5)
-#model.mid_layers[0].set_scaling_ratio_for_raw_weight(model.first_layer.gramo_for_raw_weight.scaling_ratio*100.)
+# model = dry_stack_test_for_digital_mapper_v1_4(input.shape[1],target.shape[1],mid_width,num_layers=num_layers, training_ghost_weight_probability=ghost_weight_p, scaling_ratio_scaled_by = scaling_ratio_scaled_by)
+# #model.scale_the_scaling_ratio_for_raw_weight(3.)
+# model.print_scaling_ratio_for_raw_weight()
+# #model.first_layer.set_scaling_ratio_for_raw_weight(model.first_layer.gramo_for_raw_weight.scaling_ratio*0.5)
+# #model.last_layer.set_scaling_ratio_for_raw_weight(model.last_layer.gramo_for_raw_weight.scaling_ratio*0.5)
+# #model.mid_layers[0].set_scaling_ratio_for_raw_weight(model.first_layer.gramo_for_raw_weight.scaling_ratio*100.)
 
-#loss_function = torch.nn.MSELoss()#
-loss_function = torch.nn.L1Loss()#
-optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
-if True and "print parameters":
-    if True:# and "only the training params":
-        for name, p in zip(model._parameters, model.parameters()):
-            if p.requires_grad:
-                print(name, p)
-                pass
-            pass
-        pass
-    else:# prints all the params.
-        for name, p in zip(model._parameters, model.parameters()):
-            print(name, p)
-            pass
-        pass
+# #loss_function = torch.nn.MSELoss()#
+# loss_function = torch.nn.L1Loss()#
+# optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+# if True and "print parameters":
+#     if True:# and "only the training params":
+#         for name, p in zip(model._parameters, model.parameters()):
+#             if p.requires_grad:
+#                 print(name, p)
+#                 pass
+#             pass
+#         pass
+#     else:# prints all the params.
+#         for name, p in zip(model._parameters, model.parameters()):
+#             print(name, p)
+#             pass
+#         pass
 
-if True and "f16 & GPU":
-    model.half().cuda()
-    input = input.to(torch.float16).cuda()
-    target = target.to(torch.float16).cuda()
-else:
-    model.cuda()
-    input = input.cuda()
-    target = target.cuda()
+# if True and "f16 & GPU":
+#     model.half().cuda()
+#     input = input.to(torch.float16).cuda()
+#     target = target.to(torch.float16).cuda()
+# else:
+#     model.cuda()
+#     input = input.cuda()
+#     target = target.cuda()
 
-flag = False
-previous_sharp_acc = 0.
-previous_raw_acc = 0.
+# flag = False
+# previous_sharp_acc = 0.
+# previous_raw_acc = 0.
 
-for epoch in range(iter_per_print*print_count):
-    if 100 == epoch:
-        model.reset_scaling_ratio_for_raw_weight()
-        pass
-    model.train()
-    pred = model(input)
-    #print(pred, "pred", __line__str())
-    if False and "shape":
-        print(pred.shape, "pred.shape")
-        print(target.shape, "target.shape")
-        fds=423
-    if False and "print pred":
-        if epoch%iter_per_print == iter_per_print-1:
-            print(pred[:2,:5], "pred")
-            print(target[:2,:5], "target")
-            pass
-        pass
-    loss:torch.Tensor = loss_function(pred, target)
-    optimizer.zero_grad()
-    loss.backward()
-    #if epoch>19:
-    #print(model.first_layer.raw_weight_boundary_for_f32.item())
-    #print(model.first_layer.raw_weight_boundary_for_f32.requires_grad)
-    if False and "make_grad_noisy":
-        make_grad_noisy(model, 1.05)
-        pass
-    #print(model.first_layer.raw_weight_boundary_for_f32.item())
-    if False and "print the grad":
-        if epoch%iter_per_print == iter_per_print-1:
-            print(model.first_layer.raw_weight.grad[:3,:7], "grad")
-            print(model.last_layer.raw_weight.grad[:3,:7], "grad")
-            pass
-        pass
-    if False and "print the weight":
-        every = 1
-        if epoch%every == every-1:
-        #if epoch%iter_per_print == iter_per_print-1:
-            layer = model.first_layer
-            # print(layer.raw_weight[:2,:7], "first_layer.in_mapper   before update")
-            # optimizer.step()
-            # print(layer.raw_weight[:2,:7], "first_layer.in_mapper   after update")
-            # layer.after_step()
-            # print(layer.raw_weight[:2,:7], "first_layer.in_mapper   after after step")
+# for epoch in range(iter_per_print*print_count):
+#     if 100 == epoch:
+#         model.reset_scaling_ratio_for_raw_weight()
+#         pass
+#     model.train()
+#     pred = model(input)
+#     #print(pred, "pred", __line__str())
+#     if False and "shape":
+#         print(pred.shape, "pred.shape")
+#         print(target.shape, "target.shape")
+#         fds=423
+#     if False and "print pred":
+#         if epoch%iter_per_print == iter_per_print-1:
+#             print(pred[:2,:5], "pred")
+#             print(target[:2,:5], "target")
+#             pass
+#         pass
+#     loss:torch.Tensor = loss_function(pred, target)
+#     optimizer.zero_grad()
+#     loss.backward()
+#     #if epoch>19:
+#     #print(model.first_layer.raw_weight_boundary_for_f32.item())
+#     #print(model.first_layer.raw_weight_boundary_for_f32.requires_grad)
+#     if False and "make_grad_noisy":
+#         make_grad_noisy(model, 1.05)
+#         pass
+#     #print(model.first_layer.raw_weight_boundary_for_f32.item())
+#     if False and "print the grad":
+#         if epoch%iter_per_print == iter_per_print-1:
+#             print(model.first_layer.raw_weight.grad[:3,:7], "grad")
+#             print(model.last_layer.raw_weight.grad[:3,:7], "grad")
+#             pass
+#         pass
+#     if False and "print the weight":
+#         every = 1
+#         if epoch%every == every-1:
+#         #if epoch%iter_per_print == iter_per_print-1:
+#             layer = model.first_layer
+#             # print(layer.raw_weight[:2,:7], "first_layer.in_mapper   before update")
+#             # optimizer.step()
+#             # print(layer.raw_weight[:2,:7], "first_layer.in_mapper   after update")
+#             # layer.after_step()
+#             # print(layer.raw_weight[:2,:7], "first_layer.in_mapper   after after step")
 
-            if torch.isnan(layer.raw_weight).any():
-                fds=432
-                pass
+#             if torch.isnan(layer.raw_weight).any():
+#                 fds=432
+#                 pass
 
-            layer = model.last_layer
-            # print(layer.raw_weight[:2,:7], "last_layer.in_mapper   before update")
-            # optimizer.step()
-            # print(layer.raw_weight[:2,:7], "last_layer.in_mapper   after update")
-            # layer.after_step()
-            # print(layer.raw_weight[:2,:7], "last_layer.in_mapper   after after step")
-            if torch.isnan(layer.raw_weight).any():
-                fds=432
-                pass
+#             layer = model.last_layer
+#             # print(layer.raw_weight[:2,:7], "last_layer.in_mapper   before update")
+#             # optimizer.step()
+#             # print(layer.raw_weight[:2,:7], "last_layer.in_mapper   after update")
+#             # layer.after_step()
+#             # print(layer.raw_weight[:2,:7], "last_layer.in_mapper   after after step")
+#             if torch.isnan(layer.raw_weight).any():
+#                 fds=432
+#                 pass
 
-            pass
-        pass
-    if True and "print strong grad ratio":#############################
-        if epoch%iter_per_print == iter_per_print-1:
-            model.print_strong_grad_ratio()
-            # 看这里
-            # here is the reason this v1_2 failed.
-            # It still push the softmax too hard, which prevents backward pass.
-            pass
-        pass
-    #optimizer.param_groups[0]["lr"] = 0.01
-    #print(model.first_layer.raw_weight.requires_grad,"    __line 1720")
-#    model.before_step()
+#             pass
+#         pass
+#     if False and "print strong grad ratio":#############################
+#         if epoch%iter_per_print == iter_per_print-1:
+#             model.print_strong_grad_ratio()
+#             # 看这里
+#             # here is the reason this v1_2 failed.
+#             # It still push the softmax too hard, which prevents backward pass.
+#             pass
+#         pass
+#     #optimizer.param_groups[0]["lr"] = 0.01
+#     #print(model.first_layer.raw_weight.requires_grad,"    __line 1720")
+# #    model.before_step()
+#     optimizer.step()
+#     model.after_step()
+#     if False and "print param overlap":
+#         # every = 1
+#         # if epoch%every == every-1:
+#         if epoch%iter_per_print == iter_per_print-1:
 
-    for param in model.parameters():
-        if not param.grad is None:
-            neg_flag = param.grad.lt(0.)
-            param.grad = neg_flag* param.grad*0.1 +param.grad
-            pass
-        pass
-        
-
-
-    optimizer.step()
-    model.after_step()
-    if False and "print param overlap":
-        # every = 1
-        # if epoch%every == every-1:
-        if epoch%iter_per_print == iter_per_print-1:
-
-            model.print_param_overlap_ratio()
-            pass
-        pass
+#             model.print_param_overlap_ratio()
+#             pass
+#         pass
     
 
-    with torch.inference_mode():
+#     with torch.inference_mode():
 
-        #every = 10
-        #if epoch%every == every-1:
-        model.eval()
-        model.set_eval_mode(1)
-        sharp_mode_pred = model(input)
-        #print(pred, "pred", __line__str())
-        #print(target, "target")
-        sharp_mode_acc = DigitalMapper_V1_4.bitwise_acc(sharp_mode_pred, target)
-        # if epoch>500 :
-        #     every = 10
-        #     if epoch%every == every-1:
-        #         if sharp_mode_acc == previous_sharp_acc:
-        #             flag = True
-        #             pass
-        #         previous_sharp_acc = sharp_mode_acc
-        #         previous_raw_acc = raw_mode_acc
-        #         pass
-        #     pass
+#         #every = 10
+#         #if epoch%every == every-1:
+#         model.eval()
+#         model.set_eval_mode(1)
+#         sharp_mode_pred = model(input)
+#         #print(pred, "pred", __line__str())
+#         #print(target, "target")
+#         sharp_mode_acc = DigitalMapper_V1_4.bitwise_acc(sharp_mode_pred, target)
+#         # if epoch>500 :
+#         #     every = 10
+#         #     if epoch%every == every-1:
+#         #         if sharp_mode_acc == previous_sharp_acc:
+#         #             flag = True
+#         #             pass
+#         #         previous_sharp_acc = sharp_mode_acc
+#         #         previous_raw_acc = raw_mode_acc
+#         #         pass
+#         #     pass
 
-        #every = 100
-        if epoch%iter_per_print == iter_per_print-1:
-            model.eval()
-            model.set_eval_mode(0)
-            raw_mode_pred = model(input)
-            raw_mode_acc = DigitalMapper_V1_4.bitwise_acc(raw_mode_pred, target)
-            print(epoch+1, "    ep/   raw/sharp mode acc    ",f"{raw_mode_acc:.3f}"," / ", f"{sharp_mode_acc:.3f}")
-            pass
-        if 1. == sharp_mode_acc:#FINISHED
-            print(sharp_mode_pred[:2,:7], "pred")
-            print(target[:2,:7], "target")
-            print(model.print__old_func__can_convert_into_eval_only_mode(), "THIS ONE IS NOT IMPORTANT.model.can_convert_into_eval_only_mode")
-            print(epoch+1, "Training finished    __line  1256")
-            print(epoch+1, "Training finished    __line  1256")
-            print(epoch+1, "Training finished    __line  1256")
-            break
-        pass
-    pass# the training loop.
-fds=432
+#         #every = 100
+#         if epoch%iter_per_print == iter_per_print-1:
+#             model.eval()
+#             model.set_eval_mode(0)
+#             raw_mode_pred = model(input)
+#             raw_mode_acc = DigitalMapper_V1_4.bitwise_acc(raw_mode_pred, target)
+#             print(epoch+1, "    ep/   raw/sharp mode acc    ",f"{raw_mode_acc:.3f}"," / ", f"{sharp_mode_acc:.3f}")
+#             pass
+#         if 1. == sharp_mode_acc:#FINISHED
+#             print(sharp_mode_pred[:2,:7], "pred", __line__str())
+#             print(target[:2,:7], "target")
+#             print(model.print__old_func__can_convert_into_eval_only_mode(), "THIS ONE IS NOT IMPORTANT.model.can_convert_into_eval_only_mode")
+#             print(epoch+1, "Training finished    __line  1256")
+#             print(epoch+1, "Training finished    __line  1256")
+#             print(epoch+1, "Training finished    __line  1256")
+#             break
+#         pass
+#     pass# the training loop.
+# fds=432
 

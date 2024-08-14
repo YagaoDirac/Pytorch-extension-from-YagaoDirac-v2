@@ -592,21 +592,6 @@ def data_gen_full_adder(bits:int, batch:int, is_output_01:bool, is_cuda:bool=Tru
 # fds=432
 
 
-
-def data_gen_for_digital_mapper_directly_test(batch:int, n_in:int, n_out:int, dtype = torch.float32)->Tuple[torch.Tensor, torch.Tensor]:
-    input = torch.randint(0,2,[batch, n_in], dtype=torch.int8)
-    input = input*2-1
-    input = input.to(dtype)
-    answer_index = torch.randint(0,n_in,[n_out])
-    target = input[:, answer_index]
-    return input, target
-
-
-
-
-
-
-
 # old version.
 # def bitwise_acc(a:torch.Tensor, b:torch.Tensor, print_out:bool = False)->float:
 #     temp = a.eq(b)
@@ -647,14 +632,14 @@ def bitwise_acc(a:torch.Tensor, b:torch.Tensor, print_out_when_exact_one = True,
 
 
 
-# def debug_Rank_1_parameter_to_List_float(input:torch.nn.parameter.Parameter)->List[float]:
-#     result : List[float] = []
-#     for i in range(input.shape[0]):
-#         result.append(input[i].item())
-#         pass
-#     return result
-# # p = torch.nn.Parameter(torch.tensor([1., 2., 3.]))
-# # l = debug_Rank_1_parameter_to_List_float(p)
-# # print(p)
-# # print(l)
-# # fds=432
+def debug_Rank_1_parameter_to_List_float(input:torch.nn.parameter.Parameter)->List[float]:
+    result : List[float] = []
+    for i in range(input.shape[0]):
+        result.append(input[i].item())
+        pass
+    return result
+# p = torch.nn.Parameter(torch.tensor([1., 2., 3.]))
+# l = debug_Rank_1_parameter_to_List_float(p)
+# print(p)
+# print(l)
+# fds=432

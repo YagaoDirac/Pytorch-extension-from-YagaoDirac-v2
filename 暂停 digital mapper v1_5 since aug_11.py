@@ -542,7 +542,12 @@ class DigitalMapper_V1_5(torch.nn.Module):
             #w_after_gramo:torch.Tensor = self.gramo_for_raw_weight(self.raw_weight)
             #final_raw_weight = self.get_final_raw_weight(self.training)
 
-            w_after_gramo:torch.Tensor = self.gramo_for_raw_weight(self.raw_weight)
+            
+            #w_after_gramo:torch.Tensor = self.gramo_for_raw_weight(self.raw_weight)这个是原来的版本。
+            w_after_gramo:torch.Tensor = self.gramo_for_raw_weight(self.raw_weight.view(1,-1)).view(self.out_features, self.in_features)
+            上面这一句改了，重新测。
+            
+            
             if self.training_ghost_weight_probability!=0.:
                 w_with_ghost = w_after_gramo+ghost_weight_o_i
                 w_after_softmax = w_with_ghost.softmax(dim=1)
