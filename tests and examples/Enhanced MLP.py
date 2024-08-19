@@ -1,729 +1,401 @@
 from typing import Any, List, Tuple, Optional, Self
 import math
 import torch
-from ParamMo import GradientModification, XModification
 
-继续
+if "__main__" == __name__:
+    import sys
+    __temp__package_path__:str = sys.path[0]
+    pos = __temp__package_path__.rfind("\\")
+    ____package_path__ = __temp__package_path__[:pos]
+    sys.path.insert(0, ____package_path__)
+    #print("adding sys path:", ____package_path__)
+    pass
+from pytorch_yagaodirac_v2.ParamMo import GradientModification, ReLU_with_offset
+from pytorch_yagaodirac_v2.util import debug_avg_log, data_gen_from_random_teacher
+
+#继续， linear, gmo xmo. 直接堆。
 
 # This is actually test code. But it looks very useful... 
 # I should say, don't use this one. A better one is at the end. You'll love it.
-class Linear_with_gramo(torch.nn.Module):
-    def __init__(self, in_features: int, out_features: int, bias: bool = True,\
+class FCL_from_yagaodirac(torch.nn.Module):
+    r''' The way to use this class is the same as to use torch.nn.Linear.
+    
+    You can choose from ReLU and my ReLU_one.'''
+    def __init__(self, in_features: int, out_features: int, \
+                        #batch_size:int, \
+                        bias: bool = True, \
+                            expect_avg_log:Optional[float] = None,\
                             device: Any | None = None, dtype: Any | None = None, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.linear = torch.nn.Linear(in_features, out_features, bias, device, dtype)
-        self.gramo = GradientModification()
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        super().__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        #self.batch_size = torch.nn.Parameter(torch.tensor([batch_size]), requires_grad=False)
+        self.weight_o_i = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
+        if bias:
+            self.bias_o = torch.nn.Parameter(torch.empty(out_features, **factory_kwargs))
+        else:
+            self.register_parameter('bias_o', None)
+        self.__reset_parameters()
 
-    def forward(self, x:torch.tensor)->torch.Tensor:
-        #maybe I should handle the shape here.
-        x = self.linear(x)
-        x = self.gramo(x)
+        # if expect_avg_log is None:
+        
+        self.param_avg_log_expectation = math.log10(self.in_features)*-0.5-0.43
+        #print(self.param_avg_log_expectation, "param_avg_log_expectation")
+        
+        #self.grad_avg_log_expectation = math.log10(self.out_features)*-0.5+0.77
+        self.grad_avg_log_expectation = 123123
+        #继续#继续#继续#继续#继续#继续#继续#继续#继续
+        #继续#继续#继续#继续#继续#继续#继续#继续#继续
+        #继续#继续#继续#继续#继续#继续#继续#继续#继续
+        #继续#继续#继续#继续#继续#继续#继续#继续#继续
+        #继续#继续#继续#继续#继续#继续#继续#继续#继续
+        #继续#继续#继续#继续#继续#继续#继续#继续#继续
+        #继续#继续#继续#继续#继续#继续#继续#继续#继续
+        
+        print(self.grad_avg_log_expectation, "grad_avg_log_expectation")
+        # +0.77 when batch is 1000. in_features is 100, out_features is 100.
+        # batch incr 10x, this +0.03
+        # in_features incr 10x, this -0.04
+        # out_features doesn't affect this.
+        
+        self.gramo_for_weight_extra_factor = math.pow(10., self.param_avg_log_expectation-self.grad_avg_log_expectation)
+        self.drag_avg_log_of_scaling_factor_for_out_gramo_to = torch.nn.Parameter(torch.tensor([self.param_avg_log_expectation]), requires_grad=False)
+        
+        self.gramo_for_weight = GradientModification()
+        self.out_gramo = GradientModification()
+        self.reset_scaling_factor_for_weight()
+        
+        
+        
+        
+        #self.out_gramo.set_scaling_factor(123.45)
+        
+        pass
+    #end of function.
+
+    def __reset_parameters(self) -> None:
+        # Setting a=sqrt(5) in kaiming_uniform is the same as initializing with
+        # uniform(-1/sqrt(in_features), 1/sqrt(in_features)). For details, see
+        # https://github.com/pytorch/pytorch/issues/57109
+        torch.nn.init.kaiming_uniform_(self.weight_o_i, a=math.sqrt(5))
+        if self.bias_o is not None:
+            fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.weight_o_i)
+            bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+            torch.nn.init.uniform_(self.bias_o, -bound, bound)
+            pass
+        pass
+    #end of function.
+    
+    def reset_scaling_factor_for_weight(self):
+        '''simply sets the inner'''
+        sqrt_out_features = math.sqrt(self.out_features)
+        self.gramo_for_weight.set_scaling_factor(math.pow(10., -0.2)*sqrt_out_features)
+        
+        #temp2 = temp.sqrt()
+        #temp3 = temp2*10.#2.
+        #temp4 = temp3/self.out_gramo.scaling_factor
+        #self.gramo_for_weight.set_scaling_factor(temp3.item())
+        #self.gramo_for_weight.set_scaling_factor(temp4.item())
+        pass
+    def scale_the_scaling_factor_for_weight(self, by:float):
+        '''simply sets the inner'''
+        self.gramo_for_weight.scale_scaling_factor(by)
+        pass
+    def set_scaling_factor_for_weight(self, scaling_factor:float):
+        '''simply sets the inner'''
+        self.gramo_for_weight.set_scaling_factor(scaling_factor)
+        pass
+
+    # def set_batch_size(self, batch_size:int):
+    #     self.batch_size = torch.nn.Parameter(torch.tensor([batch_size]), requires_grad=False)
+    #     temp = self.batch_size.to(torch.float32)
+    #     temp2 = 
+    #     self.out_gramo.set_scaling_factor()
+        
+        
+        
+
+    def forward(self, input_b_i:torch.Tensor)->torch.Tensor:
+        w_after_gramo_o_i:torch.Tensor = self.gramo_for_weight(self.weight_o_i.view(1, -1)).view(self.out_features, self.in_features)
+        x_after_linear_b_o = torch.nn.functional.linear(input_b_i,w_after_gramo_o_i,self.bias_o)
+        result_b_o = self.out_gramo(x_after_linear_b_o)
+        return result_b_o
+    
+    def extra_repr(self) -> str:
+        return f'in_features={self.in_features}, out_features={self.out_features}, bias={self.bias_o is not None}'
+
+    def debug_get_all_avg_log(self)->Tuple[List[float], str]:
+        result:List[float] = []
+        result.append(debug_avg_log(self.weight_o_i))
+        result.append(debug_avg_log(self.bias_o))
+        docs_str = "weight_o_i, bias_o"
+        if not self.weight_o_i.grad is None:
+            result.append(debug_avg_log(self.weight_o_i.grad))
+            docs_str+=", weight_o_i.grad"
+            pass
+        if not self.bias_o.grad is None:
+            result.append(debug_avg_log(self.bias_o.grad))
+            docs_str+=", bias_o.grad"
+            pass
+        return (result, docs_str)
+
+    def convert_to_plain_fcnn(self)->torch.nn.Module:
+        has_bias = False
+        if not self.bias_o is None:
+            has_bias = True
+            pass
+        result = torch.nn.Linear(self.in_features, self.out_features,has_bias)
+        result.weight.data = self.weight_o_i.data.detach().clone()
+        if has_bias:
+            result.bias.data = self.bias_o.data.detach().clone()
+            pass
+        return result
+
+    pass
+    
+# '''dim check. The forward should be the same as traditional fcnn.'''
+# batch = 2
+# in_features = 3
+# out_features = 5
+# layer = FCL_from_yagaodirac(in_features, out_features, True)
+# ref_layer = torch.nn.Linear(in_features, out_features, True)
+# layer.weight_o_i.data = ref_layer.weight.detach().clone()
+# layer.bias_o.data = ref_layer.bias.detach().clone()
+# input = torch.randn([batch, in_features])
+# pred = layer(input)
+# pred_ref = ref_layer(input)
+# print(pred, "pred")
+# print(pred_ref, "pred_ref")
+# fds=432
+
+'''grad strength test.'''
+
+in_features = 100
+# b=1000        in
+#              10     100     1000    10000  100000
+# out  100   0.99     0.5     0.25     0.2      0.2
+#     1000    0.5    0.02    -0.22   -0.28              
+#    10000      0   -0.46    -0.71   -0.77             
+#   log10(out)*-0.5
+#
+# in=100        batch
+#               100     1000   10000   100000
+# out  100     -0.2      0.5    1.48    -0.12
+#     1000    -0.72     0.02   -1.14    -1.14卡到gramo那个epi了。。。
+#
+
+继续。卡到epi了。
+batch = 10000
+out_features = 1000
+layer = FCL_from_yagaodirac(in_features, out_features, True)
+input = torch.randn([batch, in_features], requires_grad=True)
+target = torch.randn([batch, out_features])
+pred:torch.Tensor = layer(input)
+loss_function = torch.nn.MSELoss()
+loss = loss_function(pred, target)
+loss.backward()
+print(batch, "batch", in_features, "in_features", out_features, "out_features")
+# print(debug_avg_log(layer.weight_o_i), "weight_o_i") the first 3 are already aligned.
+# print(debug_avg_log(layer.bias_o), "bias_o")
+# print(debug_avg_log(layer.weight_o_i.grad), "weight_o_i.grad")
+print(debug_avg_log(layer.bias_o.grad), "bias_o.grad")
+#print(debug_avg_log(input), "input")
+input
+fds=432
+
+# '''single layer random teacher test'''
+# batch = 100
+# in_features = 20
+# mid_width = 50
+# out_features = 10
+# teacher = torch.nn.Linear(in_features, out_features, True).eval()
+# student = FCL_from_yagaodirac(in_features, out_features, True)
+# input = torch.randn([batch, in_features])
+# target = data_gen_from_random_teacher(teacher,input)
+# loss_function = torch.nn.MSELoss()
+# optim = torch.optim.SGD(student.parameters(), lr=0.01)
+# for _ in range(30):
+#     pred = student(input)
+#     loss:torch.Tensor = loss_function(pred, target)
+#     print(loss, "loss")
+#     optim.zero_grad()
+#     loss.backward()
+#     optim.step()
+    
+# fds=432
+
+
+
+
+class MLP_from_yagaodirac(torch.nn.Module):
+    def __init__(self, in_features: int, out_features: int, bias: bool = True, num_layers = 2, \
+        mid_width =Optional[int], relu_offset = 0.1, \
+                 device=None, dtype=None) -> None:
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        super().__init__()
+        self.num_layers = num_layers
+        
+        self.layers = torch.nn.ParameterList()
+        if 1 == num_layers:
+            self.layers.append(FCL_from_yagaodirac(in_features, out_features,bias))
+        else:
+            self.layers.append(FCL_from_yagaodirac(in_features, mid_width,bias))
+            for _ in range(num_layers-2):
+                self.layers.append(FCL_from_yagaodirac(mid_width, mid_width,bias))
+                pass
+            self.layers.append(FCL_from_yagaodirac(mid_width, out_features, bias))
+            pass
+        
+        self.some_relus = torch.nn.ParameterList([ReLU_with_offset(relu_offset) for _ in range(num_layers-1)])
+        
+        pass 
+    #end of function
+    def forward(self, input_b_i:torch.Tensor) -> torch.Tensor:
+        x = input_b_i
+        
+        for i in range(self.num_layers -1):
+            layer:FCL_from_yagaodirac = self.layers[i]
+            x = layer(x)
+            the_relu = self.some_relus[i]
+            x = the_relu(x)
+            pass
+        
+        last_fcl = self.layers[-1]
+        x = last_fcl(x)
         return x
+    #end of function
+    pass
+
+
+ 
+batch = 2
+in_features = 3
+out_features = 5
+mid_width = 20
+num_layers = 3
+lr = 0.001
+iter_per_print = 1#111
+print_count = 155555
+input = torch.randn([batch, in_features])
+target = torch.randn([batch, out_features])
+model = MLP_from_yagaodirac(in_features, out_features, True, num_layers=num_layers, mid_width=mid_width, relu_offset=0.1)
     
-
-# '''basic test'''
-# model = Linear_with_gramo(1,1,False)
-# model.linear.weight = torch.nn.Parameter(torch.ones_like(model.linear.weight))
-# loss_function = torch.nn.MSELoss()
-
-# input = torch.tensor([[1.]])
-# target = torch.tensor([[0.]])
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-# ### model.set_learning_rate(optimizer.param_groups[0]["lr"])
-
-# #for epoch in range(1):
-# #model.train()
-# pred = model(input)# w = x = 1.. No b or b = 0..
-# loss = loss_function(pred, target)
-# optimizer.zero_grad()
-# loss.backward()
-# #optimizer.param_groups[0]["lr"] = 0.01
-# print(model.linear.weight.grad, "should be 1.")
-
-# optimizer.step()
-# print(model.linear.weight, "should be 0.9")
-# fds=432
-
-
-# '''safe test. safe to skip'''
-# model = Linear_with_gramo(1,1,False)
-# model.linear.weight = torch.nn.Parameter(torch.zeros_like(model.linear.weight))
-# loss_function = torch.nn.MSELoss()
-
-# input = torch.tensor([[1.]])
-# target = torch.tensor([[1.]])
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-
-# #for epoch in range(1):
-# pred = model(input)# w = 0., x = 1.. b = 0..target = 1.
-# loss = loss_function(pred, target)
-# optimizer.zero_grad()
-# loss.backward()
-# #optimizer.param_groups[0]["lr"] = 0.01
-# print(model.linear.weight.grad, "should be -1.")
-
-# optimizer.step()
-# print(model.linear.weight, "should be 0.1")
-# fds=432
-
-
-# '''2 same batches work like 2 epochs.'''
-# model = Linear_with_gramo(1,1,False)
-# model.linear.weight = torch.nn.Parameter(torch.zeros_like(model.linear.weight))
-# loss_function = torch.nn.MSELoss()
-
-# input = torch.tensor([[1.],[1.]])
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-
-# #for epoch in range(1):
-# pred = model(input)# x = 1.. w = b = 0..
-# loss = loss_function(pred, torch.tensor([[1.],[1.]], requires_grad=True))
-# optimizer.zero_grad()
-# loss.backward()
-# #optimizer.param_groups[0]["lr"] = 0.01
-# print(model.linear.weight.grad, "should be -1-1 == -2")
-
-# optimizer.step()
-# print(model.linear.weight, "should be 0.2")
-# fds=432
-
-
-# '''1 batch, but more dimentions in it.'''
-# model = Linear_with_gramo(2,1,False)
-# model.linear.weight = torch.nn.Parameter(torch.zeros_like(model.linear.weight))
-# loss_function = torch.nn.MSELoss()
-
-# input = torch.tensor([[1., 1.]])
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-
-# #for epoch in range(1):
-# pred = model(input)# x = 1.. w = b = 0..
-# loss = loss_function(pred, torch.tensor([[1.]], requires_grad=True))
-# optimizer.zero_grad()
-# loss.backward()
-# #optimizer.param_groups[0]["lr"] = 0.01
-# print(model.linear.weight.grad, "should be both -1")
-
-# optimizer.step()
-# print(model.linear.weight, "should be 0.1")
-# fds=432
-
-
-# '''Only the out_features(out dimention) affects the grad.'''
-# in_features = 4#this one doesn't affect the result.
-# out_features = 3# this one does.
-# lr=0.1
-# model = Linear_with_gramo(in_features, out_features,False)
-# model.linear.weight = torch.nn.Parameter(torch.zeros_like(model.linear.weight))
-# loss_function = torch.nn.MSELoss()
-
-# input = torch.ones([1, in_features,])
-# target = torch.ones([1, out_features,])
-# optimizer = torch.optim.SGD(model.parameters(), lr=lr)
-
-# #for epoch in range(1):
-# pred = model(input)# x = 1.. w = b = 0..
-# loss = loss_function(pred, target)
-# optimizer.zero_grad()
-# loss.backward()
-# #optimizer.param_groups[0]["lr"] = 0.01
-# print(model.linear.weight.grad, f"should be all -{math.sqrt(1/out_features)}")
-
-# optimizer.step()
-# print(model.linear.weight, f"should be {lr*math.sqrt(1/out_features)}0.07")
-# fds=432
-
-
-# '''Gramo doesn't help when any element of x(the input) is 0. 
-# The corresponding elements in W doesn't get any non-0 grad.
-# After this test, let me introduce the solution for this case.'''
-# model = Linear_with_gramo(1,1,False)
-# model.linear.weight = torch.nn.Parameter(torch.ones_like(model.linear.weight))
-# loss_function = torch.nn.MSELoss()
-
-# input = torch.tensor([[0.]])
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-
-# #for epoch in range(1):
-# pred = model(input)# x = 0.. w = 1., b = 0..
-# loss = loss_function(pred, torch.tensor([[1., 1.]], requires_grad=True))
-# optimizer.zero_grad()
-# loss.backward()
-# #optimizer.param_groups[0]["lr"] = 0.01
-# print(model.linear.weight.grad, "should be all 0")
-
-# print(model.linear.weight, "should be the same")
-# optimizer.step()
-# print(model.linear.weight, "should be the same")
-# fds=432
-
-
-
-# 继续
-# 继续
-# 继续
-# 继续
-# 继续
-# 继续
-# 继续
-# 继续
-# 继续
-# 继续
-# 继续
-# 继续
-# class example_Linear_gramo_sigmoid_layer(torch.nn.Module):
-#     def __init__(self, in_features: int, out_features: int, \
-#                             device: Any | None = None, dtype: Any | None = None, *args, **kwargs) -> None:
-#         super().__init__(*args, **kwargs)
-
-#         self.width_inside = 64
-#         self.linear = torch.nn.Linear(in_features, self.width_inside, True, device, dtype)
-#         self.gramo = GradientModification(scaling_ratio=0.1)
-#         self.sigmoid = torch.nn.Sigmoid()
-#     def forward(self, x:torch.tensor)->torch.Tensor:
-#         x = self.linear(x)
-#         x = self.gramo(x)
-#         x = self.sigmoid(x)
-#         return x
-
-
-
-
-
-#redo this one
-# model = test_stacked_Linear_gramo__sigmoid(1,1)
-# loss_function = torch.nn.MSELoss()
-
-# input = torch.tensor([[1.]])
-# target = torch.tensor([[0.]])
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-
-# for epoch in range(10):
-#     model.train()
-#     pred = model(input)
-#     loss = loss_function(pred, target)
-#     optimizer.zero_grad()
-#     loss.backward()
-#     #optimizer.param_groups[0]["lr"] = 0.01
-#     optimizer.step()
-#     model.eval()
-#     print(loss)
-#     if True:
-#             print("pred  ", pred.T)
-# print("target", target.T)
-
-# jklfds =432
-
-
-
-
-# in_feature = 16
-# model = test_stacked_Linear_gramo__sigmoid(in_feature,1)
-# loss_function = torch.nn.MSELoss()
-# data_amount = 4
-# input = torch.rand([data_amount, in_feature])+0.3
-# #target = torch.rand([data_amount, 1])+0.1
-# target = (input.pow(1.5).sum(dim=1)*0.05+0.).unsqueeze(1)
-# # print(input)
-# # print(target.shape)
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.05)
-
-# iter_per_print = 1
-# print_count = 3
-# for epoch in range(iter_per_print*print_count):
-#     model.train()
-#     pred = model(input)
-#     loss = loss_function(pred, target)
-#     optimizer.zero_grad()
-#     loss.backward()
-#     #optimizer.param_groups[0]["lr"] = 0.01
-#     optimizer.step()
-#     model.eval()
-
-#     if epoch%iter_per_print == iter_per_print-1:
-#         print(loss)
-#         # print(model.linear1.weight.grad[0:1])
-#         # print(model.linear2.weight.grad[0:1])
-#         # print(model.linear3.weight.grad[0:1])
-#         # print(model.linear3.bias.grad[0:1])
-#         # print(model.linear3.weight[0:1])
-#         # print(model.linear3.bias[0:1])
-#         # print("--------------")
-#         if True:
-#             print("pred  ", pred.T)
-# print("target", target.T)
-
-# fdsfds = 654456456
-
-
-
-# '''
-# A not very comfirmed comclusion. Since relu mutes part of the neutrons behind it, this gramo doesn't help in such cases.
-# I believe more data helps, but according to my test, gramo seems to never help with muted neutrons. 
-# '''
-
-# class test_stacked_Linear_gramo__relu(torch.nn.Module):
-#     def __init__(self, in_features: int, out_features: int, \
-#                             device: Any | None = None, dtype: Any | None = None, *args, **kwargs) -> None:
-#         super().__init__(*args, **kwargs)
-
-#         self.width_inside = 64
-#         self.linear1 = torch.nn.Linear(in_features, self.width_inside, True, device, dtype)
-#         self.linear2 = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear3 = torch.nn.Linear(self.width_inside, out_features, True, device, dtype)
-
-#         self.gramo1 = GradientModification(scaling_ratio=0.01)
-#         self.gramo2 = GradientModification(scaling_ratio=0.01)
-#         self.gramo3 = GradientModification(scaling_ratio=0.01)
-
-#         self.relu1 = torch.nn.ReLU()
-#         self.relu2 = torch.nn.ReLU()
-
-#     def forward(self, x:torch.tensor)->torch.Tensor:
-#         x = self.linear1(x)
-#         x = self.gramo1(x)
-#         x = self.relu1(x)
-#         x = self.linear2(x)
-#         x = self.gramo2(x)
-#         x = self.relu2(x)
-#         x = self.linear3(x)
-#         x = self.gramo3(x)
-#         return x
-
-
-# in_feature = 64
-# model = test_stacked_Linear_gramo__relu(in_feature,1)
-# loss_function = torch.nn.MSELoss()
-# data_amount = 10
-# input = torch.rand([data_amount, in_feature])+0.3
-# # target = torch.rand([data_amount, 1])+0.1
-# target = ((input.pow(1.5)-input.pow(2.5)).sum(dim=1)).unsqueeze(1)
-# # print(input)
-# # print(target)
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.5)
-
-# iter_per_print = 20
-# print_count = 5
-# for epoch in range(iter_per_print*print_count):
-#     model.train()
-#     pred = model(input)
-#     loss = loss_function(pred, target)
-#     optimizer.zero_grad()
-#     loss.backward()
-#     #optimizer.param_groups[0]["lr"] = 0.01
-#     optimizer.step()
-#     model.eval()
-
-#     if epoch%iter_per_print == iter_per_print-1:
-#         print(loss)
-#         if False:
-#             print(model.linear1.weight.grad[0:2])
-#             print(model.linear2.weight.grad[0:2])
-#             print(model.linear3.weight.grad[0:2])
-#             print("--------------")
-#         if True:
-#             print("pred  ", pred.T)
-# print("target", target.T)
-
-# jkldfs=345789
-
-
-
-
-# '''this one doesn't look work, but it actually works. 
-# It converges super quickly.
-# '''
-
-# class test_stacked_Linear_gramo_2(torch.nn.Module):
-#     def __init__(self, in_features: int, out_features: int, \
-#                             device: Any | None = None, dtype: Any | None = None, *args, **kwargs) -> None:
-#         super().__init__(*args, **kwargs)
-
-#         self.width_inside = 64
-#         self.linear1  = torch.nn.Linear(in_features, self.width_inside, True, device, dtype)
-#         self.linear2  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear3  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear4  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear5  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear6  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear7  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear8  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear9  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear10 = torch.nn.Linear(self.width_inside, out_features, True, device, dtype)
-
-#         self.epi = 0.0000001
-#         self.div_me_when_ = 0.000005
-#         self.gramo1  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo2  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo3  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo4  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo5  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo6  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo7  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo8  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo9  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo10 = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-
-
-#         # self.gramo1  = GradientModification(scaling_ratio=in_features/self.width_inside)
-#         # self.gramo1  = GradientModification(scaling_ratio=0.2*math.sqrt(self.width_inside/in_feature))
-#         # self.gramo1  = GradientModification(scaling_ratio=math.pow(self.width_inside, 0.25)/math.sqrt(in_feature))
-#         # #ok, I'm giving up with this formula.
-#         # scaling_ratio_for_mid = math.pow(self.width_inside, 0.25)/math.sqrt(self.width_inside)
-#         # self.gramo2  = GradientModification(scaling_ratio=scaling_ratio_for_mid)
-#         # self.gramo3  = GradientModification(scaling_ratio=scaling_ratio_for_mid)
-#         # self.gramo4  = GradientModification(scaling_ratio=scaling_ratio_for_mid)
-#         # self.gramo5  = GradientModification(scaling_ratio=scaling_ratio_for_mid)
-#         # self.gramo6  = GradientModification(scaling_ratio=scaling_ratio_for_mid)
-#         # self.gramo7  = GradientModification(scaling_ratio=scaling_ratio_for_mid)
-#         # self.gramo8  = GradientModification(scaling_ratio=scaling_ratio_for_mid)
-#         # self.gramo9  = GradientModification(scaling_ratio=scaling_ratio_for_mid)
-#         # self.gramo10 = GradientModification(scaling_ratio=out_features/self.width_inside)
-
-#         if True:
-#             self.act1  = torch.nn.Sigmoid()
-#             self.act2  = torch.nn.Sigmoid()
-#             self.act3  = torch.nn.Sigmoid()
-#             self.act4  = torch.nn.Sigmoid()
-#             self.act5  = torch.nn.Sigmoid()
-#             self.act6  = torch.nn.Sigmoid()
-#             self.act7  = torch.nn.Sigmoid()
-#             self.act8  = torch.nn.Sigmoid()
-#             self.act9  = torch.nn.Sigmoid()
-
-#     def forward(self, x:torch.tensor)->torch.Tensor:
-#         x = self.linear1(x)
-#         x = self.gramo1(x)
-#         x = self.act1(x)
-#         x = self.linear2(x)
-#         x = self.gramo2(x)
-#         x = self.act2 (x)
-#         x = self.linear3(x)
-#         x = self.gramo3(x)
-#         x = self.act3 (x)
-#         x = self.linear4(x)
-#         x = self.gramo4(x)
-#         x = self.act4 (x)
-#         x = self.linear5(x)
-#         x = self.gramo5(x)
-#         x = self.act5 (x)
-#         x = self.linear6(x)
-#         x = self.gramo6(x)
-#         x = self.act6 (x)
-#         x = self.linear7(x)
-#         x = self.gramo7(x)
-#         x = self.act7 (x)
-#         x = self.linear8(x)
-#         x = self.gramo8(x)
-#         if True:#inside this, they should be act->linear->gramo
-#             x = self.act8 (x)
-#             x = self.linear9(x)
-#             x = self.gramo9(x)
-#     # according to my test, if you return x here, it's not gonna meet the epi thing.
-#     # but I know you are gonna push this toy to the extreme. If you add the 10th layer, you can modify the epi to a smaller number.
-#     # And you maybe want to test this toy at float64. You know wat i mean, lol.
-#         x = self.act9 (x)
-#         x = self.linear10(x)
-#         x = self.gramo10(x)
-#         return x#Hey, move it here.
-
-
-# in_feature = 64
-# model = test_stacked_Linear_gramo_2(in_feature,1)
-# loss_function = torch.nn.MSELoss()
-# data_amount = 20
-# input = torch.rand([data_amount, in_feature])+0.3
-# #target = input.pow(1.5)
-# target = torch.rand([data_amount, 1])+0.1
-# # print(input)
-# # print(target)
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
-
-# iter_per_print = 1
-# print_count = 5
-# for epoch in range(iter_per_print*print_count):
-#     model.train()
-#     pred = model(input)
-#     loss = loss_function(pred, target)
-#     optimizer.zero_grad()
-#     loss.backward()
-#     #optimizer.param_groups[0]["lr"] = 0.01
-#     optimizer.step()
-#     model.eval()
-
-#     if epoch%iter_per_print == iter_per_print-1:
-#         print(loss)
-#         if False:
-#             print(model.linear1.weight.grad[0:1])
-#             print(model.linear2.weight.grad[0:1])
-#             # print(model.linear3.weight.grad[0:1])
-#             # print(model.linear4.weight.grad[0:1])
-#             # print(model.linear5.weight.grad[0:1])
-#             # print(model.linear6.weight.grad[0:1])
-#             # print(model.linear7.weight.grad[0:1])
-#             # print(model.linear8.weight.grad[0:1])
-#             # print(model.linear9.weight.grad[0:1])
-#             print(model.linear10.weight.grad[0:1])
-#             print("--------------")
-
-# jkldfs=345789
-
-
-
-
-
-
-# class test_stacked_Linear_gramo_3(torch.nn.Module):
-#     def __init__(self, in_features: int, out_features: int, \
-#                             device: Any | None = None, dtype: Any | None = None, *args, **kwargs) -> None:
-#         super().__init__(*args, **kwargs)
-
-#         self.width_inside = 64
-#         self.linear1  = torch.nn.Linear(in_features, self.width_inside, True, device, dtype)
-#         self.linear2  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear3  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear4  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear5  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear6  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear7  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear8  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear9  = torch.nn.Linear(self.width_inside, self.width_inside, True, device, dtype)
-#         self.linear10 = torch.nn.Linear(self.width_inside, out_features, True, device, dtype)
-
-
-#         self.epi = 0.00001#0.0000001
-#         self.div_me_when_ = 0.001#0.000001
-#         self.gramo1  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo2  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo3  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo4  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo5  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo6  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo7  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo8  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo9  = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-#         self.gramo10 = GradientModification(epi=self.epi, div_me_when_g_too_small=self.div_me_when_)
-
-
-#         if True:
-#             self.act1  = torch.nn.ReLU()
-#             self.act2  = torch.nn.ReLU()
-#             self.act3  = torch.nn.ReLU()
-#             self.act4  = torch.nn.ReLU()
-#             self.act5  = torch.nn.ReLU()
-#             self.act6  = torch.nn.ReLU()
-#             self.act7  = torch.nn.ReLU()
-#             self.act8  = torch.nn.ReLU()
-#             self.act9  = torch.nn.ReLU()
-
-#     def forward(self, x:torch.tensor)->torch.Tensor:
-#         a_small_number = 0.1#if you set this to like 0.001, the model doesn't work properly.
-#         x = self.linear1(x)
-#         x = self.gramo1(x)
-#         x = self.act1(x)
-#         x = x*a_small_number
-#         x = self.linear2(x)
-#         x = self.gramo2(x)
-#         x = self.act2 (x)
-#         x = x*a_small_number
-#         x = self.linear3(x)
-#         x = self.gramo3(x)
-#         x = self.act3 (x)
-#         x = x*a_small_number
-#         x = self.linear4(x)
-#         x = self.gramo4(x)
-#         x = self.act4 (x)
-#         x = x*a_small_number
-#         x = self.linear5(x)
-#         x = self.gramo5(x)
-#         x = self.act5 (x)
-#         x = x*a_small_number
-#         x = self.linear6(x)
-#         x = self.gramo6(x)
-#         x = self.act6 (x)
-#         x = x*a_small_number
-#         x = self.linear7(x)
-#         x = self.gramo7(x)
-#         x = self.act7 (x)
-#         x = x*a_small_number
-#         return self.gramo10(self.linear10(x))#move this line.
-#         x = self.linear8(x)
-#         x = self.gramo8(x)
-#         if True:#inside this, they should be act->linear->gramo
-#             x = self.act8 (x)
-#             x = x*a_small_number
-#             x = self.linear9(x)
-#             x = self.gramo9(x)
-#     # according to my test, if you return x here, it's not gonna meet the epi thing.
-#     # but I know you are gonna push this toy to the extreme. If you add the 10th layer, you can modify the epi to a smaller number.
-#     # And you maybe want to test this toy at float64. You know wat i mean, lol.
-#         x = self.act9 (x)
-#         x = x*a_small_number
-#         pass
-
-
-
-
-# in_feature = 64
-# model = test_stacked_Linear_gramo_3(in_feature,1)
-# loss_function = torch.nn.MSELoss()
-# data_amount = 10
-# input = torch.rand([data_amount, in_feature])+0.3
-# #target = input.pow(1.5)
-# #target = torch.rand([data_amount, 1])+0.1
-# target = ((input.pow(1.5)-input.pow(2.5)).sum(dim=1)).unsqueeze(1)
-# # print(input)
-# # print(target)
-# #optimizer = torch.optim.SGD(model.parameters(), lr=0.01)#for 5 linear
-# #optimizer = torch.optim.SGD(model.parameters(), lr=0.002)#for 7 linear
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.0005)#for ? linear
-
-# iter_per_print = 2572
-# print_count = 5
-# #1000 epochs lr0.01 works for 5 linear.
-# #15000 epochs lr0.002 works for 7 linear.
-# #20000 epochs lr0.0005 works for 8 linear.
-# model = model.cuda()
-# input = input.cuda()
-# target = target.cuda()
-# for epoch in range(iter_per_print*print_count):
-#     model.train()
-#     pred = model(input)
-#     loss = loss_function(pred, target)
-#     optimizer.zero_grad()
-#     loss.backward()
-#     #optimizer.param_groups[0]["lr"] = 0.01
-#     if model.linear10.bias.grad is not None:
-#         model.linear10.bias.grad*=0.02
-
-#     optimizer.step()
-#     model.eval()
-
-#     if epoch%iter_per_print == iter_per_print-1:
-#         print(loss)
-#         if False:
-#             print(model.linear1.weight.grad[0:1])
-#             print(model.linear2.weight.grad[0:1])
-#             print(model.linear3.weight.grad[0:1])
-#             print(model.linear4.weight.grad[0:1])
-#             print(model.linear5.weight.grad[0:1])
-#             print(model.linear6.weight.grad[0:1])
-#             print(model.linear7.weight.grad[0:1])
-#             print(model.linear8.weight.grad[0:1])
-#             print(model.linear9.weight.grad[0:1])
-#             print(model.linear10.weight.grad[0:1])
-#             print("--------------")
-#         # print(model.linear9.bias[0:3])
-#         # print(model.linear9.bias.grad[0:3])
-#         # print(model.linear10.bias[0:1])
-#         # print(model.linear10.bias.grad[0:1])
-
-#         if True:
-#             print("pred  ", pred.T)
-#             print("target", target.T)
-# jkldfs=345789
-
-
-
-
-
-
-
-# Gramo part ends.
-# Now it's Mirror part.
-    
-
-
-
-
-
-
-# Again, I believe this version is mathmatically wrong. New version below.
-
-# '''I copied the torch.nn.Linear code and modified it.
-# '''
-
-# class MirrorLayer(torch.nn.Module):
-#     r"""Remember to set learning rate every iteration(or at least when learning rate is changed.)
-#     To access the learning rate, you usually need some thing like:
-#     lr:float = optimizer.param_groups[0]["lr"]
-
-#     check torch.nn.Linear for other help
-#     """
-#     __constants__ = ['in_features', 'out_features', 'auto_merge_duration']
-#     in_features: int
-#     out_features: int
-#     half_weight: torch.Tensor
-
-#     auto_merge_duration:int
-#     update_count:int
-#     learning_rate:float
-
-#     def __init__(self, in_features: int, out_features: int, bias: bool = True,
-#                  device=None, dtype=None, auto_merge_duration:int = 20) -> None:
-#         factory_kwargs = {'device': device, 'dtype': dtype}
-#         super().__init__()
-#         self.in_features = in_features
-#         self.out_features = out_features
-#         self.half_weight = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
-#         self.half_weight_mirrored = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
-        
-#         if bias:
-#             self.bias = torch.nn.Parameter(torch.empty(out_features, **factory_kwargs))
-#         else:
-#             self.register_parameter('bias', None)
-#         self.reset_parameters()
-
-#         #to keep track of the training.
-#         self.auto_merge_duration:int = auto_merge_duration
-#         self.update_count:int = 0
-
-#     def reset_parameters(self) -> None:
-#         # Setting a=sqrt(5) in kaiming_uniform is the same as initializing with
-#         # uniform(-1/sqrt(in_features), 1/sqrt(in_features)). For details, see
-#         # https://github.com/pytorch/pytorch/issues/57109
-#         torch.nn.init.kaiming_uniform_(self.half_weight, a=math.sqrt(5))
-#         with torch.no_grad():
-#             self.half_weight_mirrored.copy_(self.half_weight)
-
-#         if self.bias is not None:
-#             fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(self.half_weight)
-#             bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
-#             torch.nn.init.uniform_(self.bias, -bound, bound)
-
-#     def set_learning_rate(self, learning_rate:float)->None:
-#         self.learning_rate = learning_rate
-
-#     def forward(self, input: torch.Tensor) -> torch.Tensor:
-#         if not hasattr(self, "learning_rate"):
-#             raise Exception("Assign the learning rate for this layer. \n The code is like:\nmodel object var name.set_learning_rate(optimizer.param_groups[0][\"lr\"])")
-        
-#         if self.update_count>=self.auto_merge_duration:
-#             self.update_count = 0
-#             with torch.no_grad():
-#                 self.half_weight = (self.half_weight+self.half_weight_mirrored)/2.
-#                 self.half_weight_mirrored.copy_(self.half_weight)
+# if True and "print parameters":
+#     if True and "only the training params":
+#         for p in model.parameters():
+#             if p.requires_grad:
+#                 print(p)
 #                 pass
 #             pass
+#         pass
+#     else:# prints all the params.
+#         for p in model.parameters():
+#             print(p)
+#             pass
+#         pass
+    
+    
+loss_function = torch.nn.MSELoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
-#         head1:torch.Tensor = torch.nn.functional.linear(input+self.learning_rate, self.half_weight)
-#         head2:torch.Tensor = torch.nn.functional.linear(input-self.learning_rate, self.half_weight, self.bias)
-#         return head1+head2
+model.cuda().half()
+input = input.cuda().to(torch.float16)
+target = target.cuda().to(torch.float16)
 
-#     def extra_repr(self) -> str:
-#         return f'in_features={self.in_features}, out_features={self.out_features}, bias={self.bias is not None}'
+for epoch in range(iter_per_print*print_count):
+    model.train()
+    pred = model(input)
+    #print(pred, "pred", __line__str())
+    if False and "shape":
+        print(pred.shape, "pred.shape")
+        print(target.shape, "target.shape")
+        fds=423
+    if False and "print pred":
+        if epoch%iter_per_print == iter_per_print-1:
+            print(pred[:5], "pred")
+            print(target[:5], "target")
+            pass
+        pass
+    loss = loss_function(pred, target)
+    optimizer.zero_grad()
+    loss.backward()
+    if True and "print the grad":
+        if epoch%iter_per_print == iter_per_print-1:
+            layer:FCL_from_yagaodirac = model.layers[0]
+            print(layer.debug_get_all_avg_log(), "<<<<<<<   0 layer")
+            layer:FCL_from_yagaodirac = model.layers[1]
+            print(layer.debug_get_all_avg_log(), "<<<<<<<   1 layer")
+            layer:FCL_from_yagaodirac = model.layers[-1]
+            print(layer.debug_get_all_avg_log(), "<<<<<<<   -1 layer")
+            pass
+        pass
+    if True and "print the weight":
+        if epoch%iter_per_print == iter_per_print-1:
+            #layer = model.out_mapper
+            layer = model.first_layer.in_mapper
+            print(layer.raw_weight, "first_layer.in_mapper   before update")
+            optimizer.step()
+            print(layer.raw_weight, "first_layer.in_mapper   after update")
+            
+            layer = model.model.second_to_last_layers[0]
+            print(layer.raw_weight, "second_to_last_layers[0]   before update")
+            optimizer.step()
+            print(layer.raw_weight, "second_to_last_layers[0]   after update")
+            
+            layer = model.out_mapper
+            print(layer.raw_weight, "out_mapper   before update")
+            optimizer.step()
+            print(layer.raw_weight, "out_mapper   after update")
+            
+            pass    
+        pass    
+    if True and "print zero grad ratio":
+        if epoch%iter_per_print == iter_per_print-1:
+            result = model.get_zero_grad_ratio()
+            print("print zero grad ratio: ", result)
+            pass
+        pass
+    if True and "print strong grad ratio":
+        if epoch%iter_per_print == iter_per_print-1:
+            result = model.get_strong_grad_ratio()
+            print("print strong grad ratio: ", result)
+            pass
+        pass
+    #optimizer.param_groups[0]["lr"] = 0.01
+    optimizer.step()
+    if True and "print param overlap":
+        every = 100
+        if epoch%every == every-1:
+            model.print_param_overlap_ratio()
+            pass
+        pass
+    if True and "print acc":
+        if epoch%iter_per_print == iter_per_print-1:
+            with torch.inference_mode():
+                model.eval()
+                pred = model(input)
+                #print(pred, "pred", __line__str())
+                #print(target, "target")
+                acc = DigitalMapper_V1_1.bitwise_acc(pred, target)
+                model.set_acc(acc)
+                if 1. != acc:
+                    print(epoch+1, "    ep/acc    ", acc)
+                else:
+                    #print(epoch+1, "    ep/acc    ", acc)
+                    finished = model.can_convert_into_eval_only_mode()
+                    print(finished, "is param hard enough __line 1273")
+                    if finished[0]:
+                        print(pred[:5].T, "pred", __line__str())
+                        print(target[:5].T, "target")
+                        break
+                        pass
+                    pass
+                pass
+            pass
+        pass
 
-#     def convert_to_plain_Linear(self)->torch.nn.Linear:
-#         has_bias = bool(self.bias)
-#         result:torch.nn.Linear = torch.nn.Linear(self.in_features, self.out_features, has_bias)
-#         result.weight = self.half_weight+self.half_weight_mirrored
-#         result.bias = self.bias
-#         return result
-#     pass
-
-
-
-
+fds=432
 
 
 

@@ -2,14 +2,189 @@
 from typing import Any, List, Tuple, Optional, Self
 import torch
 import math
-from ParamMo import GradientModification
-from util import debug_strong_grad_ratio, init_weight_style_1, debug_zero_grad_ratio
-import util
+
+if "__main__" == __name__:
+    import sys
+    __temp__package_path__:str = sys.path[0]
+    pos = __temp__package_path__.rfind("\\")
+    ____package_path__ = __temp__package_path__[:pos]
+    sys.path.insert(0, ____package_path__)
+    print("adding sys path:", ____package_path__)
+    pass
+
+from pytorch_yagaodirac_v2.ParamMo import GradientModification, XModification
+from pytorch_yagaodirac_v2.util import debug_strong_grad_ratio, init_weight_vec_len_maintaining, debug_zero_grad_ratio
+from pytorch_yagaodirac_v2 import util
+
+
+# 旋转角度限制，
+# 保护w的上下三角尽量对称。
+# 考虑一下 linear, gramo, leakyrelu 0.1？, xmo
 
 
 
 
-#考虑一下 linear, gramo, xmo, leakyrelu, xmo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Rotation_layer(torch.nn.Module): 
+    def __init__(self, in_features: int, out_features: int, \
+            protect_param_every____epoch = 20, leaky = 0.01, \
+                 device=None, dtype=None) -> None:
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        super().__init__()
+        
+        self.in_features = in_features
+        self.out_features = out_features
+        
+        self.weight_o_i = torch.nn.Parameter(torch.empty([out_features, in_features]))
+        temp = init_weight_vec_len_maintaining(in_features, mid_width)
+        self.weight_o_i.data = temp[0]
+        
+        self.gramo = GradientModification()
+        self.reset_scaling_ratio_for_gramos()
+        self.leakyrelu = torch.nn.LeakyReLU(leaky)    
+        self.xmo = XModification()   
+        
+        self.protect_param_every____epoch = protect_param_every____epoch
+        self.protect_param_training_count = 0
+        pass
+    
+    
+    def reset_scaling_ratio_for_gramos(self):
+        the_factor = math.sqrt(3.)# from init_weight_vec_len_maintaining(in_features, mid_width)
+        self.gramo.set_scaling_ratio(the_factor)
+        pass
+    def scale_the_scaling_ratio_for_gramos(self, by:float):
+        self.gramo.scale_scaling_ratio(by)
+        pass
+    
+    def forward(self, input_b_i:torch.Tensor)->torch.Tensor:
+        protects_param = False
+        if self.protect_param_training_count >= self.protect_param_every____epoch:
+            self.protect_param_training_count = 1
+            protects_param = True
+            
+            with torch.no_grad():
+                length_of_each_output_b = self.weight_o_i.mul(self.weight_o_i.mul).sum(dim=1, keepdim=True).sqrt()
+                epi = 0.00001
+                div_me_when_too_small = 0.01
+                flag_too_small = length_of_each_output_b.lt(epi)
+                div_me = flag_too_small*div_me_when_too_small+flag_too_small.logical_not()*length_of_each_output_b
+                
+                self.weight_o_i.data = self.weight_o_i/div_me
+                pass
+            raise Exception("")
+            #可能不对。
+            #可能不对。
+            #可能不对。
+            #可能不对。
+            #可能不对。
+            #可能不对。
+            #可能不对。
+            
+            
+            pass
+            
+        
+        input_reshaped_b_i_1 = input_b_i.unsqueeze(dim=2)
+        
+        output_b_o = self.weight_o_i.matmul(input_reshaped_b_i_1)
+        # if protects_param:
+        #     with torch.no_grad():
+        #         length_sqr_b = output_b_o.mul(output_b_o).sum(dim=1,keepdim=False)
+        #         big_count = length_sqr_b.gt(1.25).sum()
+        #         if big_count> self.out_features*0.9:
+        #             self.linears[i].weight.data *=0.9
+        #             pass
+        #         small_count = length_sqr_b.lt(0.8).sum()
+        #         if small_count> self.out_features*0.9:
+        #             self.linears[i].weight.data *=1.1
+        #             pass
+        #         pass
+        #     pass
+            #debug_length_sqr = x.mul(x).sum(dim=1)
+        output_b_o = self.gramo(output_b_o)
+        output_b_o = self.leakyrelu(output_b_o)
+        output_b_o = self.xmo(output_b_o)
+        
+        return x
+    
+    def print_zero_grad_ratio(self, log10_diff: float = 0, \
+                epi_for_w: float = 0.01, epi_for_g: float = 0.01,):
+        result_list:List[float] = []
+        linear:torch.nn.Linear
+        for linear in self.linears:
+            result_list.append(debug_zero_grad_ratio(linear.weight))
+            pass
+        print("zero grad: {}".format(result_list))
+        pass
+    def print_strong_grad_ratio(self, log10_diff: float = 0, \
+                epi_for_w: float = 0.01, epi_for_g: float = 0.01,):
+        result_list:List[float] = []
+        linear:torch.nn.Linear
+        for linear in self.linears:
+            result_list.append(debug_strong_grad_ratio(linear.weight, log10_diff, epi_for_w, epi_for_g))
+            pass
+        print("strong grad: [", end="")
+        for item in result_list:
+            print(f"{item:.3f}, ", end="" )
+            pass
+        print("]")
+        pass
+    
+    def extra_repr(self) -> str:
+        return 'in_features={}, out_features={}, num_layers={}'.format(
+            self.in_features, self.out_features, self.num_layers
+        )
+    pass #end of function.
+
+fast_travel____end_of__Rotation_layer__class = 432
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class test_FCNN_with_doumo_stack_test(torch.nn.Module): 
     def __init__(self, in_features: int, out_features: int, \
@@ -29,15 +204,15 @@ class test_FCNN_with_doumo_stack_test(torch.nn.Module):
         
         self.linears = torch.nn.ParameterList([])        
         temp_linear = torch.nn.Linear(in_features, mid_width, bias=False)
-        temp_linear.weight.data = init_weight_style_1(in_features, mid_width)
+        temp_linear.weight.data = init_weight_vec_len_maintaining(in_features, mid_width)
         self.linears.append(temp_linear)
         for _ in range(num_layers-2):
             temp_linear = torch.nn.Linear(mid_width, mid_width, bias=False)
-            temp_linear.weight.data = init_weight_style_1(mid_width, mid_width)
+            temp_linear.weight.data = init_weight_vec_len_maintaining(mid_width, mid_width)
             self.linears.append(temp_linear)
             pass
         temp_linear = torch.nn.Linear(mid_width, out_features, bias=False)
-        temp_linear.weight.data = init_weight_style_1(mid_width, out_features)
+        temp_linear.weight.data = init_weight_vec_len_maintaining(mid_width, out_features)
         self.linears.append(temp_linear)
         
         self.gramos = torch.nn.ParameterList([GradientModification() for _ in range(num_layers)])      
@@ -105,7 +280,9 @@ class test_FCNN_with_doumo_stack_test(torch.nn.Module):
                 pass
             #debug_length_sqr = x.mul(x).sum(dim=1)
             x = self.gramos[i](x)
-            x = self.xmos_1[i](x)
+            raise Exception("")
+            
+            x = self.xmos_1[i](x) #这个应该不需要。
             x = self.leakyrelus[i](x)
             x = self.xmos_2[i](x)
             pass

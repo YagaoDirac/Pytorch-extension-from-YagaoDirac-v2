@@ -1,9 +1,21 @@
 
 (bit, layer, gates, batch, lr, noise_base) = test_config_dispatcher(
     bit=2,layer=6,gates=16,batch=100,lr=0.001,noise_base=1.2)
+
+batch = 1
+in_features = 2
+out_features = 3
+mid_width = 4
+num_layers = 5
+
+
 is_f16 = True
 iter_per_print = 50#1111
 print_count = 20000
+
+
+
+
 
 (input, target) = data_gen_full_adder(bit,batch, is_output_01=False, is_cuda=True)
 # print(input[:5])
@@ -53,6 +65,24 @@ if True and "print parameters":
             print(name, p)
             pass
         pass
+    
+if True and "print parameters":
+    if True and "only the training params":
+        for p in model.parameters():
+            if p.requires_grad:
+                print(p)
+                pass
+            pass
+        pass
+    else:# prints all the params.
+        for p in model.parameters():
+            print(p)
+            pass
+        pass
+    
+    
+    
+    
 
 model.cuda()
 input = input.cuda()
@@ -110,6 +140,12 @@ for epoch in range(iter_per_print*print_count):
         if epoch%iter_per_print == iter_per_print-1:
             result = model.get_zero_grad_ratio()
             print("print zero grad ratio: ", result)
+            pass
+        pass
+    if True and "print strong grad ratio":
+        if epoch%iter_per_print == iter_per_print-1:
+            result = model.get_strong_grad_ratio()
+            print("print strong grad ratio: ", result)
             pass
         pass
     #optimizer.param_groups[0]["lr"] = 0.01
