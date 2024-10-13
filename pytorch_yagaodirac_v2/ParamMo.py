@@ -615,21 +615,21 @@ if '''dtype adaption.''' and False:
 
 
 
-# class ReLU_with_offset(torch.nn.Module):
-#     r"""y = max(1, x)
-#     """
-#     def __init__(self, offset:float, *args, **kwargs) -> None:
-#         super().__init__(*args, **kwargs)
-#         self.offset = torch.nn.Parameter(torch.tensor([offset]), requires_grad=False)
-#         #raise Exception ('untested.')
-#         pass
-#     def forward(self, x:torch.Tensor)->torch.Tensor:
-#         #tensor_one = torch.tensor([1.], dtype=x.dtype, device=x.device)
-#         result = torch.maximum(x, self.offset)
-#         return result
-#     pass #end of class.
+class ReLU_with_offset(torch.nn.Module):
+    r"""y = max(1, x)
+    """
+    def __init__(self, offset:float, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.offset = torch.nn.Parameter(torch.tensor([offset]), requires_grad=False)
+        #raise Exception ('untested.')
+        pass
+    def forward(self, x:torch.Tensor)->torch.Tensor:
+        #tensor_one = torch.tensor([1.], dtype=x.dtype, device=x.device)
+        result = torch.maximum(x, self.offset)
+        return result
+    pass #end of class.
 
-# # layer = ReLU_with_offset(0.5123)
-# # input = torch.linspace(0.,1.,10)
-# # output = layer(input)
-# # fds=432
+# layer = ReLU_with_offset(0.5123)
+# input = torch.linspace(0.,1.,10)
+# output = layer(input)
+# fds=432

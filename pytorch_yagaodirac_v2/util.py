@@ -394,7 +394,7 @@ def debug_avg_log(input:torch.Tensor)->float:
     nelement = input.nelement()
     result = numerator/(nelement-count_of_nan_and_inf)
     return result.item()
-# input = torch.tensor([torch.nan, torch.inf, torch.inf*-1, 0., -10])
+# input = torch.tensor([torch.nan, torch.inf, torch.inf*-1, 0., -100])
 # print(debug_avg_log(input))
 # input = torch.tensor([10000000000000000000.,-100000000000000000000000000.])
 # print(debug_avg_log(input))
