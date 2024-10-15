@@ -11,23 +11,10 @@ if "__main__" == __name__:
     #print("adding sys path:", ____package_path__)
     pass
 from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2, ReLU_with_offset
-from pytorch_yagaodirac_v2.util import debug_avg_log, data_gen_from_random_teacher
+from pytorch_yagaodirac_v2.util import debug_avg_log, data_gen_from_random_teacher, Print_Timing
 
 
 
-
-
-
-
-
-
-
-
-
-#继续， linear, gmo xmo. 直接堆。
-
-# This is actually test code. But it looks very useful... 
-# I should say, don't use this one. A better one is at the end. You'll love it.
 class FCL_from_yagaodirac(torch.nn.Module):
     r''' The way to use this class is the same as to use torch.nn.Linear.
     
@@ -276,7 +263,7 @@ if 'single layer random teacher test' and False:
         pass
     pass
 
-if 'dry stack test.(withOUT activition func)' and True:
+if 'dry stack test.(withOUT activition func)' and False:
     batch = 10000
     in_features = 50
     mid_width = 100
@@ -379,9 +366,12 @@ if 'dry stack test.(withOUT activition func)' and True:
 
 
 class MLP_from_yagaodirac(torch.nn.Module):
-    def __init__(self, in_features: int, out_features: int, bias: bool = True, num_layers = 2, \
-        mid_width =Optional[int], relu_offset = 0.001, \
-                 device=None, dtype=None) -> None:
+    def __init__(self, in_features: int, out_features: int, bias: bool = True, \
+                num_layers = 2, mid_width =Optional[int], relu_offset = 0.,\ 
+                device=None, dtype=None) -> None:
+        # the default value of relu offset may need to be 0.05 or something.
+        # but anyway, the new relu with offset doesn't seem helpful.
+        
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
         self.num_layers = num_layers
@@ -417,15 +407,47 @@ class MLP_from_yagaodirac(torch.nn.Module):
     #end of function
     pass
 
-继续。写一个log计数。
-
-if 'dry stack test.(relu offset)' and True:
-    batch = 10000
-    in_features = 50
-    mid_width = 100
-    num_layers = 100
-    out_features = 10
-    relu_offset = 0.001
+if 'dry stack test.(relu offset)' and False:
+    # batch = 1000, in_features = 50, mid_width = 100, num_layers = 2, out_features = 10, relu_offset = ?
+    #lr=0.000001(k,e-)
+    # test the relu offset
+    #            ing0.01(50k,3.3e-4), ?0.03(47k,3e-4), 0.05(23~49k,1e-3~3e-4), 0.07(20~60k 1.1e-3~2.1e-4), 0.1(22k 1.3e-3, 3times),  0.3(13k 1.6e-3, 3times),  1.1(8k 3.2e-4, 2times), 11.1(9k 6e-7)
+    #negetive.  -0.01(50k 3.2e-4), -0.1(51k 2.8e-4, 2times), -0.3(35k 2.5e-4, 2times), -1.1(37k 1.5e-6, 2times), -11.1(34k 1.2e-6)
+    
+    # batch = 1000, in_features = 50, mid_width = 100, num_layers = 3!!!!!!!!, out_features = 10, relu_offset = ?
+    #lr=0.00001(k,e-)
+    # test the relu offset. all 3times
+    # 0.001(2k6 1.2e-4), 0.01(2k 1.3e-4) 0.1(3k 8e-5), 0.3(1k4 3e-5), 1.1(1k 9e-6), 
+    
+    
+    # batch = 1000, in_features = 500, mid_width = 1000, num_layers = 4!!!!!!!!, out_features = 100, relu_offset = ?
+    #lr=0.00001(k,e-)
+    # test the relu offset. all 3times
+    # 0.0001 and 0.001(200 1e-4), 0.01(200 8e-5), 
+    
+    # maybe it's still not very clear????????????
+    # maybe it's still not very clear????????????
+    # maybe it's still not very clear????????????
+    # maybe it's still not very clear????????????
+    # maybe it's still not very clear????????????
+    # maybe it's still not very clear????????????
+    # maybe it's still not very clear????????????
+    # maybe it's still not very clear????????????
+    # maybe it's still not very clear????????????
+    # maybe it's still not very clear????????????
+    
+    relu_offset = -0.1
+    print(relu_offset)
+    
+    lr = 0.00001
+    batch = 1000
+    in_features = 500
+    mid_width = 1000
+    num_layers = 4
+    out_features = 100
+    teacher_relu_offset = relu_offset
+    print_timing = Print_Timing(max_gap=5000,density=0.5,first=1)
+    
     class MLP_dry_stack_teacher_with_relu_offset(torch.nn.Module):
         def __init__(self, in_features: int, out_features: int, 
                      bias: bool, num_layers, mid_width, relu_offset,\
@@ -436,13 +458,13 @@ if 'dry stack test.(relu offset)' and True:
             
             self.layers = torch.nn.ParameterList()
             if 1 == num_layers:
-                self.layers.append(FCL_from_yagaodirac(in_features, out_features,bias))
+                self.layers.append(torch.nn.Linear(in_features, out_features,bias))
             else:
-                self.layers.append(FCL_from_yagaodirac(in_features, mid_width,bias))
+                self.layers.append(torch.nn.Linear(in_features, mid_width,bias))
                 for _ in range(num_layers-2):
-                    self.layers.append(FCL_from_yagaodirac(mid_width, mid_width,bias))
+                    self.layers.append(torch.nn.Linear(mid_width, mid_width,bias))
                     pass
-                self.layers.append(FCL_from_yagaodirac(mid_width, out_features, bias))
+                self.layers.append(torch.nn.Linear(mid_width, out_features, bias))
                 pass
             
             self.some_relus = torch.nn.ParameterList([ReLU_with_offset(relu_offset) for _ in range(num_layers-1)])
@@ -453,7 +475,7 @@ if 'dry stack test.(relu offset)' and True:
             x = input_b_i
             
             for i in range(self.num_layers -1):
-                layer:FCL_from_yagaodirac = self.layers[i]
+                layer:torch.nn.Linear = self.layers[i]
                 x = layer(x)
                 the_relu = self.some_relus[i]
                 x = the_relu(x)
@@ -464,18 +486,9 @@ if 'dry stack test.(relu offset)' and True:
             return x
         #end of function
         pass
-           
-           
-           
-           
-           
-           
-    teacher = MLP_dry_stack_teacher_with_relu_offset(in_features, out_features, True, num_layers, mid_width).eval()
-
-
+    teacher = MLP_dry_stack_teacher_with_relu_offset(in_features, out_features, True, num_layers, mid_width, teacher_relu_offset).eval()
     
-    
-    student = aaaaaaaaaaaaaaaaa(in_features, out_features, True, num_layers, mid_width)
+    student = MLP_from_yagaodirac(in_features, out_features, True, num_layers, mid_width, relu_offset)
     if 'adapt to kaiming he init' and False:
         layer:FCL_from_yagaodirac
         for layer in student.layers:
@@ -485,21 +498,28 @@ if 'dry stack test.(relu offset)' and True:
     input = torch.rand([batch, in_features])+0.01
     target = data_gen_from_random_teacher(teacher,input)
     loss_function = torch.nn.MSELoss()
-    optim = torch.optim.SGD(student.parameters(), lr=0.000001)
-    last_loss = 999999
+    optim = torch.optim.SGD(student.parameters(), lr=lr)
     
     input = input.cuda()
     target = target.cuda()
     student.cuda()
+    
+    last_loss = 999999
+    oscillation_count = 0
     for epoch in range(999999):
         pred = student(input)
         loss:torch.Tensor = loss_function(pred, target)
-        if epoch ==0 or epoch%100 == 0:
+        if print_timing.check(epoch):
             print(f"{loss.item():.3e}", "  loss / epoch  ", epoch)
             pass
+        #print(f"{loss.item():.3e}", "  loss / epoch  ", epoch)
+        
         if last_loss<loss.item():#+0.0001:
-            print(f"{loss.item():.3e}", "  loss / epoch  ", epoch)
-            break
+            oscillation_count+=1
+            if oscillation_count>=20:
+                print(f"{loss.item():.3e}", "  loss / epoch  ", epoch)
+                break
+            pass
         last_loss = loss.item()
         optim.zero_grad()
         loss.backward()
@@ -507,148 +527,259 @@ if 'dry stack test.(relu offset)' and True:
         pass
     pass
 
-
-
-
-
-
-
-
-
-
-raise Exception()
-
-
-
-
- 
-batch = 2
-in_features = 3
-out_features = 5
-mid_width = 20
-num_layers = 3
-lr = 0.001
-iter_per_print = 1#111
-print_count = 155555
-input = torch.randn([batch, in_features])
-target = torch.randn([batch, out_features])
-model = MLP_from_yagaodirac(in_features, out_features, True, num_layers=num_layers, mid_width=mid_width, relu_offset=0.1)
+if 'final test' and True:
+    # 2 layers. test relu offset
+    # 0(32k 2.1e-2), lr e-6
+    # lr 5e-6    0(8k 2.5e-2) 0.01(8k 2.5e-2)
+    # 3 layers.
+    # lr 5e-6    0(6k1 4.2e-2) 0.01(10k 3.4e-2)
+    # 5 layers.
     
-# if True and "print parameters":
-#     if True and "only the training params":
-#         for p in model.parameters():
-#             if p.requires_grad:
-#                 print(p)
+    relu_offset = 0.
+    print(relu_offset)
+    lr = 0.00001
+    batch = 10000
+    in_features = 50
+    mid_width = 100
+    num_layers = 10
+    out_features = 10
+    
+    input = torch.rand([batch, in_features])+0.01
+    target = torch.rand([batch, out_features])+0.01
+    
+    print_timing = Print_Timing(max_gap=5000,density=0.2,first=1)
+    
+    model = MLP_from_yagaodirac(in_features, out_features, True, num_layers, mid_width, relu_offset)
+    if 'adapt to kaiming he init' and False:
+        layer:FCL_from_yagaodirac
+        for layer in model.layers:
+            layer.__XXXXXXXXX__set_scaling_factor_to_adapt_kaiming_he_init()
+            pass
+        pass
+    
+    class The_normal_way(torch.nn.Module):
+        def __init__(self, in_features: int, out_features: int, bias: bool = True, \
+                    num_layers = 2, mid_width =Optional[int], \
+                    device=None, dtype=None) -> None:
+            factory_kwargs = {'device': device, 'dtype': dtype}
+            super().__init__()
+            self.num_layers = num_layers
+            
+            self.layers = torch.nn.ParameterList()
+            if 1 == num_layers:
+                self.layers.append(torch.nn.Linear(in_features, out_features,bias))
+            else:
+                self.layers.append(torch.nn.Linear(in_features, mid_width,bias))
+                for _ in range(num_layers-2):
+                    self.layers.append(torch.nn.Linear(mid_width, mid_width,bias))
+                    pass
+                self.layers.append(torch.nn.Linear(mid_width, out_features, bias))
+                pass
+            pass 
+        #end of function
+        def forward(self, input_b_i:torch.Tensor) -> torch.Tensor:
+            x = input_b_i
+            for i in range(self.num_layers):
+                layer:torch.nn.Linear = self.layers[i]
+                x = layer(x)
+                pass
+            return x
+        #end of function
+        pass
+    model_ref = The_normal_way(in_features, out_features, True, num_layers, mid_width)
+    
+    loss_function = torch.nn.MSELoss()
+    optim = torch.optim.SGD(model.parameters(), lr=lr)
+    
+    input = input.cuda()
+    target = target.cuda()
+    model.cuda()
+    model_ref.cuda()
+    
+    last_loss = 999999
+    oscillation_count = 0
+    for epoch in range(999999):
+        pred = model(input)
+        loss:torch.Tensor = loss_function(pred, target)
+        if print_timing.check(epoch):
+            print(f"{loss.item():.3e}", "  loss / epoch  ", epoch)
+            pass
+        #print(f"{loss.item():.3e}", "  loss / epoch  ", epoch)
+        
+        if last_loss<loss.item():#+0.0001:
+            oscillation_count+=1
+            if oscillation_count>=20:
+                print(f"{loss.item():.3e}", "  loss / epoch  ", epoch)
+                break
+            pass
+        last_loss = loss.item()
+        optim.zero_grad()
+        loss.backward()
+        optim.step()
+        pass
+    
+    
+    print("----------now the ref----------")
+    # this tests the normal way to fit the data with conventional fully connected layers.
+    optim = torch.optim.SGD(model_ref.parameters(), lr=lr)
+    
+    last_loss = 999999
+    oscillation_count = 0
+    for epoch in range(999999):
+        pred = model_ref(input)
+        loss:torch.Tensor = loss_function(pred, target)
+        if print_timing.check(epoch):
+            print(f"{loss.item():.3e}", "  loss / epoch  ", epoch)
+            pass
+        #print(f"{loss.item():.3e}", "  loss / epoch  ", epoch)
+        
+        if last_loss<loss.item():#+0.0001:
+            oscillation_count+=1
+            if oscillation_count>=20:
+                print(f"{loss.item():.3e}", "  loss / epoch  ", epoch)
+                break
+            pass
+        last_loss = loss.item()
+        optim.zero_grad()
+        loss.backward()
+        optim.step()
+        pass
+    
+    pass
+
+#非假老师测试。
+
+
+
+# some old test. 
+ 
+# batch = 2
+# in_features = 3
+# out_features = 5
+# mid_width = 20
+# num_layers = 3
+# lr = 0.001
+# iter_per_print = 1#111
+# print_count = 155555
+# input = torch.randn([batch, in_features])
+# target = torch.randn([batch, out_features])
+# model = MLP_from_yagaodirac(in_features, out_features, True, num_layers=num_layers, mid_width=mid_width, relu_offset=0.1)
+    
+# # if True and "print parameters":
+# #     if True and "only the training params":
+# #         for p in model.parameters():
+# #             if p.requires_grad:
+# #                 print(p)
+# #                 pass
+# #             pass
+# #         pass
+# #     else:# prints all the params.
+# #         for p in model.parameters():
+# #             print(p)
+# #             pass
+# #         pass
+    
+    
+# loss_function = torch.nn.MSELoss()
+# optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+
+# model.cuda().half()
+# input = input.cuda().to(torch.float16)
+# target = target.cuda().to(torch.float16)
+
+# for epoch in range(iter_per_print*print_count):
+#     model.train()
+#     pred = model(input)
+#     #print(pred, "pred", __line__str())
+#     if False and "shape":
+#         print(pred.shape, "pred.shape")
+#         print(target.shape, "target.shape")
+#         fds=423
+#     if False and "print pred":
+#         if epoch%iter_per_print == iter_per_print-1:
+#             print(pred[:5], "pred")
+#             print(target[:5], "target")
+#             pass
+#         pass
+#     loss = loss_function(pred, target)
+#     optimizer.zero_grad()
+#     loss.backward()
+#     if True and "print the grad":
+#         if epoch%iter_per_print == iter_per_print-1:
+#             layer:FCL_from_yagaodirac = model.layers[0]
+#             print(layer.debug_get_all_avg_log(), "<<<<<<<   0 layer")
+#             layer:FCL_from_yagaodirac = model.layers[1]
+#             print(layer.debug_get_all_avg_log(), "<<<<<<<   1 layer")
+#             layer:FCL_from_yagaodirac = model.layers[-1]
+#             print(layer.debug_get_all_avg_log(), "<<<<<<<   -1 layer")
+#             pass
+#         pass
+#     if True and "print the weight":
+#         if epoch%iter_per_print == iter_per_print-1:
+#             #layer = model.out_mapper
+#             layer = model.first_layer.in_mapper
+#             print(layer.raw_weight, "first_layer.in_mapper   before update")
+#             optimizer.step()
+#             print(layer.raw_weight, "first_layer.in_mapper   after update")
+            
+#             layer = model.model.second_to_last_layers[0]
+#             print(layer.raw_weight, "second_to_last_layers[0]   before update")
+#             optimizer.step()
+#             print(layer.raw_weight, "second_to_last_layers[0]   after update")
+            
+#             layer = model.out_mapper
+#             print(layer.raw_weight, "out_mapper   before update")
+#             optimizer.step()
+#             print(layer.raw_weight, "out_mapper   after update")
+            
+#             pass    
+#         pass    
+#     if True and "print zero grad ratio":
+#         if epoch%iter_per_print == iter_per_print-1:
+#             result = model.get_zero_grad_ratio()
+#             print("print zero grad ratio: ", result)
+#             pass
+#         pass
+#     if True and "print strong grad ratio":
+#         if epoch%iter_per_print == iter_per_print-1:
+#             result = model.get_strong_grad_ratio()
+#             print("print strong grad ratio: ", result)
+#             pass
+#         pass
+#     #optimizer.param_groups[0]["lr"] = 0.01
+#     optimizer.step()
+#     if True and "print param overlap":
+#         every = 100
+#         if epoch%every == every-1:
+#             model.print_param_overlap_ratio()
+#             pass
+#         pass
+#     if True and "print acc":
+#         if epoch%iter_per_print == iter_per_print-1:
+#             with torch.inference_mode():
+#                 model.eval()
+#                 pred = model(input)
+#                 #print(pred, "pred", __line__str())
+#                 #print(target, "target")
+#                 acc = DigitalMapper_V1_1.bitwise_acc(pred, target)
+#                 model.set_acc(acc)
+#                 if 1. != acc:
+#                     print(epoch+1, "    ep/acc    ", acc)
+#                 else:
+#                     #print(epoch+1, "    ep/acc    ", acc)
+#                     finished = model.can_convert_into_eval_only_mode()
+#                     print(finished, "is param hard enough __line 1273")
+#                     if finished[0]:
+#                         print(pred[:5].T, "pred", __line__str())
+#                         print(target[:5].T, "target")
+#                         break
+#                         pass
+#                     pass
 #                 pass
 #             pass
 #         pass
-#     else:# prints all the params.
-#         for p in model.parameters():
-#             print(p)
-#             pass
-#         pass
-    
-    
-loss_function = torch.nn.MSELoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
-model.cuda().half()
-input = input.cuda().to(torch.float16)
-target = target.cuda().to(torch.float16)
-
-for epoch in range(iter_per_print*print_count):
-    model.train()
-    pred = model(input)
-    #print(pred, "pred", __line__str())
-    if False and "shape":
-        print(pred.shape, "pred.shape")
-        print(target.shape, "target.shape")
-        fds=423
-    if False and "print pred":
-        if epoch%iter_per_print == iter_per_print-1:
-            print(pred[:5], "pred")
-            print(target[:5], "target")
-            pass
-        pass
-    loss = loss_function(pred, target)
-    optimizer.zero_grad()
-    loss.backward()
-    if True and "print the grad":
-        if epoch%iter_per_print == iter_per_print-1:
-            layer:FCL_from_yagaodirac = model.layers[0]
-            print(layer.debug_get_all_avg_log(), "<<<<<<<   0 layer")
-            layer:FCL_from_yagaodirac = model.layers[1]
-            print(layer.debug_get_all_avg_log(), "<<<<<<<   1 layer")
-            layer:FCL_from_yagaodirac = model.layers[-1]
-            print(layer.debug_get_all_avg_log(), "<<<<<<<   -1 layer")
-            pass
-        pass
-    if True and "print the weight":
-        if epoch%iter_per_print == iter_per_print-1:
-            #layer = model.out_mapper
-            layer = model.first_layer.in_mapper
-            print(layer.raw_weight, "first_layer.in_mapper   before update")
-            optimizer.step()
-            print(layer.raw_weight, "first_layer.in_mapper   after update")
-            
-            layer = model.model.second_to_last_layers[0]
-            print(layer.raw_weight, "second_to_last_layers[0]   before update")
-            optimizer.step()
-            print(layer.raw_weight, "second_to_last_layers[0]   after update")
-            
-            layer = model.out_mapper
-            print(layer.raw_weight, "out_mapper   before update")
-            optimizer.step()
-            print(layer.raw_weight, "out_mapper   after update")
-            
-            pass    
-        pass    
-    if True and "print zero grad ratio":
-        if epoch%iter_per_print == iter_per_print-1:
-            result = model.get_zero_grad_ratio()
-            print("print zero grad ratio: ", result)
-            pass
-        pass
-    if True and "print strong grad ratio":
-        if epoch%iter_per_print == iter_per_print-1:
-            result = model.get_strong_grad_ratio()
-            print("print strong grad ratio: ", result)
-            pass
-        pass
-    #optimizer.param_groups[0]["lr"] = 0.01
-    optimizer.step()
-    if True and "print param overlap":
-        every = 100
-        if epoch%every == every-1:
-            model.print_param_overlap_ratio()
-            pass
-        pass
-    if True and "print acc":
-        if epoch%iter_per_print == iter_per_print-1:
-            with torch.inference_mode():
-                model.eval()
-                pred = model(input)
-                #print(pred, "pred", __line__str())
-                #print(target, "target")
-                acc = DigitalMapper_V1_1.bitwise_acc(pred, target)
-                model.set_acc(acc)
-                if 1. != acc:
-                    print(epoch+1, "    ep/acc    ", acc)
-                else:
-                    #print(epoch+1, "    ep/acc    ", acc)
-                    finished = model.can_convert_into_eval_only_mode()
-                    print(finished, "is param hard enough __line 1273")
-                    if finished[0]:
-                        print(pred[:5].T, "pred", __line__str())
-                        print(target[:5].T, "target")
-                        break
-                        pass
-                    pass
-                pass
-            pass
-        pass
-
-fds=432
+# fds=432
 
 
 
