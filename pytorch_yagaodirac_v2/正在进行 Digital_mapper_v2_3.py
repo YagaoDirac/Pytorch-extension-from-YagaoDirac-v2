@@ -2,17 +2,33 @@ from typing import Any, List, Tuple, Optional, Self
 import sys
 import math
 import torch
-from util import debug_Rank_1_parameter_to_List_float, int_into_floats, floats_into_int
-from util import data_gen_half_adder_1bit, data_gen_full_adder, bitwise_acc, data_gen_for_directly_stacking_test
-from util import debug_strong_grad_ratio
-#from ParamMo import GradientModification_v2
-from Binarize import Binarize
+
+import sys
+ori_path = sys.path[0]
+index = ori_path.rfind("\\")
+upper_folder = ori_path[:index]
+sys.path.append(upper_folder)
+del ori_path
+del index
+del upper_folder
+
+
+#from util import debug_Rank_1_parameter_to_List_float, int_into_floats, floats_into_int
+#from util import data_gen_half_adder_1bit, data_gen_full_adder, bitwise_acc, data_gen_for_directly_stacking_test
+from pytorch_yagaodirac_v2.Util import debug_strong_grad_ratio
+from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2
+#from Binarize import Binarize
+
+
 
 # 回传的东西，如果是0，那么表示没有被后面的层选用。
 # 如果不是0，符号表示后面需要的正确答案，绝对值表示强度。
 # target是答案乘以强度，直接用autograd.backward给进去，而不用loss.backward()。
+# 自定义回传的时候，顺着主梯度链传的其实是答案和对应强度，而不是梯度。
+# 而w得到的是梯度，那个地方用了乘法，其实是，当x和答案（g）一致的时候，是对的，要强化。不一致表示错误，要弱化。
+# 乘以-1是因为，pytorch的更新是减去梯度。神经网络都这么干的。
 
-class DigitalMapperFunction_v2_2(torch.autograd.Function):
+class DigitalMapperFunction_v2_3(torch.autograd.Function):
     r'''
     forward input list:
     >>> x = args[0]# shape must be [batch, in_features]
@@ -24,14 +40,9 @@ class DigitalMapperFunction_v2_2(torch.autograd.Function):
     def forward(ctx: Any, *args: Any, **kwargs: Any)->Any:
         input_b_i:torch.Tensor = args[0]# shape must be [batch, in_features]
         raw_weight:torch.Tensor = args[1]# shape must be [out_features, in_features]
-        
                 
-        #print(out_features_iota, "out_features_iota")
         index_of_max_o = raw_weight.max(dim=1).indices
-        #print(index_of_max_o, "index_of_max_o")
-        output:torch.Tensor
-        output = input_b_i[:, index_of_max_o]
-        
+        output:torch.Tensor = input_b_i[:, index_of_max_o]
         '''Because raw_weight always requires grad, but the output is 
         calculated with x[:, index_of_max_o], which is unlike other multiplication or
         addition, if any of the input tensor/parameter requires grad, the result requires grad.
@@ -39,11 +50,8 @@ class DigitalMapperFunction_v2_2(torch.autograd.Function):
         this from the "x[:, index_of_max_o]", it only inherits from the x.
         So, I have to manually modify it.
         '''
-        
         output.requires_grad_(input_b_i.requires_grad and raw_weight.requires_grad)
-        
         w_requires_grad = torch.tensor([raw_weight.requires_grad])
-        
         ctx.save_for_backward(input_b_i, index_of_max_o, w_requires_grad)
         return output
 
@@ -61,208 +69,79 @@ class DigitalMapperFunction_v2_2(torch.autograd.Function):
         
         input_requires_grad = torch.tensor([input_b_i.requires_grad], device=input_b_i.device)
         
-        if input_requires_grad:
+        if w_requires_grad:
             g_in_reshaped_b_o_1:torch.Tensor = g_in_b_o[:,:,None]
             input_reshaped_b_1_i:torch.Tensor = input_b_i[:,None,:]
             
-            grad_for_raw_weight__before_sum__b_o_i:torch.Tensor = g_in_reshaped_b_o_1*input_reshaped_b_1_i
+            grad_for_raw_weight__before_sum__b_o_i:torch.Tensor = g_in_reshaped_b_o_1*(input_reshaped_b_1_i*-1)
+            #print(grad_for_raw_weight__before_sum__b_o_i)
             grad_for_raw_weight_o_i = grad_for_raw_weight__before_sum__b_o_i.sum(dim=0, keepdim=False)
+            #print(grad_for_raw_weight_o_i)
             pass
         
-        if w_requires_grad:
+        if input_requires_grad:
             batch_size_s = g_in_b_o.shape[0]
             out_features_s = g_in_b_o.shape[1]
             in_features_s = input_b_i.shape[1]
             
-            batch_features_iota_o = torch.linspace(0, batch_size_s-1, batch_size_s, dtype=torch.int32).reshape([-1,1,1])
-            batch_features_iota_expanded_b_o_fake_fake_i = batch_features_iota_o.expand([-1, out_features_s, in_features_s])
-            batch_features_iota_expanded_b_o_fake_fake_i = batch_features_iota_expanded_b_o_fake_fake_i.reshape([-1])
+            batch_features_iota_o = torch.linspace(0, batch_size_s-1, batch_size_s, dtype=torch.int32).reshape([-1,1])
+            batch_features_iota_expanded_o_mul_fake_i = batch_features_iota_o.expand([-1, out_features_s])
+            batch_features_iota_expanded_o_mul_fake_i = batch_features_iota_expanded_o_mul_fake_i.reshape([-1])
             
-            out_features_iota_o = torch.linspace(0, out_features_s-1, out_features_s, dtype=torch.int32).reshape([1,-1,1])
-            out_features_iota_expanded_fake_b_o_fake_i = out_features_iota_o.expand([batch_size_s, -1, in_features_s])
-            out_features_iota_expanded_fake_b_o_fake_i = out_features_iota_expanded_fake_b_o_fake_i.reshape([-1])
+            out_features_iota_o = torch.linspace(0, out_features_s-1, out_features_s, dtype=torch.int32).reshape([1,-1])
+            out_features_iota_expanded_fake_o_mul_i = out_features_iota_o.expand([batch_size_s, -1])
+            out_features_iota_expanded_fake_o_mul_i = out_features_iota_expanded_fake_o_mul_i.reshape([-1])
             
-            index_of_max_expanded_fake_b_o_fake_i = index_of_max_o.reshape([1,-1,1]).expand([batch_size_s, -1, in_features_s])
-            index_of_max_expanded_fake_b_o_fake_i = index_of_max_expanded_fake_b_o_fake_i.reshape([-1])
+            index_of_max_expanded_fake_o_mul_i = index_of_max_o.reshape([1,-1]).expand([batch_size_s, -1])
+            index_of_max_expanded_fake_o_mul_i = index_of_max_expanded_fake_o_mul_i.reshape([-1])
             
             grad_for_x__before_sum__b_o_i = torch.zeros([batch_size_s, out_features_s, in_features_s], dtype=input_b_i.dtype, device=input_b_i.device)
-            grad_for_x__before_sum__b_o_i[batch_features_iota_expanded_b_o_fake_fake_i,out_features_iota_expanded_fake_b_o_fake_i,\
-                index_of_max_expanded_fake_b_o_fake_i] = g_in_b_o[batch_features_iota_expanded_b_o_fake_fake_i,out_features_iota_expanded_fake_b_o_fake_i]
+            grad_for_x__before_sum__b_o_i[batch_features_iota_expanded_o_mul_fake_i,out_features_iota_expanded_fake_o_mul_i,\
+                index_of_max_expanded_fake_o_mul_i] = g_in_b_o[batch_features_iota_expanded_o_mul_fake_i,out_features_iota_expanded_fake_o_mul_i]
+            #print(grad_for_x__before_sum__b_o_i)
+            
             grad_for_x_b_i = grad_for_x__before_sum__b_o_i.sum(dim=1, keepdim=False)
+            #print(grad_for_x_b_i)
             pass
             
         return grad_for_x_b_i, grad_for_raw_weight_o_i
 
     pass  # class
 
-if '''dim check.''' and True:
+if '''main check.''' and False:
     b=2
     o=3
     i=5
-    x = torch.rand([b,i], requires_grad=True)
-    w = torch.rand([o,i], requires_grad=True)
-    pred:torch.Tensor = DigitalMapperFunction_v2_2.apply(x, w)
-    pred.backward(torch.rand([b,o]))#torch.tensor([[1.31, -1.32]]))
-    #print(w.grad, "w.grad")
-    fds=432
+    #x = torch.rand([b,i], requires_grad=True)
+    #x = torch.tensor([[11.,12,13,14,15],[21,22,23,24,25]], requires_grad=True)
+    x = torch.tensor([[1.,-1,1,1,1,],[1.,1,1,1,1,],], requires_grad=True)
+    #w = torch.rand([o,i], requires_grad=True)
+    w = torch.tensor([[0.,0,0,0,0.1],[0.,0,0.1,0,0],[0.,0.1,0,0,0],], requires_grad=True)
+    #w = torch.tensor([[0.,0.1,0,0,0],[0.,0.1,0,0,0],[0.,0.1,0,0,0],], requires_grad=True)
+    pred:torch.Tensor = DigitalMapperFunction_v2_3.apply(x, w)
+    #g = torch.tensor([[111.,112,113],[121,122,123]])
+    g = torch.tensor([[1001.,1002,1003],[1004,1005,1006]])
+    pred.backward(g)#torch.tensor([[1.31, -1.32]]))
     
-    继续继续继续继续继续继续继续继续继续继续
+    # print(x.shape == x.grad.shape)
+    # print(w.shape == w.grad.shape)
+    print(x.grad, "x.grad is the correct answer with strength")
+    print(w.grad, "w.grad, neg for correct mapping")
+    pass
+
+if '''individual element check.''' and False:
+    b=2
+    o=3
+    i=5
+    x = torch.tensor([[1.,-1.,1.,1.,1.],[1.,1.,1.,1.,1.],], requires_grad=True)
+    w = torch.tensor([[0.,0.,0.,0.,0.1],[0.,0.,0.1,0.,0.],[0.,0.1,0.,0.,0.],], requires_grad=True)
+    g = torch.tensor([[11.,-12.,13.],[21.,22.,23.]])
+    pred:torch.Tensor = DigitalMapperFunction_v2_3.apply(x, w)
+    pred.backward(g)
+    print(x.grad, "x.grad is the correct answer with strength")
+    print(w.grad, "w.grad, neg for correct mapping")
+    pass
     
-
-# '''sign check. IMPORTANT IMPORTANT IMPORTANT IMPORTANT'''
-# '''sign check. IMPORTANT IMPORTANT IMPORTANT IMPORTANT'''
-# '''sign check. IMPORTANT IMPORTANT IMPORTANT IMPORTANT'''
-# x = torch.tensor([[1.,1,-1],] ,requires_grad=True)
-# w = torch.tensor([[0.,1,0],[0,1,0],[0,0,1],[0,0,1]], requires_grad=True)
-# pred_raw:torch.Tensor = DigitalMapperFunction_v2_2.apply(x, w)
-# pred =pred_raw*0.9
-# print(pred, "pred")
-# target = torch.tensor([[1.,-1,1,-1]])
-# loss_function = torch.nn.MSELoss()
-# loss:torch.Tensor = loss_function(pred, target)
-# loss.backward()
-# print(w.grad, "w.grad")
-# print(x.grad, "x.grad")
-# print(w, "w before")
-# w.data = w.data-w.grad*0.01
-# offset = torch.tensor([[0.0005],[0.0171],[0.0171],[0.0007],])
-# print(w+offset, "w after step")
-
-# fds=432
-
-
-
-# '''single layer grad backward test.'''
-# x = torch.tensor([[1.31, -1.32]])
-# w = torch.tensor([[0.21,1.22], [1.23,0.24], ], requires_grad=True)
-# pred:torch.Tensor = DigitalMapperFunction_v2_2.apply(x, w, torch.tensor([0.54]))
-# print(pred, "pred")
-# loss_function = torch.nn.MSELoss()
-# target = torch.tensor([[1.11, 1.12]])
-# loss = loss_function(pred, target)
-# loss.backward()#torch.tensor([[1.31, -1.32]]))
-# print(w.grad, "w.grad")
-# fds=432
-
-
-# '''multi layer grad backward test.'''
-# x = torch.tensor([[1.11]])
-# w1 = torch.tensor([[1.21], [1.22], ], requires_grad=True)
-# w2 = torch.tensor([[1.31, 1.32]], requires_grad=True)
-# pred1 = DigitalMapperFunction_v2.apply(x, w1)
-# print(pred1, "pred1")
-# pred_final:torch.Tensor = DigitalMapperFunction_v2.apply(pred1, w2)
-# print(pred_final, "pred_final")
-# g_in = torch.ones_like(pred_final.detach())
-# #torch.autograd.backward(pred_final, g_in, inputs=[w1, w2])
-# pred_final.backward(g_in)
-# print(w1.grad, "w1.grad")
-# print(w2.grad, "w2.grad")
-# fds=423
-
-
-# '''This basic test is a bit long. It consists of 3 parts. 
-# A raw computation, using x, raw_weight, and g_in as input, calcs the output and both grads.
-# Then, the equivalent calc, which use the proxy weight instead of raw_weight,
-# which allows directly using autograd.backward function to calc the grads.
-# At last, the customized backward version.
-# They all should yield the same results.'''
-
-# x = torch.tensor([[5., 6., 7.], [8., 9., 13]])
-# in_features_s = x.shape[1]
-
-# raw_weight = torch.tensor([[1., 2., 3.], [4., 2., 3.], [4., 5., 8.], [6., 2., 9.],[6., 2., 9.], ])
-# out_features_s = raw_weight.shape[0]
-# out_features_iota_o = torch.linspace(0, out_features_s-1, out_features_s, dtype=torch.int32)
-# #print(out_features_iota, "out_features_iota")
-# index_of_max_o = raw_weight.max(dim=1).indices
-# print(index_of_max_o, "index_of_max_o")
-# output = x[:, index_of_max_o]
-# print(output, "output")
-
-# #fake_ctx = (x, index_of_max_o, out_features_s)
-
-# g_in = torch.tensor([[0.30013, 0.30103, 0.30113, 0.31003, 0.31013], [0.40013, 0.40103, 0.40113, 0.41003, 0.41013], ])
-# print(output.shape, "output.shape, should be ", g_in.shape)
-# #grad_for_raw_weight = torch.zeros_like(raw_weight)
-
-# #sum_of_input = x.sum(dim=0, keepdim=True)
-# input_reshaped_b_1_i = x[:,None,:]#x.unsqueeze(dim=1)
-# print(input_reshaped_b_1_i, "input_reshaped_b_1_i")
-# print(input_reshaped_b_1_i.shape, "input_reshaped_b_1_i.shape")
-# g_in_reshaped_b_o_1 = g_in[:,:,None]#.unsqueeze(dim=-1)
-# print(g_in_reshaped_b_o_1, "g_in_reshaped_b_o_1")
-# print(g_in_reshaped_b_o_1.shape, "g_in_reshaped_b_o_1.shape")
-# grad_for_raw_weight_before_sum_b_o_i = g_in_reshaped_b_o_1.matmul(input_reshaped_b_1_i)
-# print(grad_for_raw_weight_before_sum_b_o_i, "grad_for_raw_weight_before_sum_b_o_i before sum")
-# print(grad_for_raw_weight_before_sum_b_o_i.shape, "grad_for_raw_weight_before_sum_b_o_i.shape before sum")
-# grad_for_raw_weight_o_i = grad_for_raw_weight_before_sum_b_o_i.sum(dim=0, keepdim=False)
-# #grad_for_raw_weight_before_sum_b_o_i = grad_for_raw_weight_before_sum_b_o_i.squeeze(dim=0)
-# print(grad_for_raw_weight_o_i, "grad_for_raw_weight_o_i after sum, the final result.")
-# print(grad_for_raw_weight_o_i.shape, "grad_for_raw_weight_o_i.shape. Should be ", raw_weight.shape)
-
-# one_hot_o_i = torch.zeros_like(raw_weight)
-# one_hot_o_i[out_features_iota_o, index_of_max_o] = 1.
-# one_hot_expanded_fake_b_o_i = one_hot_o_i.expand(g_in.shape[0], -1, -1)
-# print(one_hot_expanded_fake_b_o_i.shape, "one_hot_expanded_fake_b_o_i.shape")
-# print(one_hot_expanded_fake_b_o_i, "one_hot_expanded_fake_b_o_i")
-
-# g_in_reshaped_expanded_b_o_fake_i = g_in_reshaped_b_o_1.expand(-1, -1, in_features_s)
-# print(g_in_reshaped_expanded_b_o_fake_i, "g_in_reshaped_expanded_b_o_fake_i")
-# print(g_in_reshaped_expanded_b_o_fake_i.shape, "g_in_reshaped_expanded_b_o_fake_i.shape")
-
-# one_hot_mul_g_in_b_o_i = one_hot_expanded_fake_b_o_i.mul(g_in_reshaped_expanded_b_o_fake_i)
-# print(one_hot_mul_g_in_b_o_i, "one_hot_mul_g_in_b_o_i")
-
-# grad_for_x_b_i = one_hot_mul_g_in_b_o_i.sum(dim=1, keepdim=False)
-# print(grad_for_x_b_i, "grad_for_x_b_i")
-# print(grad_for_x_b_i.shape, "grad_for_x_b_i.shape")
-
-# print("--------------SUMMARIZE-------------")
-# print(output, "output")
-# print(grad_for_x_b_i, "grad_for_x")
-# print(grad_for_raw_weight_o_i, "grad_for_raw_weight")
-
-# print("--------------VALIDATION-------------")
-
-# __proxy_weight = torch.zeros_like(raw_weight)
-# __proxy_weight.requires_grad_(True)
-# __proxy_weight.data[out_features_iota_o, index_of_max_o] = 1.
-# #print(__proxy_weight, "__proxy_weight")
-# #print(__proxy_weight.shape, "__proxy_weight.shape")
-
-# __valid_input_reshaped = x.unsqueeze(dim=-1)
-# __valid_input_reshaped.requires_grad_(True)
-# #print(__valid_input_reshaped, "__valid_input_reshaped")
-# #print(__valid_input_reshaped.shape, "__valid_input_reshaped.shape")
-
-# __valid_output = __proxy_weight.matmul(__valid_input_reshaped)
-# __valid_output = __valid_output.squeeze(dim=-1)
-
-# print(__valid_output, "__valid_output")
-# #print(__valid_output.shape, "__valid_output.shape")
-
-# #print(__valid_input_reshaped.grad, "__valid_input_reshaped.grad before")
-# #print(__proxy_weight.grad, "__proxy_weight.grad before")
-# torch.autograd.backward(__valid_output, g_in, inputs=[__valid_input_reshaped, __proxy_weight])
-# print(__valid_input_reshaped.grad, "__valid_input_reshaped.grad after")
-# print(__proxy_weight.grad, "__proxy_weight.grad after")
-
-# print("-----------now test for the autograd function-----------")
-# function_test__input = x.detach().clone().requires_grad_(True)
-# function_test__input.grad = None
-# function_test__raw_weight = raw_weight.detach().clone().requires_grad_(True)
-# function_test__raw_weight.grad = None
-# function_test__output = DigitalMapperFunction_v2.apply(function_test__input, function_test__raw_weight)
-# print(function_test__output, "function_test__output")
-# print(function_test__output.shape, "function_test__output.shape")
-# torch.autograd.backward(function_test__output, g_in, inputs = \
-#     [function_test__input, function_test__raw_weight])
-# print(function_test__input.grad, "function_test__input.grad")
-# print(function_test__raw_weight.grad, "function_test__raw_weight.grad")
-# fds=432
-
-
 
 
 class DigitalMapper_eval_only_v2(torch.nn.Module):
@@ -275,6 +154,8 @@ class DigitalMapper_eval_only_v2(torch.nn.Module):
     '''
     def __init__(self, in_features: int, indexes:torch.Tensor, \
                     device=None, dtype=None) -> None:
+        raise Exception ("not tested.")
+        
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
         if len(indexes.shape)!=1:
@@ -300,43 +181,9 @@ class DigitalMapper_eval_only_v2(torch.nn.Module):
     
     pass #end of class.
         
-    
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
-#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试#补测试
 
 
-
-
-
-
-
-#scaling_ratio_for_gramo的默认值
-
-
-
-
-class DigitalMapper_V2_2(torch.nn.Module):
+class DigitalMapper_V2_3(torch.nn.Module):
     r'''This layer is designed to be used between digital layers.
     The input should be in STANDARD range so to provide meaningful output
     in STANDARD range. It works for both 01 and np styles.
@@ -350,35 +197,27 @@ class DigitalMapper_V2_2(torch.nn.Module):
     #__constants__ = []
 
     def __init__(self, in_features: int, out_features: int, 
-                    is_out_mapper_in_DSPU:bool, shrink_factor = 0.9, \
-                 needs_out_gramo = True, \
-                    auto_print_difference:bool = False, \
-                    #scale_the_scaling_ratio_for_learning_gramo = 1., \
-                    epoch_factor = 1., \
-                        
+                    #is_out_mapper_in_DSPU:bool, \
+                 #needs_out_gramo = True, \
+                    # auto_print_difference:bool = False, \
+                    # out_gramo_scale_factor = 1., \
+                    # gramo_for_raw_weight_scale_factor = 1., \
                     #protect_param_every____training:int = 5, \
-                    device=None, dtype=None) -> None:   #, debug_info = ""
+                    device=None, dtype=None) -> None:
 
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
 
         if in_features<2:
-            raise Exception("emmmm")
+            raise Exception('If this is intentional, search "if statement in python" on google.com.')
 
         self.in_features = in_features
         #self.log_of_in_features = torch.nn.Parameter(torch.log(torch.tensor([in_features])), requires_grad=False)
         self.out_features = out_features
-        self.sqrt_of_out_features = torch.nn.Parameter(torch.sqrt(torch.tensor([out_features])), requires_grad=False)
+        #self.sqrt_of_out_features = torch.nn.Parameter(torch.sqrt(torch.tensor([out_features])), requires_grad=False)
         #self.out_iota = torch.nn.Parameter(torch.linspace(0,out_features-1, out_features, dtype=torch.int32), requires_grad=False)
-        self.needs_out_gramo = needs_out_gramo
-        self.is_out_mapper_in_DSPU = torch.nn.Parameter(torch.tensor([is_out_mapper_in_DSPU]), requires_grad=False)
-        if is_out_mapper_in_DSPU:
-            self.set_shrink_factor(shrink_factor)
-            pass
-        if epoch_factor<=0 or epoch_factor>100:
-            raise Exception("emmmm")
+        #self.is_out_mapper_in_DSPU = torch.nn.Parameter(torch.tensor([is_out_mapper_in_DSPU]), requires_grad=False)
         #self.set_epoch_factor(epoch_factor)
-        self.set_epoch(0)
 
         self.raw_weight_o_i = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
         self.__reset_parameters__the_plain_rand01_style()
@@ -386,14 +225,14 @@ class DigitalMapper_V2_2(torch.nn.Module):
         self.raw_weight_max = torch.nn.Parameter(torch.tensor([1.]), requires_grad=False)
         self.raw_weight_min = torch.nn.Parameter(torch.tensor([-1./100]), requires_grad=False)
 
-        self.gramo_for_raw_weight = GradientModification()
-        self.reset_scaling_ratio_for_raw_weight()
+        self.gramo_for_raw_weight = GradientModification_v2()
+        #self.reset_scaling_ratio_for_raw_weight()
         #self.scale_the_scaling_ratio_for_raw_weight(scale_the_scaling_ratio_for_learning_gramo)
         
-        self.raw_weight_before = None
-        self.set_auto_print_difference_between_epochs(auto_print_difference)
+        #self.raw_weight_before:Tuple[torch.nn.parameter.Parameter|None] = None
+        #self.set_auto_print_difference_between_epochs(auto_print_difference)
         #self.out_binarize_does_NOT_need_gramo = Binarize.create_analog_to_np(needs_gramo=False)
-        self.out_gramo = GradientModification()
+        self.out_gramo = GradientModification_v2()
 
         #to keep track of the training.
         # self.protect_param_every____training = protect_param_every____training
@@ -411,61 +250,59 @@ class DigitalMapper_V2_2(torch.nn.Module):
         return "It depends on what you feed in. If the input is standard +-1(np), the output is also standard +-1(np)."    
     # def outputs_non_standard_range(self)->bool:
     
-    def reset_scaling_ratio_for_raw_weight(self):
-        '''simply sets the inner'''
-        #the *10 is conventional. If lr is 0.001, planned epoch is 100, the overall lr is 0.001*100.
-        self.gramo_for_raw_weight.set_scaling_ratio(self.sqrt_of_out_features*10.)
-        pass
-    def scale_the_scaling_ratio_for_raw_weight(self, by:float):
-        '''simply sets the inner'''
-        self.gramo_for_raw_weight.set_scaling_ratio((self.gramo_for_raw_weight.scaling_ratio*by).item())
-        pass
-    def set_scaling_ratio_for_raw_weight(self, scaling_ratio:float):
-        '''simply sets the inner'''
-        self.gramo_for_raw_weight.set_scaling_ratio(scaling_ratio)
-        pass
+    # def reset_scaling_ratio_for_raw_weight(self):
+    #     '''simply sets the inner'''
+    #     #the *10 is conventional. If lr is 0.001, planned epoch is 100, the overall lr is 0.001*100.
+    #     self.gramo_for_raw_weight.set_scaling_ratio(self.sqrt_of_out_features*10.)
+    #     pass
+    # def scale_the_scaling_ratio_for_raw_weight(self, by:float):
+    #     '''simply sets the inner'''
+    #     self.gramo_for_raw_weight.set_scaling_ratio((self.gramo_for_raw_weight.scaling_ratio*by).item())
+    #     pass
+    # def set_scaling_ratio_for_raw_weight(self, scaling_ratio:float):
+    #     '''simply sets the inner'''
+    #     self.gramo_for_raw_weight.set_scaling_ratio(scaling_ratio)
+    #     pass
 
     # def set_epoch_factor(self, epoch_factor:float):
     #     self.epoch_factor = torch.nn.Parameter(torch.tensor([epoch_factor]), requires_grad=False)
     #     pass
-    def set_epoch(self, epoch:int):
-        self.epoch = torch.nn.Parameter(torch.tensor([epoch]), requires_grad=False)
-        pass
-    def set_shrink_factor(self, shrink_factor:float):
-        if shrink_factor<=0 or shrink_factor>=1:
-            raise Exception("")
-        self.shrink_factor = torch.nn.Parameter(torch.tensor([shrink_factor]), requires_grad=False)
-        pass
+    
 
-    def set_auto_print_difference_between_epochs(self, set_to:bool = True):
-        with torch.no_grad():
-            if not set_to:
-                self.raw_weight_before = torch.nn.Parameter(torch.empty([0,], requires_grad=False))
-                self.raw_weight_before.requires_grad_(False)
-                # use self.raw_weight_before.nelement() == 0 to test it.
-                pass
-            if set_to:
-                if self.raw_weight_o_i is None:
-                    raise Exception("This needs self.raw_weight first. Report this bug to the author, thanks.")
-                if self.raw_weight_o_i.nelement() == 0:
-                    raise Exception("Unreachable code. self.raw_weight contains 0 element. It's so wrong.")
-                #if not hasattr(self, "raw_weight_before") or self.raw_weight_before is None:
-                if self.raw_weight_before is None:
-                    self.raw_weight_before = torch.nn.Parameter(torch.empty_like(self.raw_weight_o_i), requires_grad=False)
-                    self.raw_weight_before.requires_grad_(False)
-                    pass
-                self.raw_weight_before.data = self.raw_weight_o_i.detach().clone()
-                pass
-            pass
+    # def __________set_auto_print_difference_between_epochs(self, set_to:bool = True):
+    #     with torch.no_grad():
+    #         if not set_to:
+    #             self.raw_weight_before = torch.nn.Parameter(torch.empty([0,], requires_grad=False))
+    #             self.raw_weight_before.requires_grad_(False)
+    #             # use self.raw_weight_before.nelement() == 0 to test it.
+    #             pass
+    #         if set_to:
+    #             if self.raw_weight_o_i is None:
+    #                 raise Exception("This needs self.raw_weight first. Report this bug to the author, thanks.")
+    #             if self.raw_weight_o_i.nelement() == 0:
+    #                 raise Exception("Unreachable code. self.raw_weight contains 0 element. It's so wrong.")
+    #             #if not hasattr(self, "raw_weight_before") or self.raw_weight_before is None:
+    #             if self.raw_weight_before is None:
+    #                 self.raw_weight_before = torch.nn.Parameter(torch.empty_like(self.raw_weight_o_i), requires_grad=False)
+    #                 self.raw_weight_before.requires_grad_(False)
+    #                 pass
+    #             self.raw_weight_before.data = self.raw_weight_o_i.detach().clone()
+    #             pass
+    #         pass
 
 
-
+    def get_eval_only(self)->DigitalMapper_eval_only_v2:
+        result = DigitalMapper_eval_only_v2(self.in_features, self.get_max_index())
+        #raise Exception("untested")
+        return result
     def get_max_index(self)->torch.Tensor:
         with torch.no_grad():
+            raise Exception("untested")
             the_max_index = self.raw_weight_o_i.max(dim=1,keepdim=False).indices
             return the_max_index
     def get_one_hot_format(self)->torch.Tensor:
         with torch.no_grad():
+            raise Exception("untested")
             #raw_weight = torch.tensor([[1., 2., 3.], [4., 2., 3.], [4., 5., 8.], [6., 2., 9.],[6., 2., 9.], ])
             out_features_s = self.raw_weight_o_i.shape[0]
             out_features_iota_o = torch.linspace(0, out_features_s-1, out_features_s, device=self.raw_weight_o_i.device, dtype=torch.int32)
@@ -481,6 +318,7 @@ class DigitalMapper_V2_2(torch.nn.Module):
 
     def debug_get_zero_grad_ratio(self, directly_print_out:float = False)->float:
         with torch.no_grad():
+            raise Exception("untested")
             result = 0.
             if not self.raw_weight_o_i.grad is None:
                 flags = self.raw_weight_o_i.grad.eq(0.)
@@ -524,23 +362,23 @@ class DigitalMapper_V2_2(torch.nn.Module):
 
         # raw weight changes???
         #use self.raw_weight_before.nelement() == 0 to test it.
-        if self.raw_weight_before.nelement() != 0:
-            ne_flag = self.raw_weight_before.data.ne(self.raw_weight_o_i)
-            nan_inf_flag = self.raw_weight_before.data.isnan().logical_and(self.raw_weight_before.data.isinf())
-            report_these_flag = ne_flag.logical_and(nan_inf_flag.logical_not())
-            if report_these_flag.any()>0:
-                to_report_from = self.raw_weight_before[report_these_flag]
-                to_report_from = to_report_from[:16]
-                to_report_to = self.raw_weight_o_i[report_these_flag]
-                to_report_to = to_report_to[:16]
-                line_number_info = "    Line number: "+str(sys._getframe(1).f_lineno)
-                print("Raw weight changed, from:\n", to_report_from, ">>>to>>>\n",
-                        to_report_to, line_number_info)
-            else:
-                print("Raw weight was not changed in the last stepping")
-                pass
-            self.raw_weight_before.data = self.raw_weight_o_i.detach().clone()
-            pass
+        # if self.raw_weight_before.nelement() != 0:
+        #     ne_flag = self.raw_weight_before.data.ne(self.raw_weight_o_i)
+        #     nan_inf_flag = self.raw_weight_before.data.isnan().logical_and(self.raw_weight_before.data.isinf())
+        #     report_these_flag = ne_flag.logical_and(nan_inf_flag.logical_not())
+        #     if report_these_flag.any()>0:
+        #         to_report_from = self.raw_weight_before[report_these_flag]
+        #         to_report_from = to_report_from[:16]
+        #         to_report_to = self.raw_weight_o_i[report_these_flag]
+        #         to_report_to = to_report_to[:16]
+        #         line_number_info = "    Line number: "+str(sys._getframe(1).f_lineno)
+        #         print("Raw weight changed, from:\n", to_report_from, ">>>to>>>\n",
+        #                 to_report_to, line_number_info)
+        #     else:
+        #         print("Raw weight was not changed in the last stepping")
+        #         pass
+        #     self.raw_weight_before.data = self.raw_weight_o_i.detach().clone()
+        #     pass
 
 
         if self.training:
@@ -551,6 +389,8 @@ class DigitalMapper_V2_2(torch.nn.Module):
             x = input
             
             #w_after_gramo = self.gramo_for_raw_weight(self.raw_weight_o_i.view([1, -1])).view([self.out_features,self.in_features])
+            
+            #this shape is intentional.
             w_after_gramo = self.gramo_for_raw_weight(self.raw_weight_o_i)
             #测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下
             #测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下
@@ -567,23 +407,13 @@ class DigitalMapper_V2_2(torch.nn.Module):
             #测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下
             #测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下
             
-            
-            self.epoch.data = self.epoch + 1
-            threshold_for_random = self.epoch_factor/(self.epoch+1.)+0.5
-            
-            x = DigitalMapperFunction_v2_2.apply(x, w_after_gramo, threshold_for_random)
+            x = DigitalMapperFunction_v2_3.apply(x, w_after_gramo)
 
-#            x = self.out_binarize_does_NOT_need_gramo(x)
-            if self.needs_out_gramo:
-                x = self.out_gramo(x)
-                pass
+            #x = self.out_binarize_does_NOT_need_gramo(x)
+            x = self.out_gramo(x)
             
             if torch.isnan(x).any():
                 fds = 432
-                pass
-            
-            if self.is_out_mapper_in_DSPU:
-                x = x*self.shrink_factor
                 pass
             
             return x
@@ -592,18 +422,11 @@ class DigitalMapper_V2_2(torch.nn.Module):
             the_max_indexes = self.get_max_index()
             x = input[:, the_max_indexes]
             return x            
-            
     #end of function.
-
 
     def extra_repr(self) -> str:
         #return f'Output is standard binary range. In_features={self.in_features}, out_features={self.out_features}'
         return f'In_features={self.in_features}, out_features={self.out_features}'
-
-    def get_eval_only(self)->DigitalMapper_eval_only_v2:
-        result = DigitalMapper_eval_only_v2(self.in_features, self.get_max_index())
-        #raise Exception("untested")
-        return result
 
     def protect_raw_weight(self, report_nan_and_inf = False):
         '''
@@ -614,40 +437,52 @@ class DigitalMapper_V2_2(torch.nn.Module):
             the_device = self.raw_weight_o_i.device
             the_dtype = self.raw_weight_o_i.dtype
             
-            debug_self_raw_weight = self.raw_weight_o_i
-            
             #step 1, get the flags, then nan to num.
-            flag_pos_inf = self.raw_weight_o_i.isposinf()
-            flag_nan_and_too_small = self.raw_weight_o_i.isnan().logical_or(self.raw_weight_o_i.lt(0.))
-            flag_nan_and_TOO_MUCH_small = self.raw_weight_o_i.isnan().logical_or(self.raw_weight_o_i.lt(-10.))
-            if flag_nan_and_TOO_MUCH_small.any():
-                print(flag_nan_and_TOO_MUCH_small.sum().item(), "  <- elements of raw_weight became nan or neg inf.  Probably the scaling_ratio of gramo is too big.  __line 1113")
-                print(self.raw_weight_o_i[flag_nan_and_TOO_MUCH_small], " <- nan_and_too_small")
-                pass
+            #flag_inf = self.raw_weight_o_i.isinf()
+            #flag_nan = self.raw_weight_o_i.isnan()
+            # flag_nan_and_TOO_MUCH_small = self.raw_weight_o_i.isnan().logical_or(self.raw_weight_o_i.lt(-10.))
+            # if flag_nan_and_TOO_MUCH_small.any():
+            #     print(flag_nan_and_TOO_MUCH_small.sum().item(), "  <- elements of raw_weight became nan or neg inf.  Probably the scaling_ratio of gramo is too big.  __line 1113")
+            #     print(self.raw_weight_o_i[flag_nan_and_TOO_MUCH_small], " <- nan_and_too_small")
+            #     pass
             if report_nan_and_inf:
                 nan_count = self.raw_weight_o_i.isnan().sum()
                 pos_inf_count = self.raw_weight_o_i.isposinf().sum()
                 neg_inf_count = self.raw_weight_o_i.isneginf().sum()
-                if nan_count>0 or pos_inf_count>0 or neg_inf_count>0 :
+                flat_too_much_big = self.raw_weight_o_i.abs().gt(10.)
+                if nan_count>0 or pos_inf_count>0 or neg_inf_count>0 or flat_too_much_big.sum()>0:
                     fds=432
                     pass
                 pass
-            self.raw_weight_o_i.data.nan_to_num_(0.)
             
-            #step 2, too big back into the max boundary.
-            self.raw_weight_o_i.data = flag_pos_inf*self.raw_weight_max+flag_pos_inf.logical_not()*self.raw_weight_o_i
+            nan_to_this = self.raw_weight_min.item()
+            self.raw_weight_o_i.data.nan_to_num_(nan=nan_to_this, posinf=nan_to_this, neginf=nan_to_this)
             
-            #step 3, too small and nan, nan are treated as too small. 
-           
-            #'''self.raw_weight_min == -30.-self.log_of_in_features'''
-            self.raw_weight_o_i.data = flag_nan_and_too_small*(self.raw_weight_min*torch.rand_like(self.raw_weight_o_i, dtype=the_dtype, device=the_device))+flag_nan_and_too_small.logical_not()*self.raw_weight_o_i
-
-            #step 4, offset to prevent too big element.
-            #a = self.raw_weight.max(dim=1,keepdim=True).values
-            offset = self.raw_weight_max - self.raw_weight_o_i.max(dim=1,keepdim=True).values
-            #offset = offset.maximum(torch.tensor([0.], device=the_device, dtype=the_dtype))# don't do this.
-            offset = offset.to(self.raw_weight_o_i.device).to(self.raw_weight_o_i.dtype)
-            self.raw_weight_o_i.data = self.raw_weight_o_i + offset
+            #if max of each is less than 1, offset it to have a max of 1.
+            max_element = self.raw_weight_o_i.max(dim = 1,keepdim=True).values
+            dist_to_1_raw = 1-max_element
+            dist_to_1 = torch.max(dist_to_1_raw,torch.zeros([1]))
+            #print(self.raw_weight_o_i.data)
+            self.raw_weight_o_i += dist_to_1
+            
+            #compress anything greater than 1.
+            row_gt_1:torch.Tensor = max_element.gt(1.)
+            element_gt_0:torch.Tensor = self.raw_weight_o_i.gt(0.)
+            needs_shrink_for_pos = row_gt_1.expand([-1,element_gt_0.shape[1]]).logical_and(element_gt_0)
+            div_this_for_pos = needs_shrink_for_pos*max_element+needs_shrink_for_pos.logical_not()
+            #print(self.raw_weight_o_i.data)
+            self.raw_weight_o_i.data = self.raw_weight_o_i/div_this_for_pos
+            
+            #compress anything less than -1
+            min_element = self.raw_weight_o_i.min(dim = 1,keepdim=True).values
+            row_lt_neg_1:torch.Tensor = min_element.lt(-1.)
+            element_lt_0:torch.Tensor = self.raw_weight_o_i.lt(0.)
+            needs_shrink_for_neg = row_lt_neg_1.expand([-1,element_gt_0.shape[1]]).logical_and(element_lt_0)
+            div_this_for_neg = needs_shrink_for_neg*min_element*-1.+needs_shrink_for_neg.logical_not()
+            #print(self.raw_weight_o_i.data)
+            self.raw_weight_o_i.data = self.raw_weight_o_i/div_this_for_neg
+            #print(self.raw_weight_o_i.data)
+            
             pass
         pass
     # end of function.
@@ -660,31 +495,84 @@ class DigitalMapper_V2_2(torch.nn.Module):
     pass
 fast_traval____end_of_digital_mapper_layer_class = 432
 
-'''some real case test'''
-layer = DigitalMapper_V2_2(3,1,True,needs_out_gramo=False)
-layer.set_scaling_ratio_for_raw_weight(1.)
-layer.set_shrink_factor(1.1)
-#print(layer.raw_weight_o_i.shape)
-layer.raw_weight_o_i.data = torch.tensor([[0.1, 0.1, 1.]])
-layer.raw_weight_o_i.requires_grad_()
-#print(layer.raw_weight_o_i.shape)
-#print(layer.raw_weight_o_i.requires_grad)
-input = torch.tensor([[-1., 1., 1.]], requires_grad=True)
-target = torch.tensor([[1.]]) 
-loss_function = torch.nn.MSELoss()
-optim = torch.optim.SGD(layer.parameters(), lr=0.01)
-pred = layer(input)
-print(pred, "pred")
-loss:torch.Tensor = loss_function(pred, target)
-loss.backward()
-print(layer.raw_weight_o_i.grad, "weight grad")
-print(input.grad, "input grad")
-print(layer.raw_weight_o_i.data, "weight before step")
-optim.step()
-print(layer.raw_weight_o_i.data, "weight after step")
-layer.protect_raw_weight()
-print(layer.raw_weight_o_i.data, "weight after protection")
-fds=432
+if 'param protection test' and False:
+    layer = DigitalMapper_V2_3(4,3)
+    layer.raw_weight_o_i.data = torch.tensor([[-2.,3,1,-1,],[-4.,5,1,-1,],
+                                                 [-3.,-2,0,0,],])
+    layer.protect_raw_weight()
+    print(layer.raw_weight_o_i.data)
+    pass
+    
+if '''basic single layer test''' and False:
+    layer = DigitalMapper_V2_3(3,1)
+    #print(layer.raw_weight_o_i.shape)
+    layer.raw_weight_o_i.data = torch.tensor([[0., 0., 1.]])
+    #print(layer.raw_weight_o_i.shape)
+    #print(layer.raw_weight_o_i.requires_grad)
+    input = torch.tensor([[-1., 1., 1.]], requires_grad=True)
+    target = torch.tensor([[-1.]]) 
+    optim = torch.optim.SGD(layer.parameters(), lr=0.01)
+    pred:torch.Tensor = layer(input)
+    print(pred, "pred")
+    pred.backward(target)
+    print(layer.raw_weight_o_i.grad, "weight grad")
+    print(input.grad, "input grad")
+    print(layer.raw_weight_o_i.data, "weight before step")
+    optim.step()
+    print(layer.raw_weight_o_i.data, "weight after step")
+    layer.protect_raw_weight()
+    print(layer.raw_weight_o_i.data, "weight after protection")
+    pass
+
+if '''basic 2 layer test.''' and False:
+    layer1 = DigitalMapper_V2_3(3,2)
+    layer1.raw_weight_o_i.data = torch.tensor([[0., 0., 1.],[0., 1., 0.]])
+    layer2 = DigitalMapper_V2_3(2,1)
+    layer2.raw_weight_o_i.data = torch.tensor([[0., 1.]])
+    input = torch.tensor([[-1., 1., 1.]], requires_grad=True)
+    target = torch.tensor([[1.]]) 
+    optim_them = []
+    optim_them.extend(layer1.parameters())
+    optim_them.extend(layer2.parameters())
+    optim = torch.optim.SGD(optim_them, lr=0.01)
+
+    pred:torch.Tensor = layer2(layer1(input))
+    print(pred, "pred")
+    pred.backward(target)
+    print(layer1.raw_weight_o_i.grad, "weight grad")
+    print(layer2.raw_weight_o_i.grad, "weight grad")
+    print(input.grad, "input grad")
+    print(layer1.raw_weight_o_i.data, "weight before step")
+    print(layer2.raw_weight_o_i.data, "weight before step")
+    optim.step()
+    print(layer1.raw_weight_o_i.data, "weight after step")
+    print(layer2.raw_weight_o_i.data, "weight after step")
+    layer1.protect_raw_weight()
+    layer2.protect_raw_weight()
+    print(layer1.raw_weight_o_i.data, "weight after protection")
+    print(layer2.raw_weight_o_i.data, "weight after protection")
+    pass
+
+if '1 layer real training' and True:
+    input
+    target
+    
+    layer = 
+    optim = 
+    
+    
+    for _ in range(10):
+        
+        pred.backward(target)
+
+
+
+
+
+
+
+
+
 
 # layer = DigitalMapper_V2_1(3,2,True,shrink_factor=0.9,needs_out_gramo=False)
 # layer.set_epoch(10000)
@@ -866,32 +754,32 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
         self.mid_width = mid_width
         
         self.digital_mappers = torch.nn.ParameterList([])
-        self.digital_mappers.append(DigitalMapper_V2_2(in_features,mid_width,False, 
+        self.digital_mappers.append(DigitalMapper_V2_3(in_features,mid_width,False, 
                                         auto_print_difference = auto_print_difference))
         for _ in range(num_layers-2):# I know what you are thinking. I know it.
-            self.digital_mappers.append(DigitalMapper_V2_2(mid_width,mid_width, False, 
+            self.digital_mappers.append(DigitalMapper_V2_3(mid_width,mid_width, False, 
                                         auto_print_difference = auto_print_difference))
-        self.digital_mappers.append(DigitalMapper_V2_2(mid_width,out_features, True, 
+        self.digital_mappers.append(DigitalMapper_V2_3(mid_width,out_features, True, 
                                         auto_print_difference = auto_print_difference))
         
         self.last_acc = torch.nn.Parameter(torch.tensor([0.5]), requires_grad=False)
         pass
 
     def reset_scaling_ratio_for_raw_weight(self):
-        layer:DigitalMapper_V2_2
+        layer:DigitalMapper_V2_3
         for layer in self.digital_mappers:
             layer.reset_scaling_ratio_for_raw_weight()
             pass
         pass
     def scale_the_scaling_ratio_for_raw_weight(self, by:float):
-        layer:DigitalMapper_V2_2
+        layer:DigitalMapper_V2_3
         for layer in self.digital_mappers:
             layer.scale_the_scaling_ratio_for_raw_weight(by)
             pass
         pass
     def print_strong_grad_ratio(self, log10_diff = -2., epi_for_w = 0.01, epi_for_g = 0.01):
         temp_list:List[float] = []
-        layer:DigitalMapper_V2_2
+        layer:DigitalMapper_V2_3
         for layer in self.digital_mappers:
             temp_list.append(layer.get_strong_grad_ratio(log10_diff, epi_for_w, epi_for_g))
             pass
@@ -978,7 +866,7 @@ for epoch in range(iter_per_print*print_count):
             pass
         pass
     if False and "print the weight":
-        layer:DigitalMapper_V2_2 = model.digital_mappers[0]
+        layer:DigitalMapper_V2_3 = model.digital_mappers[0]
         print(layer.raw_weight_o_i[:2,:7], "first_layer   before update")
         optimizer.step()
         print(layer.raw_weight_o_i[:2,:7], "first_layer   after update")
