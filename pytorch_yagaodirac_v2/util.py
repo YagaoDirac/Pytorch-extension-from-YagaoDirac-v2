@@ -25,31 +25,31 @@ def vector_length_norm(input:torch.Tensor, epi = 0.000001)->torch.Tensor:
 
 
 
-def protect_rotation_matrix(input:torch.Tensor, epi = 0.000001):#->torch.Tensor:
-    if len(input.shape)!=2:
-        raise Exception("send matrix here.")
-    dim = input.shape[0]
-    if dim!=input.shape[1]:
-        raise Exception("It must be square.")
+# def protect_rotation_matrix(input:torch.Tensor, epi = 0.000001):#->torch.Tensor:
+#     if len(input.shape)!=2:
+#         raise Exception("send matrix here.")
+#     dim = input.shape[0]
+#     if dim!=input.shape[1]:
+#         raise Exception("It must be square.")
     
-    with torch.no_grad():
-        # two_triagles = (input-input.T)*0.5
-        # diagonal = input.mul(torch.eye(dim))
-        # output_raw = two_triagles+diagonal
+#     with torch.no_grad():
+#         # two_triagles = (input-input.T)*0.5
+#         # diagonal = input.mul(torch.eye(dim))
+#         # output_raw = two_triagles+diagonal
         
-        length_of_output_raw_b = input.mul(input).sum(dim=1,keepdim=False).sqrt()
-        epi_tensor = torch.tensor([epi], device=length_of_output_raw_b.device, dtype=length_of_output_raw_b.dtype)
-        length_of_output_raw_safe_b = length_of_output_raw_b.maximum(epi_tensor)
-        sqrt_of_length_b = length_of_output_raw_safe_b.sqrt()
-        #result = input/length_of_input_safe_b#.unsqueeze(dim=1)
-        output = input/sqrt_of_length_b.unsqueeze(dim=1)/sqrt_of_length_b.unsqueeze(dim=0)
+#         length_of_output_raw_b = input.mul(input).sum(dim=1,keepdim=False).sqrt()
+#         epi_tensor = torch.tensor([epi], device=length_of_output_raw_b.device, dtype=length_of_output_raw_b.dtype)
+#         length_of_output_raw_safe_b = length_of_output_raw_b.maximum(epi_tensor)
+#         sqrt_of_length_b = length_of_output_raw_safe_b.sqrt()
+#         #result = input/length_of_input_safe_b#.unsqueeze(dim=1)
+#         output = input/sqrt_of_length_b.unsqueeze(dim=1)/sqrt_of_length_b.unsqueeze(dim=0)
         
-        raise Exception("test not passed..")
-        fds=432
+#         raise Exception("test not passed..")
+#         fds=432
     
-    #output = vector_length_norm(output_raw)#shape is intentional.
+#     #output = vector_length_norm(output_raw)#shape is intentional.
     
-    return output
+#     return output
 # raw_from_randn = torch.tensor([[0.5,2],[3.,4]])#randn([2,2])
 # rotation_matrix = protect_rotation_matrix(raw_from_randn)
 # print(rotation_matrix[0].mul(rotation_matrix[0]).sum())
@@ -69,23 +69,23 @@ def protect_rotation_matrix(input:torch.Tensor, epi = 0.000001):#->torch.Tensor:
 
 
 
-def float_to_spherical(input:torch.Tensor, mix = False)->torch.Tensor:
-    '''Basically, the mix flag only helps with debug. It may be slower a bit.'''
-    if len(input.shape)!=2:
-        raise Exception("The shape must be [batch, dim]")
-    if input.amax()>1. or input.amin()<0.:
-        raise Exception("Value must be inside [0., 1.] (both included.)")
-    input_in_rad =  input*torch.pi/2.
-    the_cos = input_in_rad.cos()
-    the_sin = input_in_rad.sin()
-    if not mix:
-        result = torch.concat([the_cos, the_sin], dim=1)
-        return result
-    the_cos = the_cos.unsqueeze(dim=2)
-    the_sin = the_sin.unsqueeze(dim=2)
-    result = torch.concat([the_cos, the_sin], dim=2)
-    result = result.view([input.shape[0], -1])
-    return result
+# def float_to_spherical(input:torch.Tensor, mix = False)->torch.Tensor:
+#     '''Basically, the mix flag only helps with debug. It may be slower a bit.'''
+#     if len(input.shape)!=2:
+#         raise Exception("The shape must be [batch, dim]")
+#     if input.amax()>1. or input.amin()<0.:
+#         raise Exception("Value must be inside [0., 1.] (both included.)")
+#     input_in_rad =  input*torch.pi/2.
+#     the_cos = input_in_rad.cos()
+#     the_sin = input_in_rad.sin()
+#     if not mix:
+#         result = torch.concat([the_cos, the_sin], dim=1)
+#         return result
+#     the_cos = the_cos.unsqueeze(dim=2)
+#     the_sin = the_sin.unsqueeze(dim=2)
+#     result = torch.concat([the_cos, the_sin], dim=2)
+#     result = result.view([input.shape[0], -1])
+#     return result
 # '''some basic test.'''
 # input = torch.tensor([[0., 0.33333, 0.5], [0.6, 0.7, 0.8]])
 # print(float_to_spherical(input))
@@ -93,27 +93,27 @@ def float_to_spherical(input:torch.Tensor, mix = False)->torch.Tensor:
 # fds=432
         
 
-def spherical_to_float(input:torch.Tensor, mix = False, rigorous = False)->torch.Tensor:
-    if len(input.shape)!=2:
-        raise Exception("The shape must be [batch, dim]")
-    if input.shape[1]%2 == 1:
-        raise Exception("The dim must be 2x something. They are pairs of cos and sin.")
-    if rigorous and (input.amax()>1. or input.amin()<0.):
-        raise Exception("Value must be inside [0., 1.] (both included.). Or set the param:rigorous to False.")
-    if not mix:
-        reshaped_input = input.view([input.shape[0], 2, -1])
-        the_cos = reshaped_input[:,0,:]
-        the_sin = reshaped_input[:,1,:]
-        result_in_rad = torch.atan2(the_sin, the_cos)
-        result = result_in_rad*2./torch.pi
-        return result
-    # mixed.
-    reshaped_input = input.view([input.shape[0], -1, 2])
-    the_cos = reshaped_input[:,:,0]
-    the_sin = reshaped_input[:,:,1]
-    result_in_rad = torch.atan2(the_sin, the_cos)
-    result = result_in_rad*2./torch.pi
-    return result
+# def spherical_to_float(input:torch.Tensor, mix = False, rigorous = False)->torch.Tensor:
+#     if len(input.shape)!=2:
+#         raise Exception("The shape must be [batch, dim]")
+#     if input.shape[1]%2 == 1:
+#         raise Exception("The dim must be 2x something. They are pairs of cos and sin.")
+#     if rigorous and (input.amax()>1. or input.amin()<0.):
+#         raise Exception("Value must be inside [0., 1.] (both included.). Or set the param:rigorous to False.")
+#     if not mix:
+#         reshaped_input = input.view([input.shape[0], 2, -1])
+#         the_cos = reshaped_input[:,0,:]
+#         the_sin = reshaped_input[:,1,:]
+#         result_in_rad = torch.atan2(the_sin, the_cos)
+#         result = result_in_rad*2./torch.pi
+#         return result
+#     # mixed.
+#     reshaped_input = input.view([input.shape[0], -1, 2])
+#     the_cos = reshaped_input[:,:,0]
+#     the_sin = reshaped_input[:,:,1]
+#     result_in_rad = torch.atan2(the_sin, the_cos)
+#     result = result_in_rad*2./torch.pi
+#     return result
 # '''some basic test.'''
 # temp = torch.tensor([[0., 0.33333, 0.5], [0.6, 0.7, 0.8]])
 # input = float_to_spherical(temp)
@@ -561,6 +561,30 @@ def int_into_floats(input:torch.Tensor, bit_count:int, is_output_01:bool)->torch
 # fds=432
 
 
+
+def int_into_floats_with_str(input:torch.Tensor, bit_count:int, is_output_01:bool)->torch.Tensor:
+    if len(input.shape)!=2 or input.shape[1]!=1:
+        raise Exception("Param:input must be rank-2. Shape is [batch, 1].")
+    
+    mask = torch.logspace(0,bit_count-1,bit_count, base=2, dtype=torch.int64)
+    mask = mask.to(input.device)
+    result = input[:,].bitwise_and(mask)
+    result = result.to(torch.bool)
+    result = result.to(torch.float32)
+    if not is_output_01:
+        result = result*2.-1.
+        pass
+    result *= mask/mask[-1]
+    return result
+
+# '''int_into_floats'''  
+# input = torch.tensor([[0],[1],[2],[3],[7],])
+# print(int_into_floats_with_str(input,4,True))
+# print(int_into_floats_with_str(input,4,False))
+# fds=432
+
+
+
 def floats_into_int(input:torch.Tensor)->torch.Tensor:
     if len(input.shape)!=2:
         raise Exception("Param:input must be rank-2. Shape is [batch, -1].")
@@ -569,7 +593,8 @@ def floats_into_int(input:torch.Tensor)->torch.Tensor:
     mask = torch.logspace(0,bit_count-1,bit_count, base=2, dtype=torch.int64)
     mask = mask.unsqueeze(dim=1)
     mask = mask.to(torch.float32)
-    input = input.gt(0.5)
+    #input = input.gt(0.5)
+    input = input.gt(0.)
     input = input.to(torch.float32)
     result = input.matmul(mask)
     result = result.to(torch.int64)
@@ -578,18 +603,23 @@ def floats_into_int(input:torch.Tensor)->torch.Tensor:
 # '''floats_into_int'''   
 # input = torch.tensor([[0],[1],[2],[3],[7],])
 # input = int_into_floats(input,7, True)
-# print(floats_into_int(input))
+# print(floats_into_int(input).T)
+# input = torch.tensor([[0],[1],[2],[3],[7],])
+# input = int_into_floats_with_str(input,7, True)
+# print(floats_into_int(input).T)
 # input = torch.tensor([[0],[1],[2],[3],[7],])
 # input = int_into_floats(input,7, False)
-# print(floats_into_int(input))
+# print(floats_into_int(input).T)
+# input = torch.tensor([[0],[1],[2],[3],[7],])
+# input = int_into_floats_with_str(input,7, False)
+# print(floats_into_int(input).T)
 # fds=432
 
 
 def data_gen_for_directly_stacking_test(batch:int, n_in:int, n_out:int, dtype = torch.float32, is_input_01 = False)->Tuple[torch.Tensor, torch.Tensor]:
-    if is_input_01:
-        input = torch.randint(0,2,[batch, n_in])
-    else:
-        input = torch.randint(0,2,[batch, n_in])*2-1
+    input = torch.randint(0,2,[batch, n_in])
+    if not is_input_01:
+        input = input*2-1
         pass
     input = input.to(dtype)
     answer_index = torch.randint(0,n_in,[n_out])
@@ -662,13 +692,6 @@ def data_gen_full_adder(bits:int, batch:int, is_output_01:bool, is_cuda:bool=Tru
 
 
 
-def data_gen_for_digital_mapper_directly_test(batch:int, n_in:int, n_out:int, dtype = torch.float32)->Tuple[torch.Tensor, torch.Tensor]:
-    input = torch.randint(0,2,[batch, n_in], dtype=torch.int8)
-    input = input*2-1
-    input = input.to(dtype)
-    answer_index = torch.randint(0,n_in,[n_out])
-    target = input[:, answer_index]
-    return input, target
 
 
 
@@ -747,6 +770,35 @@ def bitwise_acc(a:torch.Tensor, b:torch.Tensor, print_out_when_exact_one = True,
 # b = torch.tensor([[0,0,],[0,0,],[0,0,],])
 # bitwise_acc(a,b, print_out=True)
 # fds=432
+
+
+
+
+def bitwise_acc_with_str(a:torch.Tensor, b:torch.Tensor, print_out_when_exact_one = True, \
+                print_out:bool = False)->float:
+    with torch.no_grad():
+        a_b = a*b
+        total_weight = a_b.abs().sum()#(dim=0,keepdim=True)
+        sum_of_all = a_b.sum()#(dim=0,keepdim=True)
+        if sum_of_all == total_weight and print_out_when_exact_one:
+            print(1., "(NO ROUNDING!!!)   <- the accuracy    inside bitwise_acc function __line 784 ")
+            return 1.
+        ratio = ((sum_of_all/total_weight+1.)/2.).item()
+        if print_out:
+            print("{:.4f}".format(ratio), "<- the accuracy")
+            pass
+        return ratio
+
+# a = torch.tensor([[1,1,],[1,0.5,],[1,0.1,],])
+# b = torch.tensor([[1,1,],[1,1,],[1,1,],])
+# bitwise_acc_with_str(a,b, print_out=True)
+# b = torch.tensor([[1,1,],[1,1,],[1,-1,],])
+# bitwise_acc_with_str(a,b, print_out=True)
+# b = torch.tensor([[-1,-1,],[-1,-1,],[-1,-1,],])
+# bitwise_acc_with_str(a,b, print_out=True)
+# fds=432
+
+
 
 
 

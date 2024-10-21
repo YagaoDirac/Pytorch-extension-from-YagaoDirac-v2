@@ -14,8 +14,9 @@ del upper_folder
 
 
 #from util import debug_Rank_1_parameter_to_List_float, int_into_floats, floats_into_int
-#from util import data_gen_half_adder_1bit, data_gen_full_adder, bitwise_acc, data_gen_for_directly_stacking_test
+from pytorch_yagaodirac_v2.Util import data_gen_half_adder_1bit, data_gen_full_adder, bitwise_acc_with_str, data_gen_for_directly_stacking_test
 from pytorch_yagaodirac_v2.Util import debug_strong_grad_ratio
+from pytorch_yagaodirac_v2.Util import Print_Timing
 from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2
 #from Binarize import Binarize
 
@@ -27,6 +28,10 @@ from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2
 # 自定义回传的时候，顺着主梯度链传的其实是答案和对应强度，而不是梯度。
 # 而w得到的是梯度，那个地方用了乘法，其实是，当x和答案（g）一致的时候，是对的，要强化。不一致表示错误，要弱化。
 # 乘以-1是因为，pytorch的更新是减去梯度。神经网络都这么干的。
+
+# 改进空间。
+# 因为整个体系的数字是很普通的，不需要真的用gramo去保护，可以另外单独写一个东西，效率还有可能更高。
+
 
 class DigitalMapperFunction_v2_3(torch.autograd.Function):
     r'''
@@ -529,7 +534,7 @@ if '''basic 2 layer test.''' and False:
     layer1.raw_weight_o_i.data = torch.tensor([[0., 0., 1.],[0., 1., 0.]])
     layer2 = DigitalMapper_V2_3(2,1)
     layer2.raw_weight_o_i.data = torch.tensor([[0., 1.]])
-    input = torch.tensor([[-1., 1., 1.]], requires_grad=True)
+    input = torch.tensor([[-1., -1., 1.]], requires_grad=True)
     target = torch.tensor([[1.]]) 
     optim_them = []
     optim_them.extend(layer1.parameters())
@@ -542,82 +547,91 @@ if '''basic 2 layer test.''' and False:
     print(layer1.raw_weight_o_i.grad, "weight grad")
     print(layer2.raw_weight_o_i.grad, "weight grad")
     print(input.grad, "input grad")
-    print(layer1.raw_weight_o_i.data, "weight before step")
-    print(layer2.raw_weight_o_i.data, "weight before step")
-    optim.step()
-    print(layer1.raw_weight_o_i.data, "weight after step")
-    print(layer2.raw_weight_o_i.data, "weight after step")
-    layer1.protect_raw_weight()
-    layer2.protect_raw_weight()
-    print(layer1.raw_weight_o_i.data, "weight after protection")
-    print(layer2.raw_weight_o_i.data, "weight after protection")
     pass
 
-if '1 layer real training' and True:
-    input
-    target
-    
-    layer = 
-    optim = 
-    
-    
-    for _ in range(10):
-        
+if '''basic 2 layer test 2. Answer with weight.''' and False:
+    layer1 = DigitalMapper_V2_3(2,2)
+    layer1.raw_weight_o_i.data = torch.tensor([[1., 0.],[0., 1.]])
+    layer2 = DigitalMapper_V2_3(2,2)
+    layer2.raw_weight_o_i.data = torch.tensor([[0., 1.],[0., 1.]])
+    input = torch.tensor([[-1., 1.]], requires_grad=True)
+    target = torch.tensor([[1.,-0.2]]) 
+    optim_them = []
+    optim_them.extend(layer1.parameters())
+    optim_them.extend(layer2.parameters())
+    optim = torch.optim.SGD(optim_them, lr=0.01)
+
+    pred:torch.Tensor = layer2(layer1(input))
+    print(pred, "pred")
+    pred.backward(target)
+    print(layer1.raw_weight_o_i.grad, "weight grad")
+    print(layer2.raw_weight_o_i.grad, "weight grad")
+    print(input.grad, "input grad")
+    pass
+
+if '1 layer real training.' and False:
+    layer = DigitalMapper_V2_3(2,1)
+    layer.raw_weight_o_i.data = torch.tensor([[1., 0.5]])
+    input = torch.tensor([[-1., 1.]])#, requires_grad=True)
+    target = torch.tensor([[1.]]) 
+    optim = torch.optim.SGD(layer.parameters(), lr=0.1)
+    print("11111111", layer(input))
+    for _ in range(5):
+        print(layer.raw_weight_o_i.data)
+        pred:torch.Tensor = layer(input)
+        optim.zero_grad()
         pred.backward(target)
+        optim.step()
+        pass
+    print(layer.raw_weight_o_i.data)
+    print(layer(input), "   <-both should the same as the strongest answer")
+    pass
+
+if 'does the weight affect the training.' and False:
+    layer1 = DigitalMapper_V2_3(2,1)
+    layer2 = DigitalMapper_V2_3(1,2)
+    input = torch.tensor([[-1., 1.]])#, requires_grad=True)
+    target = torch.tensor([[1.,-0.2]]) 
+    optim_them = []
+    optim_them.extend(layer1.parameters())
+    optim_them.extend(layer2.parameters())
+    optim = torch.optim.SGD(optim_them, lr=0.1)
+    for _ in range(100):
+        print(layer1.raw_weight_o_i.data)
+        pred:torch.Tensor = layer2(layer1(input))
+        optim.zero_grad()
+        pred.backward(target)
+        optim.step()
+        pass
+    print(layer1.raw_weight_o_i.data)
+    print(layer2(layer1(input)), "   <-both should the same as the strongest answer")
+    print("now uncomment the raise instruction.")
+    pass
+
+if '1 layer real training' and False:
+    batch = 10
+    n_in = 10
+    n_out = 5
+    input, target = data_gen_for_directly_stacking_test(batch,n_in, n_out)
+    # print(input)
+    # print(target)
+    layer = DigitalMapper_V2_3(n_in, n_out)
+    optim = torch.optim.SGD(layer.parameters(), lr = 0.1)
+    for _ in range(10):
+        pred = layer(input)  
+        acc = bitwise_acc_with_str(pred, target,print_out=True)
+        if 1. == acc:
+            break
+        optim.zero_grad()      
+        pred.backward(target)
+        optim.step()
+        pass        
+    pass        
 
 
 
 
 
-
-
-
-
-
-# layer = DigitalMapper_V2_1(3,2,True,shrink_factor=0.9,needs_out_gramo=False)
-# layer.set_epoch(10000)
-# #print(layer.raw_weight_o_i.shape)
-# layer.raw_weight_o_i.data = torch.tensor([[0.1, 0.1, 1.], [0.1, 1, 0.1], ])
-# layer.raw_weight_o_i.requires_grad_()
-# #print(layer.raw_weight_o_i.shape)
-# #print(layer.raw_weight_o_i.requires_grad)
-# input = torch.tensor([[-1., 1., 1.]], requires_grad=True)
-# target = torch.tensor([[1., -1]]) 
-# loss_function = torch.nn.MSELoss()
-# optim = torch.optim.SGD(layer.parameters(), lr=0.01)
-# pred:torch.Tensor = layer(input)
-
-# pred.retain_grad()
-# loss:torch.Tensor = loss_function(pred, target)
-# loss.backward()
-
-# print(pred.grad, "pred grad")
-# print(input.grad, "input grad")
-
-# print(layer.raw_weight_o_i.grad, "weight grad")
-# print(layer.raw_weight_o_i.data, "weight before step")
-# optim.step()
-# print(layer.raw_weight_o_i.data, "weight after step")
-# layer.protect_raw_weight()
-# print(layer.raw_weight_o_i.data, "weight after protection")
-# fds=432
-
-
-
-# '''Param protection test.'''
-# layer = DigitalMapper_V2_1(3,9,needs_out_gramo=False)
-# #print(layer.raw_weight_o_i.shape)
-# layer.raw_weight_o_i.data = torch.tensor([
-#     [1.,0.,torch.inf],[1.,0.,torch.inf*-1.],[1.,0.,torch.nan],
-#     [1.,0.,99],[1.,0.,-99.],[1.,0.,0.],
-#     [3.,4.,5],[-3,-4,-5,],[11,0,-11]])
-# #print(layer.raw_weight_o_i.shape)
-# print(layer.raw_weight_o_i)
-# layer.protect_raw_weight()
-# print(layer.raw_weight_o_i)
-# layer.protect_raw_weight()
-# print(layer.raw_weight_o_i)
-# fds=432
 
 
 # '''Test for all the modes, and eval only layer.'''
@@ -637,107 +651,6 @@ if '1 layer real training' and True:
 
 
 
-# '''basic test. Also, the eval mode.'''
-# layer = DigitalMapper_V2_1(2,3, needs_out_gramo=False)
-# #layer.scale_the_scaling_ratio_for_raw_weight(1.)
-# layer.set_epoch(1000000)
-# # print(layer.raw_weight.data.shape)
-# layer.raw_weight_o_i.data=torch.Tensor([[1., 0.5],[ 0.1, 0.],[ 0.5, 1]])
-# layer.raw_weight_o_i.requires_grad_(True)
-# print(layer.raw_weight_o_i.requires_grad)
-# # print(layer.raw_weight.data)
-# input = torch.tensor([[1., -1.01]], requires_grad=True)
-# pred:torch.Tensor = layer(input)
-# print(pred, "should be 1 1 -1")
-# pred.backward(torch.tensor([[1.1, -1.2, 1.3]])*1.)
-# print(input.grad)
-# print(layer.raw_weight_o_i.grad)
-# fds=432
-
-
-fast_traval____training_test_for_digital_mapper = 432
-# '''some real training'''
-# input = torch.Tensor([[1., 1.],[1., -1.],[-1., 1.],[-1., -1.],])
-# target = torch.Tensor([[1.],[1.],[-1.],[-1.],])
-# # print(input)
-# # print(target)
-
-# model = DigitalMapper_V2_1(2,1,True)
-# #print(model.raw_weight_o_i.shape)
-# model.raw_weight_o_i.data = torch.tensor([[0.1, 0.9]])
-# model.scale_the_scaling_ratio_for_raw_weight(100.)
-# # for p in model.parameters():
-# #     print(p)
-# loss_function = torch.nn.MSELoss()
-# #loss_function = torch.nn.L1Loss()???
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
-
-
-# iter_per_print = 1#1111
-# print_count = 555555
-# for epoch in range(iter_per_print*print_count):
-#     model.train()
-#     pred = model(input)
-#     if False and "shape":
-#         print(pred.shape, "pred.shape")
-#         print(target.shape, "target.shape")
-#         fds=423
-#     if False and "print pred":
-#         if epoch%iter_per_print == iter_per_print-1:
-#             print(pred[:5], "pred")
-#             print(target[:5], "target")
-#             pass
-#         pass
-#     loss = loss_function(pred, target)
-#     optimizer.zero_grad()
-#     loss.backward()
-#     if True and "print the grad":
-#         if epoch%iter_per_print == iter_per_print-1:
-#             print(model.raw_weight_o_i.grad, "   grad")
-#             pass
-#         pass
-#     if True and "print the weight":
-#         if epoch%iter_per_print == iter_per_print-1:
-#             layer = model
-#             print(layer.raw_weight_o_i, "first_layer.in_mapper   before update")
-#             optimizer.step()
-#             print(layer.raw_weight_o_i, "first_layer.in_mapper   after update")
-#             pass    
-#         pass    
-    
-#     if True and "print strong grad ratio":
-#         if epoch%iter_per_print == iter_per_print-1:
-#             result = model.get_strong_grad_ratio()
-#             print("print strong grad ratio: ", result)
-#             pass
-#         pass
-#     #optimizer.param_groups[0]["lr"] = 0.01
-#     optimizer.step()
-   
-#     with torch.inference_mode():
-#         model.eval()
-#         pred = model(input)
-#         #print(pred, "pred", __line__str())
-#         #print(target, "target")
-#         acc = bitwise_acc(pred, target)
-#         if 1. != acc:
-#             print(epoch+1, "    ep/acc    ", acc)
-#         else:
-#             print("FINISHED, ep:", epoch+1)
-#             print("FINISHED, ep:", epoch+1)
-#             print("FINISHED, ep:", epoch+1)
-#             print(pred[:5].T, "pred", "    __line 788")
-#             print(target[:5].T, "target")
-#             break
-#         pass
-    
-#     pass
-
-# fds=432
-
-
-
-
 
 '''Dry stack test. OK, the dry is actually a Chinese word, which means, only, or directly.'''
 class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
@@ -754,48 +667,38 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
         self.mid_width = mid_width
         
         self.digital_mappers = torch.nn.ParameterList([])
-        self.digital_mappers.append(DigitalMapper_V2_3(in_features,mid_width,False, 
-                                        auto_print_difference = auto_print_difference))
+        self.digital_mappers.append(DigitalMapper_V2_3(in_features,mid_width))
         for _ in range(num_layers-2):# I know what you are thinking. I know it.
-            self.digital_mappers.append(DigitalMapper_V2_3(mid_width,mid_width, False, 
-                                        auto_print_difference = auto_print_difference))
-        self.digital_mappers.append(DigitalMapper_V2_3(mid_width,out_features, True, 
-                                        auto_print_difference = auto_print_difference))
+            self.digital_mappers.append(DigitalMapper_V2_3(mid_width,mid_width))
+        self.digital_mappers.append(DigitalMapper_V2_3(mid_width,out_features))
         
-        self.last_acc = torch.nn.Parameter(torch.tensor([0.5]), requires_grad=False)
         pass
 
-    def reset_scaling_ratio_for_raw_weight(self):
-        layer:DigitalMapper_V2_3
-        for layer in self.digital_mappers:
-            layer.reset_scaling_ratio_for_raw_weight()
-            pass
-        pass
-    def scale_the_scaling_ratio_for_raw_weight(self, by:float):
-        layer:DigitalMapper_V2_3
-        for layer in self.digital_mappers:
-            layer.scale_the_scaling_ratio_for_raw_weight(by)
-            pass
-        pass
-    def print_strong_grad_ratio(self, log10_diff = -2., epi_for_w = 0.01, epi_for_g = 0.01):
-        temp_list:List[float] = []
-        layer:DigitalMapper_V2_3
-        for layer in self.digital_mappers:
-            temp_list.append(layer.get_strong_grad_ratio(log10_diff, epi_for_w, epi_for_g))
-            pass
-        pass
-        print("debug_strong_grad_ratio: ", end="")
-        for item in temp_list:
-            print(f'{item:.3f}', end=", ")
-            pass
-        print()
-        pass    
-    
-    # def set_acc(self, acc:float)
-    #     self.last_acc = torch.nn.Parameter(torch.tensor([acc]), requires_grad=False)
-    #     layer:DigitalMapper_V2_1
+    # def reset_scaling_ratio_for_raw_weight(self):
+    #     layer:DigitalMapper_V2_3
     #     for layer in self.digital_mappers:
-    #         layer.set_shrin
+    #         layer.reset_scaling_ratio_for_raw_weight()
+    #         pass
+    #     pass
+    # def scale_the_scaling_ratio_for_raw_weight(self, by:float):
+    #     layer:DigitalMapper_V2_3
+    #     for layer in self.digital_mappers:
+    #         layer.scale_the_scaling_ratio_for_raw_weight(by)
+    #         pass
+    #     pass
+    # def print_strong_grad_ratio(self, log10_diff = -2., epi_for_w = 0.01, epi_for_g = 0.01):
+    #     temp_list:List[float] = []
+    #     layer:DigitalMapper_V2_3
+    #     for layer in self.digital_mappers:
+    #         temp_list.append(layer.get_strong_grad_ratio(log10_diff, epi_for_w, epi_for_g))
+    #         pass
+    #     pass
+    #     print("debug_strong_grad_ratio: ", end="")
+    #     for item in temp_list:
+    #         print(f'{item:.3f}', end=", ")
+    #         pass
+    #     print()
+    #     pass    
     
     def forward(self, input:torch.Tensor)->torch.Tensor:
         x = input
@@ -804,7 +707,7 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
         return x
     pass
 
-
+继续
 fast_traval____dry_stack_test = 432
 batch = 50
 in_features = 30
@@ -834,38 +737,38 @@ if False and "print parameters":
             pass
         pass
     
-loss_function = torch.nn.MSELoss()
-#loss_function = torch.nn.L1Loss()
 optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
 model.cuda()
 input = input.cuda()
 target = target.cuda()
+
+pt = Print_Timing()
 for epoch in range(iter_per_print*print_count):
     model.train()
     pred = model(input)
-    #print(pred, "pred", __line__str())
-    if False and "shape":
+    if pt.check(epoch):
+        bitwise_acc_with_str(pred, target, print_out=True)
+    if True and "shape":
         print(pred.shape, "pred.shape")
         print(target.shape, "target.shape")
         fds=423
-    if False and "print pred":
+    if True and "print pred":
         if epoch%iter_per_print == iter_per_print-1:
             print(pred[:5], "pred")
             print(target[:5], "target")
             pass
         pass
-    loss = loss_function(pred, target)
     optimizer.zero_grad()
-    loss.backward()
-    if False and "print the grad":
+    pred.backward(target)
+    if True and "print the grad":
         if epoch%iter_per_print == iter_per_print-1:
             print(model.digital_mappers[0].raw_weight_o_i.grad, "0th layer    grad")
             print(model.digital_mappers[1].raw_weight_o_i.grad, "1 layer    grad")
             print(model.digital_mappers[-1].raw_weight_o_i.grad, "-1 layer    grad")
             pass
         pass
-    if False and "print the weight":
+    if True and "print the weight":
         layer:DigitalMapper_V2_3 = model.digital_mappers[0]
         print(layer.raw_weight_o_i[:2,:7], "first_layer   before update")
         optimizer.step()
