@@ -335,7 +335,7 @@ def debug_zero_grad_ratio(parameter:torch.nn.parameter.Parameter, \
     print_out:float = False)->float:
     if parameter.grad is None:
         if print_out:
-            print(0., "inside debug_strong_grad_ratio function __line 1082")
+            print(0., "inside debug_zero_grad_ratio function __line 338")
             pass
         return 0.
     with torch.no_grad():
@@ -748,19 +748,19 @@ class Debug__LinearTeacher(torch.nn.Module):
 
 
 def bitwise_acc(a:torch.Tensor, b:torch.Tensor, print_out_when_exact_one = True, \
-                print_out:bool = False)->float:
+                print_out:bool = False)->Tuple[float, bool]:
     with torch.no_grad():
         temp = a.eq(b)
         if temp.all() and print_out_when_exact_one:
             print(1., "(NO ROUNDING!!!)   <- the accuracy    inside bitwise_acc function __line 859 ")
-            return 1.
+            return (1., True)
         temp = temp.sum().to(torch.float32)
         acc = temp/float(a.shape[0]*a.shape[1])
         acc_float = acc.item()
         if print_out:
             print("{:.4f}".format(acc_float), "<- the accuracy")
             pass
-        return acc_float
+        return (acc_float, False)
 
 # a = torch.tensor([[1,1,],[1,1,],[1,1,],])
 # b = torch.tensor([[1,1,],[1,1,],[1,1,],])
@@ -775,19 +775,19 @@ def bitwise_acc(a:torch.Tensor, b:torch.Tensor, print_out_when_exact_one = True,
 
 
 def bitwise_acc_with_str(a:torch.Tensor, b:torch.Tensor, print_out_when_exact_one = True, \
-                print_out:bool = False)->float:
+                print_out:bool = False)->Tuple[float, bool]:
     with torch.no_grad():
+        if (a.gt(0.) == b.gt(0.)).all():
+            print(1., "(NO ROUNDING!!!)   <- the accuracy    inside bitwise_acc function __line 784 ")
+            return (1., True)
         a_b = a*b
         total_weight = a_b.abs().sum()#(dim=0,keepdim=True)
         sum_of_all = a_b.sum()#(dim=0,keepdim=True)
-        if sum_of_all == total_weight and print_out_when_exact_one:
-            print(1., "(NO ROUNDING!!!)   <- the accuracy    inside bitwise_acc function __line 784 ")
-            return 1.
         ratio = ((sum_of_all/total_weight+1.)/2.).item()
         if print_out:
             print("{:.4f}".format(ratio), "<- the accuracy")
             pass
-        return ratio
+        return (ratio, False)
 
 # a = torch.tensor([[1,1,],[1,0.5,],[1,0.1,],])
 # b = torch.tensor([[1,1,],[1,1,],[1,1,],])
@@ -796,6 +796,10 @@ def bitwise_acc_with_str(a:torch.Tensor, b:torch.Tensor, print_out_when_exact_on
 # bitwise_acc_with_str(a,b, print_out=True)
 # b = torch.tensor([[-1,-1,],[-1,-1,],[-1,-1,],])
 # bitwise_acc_with_str(a,b, print_out=True)
+
+# a = torch.tensor([[1.,0.0000000001,]])
+# b = torch.tensor([[1,-1,]])
+# print(bitwise_acc_with_str(a,b, print_out=True))
 # fds=432
 
 
@@ -822,7 +826,7 @@ def bitwise_acc_with_str(a:torch.Tensor, b:torch.Tensor, print_out_when_exact_on
 
 class Print_Timing:
     r'''
-    >>> pt = Print_Timing()
+    >>> pt = Print_Timing(max_gap = 100, start_with = 0, first = 3, density:float = 4.)
     >>> for i in range(501):
     >>>     if pt.check(i):
     >>>         print(i, end = ", ")
@@ -830,7 +834,7 @@ class Print_Timing:
     >>>     pass
     The result is 0, 1, 2, 5, 10, 19, 34, 62, 100, 200, 300, 400, 500, 
     '''
-    def __init__(self, start_with = 0, first = 3, max_gap = 100, density:float = 4.):
+    def __init__(self, max_gap = 100, start_with = 0, first = 1, density:float = 1.):
         self.start_with = start_with
         self.first = first
         self.max_gap = max_gap
