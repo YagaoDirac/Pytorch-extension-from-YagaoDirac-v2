@@ -616,19 +616,28 @@ def floats_into_int(input:torch.Tensor)->torch.Tensor:
 # fds=432
 
 
-def data_gen_for_directly_stacking_test(batch:int, n_in:int, n_out:int, dtype = torch.float32, is_input_01 = False)->Tuple[torch.Tensor, torch.Tensor]:
+def data_gen_for_directly_stacking_test(batch:int, n_in:int, n_out:int, dtype = torch.float32, is_input_01 = False,\
+        no_duplicated = False)->Tuple[torch.Tensor, torch.Tensor]:
     input = torch.randint(0,2,[batch, n_in])
     if not is_input_01:
         input = input*2-1
         pass
     input = input.to(dtype)
     answer_index = torch.randint(0,n_in,[n_out])
+    if n_in<n_out and no_duplicated:
+        raise Exception("more out from less in, it's always duplicating.")
+    if no_duplicated:
+        while answer_index.shape[0]!= answer_index.unique().shape[0]:
+            answer_index = torch.randint(0,n_in,[n_out])
+            pass
+        pass
     target = input[:, answer_index]
     return input, target
 
 # a,b = data_gen_for_directly_stacking_test(5,3,2)
 # print(a)
 # print(b)
+# a,b = data_gen_for_directly_stacking_test(5,3,2, no_duplicated=True)
 # fds=423
 
 
