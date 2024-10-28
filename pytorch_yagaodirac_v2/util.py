@@ -618,11 +618,10 @@ def floats_into_int(input:torch.Tensor)->torch.Tensor:
 
 def data_gen_for_directly_stacking_test(batch:int, n_in:int, n_out:int, dtype = torch.float32, is_input_01 = False,\
         no_duplicated = False)->Tuple[torch.Tensor, torch.Tensor]:
-    input = torch.randint(0,2,[batch, n_in])
+    input = torch.randint(0,2,[batch, n_in],dtype = dtype)
     if not is_input_01:
         input = input*2-1
         pass
-    input = input.to(dtype)
     answer_index = torch.randint(0,n_in,[n_out])
     if n_in<n_out and no_duplicated:
         raise Exception("more out from less in, it's always duplicating.")
@@ -635,6 +634,31 @@ def data_gen_for_directly_stacking_test(batch:int, n_in:int, n_out:int, dtype = 
     return input, target
 
 # a,b = data_gen_for_directly_stacking_test(5,3,2)
+# print(a)
+# print(b)
+# a,b = data_gen_for_directly_stacking_test(5,3,2, no_duplicated=True)
+# fds=423
+
+
+
+def data_gen_for_directly_stacking_test_same_dim_no_duplicated(\
+        batch:int, dim:int, dtype = torch.float32, is_input_01 = False)->Tuple[torch.Tensor, torch.Tensor]:
+    input = torch.randint(0,2,[batch, dim],dtype = dtype)
+    if not is_input_01:
+        input = input*2-1
+        pass
+    answer_index:torch.Tensor = torch.linspace(0,dim-1,dim, dtype=torch.int64)
+    for _ in range(dim+torch.randint(0,dim,[1]).item()):
+        rand_i = torch.randint(0,dim,[1])
+        rand_ii = torch.randint(0,dim,[1])
+        temp = answer_index[rand_i]
+        answer_index[rand_i] = answer_index[rand_ii]
+        answer_index[rand_ii] = temp
+        pass
+    target = input[:, answer_index]
+    return input, target
+
+# a,b = data_gen_for_directly_stacking_test_same_dim_no_duplicated(5,3)
 # print(a)
 # print(b)
 # a,b = data_gen_for_directly_stacking_test(5,3,2, no_duplicated=True)
@@ -756,15 +780,19 @@ class Debug__LinearTeacher(torch.nn.Module):
 
 
 
-def bitwise_acc(a:torch.Tensor, b:torch.Tensor, print_out_when_exact_one = True, \
+def bitwise_acc(a:torch.Tensor, b:torch.Tensor, output_is_01 = False, print_out_when_exact_one = True, \
                 print_out:bool = False)->Tuple[float, bool]:
     with torch.no_grad():
-        temp = a.eq(b)
+        if output_is_01:
+            temp = a.gt(0.5) == b.gt(0.5)
+        else:
+            temp = a.gt(0.) == b.gt(0.)
+            pass
         if temp.all() and print_out_when_exact_one:
             print(1., "(NO ROUNDING!!!)   <- the accuracy    inside bitwise_acc function __line 859 ")
             return (1., True)
-        temp = temp.sum().to(torch.float32)
-        acc = temp/float(a.shape[0]*a.shape[1])
+        temp2 = temp.sum().to(torch.float32)
+        acc = temp2/float(a.shape[0]*a.shape[1])
         acc_float = acc.item()
         if print_out:
             print("{:.4f}".format(acc_float), "<- the accuracy")
@@ -773,11 +801,11 @@ def bitwise_acc(a:torch.Tensor, b:torch.Tensor, print_out_when_exact_one = True,
 
 # a = torch.tensor([[1,1,],[1,1,],[1,1,],])
 # b = torch.tensor([[1,1,],[1,1,],[1,1,],])
-# bitwise_acc(a,b, print_out=True)
-# b = torch.tensor([[1,1,],[1,1,],[1,0,],])
-# bitwise_acc(a,b, print_out=True)
-# b = torch.tensor([[0,0,],[0,0,],[0,0,],])
-# bitwise_acc(a,b, print_out=True)
+# print(bitwise_acc(a,b, print_out=True))
+# b = torch.tensor([[1,1,],[1,1,],[1,-1,],])
+# print(bitwise_acc(a,b, print_out=True))
+# b = torch.tensor([[-1,-1,],[-1,-1,],[-1,-1,],])
+# print(bitwise_acc(a,b, print_out=True))
 # fds=432
 
 
