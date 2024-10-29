@@ -78,9 +78,6 @@ class DigitalMapperFunction_v2_4(torch.autograd.Function):
         alpha:torch.Tensor
         
         (input_b_i, raw_weight, w_requires_grad, alpha) = ctx.saved_tensors
-            
-        #recomputing. intentional.
-        index_of_max_o = raw_weight.max(dim=1).indices
         
         grad_for_x_b_i:Tuple[torch.tensor|None] = None
         grad_for_raw_weight_o_i:Tuple[torch.tensor|None] = None
@@ -110,45 +107,58 @@ class DigitalMapperFunction_v2_4(torch.autograd.Function):
             out_features_iota_expanded_fake_o_mul_i = out_features_iota_o.expand([batch_size_s, -1])
             out_features_iota_expanded_fake_o_mul_i = out_features_iota_expanded_fake_o_mul_i.reshape([-1])
             
+            #recomputing. intentional.
+            index_of_max_o = raw_weight.max(dim=1).indices
+            
             index_of_max_expanded_fake_o_mul_i = index_of_max_o.reshape([1,-1]).expand([batch_size_s, -1])
             index_of_max_expanded_fake_o_mul_i = index_of_max_expanded_fake_o_mul_i.reshape([-1])
             
-            grad_for_x__before_sum__b_o_i = torch.zeros([batch_size_s, out_features_s, in_features_s], dtype=input_b_i.dtype, device=input_b_i.device)
-            grad_for_x__before_sum__b_o_i[batch_features_iota_expanded_o_mul_fake_i,out_features_iota_expanded_fake_o_mul_i,\
+            grad_for_x__part_1__before_sum__b_o_i = torch.zeros([batch_size_s, out_features_s, in_features_s], dtype=input_b_i.dtype, device=input_b_i.device)
+            grad_for_x__part_1__before_sum__b_o_i[batch_features_iota_expanded_o_mul_fake_i,out_features_iota_expanded_fake_o_mul_i,\
                 index_of_max_expanded_fake_o_mul_i] = g_in_b_o[batch_features_iota_expanded_o_mul_fake_i,out_features_iota_expanded_fake_o_mul_i]
             #print(grad_for_x__before_sum__b_o_i)
             
-            grad_for_x_b_i = grad_for_x__before_sum__b_o_i.sum(dim=1, keepdim=False)
+            grad_for_x__part_1__b_i = grad_for_x__part_1__before_sum__b_o_i.sum(dim=1, keepdim=False)
             #print(grad_for_x_b_i)
             
-            继续
-            #part 2
-            #part 2
-            #part 2
+            # part 2
+            # since before the forward path, the raw_weight is protectes into -1 to 1, the formula is speciallized for this.
             
+            alpha_over_out_dim = alpha/float(g_in_b_o.shape[1])
+            weight_for_backward_calc_o_i = torch.pow(((raw_weight+1)*0.5).abs(), 3)*alpha_over_out_dim
+            g_in__reshaped__b_1_o = g_in_b_o.reshape([g_in_b_o.shape[0], 1, g_in_b_o.shape[-1]])
+            grad_for_x__part_2__b_1_i = g_in__reshaped__b_1_o.matmul(weight_for_backward_calc_o_i)
+            grad_for_x__part_2__b_i = grad_for_x__part_2__b_1_i.squeeze(1)
             
+            # print(grad_for_x__part_1__b_i, "part 1")
+            # print(grad_for_x__part_2__b_i, "part 2")
             
+            grad_for_x_b_i = grad_for_x__part_1__b_i + grad_for_x__part_2__b_i
             pass
             
-        return grad_for_x_b_i, grad_for_raw_weight_o_i
+        return grad_for_x_b_i, grad_for_raw_weight_o_i, None
 
     pass  # class
 
-if '''main check.''' and True:
+
+
+if '''main check.''' and False:
     b=2
     o=3
     i=5
-    alpha = torch.tensor([0.1])
+    alpha = torch.tensor([0.999])
     #x = torch.rand([b,i], requires_grad=True)
     #x = torch.tensor([[11.,12,13,14,15],[21,22,23,24,25]], requires_grad=True)
     x = torch.tensor([[1.,-1,1,1,1,],[1.,1,1,1,1,],], requires_grad=True)
     #w = torch.rand([o,i], requires_grad=True)
     #w = torch.tensor([[0.,0,0,0,1],[0.,0,1,0,0],[0.,1,0,0,0],], requires_grad=True)
-    w = torch.tensor([[0.,0,0,0.5,1],[0.,0.5,1,0,0],[0.5,1,0,0,0],], requires_grad=True)
+    w = torch.tensor([[-1.,-1,-1,0,1],[-1,0.,1,-1,-1],[0.,1,-1,-1,-1],], requires_grad=True)
     #w = torch.tensor([[0.,0.1,0,0,0],[0.,0.1,0,0,0],[0.,0.1,0,0,0],], requires_grad=True)
     pred:torch.Tensor = DigitalMapperFunction_v2_4.apply(x, w, alpha)
     #g = torch.tensor([[111.,112,113],[121,122,123]])
-    g = torch.tensor([[1001.,1002,1003],[1004,1005,1006]])
+    #g = torch.tensor([[1001.,1002,1003],[1004,1005,1006]])
+    #g = torch.tensor([[1.,-1,1],[1.,1,1]])
+    g = torch.tensor([[1.,0,0],[0,0,0]])
     pred.backward(g)#torch.tensor([[1.31, -1.32]]))
     
     # print(x.shape == x.grad.shape)
@@ -162,9 +172,9 @@ if '''individual element check.''' and False:
     o=3
     i=5
     x = torch.tensor([[1.,-1.,1.,1.,1.],[1.,1.,1.,1.,1.],], requires_grad=True)
-    w = torch.tensor([[0.,0.,0.,0.,0.1],[0.,0.,0.1,0.,0.],[0.,0.1,0.,0.,0.],], requires_grad=True)
+    w = torch.tensor([[-1.,-1,-1,-1,1],[-1,-1,1,-1,-1],[-1,1,-1,-1,-1],], requires_grad=True)
     g = torch.tensor([[11.,-12.,13.],[21.,22.,23.]])
-    pred:torch.Tensor = DigitalMapperFunction_v2______.apply(x, w)
+    pred:torch.Tensor = DigitalMapperFunction_v2_4.apply(x, w)
     pred.backward(g)
     print(x.grad, "x.grad is the correct answer with strength")
     print(w.grad, "w.grad, neg for correct mapping")
@@ -211,7 +221,7 @@ class DigitalMapper_eval_only_v2(torch.nn.Module):
         
 
 
-class DigitalMapper_v2______(torch.nn.Module):
+class DigitalMapper_v2_4(torch.nn.Module):
     r'''This layer is designed to be used between digital layers.
     The input should be in STANDARD range so to provide meaningful output
     in STANDARD range. It works for both 01 and np styles.
@@ -224,7 +234,9 @@ class DigitalMapper_v2______(torch.nn.Module):
     '''
     #__constants__ = []
 
-    def __init__(self, in_features: int, out_features: int, 
+    def __init__(self, in_features: int, out_features: int, \
+                alpha:float, \
+                     gramo_for_each_output:bool, \
                     #is_out_mapper_in_DSPU:bool, \
                  #needs_out_gramo = True, \
                     # auto_print_difference:bool = False, \
@@ -243,26 +255,27 @@ class DigitalMapper_v2______(torch.nn.Module):
 
         self.number_in_model = number_in_model
 
-        self.in_features = in_features
-        #self.log_of_in_features = torch.nn.Parameter(torch.log(torch.tensor([in_features])), requires_grad=False)
-        self.out_features = out_features
-        #self.sqrt_of_out_features = torch.nn.Parameter(torch.sqrt(torch.tensor([out_features])), requires_grad=False)
-        #self.out_iota = torch.nn.Parameter(torch.linspace(0,out_features-1, out_features, dtype=torch.int32), requires_grad=False)
-        #self.is_out_mapper_in_DSPU = torch.nn.Parameter(torch.tensor([is_out_mapper_in_DSPU]), requires_grad=False)
-        #self.set_epoch_factor(epoch_factor)
         if out_features>in_features and not debug_allow_any_shape:
             raise Exception("out dim must be <= in dim. For debug purpose, set debug_allow_any_shape=True.")
-
+        #self.in_features = in_features
+        self.in_features = torch.nn.Parameter(torch.tensor([in_features], dtype = torch.int64), requires_grad=False)
+        self.out_features = torch.nn.Parameter(torch.tensor([out_features], dtype = torch.int64), requires_grad=False)
+        self.gramo_for_each_output = torch.nn.Parameter(torch.tensor([gramo_for_each_output], dtype = torch.bool), requires_grad=False)
+            
         if in_features == out_features:
+            #it's a transparent layer.
             self.raw_weight_o_i = torch.nn.Parameter(torch.empty((0), **factory_kwargs))
         else:
             self.raw_weight_o_i = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
             self.__reset_parameters__the_plain_rand01_style()
             pass
-     
+    
+            #这两个暂时没有用上。
         self.raw_weight_max = torch.nn.Parameter(torch.tensor([1.]), requires_grad=False)
         self.raw_weight_min = torch.nn.Parameter(torch.tensor([-1./100]), requires_grad=False)
 
+        self.alpha = torch.nn.Parameter(torch.tensor([alpha]), requires_grad=False)
+        
         self.gramo_for_raw_weight = GradientModification_v2()
         #self.reset_scaling_ratio_for_raw_weight()
         #self.scale_the_scaling_ratio_for_raw_weight(scale_the_scaling_ratio_for_learning_gramo)
@@ -439,13 +452,16 @@ class DigitalMapper_v2______(torch.nn.Module):
                 self.protect_raw_weight()
                 pass
             
-            
             x = input
             
             #w_after_gramo = self.gramo_for_raw_weight(self.raw_weight_o_i.view([1, -1])).view([self.out_features,self.in_features])
             
             #this shape is intentional.
-            w_after_gramo = self.gramo_for_raw_weight(self.raw_weight_o_i)
+            if self.gramo_for_each_output:
+                w_after_gramo = self.gramo_for_raw_weight(self.raw_weight_o_i)
+            else:
+                w_after_gramo = self.gramo_for_raw_weight(self.raw_weight_o_i.reshape(1,-1)).reshape(self.out_features, self.in_features)
+                pass
             #测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下
             #测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下
             #测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下
@@ -461,9 +477,8 @@ class DigitalMapper_v2______(torch.nn.Module):
             #测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下
             #测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下#测一下
             
-            x = DigitalMapperFunction_v2______.apply(x, w_after_gramo)
+            x = DigitalMapperFunction_v2_4.apply(x, w_after_gramo, self.alpha)
 
-            #x = self.out_binarize_does_NOT_need_gramo(x)
             x = self.out_gramo(x)
             
             if torch.isnan(x).any():
@@ -607,10 +622,10 @@ fast_traval____end_of_digital_mapper_layer_class = 432
 
 if 'deduplicate' and False:
     #case 1
-    layer = DigitalMapper_v2______(8,6)
+    layer = DigitalMapper_v2_4(8,6)
     print(layer.deduplicate(torch.tensor([])))
     #case 2
-    layer = DigitalMapper_v2______(8,6)
+    layer = DigitalMapper_v2_4(8,6)
     layer.raw_weight_o_i.data = torch.zeros_like(layer.raw_weight_o_i.data)
     layer.raw_weight_o_i.data[0,5] = 1.
     layer.raw_weight_o_i.data[1,6] = 1.
@@ -625,7 +640,7 @@ if 'deduplicate' and False:
     pass
 
 if 'get_max_index test' and False:
-    layer = DigitalMapper_v2______(3,2)
+    layer = DigitalMapper_v2_4(3,2, 0.5)
     layer.raw_weight_o_i.data = torch.tensor([[0.,0.2,0.],[0.4,0.,0.]])
     input = torch.tensor([[1., -1, -1,],[-1, 1, -1,],[-1, -1, 1,]])
     print(layer(input))
@@ -635,7 +650,7 @@ if 'get_max_index test' and False:
     pass
 
 if 'param protection test' and False:
-    layer = DigitalMapper_v2______(4,3)
+    layer = DigitalMapper_v2_4(4,3,0.5)
     layer.raw_weight_o_i.data = torch.tensor([[-2.,3,1,-1,],[-4.,5,1,-1,],
                                                  [-3.,-2,0,0,],])
     layer.protect_raw_weight()
@@ -643,9 +658,10 @@ if 'param protection test' and False:
     pass
     
 if '''basic single layer test''' and False:
-    layer = DigitalMapper_v2______(3,1)
+    gramo_for_each_output = True # This doesn't do anything when output only has 1 element. 
+    layer = DigitalMapper_v2_4(3,1,0.5,gramo_for_each_output)
     #print(layer.raw_weight_o_i.shape)
-    layer.raw_weight_o_i.data = torch.tensor([[0., 0., 1.]])
+    layer.raw_weight_o_i.data = torch.tensor([[-1.,-1., 1.]])
     #print(layer.raw_weight_o_i.shape)
     #print(layer.raw_weight_o_i.requires_grad)
     input = torch.tensor([[-1., 1., 1.]], requires_grad=True)
@@ -664,9 +680,11 @@ if '''basic single layer test''' and False:
     pass
 
 if '''basic 2 layer test.''' and False:
-    layer1 = DigitalMapper_v2______(3,2)
+    #gramo_for_each_output matters. It doesn't do anything useful in v2.3
+    gramo_for_each_output = False
+    layer1 = DigitalMapper_v2_4(3,2,0.5,gramo_for_each_output)
     layer1.raw_weight_o_i.data = torch.tensor([[0., 0., 1.],[0., 1., 0.]])
-    layer2 = DigitalMapper_v2______(2,1)
+    layer2 = DigitalMapper_v2_4(2,1,0.5,gramo_for_each_output)
     layer2.raw_weight_o_i.data = torch.tensor([[0., 1.]])
     input = torch.tensor([[-1., -1., 1.]], requires_grad=True)
     target = torch.tensor([[1.]]) 
@@ -683,12 +701,15 @@ if '''basic 2 layer test.''' and False:
     print(input.grad, "input grad")
     pass
 
-if '''basic 2 layer test 2. Answer with weight.''' and False:
-    layer1 = DigitalMapper_v2______(2,2)
-    layer1.raw_weight_o_i.data = torch.tensor([[1., 0.],[0., 1.]])
-    layer2 = DigitalMapper_v2______(2,2)
-    layer2.raw_weight_o_i.data = torch.tensor([[0., 1.],[0., 1.]])
-    input = torch.tensor([[-1., 1.]], requires_grad=True)
+if '''basic 2 layer test 2. Answer with weight.''' and True:
+    继续
+    
+    gramo_for_each_output = False
+    layer1 = DigitalMapper_v2_4(4,3,0.5,gramo_for_each_output)
+    layer1.raw_weight_o_i.data = torch.tensor([[1.,0,0,0],[0., 1.,0,0],[0., 0.,1,0]])
+    layer2 = DigitalMapper_v2_4(3,2,0.5,gramo_for_each_output)
+    layer2.raw_weight_o_i.data = torch.tensor([[0., 1,0],[0., 1,0]])
+    input = torch.tensor([[-1.,1.,1., 1.]], requires_grad=True)
     target = torch.tensor([[1.,-0.2]]) 
     optim_them = []
     optim_them.extend(layer1.parameters())

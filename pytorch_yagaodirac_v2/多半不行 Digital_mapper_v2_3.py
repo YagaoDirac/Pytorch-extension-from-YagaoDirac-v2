@@ -114,7 +114,7 @@ class DigitalMapperFunction_v2_3(torch.autograd.Function):
 
     pass  # class
 
-if '''main check.''' and False:
+if '''main check.''' and True:
     b=2
     o=3
     i=5
