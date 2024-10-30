@@ -910,3 +910,17 @@ class Print_Timing:
 #         print(i, end = ", ")
 #         pass
 #     pass
+
+
+
+def print_as_np_1(print_me:torch.Tensor):
+    flag_pos = print_me.gt(0.).to(torch.float32)
+    flag_neg = print_me.lt(0.).to(torch.float32)
+    combined = flag_pos-flag_neg
+    print(combined)
+    pass
+
+# a = torch.tensor([-3.,-1,-0.1,0,0.1,1,3])
+# print_as_np_1(a)
+# fds=432
+    
