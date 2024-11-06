@@ -22,6 +22,17 @@ from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2
 #from Binarize import Binarize
 
 
+#最终的笔记
+#这个版本也不行。不行的原因是，两种重叠很难处理。
+#第一个是一个输入被多个输出选择，这个是一定会发生的，代码里面用的办法是，把其中一个扔开。
+#第二个是一个输出选择多个输入。我本来以为这个不会发生，因为必须最大的生权重必须要又多个完全相等，我以为浮点数不会发生这种事情。
+#结果还是发生了。解决方案是，在生权重上看，最大的，因为会保护成1，所以检测比1-epi大就行，加上一个很小的随机数。
+#但是随机数在每一个epoch的结果很可能不同，它会导致另外一个去重会被反复激活，于是变化最集中的区域永远无法设计出一个稳定机制。
+#于是，我决定用笨办法。
+#新版本是2.5。
+
+
+
 # 之前2.3版本里面有一个问题，就是，答案回传的时候只在彻底选中的路线上传，会导致，
 # 如果输入更宽，而且有一些是肯定错误的选项，答案路径会被浪费掉，导致不是没一个答案路径都会追到输入。
 # 总错误输入足够多的时候，就会有固定的概率无法训练。
@@ -148,7 +159,7 @@ class DigitalMapperFunction_v2_4(torch.autograd.Function):
 
 
 
-if '''main check.''' and False:
+if '''main check.''' and True:
     b=2
     o=3
     i=5
@@ -282,6 +293,10 @@ class DigitalMapper_v2_4(torch.nn.Module):
 
         self.alpha = torch.nn.Parameter(torch.tensor([alpha]), requires_grad=False)
         
+        # 2 param used in randomly making top elements picked in forward path.
+        self.epi_for_float_eq = torch.nn.Parameter(torch.tensor([0.00001]), requires_grad=False)
+        self.small_number = torch.nn.Parameter(torch.tensor([0.00003]), requires_grad=False)
+        
         self.gramo_for_raw_weight = GradientModification_v2()
         #self.reset_scaling_ratio_for_raw_weight()
         #self.scale_the_scaling_ratio_for_raw_weight(scale_the_scaling_ratio_for_learning_gramo)
@@ -294,6 +309,8 @@ class DigitalMapper_v2_4(torch.nn.Module):
         #to keep track of the training.
         # self.protect_param_every____training = protect_param_every____training
         # self.protect_param__training_count = 0
+        
+        
         pass
 
     def __reset_parameters__the_plain_rand01_style(self) -> None:
@@ -509,7 +526,7 @@ class DigitalMapper_v2_4(torch.nn.Module):
         if self.out_features == self.in_features:
             return chosen_index
         if chosen_index is None:
-            self.__deduplicate_all()
+            self.__deduplicate_plain()
             result = self.get_max_index().unique()
             return result
         if chosen_index.shape[0] == 0:
@@ -537,7 +554,7 @@ class DigitalMapper_v2_4(torch.nn.Module):
             return result
         #end of function
         
-    def __deduplicate_all(self):
+    def __deduplicate_plain(self):
         if self.out_features == self.in_features:
             raise Exception("untested")
             return chosen_index
@@ -558,6 +575,33 @@ class DigitalMapper_v2_4(torch.nn.Module):
                 pass
             return
         #end of function
+
+    def deduplicate_smart(self):
+        if self.out_features == self.in_features:
+            raise Exception("untested")
+        with torch.no_grad():
+            the_device=self.raw_weight_o_i.device
+            unused_rough_buff = torch.empty([self.raw_weight_o_i.shape[1]], dtype = torch.bool, device=the_device)
+            unused_rough_buff.fill_(True)
+            used_index = self.get_max_index()
+            unused_rough_buff[used_index] = False
+            
+            unused_count = unused_rough_buff.sum()#.to(torch.int32)
+            unused_buff = torch.empty([unused_count],  dtype = torch.int64, device=the_device)
+            pos = torch.tensor(0, )
+            
+            for i, element in enumerate(unused_rough_buff):
+                if element:
+                    unused_buff[pos] = i
+                    pos+=1
+                    pass
+                pass
+        
+        raise Exception()
+        
+        
+        
+        pass
 
     def protect_raw_weight(self, report_nan_and_inf = False):
         '''
@@ -614,6 +658,15 @@ class DigitalMapper_v2_4(torch.nn.Module):
             self.raw_weight_o_i.data = self.raw_weight_o_i/div_this_for_neg
             #print(self.raw_weight_o_i.data)
             
+            # The last part of this function. 
+            # Because when extreme elements duplicate, the max(also min) returns the first one.
+            # If they get the same update, only the first one is visible in forward path.
+            # This part is design to defend againt this weak point.
+            # Some random number is added to the top elements so they are visible to the forward path randomly.
+            flag_too_close_to_1 = self.raw_weight_o_i.data.gt(1-self.epi_for_float_eq)
+            some_rand = torch.randn_like(self.raw_weight_o_i, device=self.raw_weight_o_i.device, dtype=self.raw_weight_o_i.dtype)*self.small_number
+            to_add_to_raw_weight = some_rand*flag_too_close_to_1
+            self.raw_weight_o_i.data += to_add_to_raw_weight
             pass
         pass
     # end of function.
@@ -625,6 +678,15 @@ class DigitalMapper_v2_4(torch.nn.Module):
 
     pass
 fast_traval____end_of_digital_mapper_layer_class = 432
+
+if 'deduplicate_smart' and True:
+    layer = DigitalMapper_v2_4(5,3,0.1,False)
+    #layer.raw_weight_o_i.data = torch.tensor([[1.,]])
+    layer.deduplicate_smart()
+    pass
+
+
+
 
 if 'deduplicate' and False:
     #case 1
@@ -656,7 +718,7 @@ if 'get_max_index test' and False:
     pass
 
 if 'param protection test' and False:
-    layer = DigitalMapper_v2_4(4,3,0.5)
+    layer = DigitalMapper_v2_4(4,3,0.5, gramo_for_each_output=False)
     layer.raw_weight_o_i.data = torch.tensor([[-2.,3,1,-1,],[-4.,5,1,-1,],
                                                  [-3.,-2,0,0,],])
     layer.protect_raw_weight()
@@ -1180,34 +1242,46 @@ if 'print_diff test(useless now)' and False:
 
 fast_traval____direct_stack_test = 432
 if 'direct stack test' and False:
-    is_half = False#True here breaks the whole thing.
+    is_half = False#True here breaks the whole thing.()##############################
     gramo_for_each_output = False#false(16,35,48,57)true(500+,500+)
     re_rand_target_weight_every = 10000000
     deduplicate_every = 2
     is_cuda = True
-    alpha = 0.05#0.0001(14,24,37,51)0.001(11,35,35,36)0.01(9,19,27,39)0.03(10,25,25,28)0.06(12,18,33,40)0.1(11,25,39,40)
-    # alpha 0.2(35,41,65)0.3(42,48,52)0.5(91,120,180)
-    # alpha 0.6(280,320,530)0.7(bad, it makes answer paths merge.)
-    lr = 0.1#0.001(85,90,220)0.003(21,32,52,68)0.01(13,20,30,50)0.03(16,18,20,57)0.1(15,23,29,30)0.3(23,25,39,53)1.(71,75,110)
+    
     batch = 10000
     
-    in_features = 100
+    lr = 0.01# 0.001(31,35,36,37)0.003(12,16,18,24)0.01(15,16,16,21)0.03(13,14,18,26)0.1(24,27,29,31)1(38,44,72)10(400+,600+)
+    alpha = 0.001
+    # alpha 0(5,10,10,17)0.0001(6,10,12,14)0.0003(    )0.0006(   )
+    # alpha !!!!0.001(7,10,13,14)0.002(12,16,20,26)0.003(9,13,15,16)
+    # alpha 0.01(8,10,14,25)0.03(    )0.06(    )0.1(12,21,30,32)
+    
+    #old test for alpha 
+    # alpha 0.0001(20,26,27,31)0.0003(12,16,18,28)0.0006(13,15,20,28)
+    # alpha !!!!0.001(8,11,14,17,20)0.002(7,16,24,26)0.003(13,21,22,39)
+    # alpha 0.01(14,17,18,20)0.03(15,23,24,25)0.06()0.1(12,23,26,32)
+    # alpha 0.2(12,15,16,28)0.3(18,18,22,30)0.5(24,27,32,38)
+    # alpha 0.6(26,32,100+)0.7(bad, it makes answer paths merge.)
+    
+    in_features = 300
     out_features = 10
-    num_layers = 20
+    num_layers = 200
+    #in/out/layer
+    #100/10/40(15,17,22)
+    #130/10/60(16,19,19)
+    #130/10/70(27,38,40)
+    #130/10/80(23,24,24)
+    #160/10/90(26)
+    #160/10/120(31)
+    #210/10/160(41)
+    #300/10/200(44)
     
-    
-  
-  
     def print_config_after_finish():
         #print("re_rand_target_weight_every:", re_rand_target_weight_every, "/deduplicate_every:", deduplicate_every)
         print("in_features:", in_features, "/out_features:", out_features, "/num_layers:", num_layers)
+        #print("alpha:", alpha)
         #print("lr:", lr)
         return
-    
-    #in/out/layers:result in epoch.
-    #100 10 30:    69,180,180
-    #100 10 40:    500+
-    #130 10 40:    43,340
     
     pt = Print_Timing(first=1, max_gap=20, density=0.5)
     
@@ -1249,14 +1323,14 @@ if 'direct stack test' and False:
         target_ori = target_ori.half()
         target = target.half()
     for _ in range(5):
-        model.besides_stepping(deduplicate = True,print_final_max_index_count=True)
+        model.besides_stepping(deduplicate = True,print_final_max_index_count=False)
         pass
     
     
     #################################################################training loop
     for epoch in range(1231231):
         if epoch%deduplicate_every == deduplicate_every-1:
-            model.besides_stepping(deduplicate = True,print_all_max_index_count=True)
+            model.besides_stepping(deduplicate = True,print_all_max_index_count=False)
             #print("deduplicate")
             pass
         # re rand the temp weight for target
@@ -1374,9 +1448,54 @@ if 'direct stack test' and False:
 
     pass
 
-
+#raise Exception()
 #result below~
 '''
+## Then I added some way to make sure duplicated top weight are chosen randomly each epoch.
+#################################################################
+is_half = False#True here breaks the whole thing.()##############################
+    gramo_for_each_output = False#false(16,35,48,57)true(500+,500+)
+    re_rand_target_weight_every = 10000000
+    deduplicate_every = 2
+    is_cuda = True
+    
+    batch = 10000
+    
+    lr = 0.01# 0.001(31,35,36,37)0.003(12,16,18,24)0.01(15,16,16,21)0.03(13,14,18,26)0.1(24,27,29,31)1(38,44,72)10(400+,600+)
+    alpha = 0.001
+    # alpha 0(5,10,10,17)0.0001(6,10,12,14)0.0003(    )0.0006(   )
+    # alpha !!!!0.001(7,10,13,14)0.002(12,16,20,26)0.003(9,13,15,16)
+    # alpha 0.01(8,10,14,25)0.03(    )0.06(    )0.1(12,21,30,32)
+    
+    #old test for alpha 
+    # alpha 0.0001(20,26,27,31)0.0003(12,16,18,28)0.0006(13,15,20,28)
+    # alpha !!!!0.001(8,11,14,17,20)0.002(7,16,24,26)0.003(13,21,22,39)
+    # alpha 0.01(14,17,18,20)0.03(15,23,24,25)0.06()0.1(12,23,26,32)
+    # alpha 0.2(12,15,16,28)0.3(18,18,22,30)0.5(24,27,32,38)
+    # alpha 0.6(26,32,100+)0.7(bad, it makes answer paths merge.)
+    
+    in_features = 300
+    out_features = 10
+    num_layers = 200
+    #in/out/layer
+    #100/10/40(15,17,22)
+    #130/10/60(16,19,19)
+    #130/10/70(27,38,40)
+    #130/10/80(23,24,24)
+    #160/10/90(26)
+    #160/10/120(31)
+    #210/10/160(41)
+    #300/10/200(44)
+
+
+
+###############################################
+below are old test, without de duplicating for the top raw weights.
+below are worse.
+###############################################
+
+
+
 ## test for depth
 #################################################################
 is_half = False  gramo_for_each_output = False  re_rand_target_weight_every = inf
@@ -1665,20 +1784,23 @@ if 'besides_stepping' and False:
     model._deduplicate(print_final_max_index_count=True)
     pass
 
+fast_traval____direct_stack_test____with_halfway_widen = 432
 if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
     is_half = False#False()
-    batch = 20
-    width = 3
-    extra_width = 1
+    batch = 1000##########################
+    width = 10
+    extra_width = 2
     num_layers = 2
-    lr = 0.1#0.1
+    lr = 0.05#0.1#test this.
     is_cuda = False################
-    re_rand_target_weight_every = 555555555#5,inf
-    deduplicate_every = 2
-    gramo_for_each_output = False
-    alpha = 0.05 #0.05
+    re_rand_target_weight_every = 555555555#5,inf#test this.
+    deduplicate_every = 2#test this.
+    gramo_for_each_output = False#test this.
+    alpha = 0.01 #0.01 test this later
+    #alpha 0.0001(5k+,6k+)0.0003(32,150,500,5k+)0.001(8,19,54,1k7)0.003(25,130,220,5k+)
+    #alpha 0.01(25,75,150,180)0.03(52,83,730,5k+)0.1(60,98,110,320)0.3(13,18,220,5k+)1(5k+,5k+)
     
-    
+    #继续。
     def print_config_after_finish():
         #print("in_features:", in_features, "/out_features:", out_features, "/num_layers:", num_layers)
         print("batch:", batch, "/width:", width, "/extra_width:", extra_width)
@@ -1739,6 +1861,19 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
         if "print pred" and False:
             print(pred[:5], "pred")
             pass
+        
+        
+        
+        #if epoch>1000 and epoch%200 == 0:
+        # layer:DigitalMapper_v2_4
+        # print(epoch, "      ",epoch, "      ",epoch)
+        # for layer in model.digital_mappers:
+        #     print(layer.raw_weight_o_i.data)
+        #     pass
+        #pass
+        
+        
+        
         if True and "print acc":
             with torch.inference_mode():
                 (acc, perfect) = bitwise_acc(pred, target)

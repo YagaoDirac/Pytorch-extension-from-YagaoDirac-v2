@@ -1,6 +1,5 @@
 import torch
 
-
 class test_class_for_digital_mapper_v2_3(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
@@ -56,10 +55,55 @@ class test_class_for_digital_mapper_v2_3(torch.nn.Module):
     def print(self):
         print(self.raw_weight_o_i.data[0])
     pass
-        
+'''
 obj = test_class_for_digital_mapper_v2_3()
 obj.print()
 for _ in range(100):
     for _ in range(10):
         obj.run()
         obj.print()
+'''        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+class test_class_for_digital_mapper_v2_4(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        out_features = 3
+        in_features = 1
+        
+        self.raw_weight_o_i = torch.nn.Parameter(torch.randn([out_features, in_features]), requires_grad=False)
+        self.raw_weight_o_i.data = torch.tensor([[1.,1,0.9,]])
+        
+        self.epi_for_float_eq = torch.nn.Parameter(torch.tensor([0.0001]), requires_grad=False)
+        self.small_number = torch.nn.Parameter(torch.tensor([0.01]), requires_grad=False)
+        pass
+    
+    def run(self):
+        flag_too_close_to_1 = self.raw_weight_o_i.data.gt(1-self.epi_for_float_eq)
+        some_rand = torch.rand_like(self.raw_weight_o_i, device=self.raw_weight_o_i.device, dtype=self.raw_weight_o_i.dtype)*self.small_number
+        to_add_to_raw_weight = some_rand*flag_too_close_to_1
+        self.raw_weight_o_i.data += to_add_to_raw_weight
+        
+        fds=432
+        pass
+    def print(self):
+        print(self.raw_weight_o_i.data)
+    pass
+        
+obj = test_class_for_digital_mapper_v2_4()
+obj.print()
+obj.run()
+obj.print()
+# for _ in range(100):
+#     for _ in range(10):
+#         obj.run()
+#         obj.print()
