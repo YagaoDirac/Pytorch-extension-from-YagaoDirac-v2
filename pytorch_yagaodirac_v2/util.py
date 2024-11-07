@@ -617,7 +617,7 @@ def floats_into_int(input:torch.Tensor)->torch.Tensor:
 
 
 def data_gen_for_directly_stacking_test(batch:int, n_in:int, n_out:int, dtype = torch.float32, is_input_01 = False,\
-        no_duplicated = False)->Tuple[torch.Tensor, torch.Tensor]:
+        no_duplicated = True)->Tuple[torch.Tensor, torch.Tensor]:
     input = torch.randint(0,2,[batch, n_in],dtype = dtype)
     if not is_input_01:
         input = input*2-1
