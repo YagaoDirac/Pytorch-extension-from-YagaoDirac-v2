@@ -1,6 +1,32 @@
 from typing import List, Tuple, Any
 import torch
 
+import sys
+ori_path = sys.path[0]
+index = ori_path.rfind("\\")
+upper_folder = ori_path[:index]
+sys.path.append(upper_folder)
+del ori_path
+del index
+del upper_folder
+
+#from pytorch_yagaodirac_v2.Digital_mapper_v2_5 import DigitalMapper_v2_5
+
+#笔记。
+#这个版本适配的是目标回传（target/label/answer propagation）的digital mapper，具体版本是2.4和2.5，我忘了2.3是不是了。
+#反正只有2.5是通过了最后那个测试的。所以这个门层现在只适配2.5.
+#门层本身的原理和选线器层很类似，能清晰的找到回传通路的，直接传答案回去，不能清晰的找到的，乘以alpha缩小，但是方向依然是队的。
+#考虑到xor的特殊性，暂时不写。
+#这个版本在11月的答复补正当中不最终确定，在后续的主动补正里面再具体描述。
+#门只有，非，且，或，3个。暂时不做且非和或非。所有多输入门只做2输入。
+
+#基本原理是，不用之前的数学公式的版本了，那个适配的是误差回传（error/backward propagation)。
+#原理是用类似池层的手感，但是不是池，而是完全自己写的一个结构。
+#之前那个版本，且门是要通过一些计算，然后过二值化层。这个版本根本就没有二值化那些事情了，forward里面是纯数字化的，离散的。
+#反向传播的部分依然是我最喜欢的“稠密”手感。
+
+
+
 def calculate_fake_alpha(raw:float)->float:
     r'''formula is: 
     -1......0......1
@@ -17,12 +43,10 @@ def calculate_fake_alpha(raw:float)->float:
     return (1.-raw)/(1+raw)
 
 class AND_Gate_pool_ver(torch.autograd.Function):
-
     r'''
-    ?????????????????????
     forward input list:
     >>> x = args[0]# shape must be [batch, in_features]
-    >>> alpha:torch.Tensor = args[1]# something for backward
+    >>> fake_alpha = args[1]# call calculate_fake_alpha to get this number.
     backward input list:
     >>> g_in #shape of g_in must be [batch, out_features]
     '''
@@ -36,7 +60,7 @@ class AND_Gate_pool_ver(torch.autograd.Function):
         if input_b_i.shape[-1] %2!=0:
             raise Exception()
         
-        gate_count = input_b_i.shape[-1]/2
+        gate_count = input_b_i.shape[-1]//2
         temp1:torch.Tensor = input[:,:gate_count].gt(0.)
         temp2 = input[:,gate_count:].gt(0.)
         temp3 = temp1.logical_and(temp2)
