@@ -11,7 +11,7 @@ if "__main__" == __name__:
     #print("adding sys path:", ____package_path__)
     pass
 from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2, ReLU_with_offset
-from pytorch_yagaodirac_v2.util import debug_avg_log, data_gen_from_random_teacher, Print_Timing
+from pytorch_yagaodirac_v2.Util import debug_avg_log, data_gen_from_random_teacher, Print_Timing
 
 
 
@@ -366,8 +366,8 @@ if 'dry stack test.(withOUT activition func)' and False:
 
 
 class MLP_from_yagaodirac(torch.nn.Module):
-    def __init__(self, in_features: int, out_features: int, bias: bool = True, \
-                num_layers = 2, mid_width =Optional[int], relu_offset = 0.,\ 
+    def __init__(self, in_features: int, out_features: int, mid_width: int, \
+                bias = True,num_layers = 2, relu_offset = 0.,
                 device=None, dtype=None) -> None:
         # the default value of relu offset may need to be 0.05 or something.
         # but anyway, the new relu with offset doesn't seem helpful.
@@ -527,7 +527,7 @@ if 'dry stack test.(relu offset)' and False:
         pass
     pass
 
-if 'final test' and True:
+if 'final test' and False:
     # 2 layers. test relu offset
     # 0(32k 2.1e-2), lr e-6
     # lr 5e-6    0(8k 2.5e-2) 0.01(8k 2.5e-2)
@@ -549,7 +549,7 @@ if 'final test' and True:
     
     print_timing = Print_Timing(max_gap=5000,density=0.2,first=1)
     
-    model = MLP_from_yagaodirac(in_features, out_features, True, num_layers, mid_width, relu_offset)
+    model = MLP_from_yagaodirac(in_features, out_features, mid_width, True, num_layers, relu_offset)
     if 'adapt to kaiming he init' and False:
         layer:FCL_from_yagaodirac
         for layer in model.layers:
