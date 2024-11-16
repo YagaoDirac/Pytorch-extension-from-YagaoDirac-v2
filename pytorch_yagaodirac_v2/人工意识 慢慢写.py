@@ -14,177 +14,61 @@ del index
 del upper_folder
 #sys.path.append(os.getcwd())
 
-from pytorch_yagaodirac_v2.Util import bitwise_acc, data_gen_for_directly_stacking_test
-from pytorch_yagaodirac_v2.Util import data_gen_for_directly_stacking_test_same_dim_no_duplicated
-from pytorch_yagaodirac_v2.Util import debug_strong_grad_ratio, make_grad_noisy
 from pytorch_yagaodirac_v2.Util import Print_Timing
-from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2
 from pytorch_yagaodirac_v2.training_ended_sound import play_noise
 from pytorch_yagaodirac_v2.Enhanced_MLP import FCL_from_yagaodirac, MLP_from_yagaodirac
 from pytorch_yagaodirac_v2.Util import data_gen_from_random_teacher
+from pytorch_yagaodirac_v2.torch_ring_buffer import Torch_Ring_buffer_1D
 
 
 
 
-#backward_lookup_test
-class Backward_Lookup_Test_Model(torch.nn.Module):
-    def __init__(self, in_features:int, out_features:int, device=None, dtype=None) -> None:
+class AC_index_test__model_exe(torch.nn.Module):
+    def __init__(self, device=None, dtype=None) -> None:
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
-        self.in_features = in_features
-        #self.out_features = out_features
-        self.main_model = MLP_from_yagaodirac(in_features,out_features,20,num_layers=3)
         pass
     def forward(self, input:torch.Tensor)->torch.Tensor:
-        return self.main_model(input)
-        
-    def fit(self, input:torch.Tensor, target:torch.Tensor):
-        loss_function = torch.nn.MSELoss()
-        lr=0.0001
-        optim_for_fit = torch.optim.SGD(params=self.main_model.parameters(), lr = lr)
-        print(lr, "lr in fit")
-        self.main_model.train()
-        iter = 5
-        epoch_per_iter = 5000
-        
-        pred = self.main_model(input)
-        loss:torch.Tensor = loss_function(pred, target)
-        print(0, "  epoch/loss in fit ", f"{loss.item():.4e}")
-        
-        for epoch in range(iter*epoch_per_iter):
-            pred = self.main_model(input)
-            loss:torch.Tensor = loss_function(pred, target)
-            if 0 == epoch and False:
-                print(pred.shape, "pred.shape")
-                print(target.shape, "target.shape")
-                pass
-            if epoch%epoch_per_iter == epoch_per_iter-1:
-                print(epoch+1, "  epoch/loss in fit ", f"{loss.item():.4e}")
-                pass
-            optim_for_fit.zero_grad()
-            loss.backward()
-            optim_for_fit.step()
-            pass
-        print()
-        pass
-            
-    def backward_lookup(self, input:torch.Tensor, target:torch.Tensor)->torch.Tensor:
-        loss_function = torch.nn.MSELoss()
-        lr=0.0005
-        print(lr, "lr in bwlu")
-        self.main_model.eval()
-        iter = 5
-        epoch_per_iter = 2000
-        
-        继续。
-        
-        _layer:FCL_from_yagaodirac = self.main_model.layers[0]
-        dummy_input = torch.rand([target.shape[0],self.in_features],dtype = _layer.weight_o_i.dtype, device=_layer.weight_o_i.device, requires_grad=True)
-        optim_for_backward_lookup = torch.optim.SGD(params=[dummy_input], lr=lr)
-        loss_function = torch.nn.MSELoss()
-        loss_function_for_input = torch.nn.MSELoss()
-        
-        loss_of_input:torch.Tensor = loss_function_for_input(dummy_input, input)
-        
-        loss:torch.Tensor = loss_function(self.main_model(dummy_input), target)
-        print(0, "  epoch/pred loss in bwlu ", f"{loss.item():.4e}", "  /input loss", f"{loss_of_input.item():.4e}")
-        
-        for epoch_backward_lookup in range(iter*epoch_per_iter):
-            pred = self.main_model(dummy_input)
-            loss:torch.Tensor = loss_function(pred, target)
-            if 0 == epoch_backward_lookup and True:
-                print(pred.shape, "pred.shape")
-                print(target.shape, "target.shape")
-                pass
-            if epoch_backward_lookup%epoch_per_iter == epoch_per_iter-1:
-                loss_of_input:torch.Tensor = loss_function_for_input(dummy_input, input)
-                print(epoch_backward_lookup+1, "  epoch/pred loss in bwlu ", f"{loss.item():.4e}", "  /input loss", f"{loss_of_input.item():.4e}")
-                pass
-                pass
-            optim_for_backward_lookup.zero_grad()
-            loss.backward()
-            optim_for_backward_lookup.step()
-            pass
-        print()
-        return dummy_input.detach().clone()
+        if (input[:,0]!=input[:,1]).any() or (input[:,0]!=input[:,2]).any():
+            raise Exception("the design is, input is the index in real case. This dummy model output the index.")
+        #input is crit_input, input, memory, for short: c i m
+        #they should equal in each batch in this test.
+        #say the input is [t,t,t], output is [t,t+1] for output(t) and memory(t+1)
+        result = torch.empty([input.shape[0], 2], dtype=input.dtype, device=input.device)
+        result[:,0] = input[:,0].detach().clone()
+        result[:,1] = input[:,0].detach()+1.
+        return result
+    def extra_repr(self):
+        return "This is a TEST tool ONLY FOR INDEX TEST. If you see this in ANY OTHER PLACES, IT'S WRONG!!!"
+    pass# end of class
+if "basic test" and False:
+    model = AC_index_test__model_exe()
+    input = torch.tensor([[0.,0,0],[1,1,1]])
+    output = model(input)
+    print(output, "should be 0 1, 1 2")
     pass
 
-if 'self backward look up test' and True:
-    batch = 100000
-    out_features = 3
-    in_features = 5
-    model = Backward_Lookup_Test_Model(in_features,out_features)
-    is_gpu = True
-    input = torch.randn([batch,in_features])
-    if is_gpu:
-        model.cuda()
-        input = input.cuda()
+class AC_index_test__model_ob(torch.nn.Module):
+    def __init__(self, device=None, dtype=None) -> None:
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        super().__init__()
         pass
-    model.eval()
-    target = model(input).detach().clone()
-    
-    bwlu_result = model.backward_lookup(input, target)
-    loss_function = torch.nn.MSELoss()
-    loss_of_backward_lookup = loss_function(bwlu_result, input)
-    
-    print(loss_of_backward_lookup, "loss_of_backward_lookup")
-    print(bwlu_result[3], "good_result")
-    print(input[3], "valid_input")
+    def forward(self, input:torch.Tensor)->torch.Tensor:
+        if (input[:,0]!=(input[:,1]-1)).any():
+            raise Exception("the design is, input is the index in real case. This dummy model output the index.")
+        #input is output, mem(t+1), for short: o mem(t+1)
+        #say the input is [t,t+1], output is [t] for crit_input(t)
+        result = input[:,1].detach().clone()
+        return result
+    def extra_repr(self):
+        return "This is a TEST tool ONLY FOR INDEX TEST. If you see this in ANY OTHER PLACES, IT'S WRONG!!!"
+    pass# end of class
+if "basic test" and False:
+    model = AC_index_test__model_ob()
+    input = torch.tensor([[0.,1],[1,2]])
+    output = model(input)
+    print(output, "should be 1, 2")
     pass
-
-
-
-
-
-
-
-
-if 'backward look up fake teacher test' and True:
-    batch = 100000
-    out_features = 3
-    in_features = 5
-    is_gpu = True
-    fake_teacher = MLP_from_yagaodirac(in_features,out_features,100,num_layers=2)
-    if is_gpu:
-        fake_teacher.cuda()
-        pass
-    fake_teacher.eval()
-    input = torch.randn([batch,in_features])
-    valid_input = torch.randn([batch,in_features])
-    if is_gpu:
-        input = input.cuda()
-        valid_input = valid_input.cuda()
-        pass
-    target = fake_teacher(input).detach().clone()
-    valid_target = fake_teacher(valid_input).detach().clone()
-    
-    loss_function = torch.nn.MSELoss()
-    student = Backward_Lookup_Test_Model(in_features,out_features)
-    if is_gpu:
-        student.cuda()
-        pass
-    
-    #bad_result = student.backward_lookup(valid_target)
-    #loss_of_backward_lookup_without_training = loss_function(bad_result, valid_input)
-    
-    student.fit(input, target)
-    # good_result = student.backward_lookup(valid_target)
-    # loss_of_backward_lookup = loss_function(good_result, valid_input)
-    
-    # print(loss_of_backward_lookup_without_training, "loss_of_backward_lookup_without_training")
-    # print(loss_of_backward_lookup, "loss_of_backward_lookup")
-    # print(good_result[3], "good_result")
-    # print(valid_input[3], "valid_input")
-    #print(bad_result[3], "bad_result")
-    pass
-    
-    
-        
-            
-
-
-
-
 
 
 
@@ -193,35 +77,32 @@ class AC_Mode(Enum):
     EXECUTING = 0
     UPDATING = 0
 
-
 class AC(torch.nn.Module):
                  #first_big_number:float = 3., 
     def __init__(self, crit_features :int,in_features :int,\
             out_features :int, mem_features:int, \
                 crit_lower_limit:torch.Tensor, crit_upper_limit:torch.Tensor, \
-                M1:torch.nn.Module, M2:torch.nn.Module, \
+                model_exe:torch.nn.Module, model_ob:torch.nn.Module, \
                 history_len = 5, \
                 init_mem:Optional[torch.Tensor] = None, \
                  device=None, dtype=None) -> None:
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
         
-        
         self.crit_features = crit_features
         self.in_features = in_features
         self.out_features = out_features
         self.mem_features = mem_features
-        self.M1 = M1
-        self.M2 = M2
-        if self.get_shape_left()!=M1.in_features:
+        self.model_exe = model_exe
+        self.model_ob = model_ob
+        if self.get_shape_left()!=model_exe.in_features:
             raise Exception()
-        if self.get_shape_mid() != M1.out_features:
+        if self.get_shape_mid() != model_exe.out_features:
             raise Exception()
-        if self.get_shape_mid() != M2.in_features:
+        if self.get_shape_mid() != model_ob.in_features:
             raise Exception()
-        if self.get_shape_right() != M2.out_features:
+        if self.get_shape_right() != model_ob.out_features:
             raise Exception()
-        
         
         if crit_lower_limit>=crit_upper_limit:
             raise Exception()
@@ -233,40 +114,40 @@ class AC(torch.nn.Module):
             raise Exception()
         if crit_features!=crit_upper_limit.shape[0]:
             raise Exception()
-        self.crit_lower_limit = crit_lower_limit
-        self.crit_upper_limit = crit_upper_limit
+        self.crit_lower_limit_c = crit_lower_limit
+        self.crit_upper_limit_c = crit_upper_limit
         
         self.mode:AC_Mode = AC_Mode.EXECUTING
         self.set_mode_executing()
         
+        self.history_len = history_len
+        
+        self.crit_input_rb = Torch_Ring_buffer_1D(history_len)#+0
+        self.input_rb = Torch_Ring_buffer_1D(history_len)#+0
+        self.output__1_longer_rb = Torch_Ring_buffer_1D(history_len+1)#+1
+        self.mem__1_longer_rb = Torch_Ring_buffer_1D(history_len+1)#+1
+        
         if init_mem is None:
-            self.mem = torch.nn.Parameter(torch.zeros([self.mem_features], **factory_kwargs))
+            self.mem__1_longer_rb.pushback(torch.zeros([self.mem_features], **factory_kwargs))
         else:
-            self.mem = torch.nn.Parameter(init_mem.detach().clone())
+            self.mem__1_longer_rb.pushback(init_mem.detach().clone())
             pass
         
-        self.step = 0
-        
-        self.history_len = history_len
-        # self.history of in and out.
-            
-        #     制作训练数据，
         #     保存历史
         #     训练策略，死线，单独class
-        #     M1重命名。
         #     M的规范。
             
         pass
     
     def set_mode_executing(self):
         self.mode:AC_Mode = AC_Mode.EXECUTING
-        self.M1.eval()
-        self.M2.train()
+        self.model_exe.eval()
+        self.model_ob.train()
         pass
-    def set_mode_executing(self):
+    def set_mode_updating(self):
         self.mode:AC_Mode = AC_Mode.UPDATING
-        self.M1.train()
-        self.M2.eval()
+        self.model_exe.train()
+        self.model_ob.eval()
         pass
     def get_shape_left(self)->int:
         result = self.crit_features + self.in_features + self.mem_features
@@ -277,9 +158,43 @@ class AC(torch.nn.Module):
     def get_shape_right(self)->int:
         return self.crit_features
     
+    def _make_training_data_for_model_exe(self)->torch.Tensor:
+        raise Exception()
     
     
-    def run():
+    def run(self, crit_input:torch.Tensor, input:torch.Tensor)->torch.Tensor:
+        #step1, if crit is out of limit, do the AC_Mode.UPDATING
+        __flag_temp_1 = crit_input.ge(self.crit_upper_limit_c)
+        __flag_temp_2 = crit_input.le(self.crit_lower_limit_c)
+        flag_crit_out_of_limit = __flag_temp_1.logical_or(__flag_temp_2)
+        del __flag_temp_1
+        del __flag_temp_2
+        
+        if flag_crit_out_of_limit.any():
+            self.set_mode_updating()
+            figure out the desired crit
+            bwlu to figure out the mid_tensor
+            train model_exe
+            raise Exception()
+        
+        
+        self.set_mode_executing()
+        left_tensor = torch.concat([crit_input, input, ]).reshape???????????
+        mid_tensor = self.model_exe(left_tensor)
+        
+        save history
+        
+        train the model_ob
+
+        return mid_tensor
+        
+        
+                
+
+        
+        
+        
+        
         pass
     
     pass

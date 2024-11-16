@@ -374,6 +374,8 @@ class MLP_from_yagaodirac(torch.nn.Module):
         
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
+        self.in_features = in_features
+        self.out_features = out_features
         self.num_layers = num_layers
         
         self.layers = torch.nn.ParameterList()
