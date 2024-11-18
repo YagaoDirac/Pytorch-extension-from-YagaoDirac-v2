@@ -1,6 +1,6 @@
 import torch
 
-加一个get last
+#加一个get last，好像又不用了。
 
 
 class Torch_Ring_buffer_1D(torch.nn.Module):
@@ -66,6 +66,28 @@ class Torch_Ring_buffer_1D(torch.nn.Module):
             self.end_excluded.data = self.end_excluded%self.get_max_cap_as_tensor()
             return True
         
+           
+    # def _pushback_partly(self, data:torch.Tensor, overwrite = False)->bool:
+    #     r'''data is a shorter tensor than what is needed. This function only overwrites the provided part and left the tail unchanged. 
+    #     Element count is increased.
+    #     If the provided data is really shorter than the dim of the container, some useless elements are considered as real data.
+    #     Make sure you really know the behavior of this function.
+    #     '''
+    #     with torch.no_grad():
+    #         if self.full():
+    #             if not overwrite:
+    #                 return False
+    #             self.data[self.end_excluded, :data.shape[0]] = data.clone()
+    #             self.start_included.data+=1
+    #             self.start_included.data = self.start_included%self.get_max_cap_as_tensor()
+    #             self.end_excluded.data = self.start_included.detach().clone()
+    #             return True
+    #         self.length.data+=1
+    #         self.data[self.end_excluded, :data.shape[0]] = data.clone()
+    #         self.end_excluded.data += 1
+    #         self.end_excluded.data = self.end_excluded%self.get_max_cap_as_tensor()
+    #         return True
+        
     def extra_repr(self):
         return f"len:{self.__len__()}, data:{self.get_rearranged()[:self.__len__()]}"
         #return super().extra_repr()
@@ -81,6 +103,27 @@ class Torch_Ring_buffer_1D(torch.nn.Module):
         '''
     
     pass#end of class
+
+if '_pushback_partly test' and False:
+    a = Torch_Ring_buffer_1D(3,3,dtype=torch.int32)
+    a.pushback(torch.tensor([11,11,11]),overwrite=True)
+    a.pushback(torch.tensor([22,22,22]),overwrite=True)
+    a.pushback(torch.tensor([33,33,33]),overwrite=True)
+    a.pushback(torch.tensor([44,44,44]),overwrite=True)
+    #a._pushback_partly(torch.tensor([55,55]),overwrite=True)
+    print(a.data)
+    print(a)
+    
+    # a = Torch_Ring_buffer_1D(3,2,dtype=torch.int32)
+    # a._pushback_partly(torch.tensor([11]),overwrite=True)
+    # print(a)
+    # a._pushback_partly(torch.tensor([22]),overwrite=True)
+    # print(a)
+    # a._pushback_partly(torch.tensor([33]),overwrite=True)
+    # print(a)
+    # a._pushback_partly(torch.tensor([44]),overwrite=True)
+    # print(a)
+    pass
 
 
 if 'create test' and False:

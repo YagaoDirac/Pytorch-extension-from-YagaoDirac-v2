@@ -22,7 +22,6 @@ from pytorch_yagaodirac_v2.torch_ring_buffer import Torch_Ring_buffer_1D
 
 
 
-
 class AC_index_test__model_exe(torch.nn.Module):
     def __init__(self, device=None, dtype=None) -> None:
         factory_kwargs = {'device': device, 'dtype': dtype}
@@ -120,18 +119,30 @@ class AC(torch.nn.Module):
         self.mode:AC_Mode = AC_Mode.EXECUTING
         self.set_mode_executing()
         
+        
         self.history_len = history_len
         
-        self.crit_input_rb = Torch_Ring_buffer_1D(history_len)#+0
-        self.input_rb = Torch_Ring_buffer_1D(history_len)#+0
-        self.output__1_longer_rb = Torch_Ring_buffer_1D(history_len+1)#+1
-        self.mem__1_longer_rb = Torch_Ring_buffer_1D(history_len+1)#+1
+        self.to_update_ob__crit_rb = Torch_Ring_buffer_1D(history_len,crit_features,**factory_kwargs)#+0
+        #self.input_rb = Torch_Ring_buffer_1D(history_len,in_features,**factory_kwargs)#+0
+        self.to_update_ob__output_t_minus_1_and_mem_rb = Torch_Ring_buffer_1D(history_len,out_features+mem_features,**factory_kwargs)#O(t-1) and M(t)
+        
+        self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb = Torch_Ring_buffer_1D(history_len,crit_features+in_features+mem_features,**factory_kwargs)#
+        self.to_update_exe__crit_desired_rb = Torch_Ring_buffer_1D(history_len, crit_features, dtype=torch.bool, device=device)#
+        self.to_update_exe__crit_desired__flag_useful_element__rb = Torch_Ring_buffer_1D(history_len, crit_features, dtype=torch.bool, device=device)#+0
         
         if init_mem is None:
-            self.mem__1_longer_rb.pushback(torch.zeros([self.mem_features], **factory_kwargs))
+            self.mem = torch.nn.Parameter(torch.zeros([self.mem_features], **factory_kwargs), requires_grad=False)
         else:
-            self.mem__1_longer_rb.pushback(init_mem.detach().clone())
+            self.mem = torch.nn.Parameter(init_mem.detach().clone(), requires_grad=False)
             pass
+        self.mem_t_plus_1 = torch.nn.Parameter(torch.empty([out_features], **factory_kwargs), requires_grad=False)
+        self.output__and_mem_t_plus_1:torch.nn.parameter.Parameter = torch.nn.Parameter(torch.empty([out_features+mem_features], **factory_kwargs), requires_grad=False)
+        
+        #debug:
+        self.mem_t_plus_1.fill_(-99999)
+        self.__debug__is_t_t = True
+                
+        self.step = 0
         
         #     保存历史
         #     训练策略，死线，单独class
@@ -144,7 +155,7 @@ class AC(torch.nn.Module):
         self.model_exe.eval()
         self.model_ob.train()
         pass
-    def set_mode_updating(self):
+    def set_mode_updating_exe_model(self):
         self.mode:AC_Mode = AC_Mode.UPDATING
         self.model_exe.train()
         self.model_ob.eval()
@@ -158,49 +169,106 @@ class AC(torch.nn.Module):
     def get_shape_right(self)->int:
         return self.crit_features
     
+    def get_useful_steps(self)->int:
+        if self.step<self.history_len:
+            return self.step
+        else:
+            return self.history_len
+        #end of function
+        
+        
+    
     def _make_training_data_for_model_exe(self)->torch.Tensor:
         raise Exception()
     
+    def update_to_update_exe_history(self, crit_input_c:torch.Tensor)->bool:
+        #T == t
+        flag_crit_too_big_c = crit_input_c.ge(self.crit_upper_limit_c)
+        flag_crit_too_small_c = crit_input_c.le(self.crit_lower_limit_c)
+        flag_crit_out_of_limit_c:torch.Tensor = flag_crit_too_big_c.logical_or(flag_crit_too_small_c)
+        
+        if flag_crit_out_of_limit_c.any():
+            self.to_update_exe__crit_desired__flag_useful_element__rb.pushback(flag_crit_out_of_limit_c)
+            #now they are t minus 1
+            self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb.pushback(self.crit_and_input_and_mem__t_minus_1)
+            
+            part1 = flag_crit_out_of_limit_c.logical_not()*crit_input_c
+            part2 = flag_crit_too_big_c*(self.crit_lower_limit_c)
+            part3 = flag_crit_too_small_c*(self.crit_upper_limit_c)
+            __crit_desired = part1 + part2 + part3
+            
+            self.to_update_exe__crit_desired_rb.pushback(__crit_desired)
+            return True
+        return False
+    #end of function.
     
-    def run(self, crit_input:torch.Tensor, input:torch.Tensor)->torch.Tensor:
-        #step1, if crit is out of limit, do the AC_Mode.UPDATING
-        __flag_temp_1 = crit_input.ge(self.crit_upper_limit_c)
-        __flag_temp_2 = crit_input.le(self.crit_lower_limit_c)
-        flag_crit_out_of_limit = __flag_temp_1.logical_or(__flag_temp_2)
-        del __flag_temp_1
-        del __flag_temp_2
+    def run(self, crit_input_c:torch.Tensor, input_i:torch.Tensor)->torch.Tensor:
+        self.__debug__is_t_t = True
+        __crit_and_input_and_mem = torch.concat([crit_input_c,input_i, self.mem])
         
-        if flag_crit_out_of_limit.any():
-            self.set_mode_updating()
-            figure out the desired crit
-            bwlu to figure out the mid_tensor
-            train model_exe
-            raise Exception()
-        
-        
-        self.set_mode_executing()
-        left_tensor = torch.concat([crit_input, input, ]).reshape???????????
-        mid_tensor = self.model_exe(left_tensor)
-        
-        save history
-        
-        train the model_ob
-
-        return mid_tensor
-        
-        
+        if self.step>0:
+            # step 1, 
+            self.to_update_ob__crit_rb.pushback(crit_input_c)
+            #now M is M(t)
+            __output_t_minus_1_and_mem = self.output__and_mem_t_plus_1#from last step
+            self.to_update_ob__output_t_minus_1_and_mem_rb.pushback(__output_t_minus_1_and_mem)
+            
+            # step 2 update ob
+            self.set_mode_executing()
+            optim_to_update_ob = torch.optim.SGD(params=self.model_ob.parameters(), lr=0.001)
+            loss_function_to_update_ob = torch.nn.MSELoss()
+            __length = self.to_update_ob__output_t_minus_1_and_mem_rb.length
+            for epoch in range(100):
+                pred = self.model_ob(self.to_update_ob__output_t_minus_1_and_mem_rb[:__length])
+                loss:torch.Tensor = loss_function_to_update_ob(pred, self.to_update_ob__crit_rb[:__length])
+                optim_to_update_ob.zero_grad()
+                loss.backward()
+                optim_to_update_ob.step()
+                pass
+            
+            
+            # step 3 update_to_update_exe_history
+            if_to_update_exe = self.update_to_update_exe_history()
+            
+            # step 4 update exe(optional)
+            if if_to_update_exe:
+                self.set_mode_updating_exe_model()
+                optim_to_update_exe = torch.optim.SGD(params=self.model_exe.parameters(), lr=0.001)
+                loss_function_to_update_exe = torch.nn.MSELoss()
+                __length = self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb.length
                 
-
+                for epoch in range(100):
+                    raw_pred = self.model_ob(self.model_exe(self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb[:__length]))
+                    ####### ob is fixed here. Only exe is updated.
+                    pred = raw_pred*self.to_update_exe__crit_desired__flag_useful_element__rb[:__length]
+                    # Tensor being multiplied by 0 stops the grad from flowing back.
+                    loss:torch.Tensor = loss_function_to_update_exe(pred, self.to_update_exe__crit_desired_rb[:__length])
+                    # but the loss is also not very accurate.
+                    optim_to_update_exe.zero_grad()
+                    loss.backward()
+                    optim_to_update_exe.step()
+                    pass
+                pass
+            pass
         
+        #step 5 exe.
+        with torch.inference_mode():
+            self.output__and_mem_t_plus_1 = self.model_exe(__crit_and_input_and_mem)
+            pass
+            
+        self.__debug__is_t_t = False#now it's T == t+1
+        self.step+=1
+        #now T == t+1
+        self.crit_and_input_and_mem__t_minus_1 = __crit_and_input_and_mem#from T == t
         
-        
-        
-        pass
+        return self.output__and_mem_t_plus_1.detach()
+    #end of function.
     
     pass
 
 
-
+if "basic test." and True:
+    
 
 
 
