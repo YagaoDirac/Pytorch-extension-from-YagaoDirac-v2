@@ -14,7 +14,7 @@ del upper_folder
 
 from pytorch_yagaodirac_v2.training_ended_sound import play_noise
 from pytorch_yagaodirac_v2.Enhanced_MLP import FCL_from_yagaodirac, MLP_from_yagaodirac
-from pytorch_yagaodirac_v2.torch_ring_buffer import Torch_Ring_buffer_1D
+from pytorch_yagaodirac_v2.torch_ring_buffer import Torch_Ring_buffer_1D_only_pushback
 
 
 

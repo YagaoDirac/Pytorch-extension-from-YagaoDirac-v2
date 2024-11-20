@@ -3,13 +3,13 @@ import torch
 #加一个get last，好像又不用了。
 
 
-class Torch_Ring_buffer_1D(torch.nn.Module):
+class Torch_Ring_buffer_1D_only_pushback(torch.nn.Module):
     def __init__(self, cap:int, dimention:int, device=None, dtype=None) -> None:
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
-        self.start_included = torch.nn.Parameter(torch.tensor(0, **factory_kwargs), requires_grad=False)
-        self.end_excluded = torch.nn.Parameter(torch.tensor(0, **factory_kwargs), requires_grad=False)
-        self.length = torch.nn.Parameter(torch.tensor(0, **factory_kwargs), requires_grad=False)
+        self.start_included = torch.nn.Parameter(torch.tensor(0, dtype=torch.int64, device=device), requires_grad=False)
+        self.end_excluded = torch.nn.Parameter(torch.tensor(0, dtype=torch.int64, device=device), requires_grad=False)
+        self.length = torch.nn.Parameter(torch.tensor(0, dtype=torch.int64, device=device), requires_grad=False)
         self.data = torch.nn.Parameter(torch.empty([cap, dimention], **factory_kwargs), requires_grad=False)
         pass
     
@@ -66,13 +66,20 @@ class Torch_Ring_buffer_1D(torch.nn.Module):
             self.end_excluded.data = self.end_excluded%self.get_max_cap_as_tensor()
             return True
         
-           
+    def _______a():
+        '''
+         empty,full
+        to do list:
+        re cap
+        shrink
+        push at any position.
+        
     # def _pushback_partly(self, data:torch.Tensor, overwrite = False)->bool:
-    #     r'''data is a shorter tensor than what is needed. This function only overwrites the provided part and left the tail unchanged. 
+    #     r''data is a shorter tensor than what is needed. This function only overwrites the provided part and left the tail unchanged. 
     #     Element count is increased.
     #     If the provided data is really shorter than the dim of the container, some useless elements are considered as real data.
     #     Make sure you really know the behavior of this function.
-    #     '''
+    #     ''
     #     with torch.no_grad():
     #         if self.full():
     #             if not overwrite:
@@ -87,25 +94,23 @@ class Torch_Ring_buffer_1D(torch.nn.Module):
     #         self.end_excluded.data += 1
     #         self.end_excluded.data = self.end_excluded%self.get_max_cap_as_tensor()
     #         return True
+        '''
         
     def extra_repr(self):
         return f"len:{self.__len__()}, data:{self.get_rearranged()[:self.__len__()]}"
         #return super().extra_repr()
-        
-    def ______a():
-        '''
-        empty,full
-        to do list:
-        re cap
-        shrink
-        push at any position.
-        
-        '''
-    
     pass#end of class
 
+if 'dtype test' and False:
+    a = Torch_Ring_buffer_1D_only_pushback(1,1,dtype=torch.bool)
+    print(a)
+    print(a.start_included)
+    print(a.end_excluded)
+    pass
+
+
 if '_pushback_partly test' and False:
-    a = Torch_Ring_buffer_1D(3,3,dtype=torch.int32)
+    a = Torch_Ring_buffer_1D_only_pushback(3,3,dtype=torch.int32)
     a.pushback(torch.tensor([11,11,11]),overwrite=True)
     a.pushback(torch.tensor([22,22,22]),overwrite=True)
     a.pushback(torch.tensor([33,33,33]),overwrite=True)
@@ -127,7 +132,7 @@ if '_pushback_partly test' and False:
 
 
 if 'create test' and False:
-    a = Torch_Ring_buffer_1D(2,1,dtype=torch.int32)
+    a = Torch_Ring_buffer_1D_only_pushback(2,1,dtype=torch.int32)
     b = a.get_max_cap_as_tensor()
     c = a.__len__()
     a.pushback(torch.tensor(3),overwrite=True)
@@ -155,7 +160,7 @@ if 'create test' and False:
     print(a.get_max_cap_as_tensor())
     print(a.__len__())
     
-    a = Torch_Ring_buffer_1D(2,1,dtype=torch.int32)
+    a = Torch_Ring_buffer_1D_only_pushback(2,1,dtype=torch.int32)
     a.pushback(torch.tensor(3),overwrite=True)
     a.pushback(torch.tensor(4),overwrite=True)
     print(a)
@@ -167,7 +172,7 @@ if 'create test' and False:
     print(a.__len__())
     
     
-    a = Torch_Ring_buffer_1D(2,1,dtype=torch.int32)
+    a = Torch_Ring_buffer_1D_only_pushback(2,1,dtype=torch.int32)
     a.pushback(torch.tensor(3),overwrite=True)
     a.pushback(torch.tensor(4),overwrite=True)
     a.pushback(torch.tensor(5),overwrite=True)
