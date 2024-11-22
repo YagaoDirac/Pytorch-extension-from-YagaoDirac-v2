@@ -19,6 +19,7 @@ from pytorch_yagaodirac_v2.training_ended_sound import play_noise
 from pytorch_yagaodirac_v2.Enhanced_MLP import FCL_from_yagaodirac, MLP_from_yagaodirac
 from pytorch_yagaodirac_v2.Util import data_gen_from_random_teacher
 from pytorch_yagaodirac_v2.torch_ring_buffer import Torch_Ring_buffer_1D_only_pushback
+from pytorch_yagaodirac_v2.training_config import Training_Config_proportion_of_loss
 
 
 '''
@@ -96,76 +97,111 @@ class AC_Mode(Enum):
     UPDATING = 0
 
 class Artificial_Consciousness(torch.nn.Module):
-                 #first_big_number:float = 3., 
+                #first_big_number:float = 3., 
     def __init__(self, crit_features :int,in_features :int,\
             out_features :int, mem_features:int, \
                 crit_lower_limit:torch.Tensor, crit_upper_limit:torch.Tensor, \
                 model_exe:torch.nn.Module, model_ob:torch.nn.Module, \
-                history_len = 5, \
+                model_exe_training_data_len = 5, \
+                model_ob_training_data_len = 5, \
                 init_mem:Optional[torch.Tensor] = None, \
                     debug__debugging_step = False, \
-                 device=None, dtype=None) -> None:
+                        
+                    epochs_to_update_model_ob = 1000, \
+                    epochs_to_update_model_exe = 1000, \
+                    lr_to_update_model_ob=0.001, \
+                    lr_to_update_model_exe=0.001, \
+                    training_config_for_model_ob:Optional[Training_Config_proportion_of_loss] = None, \
+                    training_config_for_model_exe:Optional[Training_Config_proportion_of_loss] = None, \
+                    device=None, dtype=None) -> None:
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
         self.__DEBUG__debugging_step = debug__debugging_step
         
-        self.crit_features = crit_features
-        self.in_features = in_features
-        self.out_features = out_features
-        self.mem_features = mem_features
-        self.model_exe = model_exe
-        self.model_ob = model_ob
-        _shape_left = self.get_shape_left()
-        if _shape_left!=model_exe.in_features:
-            raise Exception()
-        _shape_mid = self.get_shape_mid()
-        if _shape_mid != model_exe.out_features:
-            raise Exception()
-        if _shape_mid != model_ob.in_features:
-            raise Exception()
-        _shape_right = self.get_shape_right()
-        if _shape_right != model_ob.out_features:
-            raise Exception()
-        
-        if (crit_lower_limit>=crit_upper_limit).any():
-            raise Exception()
-        if crit_lower_limit.shape.__len__()!=1:
-            raise Exception()
-        if crit_upper_limit.shape.__len__()!=1:
-            raise Exception()
-        if crit_features!=crit_lower_limit.shape[0]:
-            raise Exception()
-        if crit_features!=crit_upper_limit.shape[0]:
-            raise Exception()
-        self.crit_lower_limit_c = crit_lower_limit
-        self.crit_upper_limit_c = crit_upper_limit
+        if 'shape' and True:
+            self.crit_features = crit_features
+            self.in_features = in_features
+            self.out_features = out_features
+            self.mem_features = mem_features
+            self.model_exe = model_exe
+            self.model_ob = model_ob
+            _shape_left = self.get_shape_left()
+            if _shape_left!=model_exe.in_features:
+                raise Exception()
+            _shape_mid = self.get_shape_mid()
+            if _shape_mid != model_exe.out_features:
+                raise Exception()
+            if _shape_mid != model_ob.in_features:
+                raise Exception()
+            _shape_right = self.get_shape_right()
+            if _shape_right != model_ob.out_features:
+                raise Exception()
+            
+            if (crit_lower_limit>=crit_upper_limit).any():
+                raise Exception()
+            if crit_lower_limit.shape.__len__()!=1:
+                raise Exception()
+            if crit_upper_limit.shape.__len__()!=1:
+                raise Exception()
+            if crit_features!=crit_lower_limit.shape[0]:
+                raise Exception()
+            if crit_features!=crit_upper_limit.shape[0]:
+                raise Exception()
+            self.crit_lower_limit_c = crit_lower_limit
+            self.crit_upper_limit_c = crit_upper_limit
+            pass
         
         self.mode:AC_Mode = AC_Mode.EXECUTING
         self.set_mode_executing()
         
-        
-        #self.history_len = history_len #to do:两组数据的分开。
-        
-        self.to_update_ob__crit_rb = Torch_Ring_buffer_1D_only_pushback(history_len,crit_features,**factory_kwargs)#+0
-        self.to_update_ob__output_t_minus_1_and_mem_rb = Torch_Ring_buffer_1D_only_pushback(history_len,out_features+mem_features,**factory_kwargs)#O(t-1) and M(t)
-        #self.input_rb = Torch_Ring_buffer_1D(history_len,in_features,**factory_kwargs)#+0
-        
-        self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb = Torch_Ring_buffer_1D_only_pushback(history_len,crit_features+in_features+mem_features,**factory_kwargs)#
-        self.to_update_exe__desired_crit_rb = Torch_Ring_buffer_1D_only_pushback(history_len, crit_features, **factory_kwargs)#
-        self.to_update_exe__desired_crit__flag_useful_element__rb = Torch_Ring_buffer_1D_only_pushback(history_len, crit_features, dtype=torch.bool, device=device)#+0
-        
-        self.output__and_mem_t_plus_1:torch.nn.parameter.Parameter = torch.nn.Parameter(torch.empty([out_features+mem_features], **factory_kwargs), requires_grad=False)
-        #debug:
-        #self.mem_t_plus_1.fill_(-99999)
-        self.output__and_mem_t_plus_1.fill_(-99999)
-        if init_mem is None:
-            self.output__and_mem_t_plus_1.data[self.out_features:] = 0.
-        else:
-            self.output__and_mem_t_plus_1.data[self.out_features:] = init_mem.detach().clone().to(self.output__and_mem_t_plus_1.device).to(self.output__and_mem_t_plus_1.dtype)
+        if 'containers' and True:
+            #self.history_len = history_len #to do:两组数据的分开。
+            
+            self.to_update_ob__crit_rb = Torch_Ring_buffer_1D_only_pushback(model_ob_training_data_len,crit_features,**factory_kwargs)#+0
+            self.to_update_ob__output_t_minus_1_and_mem_rb = Torch_Ring_buffer_1D_only_pushback(model_ob_training_data_len,out_features+mem_features,**factory_kwargs)#O(t-1) and M(t)
+            #self.input_rb = Torch_Ring_buffer_1D(history_len,in_features,**factory_kwargs)#+0
+            
+            self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb = Torch_Ring_buffer_1D_only_pushback(model_exe_training_data_len,crit_features+in_features+mem_features,**factory_kwargs)#
+            self.to_update_exe__desired_crit_rb = Torch_Ring_buffer_1D_only_pushback(model_exe_training_data_len, crit_features, **factory_kwargs)#
+            self.to_update_exe__desired_crit__flag_useful_element__rb = Torch_Ring_buffer_1D_only_pushback(model_exe_training_data_len, crit_features, dtype=torch.bool, device=device)#+0
+            
+            self.output__and_mem_t_plus_1:torch.nn.parameter.Parameter = torch.nn.Parameter(torch.empty([out_features+mem_features], **factory_kwargs), requires_grad=False)
+            #debug:
+            #self.mem_t_plus_1.fill_(-99999)
+            self.output__and_mem_t_plus_1.fill_(-99999)
+            if init_mem is None:
+                self.output__and_mem_t_plus_1.data[self.out_features:] = 0.
+            else:
+                self.output__and_mem_t_plus_1.data[self.out_features:] = init_mem.detach().clone().to(self.output__and_mem_t_plus_1.device).to(self.output__and_mem_t_plus_1.dtype)
+                pass
+            # 好像也不用了。self.mem_t_plus_1 = torch.nn.Parameter(torch.empty([out_features], **factory_kwargs), requires_grad=False)
             pass
-        # 好像也不用了。self.mem_t_plus_1 = torch.nn.Parameter(torch.empty([out_features], **factory_kwargs), requires_grad=False)
-                
         self.step = 0
+        
+        if 'training_config':
+            # training config:
+            self.epochs_to_update_model_ob = epochs_to_update_model_ob
+            self.epochs_to_update_model_exe = epochs_to_update_model_exe
+            self.lr_to_update_model_ob = lr_to_update_model_ob
+            self.lr_to_update_model_exe = lr_to_update_model_exe
+            
+            if training_config_for_model_ob is None:
+                self.training_config_for_model_ob = Training_Config_proportion_of_loss(0.001)
+            else:
+                self.training_config_for_model_ob = training_config_for_model_ob
+                pass
+            
+            if training_config_for_model_exe is None:
+                self.training_config_for_model_exe = Training_Config_proportion_of_loss(0.001)
+            else:
+                self.training_config_for_model_exe = training_config_for_model_exe
+                pass
+            
+            if self.training_config_for_model_ob is self.training_config_for_model_exe:
+                raise Exception("These 2 can not be the same object.")
+            
+            pass
+            
         pass
     
     def debug_print_all_data_members(self,shape=False,limits=False,history=False,temp=False,\
@@ -272,13 +308,20 @@ class Artificial_Consciousness(torch.nn.Module):
                 print(f"step == {self.step}, the ob maps", self.to_update_ob__output_t_minus_1_and_mem_rb.data[:_length],"into",pred)
                 pass
             else:
-                optim_to_update_ob = torch.optim.SGD(params=self.model_ob.parameters(), lr=0.0000000000001)#0.001)
+                
+                optim_to_update_ob = torch.optim.SGD(params=self.model_ob.parameters(), lr=self.lr_to_update_model_ob)#0.001)
                 loss_function_to_update_ob = torch.nn.MSELoss()
                 _length = self.to_update_ob__output_t_minus_1_and_mem_rb.length
-                for epoch in range(1):
-                    pred = self.model_ob(self.to_update_ob__output_t_minus_1_and_mem_rb.data[:_length])
+                for epoch in range(self.epochs_to_update_model_ob):
+                    _output_t_minus_1_and_mem = self.to_update_ob__output_t_minus_1_and_mem_rb.data[:_length]
+                    pred = self.model_ob(_output_t_minus_1_and_mem)
                     _target = self.to_update_ob__crit_rb.data[:_length]
                     loss:torch.Tensor = loss_function_to_update_ob(pred, _target)
+                    if 0 != epoch:
+                        self.training_config_for_model_ob.check(loss)
+                    else:
+                        self.training_config_for_model_ob.set_init_loss(loss)
+                        pass
                     optim_to_update_ob.zero_grad()
                     loss.backward()
                     optim_to_update_ob.step()
@@ -304,24 +347,26 @@ class Artificial_Consciousness(torch.nn.Module):
                 
                 # step 4 update exe(optional)
                 if if_to_update_exe:
+                    
                     self.set_mode_updating_exe_model()
-                    optim_to_update_exe = torch.optim.SGD(params=self.model_exe.parameters(), lr=0.000000001)#0.001)
+                    optim_to_update_exe = torch.optim.SGD(params=self.model_exe.parameters(), lr=self.lr_to_update_model_exe)#0.001)
                     loss_function_to_update_exe = torch.nn.MSELoss()
                     _length = self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb.length
-                    
-                    for epoch in range(1):
+                    for epoch in range(self.epochs_to_update_model_exe):
                         _crit_and_input_and_mem__all_t_minus_1 = self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb.data[:_length]
                         _mid_result = self.model_exe(_crit_and_input_and_mem__all_t_minus_1)
                         raw_pred = self.model_ob(_mid_result)
                         ####### ob is fixed here. Only exe is updated.
-                        
-                        继续，这个flag好像写错了。
-                        
                         _flag_useful_element = self.to_update_exe__desired_crit__flag_useful_element__rb.data[:_length]
                         pred = raw_pred*_flag_useful_element
                         # Tensor being multiplied by 0 stops the grad from flowing back.
                         _desired_crit = self.to_update_exe__desired_crit_rb.data[:_length]
                         loss:torch.Tensor = loss_function_to_update_exe(pred, _desired_crit)
+                        if 0 != epoch:
+                            self.training_config_for_model_exe.check(loss)
+                        else:
+                            self.training_config_for_model_exe.set_init_loss(loss)
+                            pass
                         # but the loss is also not very accurate.
                         optim_to_update_exe.zero_grad()
                         loss.backward()
@@ -355,8 +400,8 @@ if "index test." and False:
     model_exe = AC_index_test__model_exe()
     model_ob = AC_index_test__model_ob()
     ac_step_test = Artificial_Consciousness(1,1,1,1,crit_lower_limit=crit_lower_limit,
-            crit_upper_limit = crit_upper_limit, model_exe=model_exe, model_ob=model_ob,history_len=2,init_mem=init_mem,
-            debug__debugging_step=True)
+            crit_upper_limit = crit_upper_limit, model_exe=model_exe, model_ob=model_ob,model_exe_training_data_len=2,
+            model_ob_training_data_len=2,init_mem=init_mem,debug__debugging_step=True)
     
     ac_step_test.debug_print_all_data_members()
     
@@ -400,7 +445,10 @@ if "training data for ob test." and False:
     model_exe.bias.data = torch.tensor([0,0,0.1,0.1,0.2,0.2])
     model_ob = torch.nn.Linear(6,1,False)
     ac = Artificial_Consciousness(1,1,2,4,crit_lower_limit=crit_lower_limit,
-            crit_upper_limit = crit_upper_limit, model_exe=model_exe, model_ob=model_ob,history_len=2,init_mem=init_mem)
+            crit_upper_limit = crit_upper_limit, model_exe=model_exe, model_ob=model_ob,
+            model_exe_training_data_len=2,model_ob_training_data_len=2,init_mem=init_mem,
+            epochs_to_update_model_exe=1,epochs_to_update_model_ob=1,
+            lr_to_update_model_exe=1e-12,lr_to_update_model_ob=1e-12)
 
     print(ac.run(torch.tensor([2.]),torch.tensor([3.])), "should be", 2,3, "   output test")
     ac.debug_print_all_data_members(all=False, temp=True, ob_training_data=True)
@@ -419,10 +467,10 @@ if "training data for ob test." and False:
     print()
     pass
     
-if "training data for ob test." and True:
+if "training data for exe test." and False:
     crit_lower_limit = torch.tensor([-10.,-15])
     crit_upper_limit = torch.tensor([10.,15])
-    init_mem = torch.tensor([0.5555,0.4444,0.3333,0.2222])
+    init_mem = torch.tensor([111.,222,333,1.])
     model_exe = torch.nn.Linear(7,7,True)
     model_exe.weight.data = torch.tensor([
         [1.,0,0,0,0,0,0],
@@ -431,29 +479,56 @@ if "training data for ob test." and True:
         [1,1,0,0,0,0,0],
         [0,0,1,0,0,0,0],
         [0,0,0,1,0,0,0],
-        [0,0,0,0,1,0,0],])
-    model_exe.bias.data = torch.tensor([0,0,0,0.1,0.1,0.2,0.2])
+        [0,0,0,0,0,0,1],])
+    model_exe.bias.data = torch.tensor([0,0,0,0.1,0.1,1,1])
     model_ob = torch.nn.Linear(7,2,False)
     model_ob.weight.data = torch.tensor([
         [1.,0,0,0,0,0,0],
         [0,1,0,0,0,0,0],])
     ac = Artificial_Consciousness(2,1,3,4,crit_lower_limit=crit_lower_limit,
-            crit_upper_limit = crit_upper_limit, model_exe=model_exe, model_ob=model_ob,history_len=2,init_mem=init_mem)
+            crit_upper_limit = crit_upper_limit, model_exe=model_exe, model_ob=model_ob,
+            model_exe_training_data_len=2,model_ob_training_data_len=2,init_mem=init_mem,
+            epochs_to_update_model_exe=1,epochs_to_update_model_ob=1,
+            lr_to_update_model_exe=1e-12,lr_to_update_model_ob=1e-12)
 
-    print(ac.run(torch.tensor([2.,20]),torch.tensor([2.5])), "should be", 2,20,2.5, "   output test")
-    ac.debug_print_all_data_members(all=False, temp=True, exe_training_data=True)
-    print()
+    print(ac.run(torch.tensor([1.,21]),torch.tensor([1.5])), "should be", 1,21,1.5, "   output test")
+    #ac.debug_print_all_data_members(all=False, temp=True, exe_training_data=True)
+    #print()
 
-    print(ac.run(torch.tensor([-20.,3.]),torch.tensor([3.5])), "should be", -20,3,3.5, "   output test")
+    print(ac.run(torch.tensor([-22.,2.]),torch.tensor([2.5])), "should be", -22,2,2.5, "   output test")
+    #ac.debug_print_all_data_members(all=False, temp=True, exe_training_data=True)
+    #print()
+    
+    print(ac.run(torch.tensor([23.,3]),torch.tensor([3.5])), "should be", 23,3,3.5, "   output test")
+    #ac.debug_print_all_data_members(all=False, temp=True, exe_training_data=True)
+    #print()
+    
+    print(ac.run(torch.tensor([4.,-24]),torch.tensor([4.5])), "should be", 4,-24,4.5, "   output test")
     ac.debug_print_all_data_members(all=False, temp=True, exe_training_data=True)
     print()
     
-    print(ac.run(torch.tensor([20.,4]),torch.tensor([4.5])), "should be", 20,4,4.5, "   output test")
-    ac.debug_print_all_data_members(all=False, temp=True, exe_training_data=True)
-    print()
-    
-    print(ac.run(torch.tensor([5.,-20]),torch.tensor([5.5])), "should be", 5,-20,5.5, "   output test")
+    print(ac.run(torch.tensor([5.,-5]),torch.tensor([5.5])), "should be", 5,-5,5.5, "   output test")
     ac.debug_print_all_data_members(all=False, temp=True, exe_training_data=True)
     print()
     pass
     
+if 'training config test.' and True:
+    crit_lower_limit = torch.tensor([-10.])
+    crit_upper_limit = torch.tensor([10.])
+    model_exe = torch.nn.Linear(3,2,False)
+    model_ob = torch.nn.Linear(2,1,False)
+    training_config_for_model_exe = Training_Config_proportion_of_loss(0.1)
+    training_config_for_model_ob = Training_Config_proportion_of_loss(0.1)
+    ac = Artificial_Consciousness(1,1,1,1,crit_lower_limit=crit_lower_limit,
+            crit_upper_limit = crit_upper_limit, model_exe=model_exe, model_ob=model_ob,
+            model_exe_training_data_len=2,model_ob_training_data_len=2,
+            training_config_for_model_exe=training_config_for_model_exe,
+            training_config_for_model_ob=training_config_for_model_ob,
+            epochs_to_update_model_exe=1,epochs_to_update_model_ob=1,
+            lr_to_update_model_exe=1e-12,lr_to_update_model_ob=1e-12)
+    
+    继续。
+    
+    pass
+
+
