@@ -165,14 +165,14 @@ class Artificial_Consciousness(torch.nn.Module):
             self.to_update_exe__desired_crit_rb = Torch_Ring_buffer_1D_only_pushback(model_exe_training_data_len, crit_features, **factory_kwargs)#
             self.to_update_exe__desired_crit__flag_useful_element__rb = Torch_Ring_buffer_1D_only_pushback(model_exe_training_data_len, crit_features, dtype=torch.bool, device=device)#+0
             
-            self.output__and_mem_t_plus_1:torch.nn.parameter.Parameter = torch.nn.Parameter(torch.empty([out_features+mem_features], **factory_kwargs), requires_grad=False)
+            self.output_and__mem_t_plus_1:torch.nn.parameter.Parameter = torch.nn.Parameter(torch.empty([out_features+mem_features], **factory_kwargs), requires_grad=False)
             #debug:
             #self.mem_t_plus_1.fill_(-99999)
-            self.output__and_mem_t_plus_1.fill_(-99999)
+            self.output_and__mem_t_plus_1.fill_(-99999)
             if init_mem is None:
-                self.output__and_mem_t_plus_1.data[self.out_features:] = 0.
+                self.output_and__mem_t_plus_1.data[self.out_features:] = 0.
             else:
-                self.output__and_mem_t_plus_1.data[self.out_features:] = init_mem.detach().clone().to(self.output__and_mem_t_plus_1.device).to(self.output__and_mem_t_plus_1.dtype)
+                self.output_and__mem_t_plus_1.data[self.out_features:] = init_mem.detach().clone().to(self.output_and__mem_t_plus_1.device).to(self.output_and__mem_t_plus_1.dtype)
                 pass
             # 好像也不用了。self.mem_t_plus_1 = torch.nn.Parameter(torch.empty([out_features], **factory_kwargs), requires_grad=False)
             pass
@@ -222,7 +222,7 @@ class Artificial_Consciousness(torch.nn.Module):
         if temp or all:
             #print("M(t):",self.mem)
             #print("M(t+1):",self.mem_t_plus_1)
-            print("Out(t-1) M(t):",self.output__and_mem_t_plus_1)
+            print("Out(t-1) M(t):",self.output_and__mem_t_plus_1)
             pass
         if exe_training_data or all:
             print("to_update_exe: input(c/i/m): ",self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb)
@@ -277,7 +277,7 @@ class Artificial_Consciousness(torch.nn.Module):
         if flag_crit_out_of_limit_c.any():
             self.to_update_exe__desired_crit__flag_useful_element__rb.pushback(flag_crit_out_of_limit_c,overwrite=True)
             #now they are t minus 1
-            self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb.pushback(self.crit_and_input_and_mem__t_minus_1,overwrite=True)
+            self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb.pushback(self.crit_and_input_and_mem,overwrite=True)
             
             part1 = flag_crit_out_of_limit_c.logical_not()*crit_input_c
             part2 = flag_crit_too_big_c*(self.crit_lower_limit_c)
@@ -290,13 +290,13 @@ class Artificial_Consciousness(torch.nn.Module):
     #end of function.
     
     def run(self, crit_input_c:torch.Tensor, input_i:torch.Tensor)->torch.Tensor:
-        _crit_and_input_and_mem__cim = torch.concat([crit_input_c,input_i, self.output__and_mem_t_plus_1[self.out_features:]])
+        _crit_and_input_and_mem = torch.concat([crit_input_c,input_i, self.output_and__mem_t_plus_1[self.out_features:]])
         
         if self.step>0:
             # step 1, 
             self.to_update_ob__crit_rb.pushback(crit_input_c,overwrite=True)
             #now M is M(t)
-            _output_t_minus_1_and_mem = self.output__and_mem_t_plus_1#from last step
+            _output_t_minus_1_and_mem = self.output_and__mem_t_plus_1#from last step
             self.to_update_ob__output_t_minus_1_and_mem_rb.pushback(_output_t_minus_1_and_mem,overwrite=True)
             
             # step 2 update ob
@@ -318,7 +318,10 @@ class Artificial_Consciousness(torch.nn.Module):
                     _target = self.to_update_ob__crit_rb.data[:_length]
                     loss:torch.Tensor = loss_function_to_update_ob(pred, _target)
                     if 0 != epoch:
-                        self.training_config_for_model_ob.check(loss)
+                        _check_result = self.training_config_for_model_ob.check(loss)
+                        if _check_result:
+                            break
+                        pass
                     else:
                         self.training_config_for_model_ob.set_init_loss(loss)
                         pass
@@ -333,7 +336,7 @@ class Artificial_Consciousness(torch.nn.Module):
                 self.update__to_update_exe_history(crit_input_c)
                 
                 #now they are t minus 1
-                self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb.pushback(self.crit_and_input_and_mem__t_minus_1,overwrite=True)
+                self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb.pushback(self.crit_and_input_and_mem,overwrite=True)
                 self.to_update_exe__desired_crit_rb.pushback(crit_input_c+0.5,overwrite=True)#correct for step debug.
                 self.to_update_exe__desired_crit__flag_useful_element__rb.pushback(torch.tensor([True]),overwrite=True)
                 
@@ -363,7 +366,10 @@ class Artificial_Consciousness(torch.nn.Module):
                         _desired_crit = self.to_update_exe__desired_crit_rb.data[:_length]
                         loss:torch.Tensor = loss_function_to_update_exe(pred, _desired_crit)
                         if 0 != epoch:
-                            self.training_config_for_model_exe.check(loss)
+                            _check_result = self.training_config_for_model_exe.check(loss)
+                            if _check_result:
+                                break
+                            pass
                         else:
                             self.training_config_for_model_exe.set_init_loss(loss)
                             pass
@@ -378,17 +384,17 @@ class Artificial_Consciousness(torch.nn.Module):
         
         #step 5 exe.
         with torch.inference_mode():
-            self.output__and_mem_t_plus_1.data = self.model_exe(_crit_and_input_and_mem__cim.reshape([1,-1])).reshape([-1])
+            self.output_and__mem_t_plus_1.data = self.model_exe(_crit_and_input_and_mem.reshape([1,-1])).reshape([-1])
             pass
         if self.__DEBUG__debugging_step:
-            print(f"step == {self.step}, the exe maps", _crit_and_input_and_mem__cim,"into",self.output__and_mem_t_plus_1.data)
+            print(f"step == {self.step}, the exe maps", _crit_and_input_and_mem,"into",self.output_and__mem_t_plus_1.data)
             pass
         #now it's T == t+1
         self.step+=1
         #now T == t+1
-        self.crit_and_input_and_mem__t_minus_1 = _crit_and_input_and_mem__cim#from T == t
+        self.crit_and_input_and_mem = _crit_and_input_and_mem#from T == t
         #self.mem = output__and_mem_t_plus_1??????????????继续。
-        return self.output__and_mem_t_plus_1[:self.out_features].detach()
+        return self.output_and__mem_t_plus_1[:self.out_features].detach()
     #end of function.
     pass
 
@@ -512,22 +518,23 @@ if "training data for exe test." and False:
     print()
     pass
     
-if 'training config test.' and True:
+if 'training config test.' and False:
     crit_lower_limit = torch.tensor([-10.])
     crit_upper_limit = torch.tensor([10.])
     model_exe = torch.nn.Linear(3,2,False)
     model_ob = torch.nn.Linear(2,1,False)
-    training_config_for_model_exe = Training_Config_proportion_of_loss(0.1)
-    training_config_for_model_ob = Training_Config_proportion_of_loss(0.1)
+    training_config_for_model_exe = Training_Config_proportion_of_loss(0.333)
+    training_config_for_model_ob = Training_Config_proportion_of_loss(0.222)
     ac = Artificial_Consciousness(1,1,1,1,crit_lower_limit=crit_lower_limit,
             crit_upper_limit = crit_upper_limit, model_exe=model_exe, model_ob=model_ob,
             model_exe_training_data_len=2,model_ob_training_data_len=2,
             training_config_for_model_exe=training_config_for_model_exe,
             training_config_for_model_ob=training_config_for_model_ob,
-            epochs_to_update_model_exe=1,epochs_to_update_model_ob=1,
-            lr_to_update_model_exe=1e-12,lr_to_update_model_ob=1e-12)
+            epochs_to_update_model_exe=3,epochs_to_update_model_ob=2,
+            lr_to_update_model_exe=3e-12,lr_to_update_model_ob=2e-12)
     
-    继续。
+    ac.run(torch.rand([1]),torch.rand([1]))#this run doesn't test anything here.
+    ac.run(torch.tensor([111.]),torch.rand([1]))
     
     pass
 
