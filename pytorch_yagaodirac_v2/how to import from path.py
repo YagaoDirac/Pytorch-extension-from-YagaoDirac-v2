@@ -8,3 +8,9 @@ del index
 del upper_folder
 
 from pytorch_yagaodirac_v2 import util
+
+
+
+# I found this from internet. 
+sys.path.append(os.getcwd())
+

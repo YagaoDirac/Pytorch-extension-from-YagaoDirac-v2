@@ -147,8 +147,8 @@ class Artificial_Consciousness(torch.nn.Module):
                 raise Exception()
             if crit_features!=crit_upper_limit.shape[0]:
                 raise Exception()
-            self.crit_lower_limit_c = crit_lower_limit
-            self.crit_upper_limit_c = crit_upper_limit
+            self.crit_lower_limit_c = torch.nn.Parameter(crit_lower_limit,requires_grad=False)
+            self.crit_upper_limit_c = torch.nn.Parameter(crit_upper_limit,requires_grad=False)
             pass
         
         self.mode:AC_Mode = AC_Mode.EXECUTING
@@ -180,8 +180,8 @@ class Artificial_Consciousness(torch.nn.Module):
         
         if 'training_config':
             # training config:
-            self.epochs_to_update_model_ob = epochs_to_update_model_ob
-            self.epochs_to_update_model_exe = epochs_to_update_model_exe
+            self.epochs_to_update_model_ob = int(epochs_to_update_model_ob)
+            self.epochs_to_update_model_exe = int(epochs_to_update_model_exe)
             self.lr_to_update_model_ob = lr_to_update_model_ob
             self.lr_to_update_model_exe = lr_to_update_model_exe
             
@@ -395,6 +395,9 @@ class Artificial_Consciousness(torch.nn.Module):
         self.crit_and_input_and_mem = _crit_and_input_and_mem#from T == t
         #self.mem = output__and_mem_t_plus_1??????????????继续。
         return self.output_and__mem_t_plus_1[:self.out_features].detach()
+
+        断开一下求导关系。grad_fn。
+    
     #end of function.
     pass
 
