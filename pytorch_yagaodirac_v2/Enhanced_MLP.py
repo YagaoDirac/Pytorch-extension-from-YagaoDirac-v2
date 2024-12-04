@@ -117,8 +117,13 @@ class FCL_from_yagaodirac(torch.nn.Module):
 
     def forward(self, input_b_i:torch.Tensor)->torch.Tensor:
         w_after_gramo_o_i:torch.Tensor = self.gramo_for_weight(self.weight_o_i.view(1, -1)).view(self.out_features, self.in_features)
-        b_after_gramo_o:torch.Tensor = self.gramo_for_bias(self.bias_o.view(1, -1)).view(self.out_features)
-        x_after_linear_b_o = torch.nn.functional.linear(input_b_i,w_after_gramo_o_i,b_after_gramo_o)
+        if self.bias_o is None:
+            x_after_linear_b_o = torch.nn.functional.linear(input_b_i,w_after_gramo_o_i)
+            pass
+        else:
+            b_after_gramo_o:torch.Tensor = self.gramo_for_bias(self.bias_o.view(1, -1)).view(self.out_features)
+            x_after_linear_b_o = torch.nn.functional.linear(input_b_i,w_after_gramo_o_i,b_after_gramo_o)
+            pass
         result_b_o = self.out_gramo(x_after_linear_b_o)
         return result_b_o
     

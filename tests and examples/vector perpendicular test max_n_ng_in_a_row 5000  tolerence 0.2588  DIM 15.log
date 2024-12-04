@@ -1,0 +1,6 @@
+is_cuda: True, max_n_ng_in_a_row: 5000, tolerence: 0.2588, DIM: 15
+is_cuda: True, max_n_ng_in_a_row: 5000, tolerence: 0.2588, DIM: 15
+5:0  10:31  15:2137  tolerence: 0.2588, DIM: 15,  final result  15
+5:7  10:79  tolerence: 0.2588, DIM: 15,  final result  14
+5:2  10:93  15:483  tolerence: 0.2588, DIM: 15,  final result  15
+5:1  10:57  

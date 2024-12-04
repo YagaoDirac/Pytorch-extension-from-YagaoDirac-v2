@@ -269,35 +269,41 @@ class Artificial_Consciousness(torch.nn.Module):
         raise Exception()
     
     def update__to_update_exe_history(self, crit_input_c:torch.Tensor)->bool:
-        #T == t
-        flag_crit_too_big_c = crit_input_c.ge(self.crit_upper_limit_c)
-        flag_crit_too_small_c = crit_input_c.le(self.crit_lower_limit_c)
-        flag_crit_out_of_limit_c:torch.Tensor = flag_crit_too_big_c.logical_or(flag_crit_too_small_c)
-        
-        if flag_crit_out_of_limit_c.any():
-            self.to_update_exe__desired_crit__flag_useful_element__rb.pushback(flag_crit_out_of_limit_c,overwrite=True)
-            #now they are t minus 1
-            self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb.pushback(self.crit_and_input_and_mem,overwrite=True)
+        with torch.no_grad():
+            #T == t
+            flag_crit_too_big_c = crit_input_c.ge(self.crit_upper_limit_c)
+            flag_crit_too_small_c = crit_input_c.le(self.crit_lower_limit_c)
+            flag_crit_out_of_limit_c:torch.Tensor = flag_crit_too_big_c.logical_or(flag_crit_too_small_c)
             
-            part1 = flag_crit_out_of_limit_c.logical_not()*crit_input_c
-            part2 = flag_crit_too_big_c*(self.crit_lower_limit_c)
-            part3 = flag_crit_too_small_c*(self.crit_upper_limit_c)
-            __crit_desired = part1 + part2 + part3
-            
-            self.to_update_exe__desired_crit_rb.pushback(__crit_desired,overwrite=True)
-            return True
-        return False
+            if flag_crit_out_of_limit_c.any():
+                self.to_update_exe__desired_crit__flag_useful_element__rb.pushback(flag_crit_out_of_limit_c,overwrite=True)
+                #now they are t minus 1
+                self.to_update_exe__crit_and_input_and_mem__all_t_minus_1_rb.pushback(self.crit_and_input_and_mem,overwrite=True)
+                
+                part1 = flag_crit_out_of_limit_c.logical_not()*crit_input_c
+                part2 = flag_crit_too_big_c*(self.crit_lower_limit_c)
+                part3 = flag_crit_too_small_c*(self.crit_upper_limit_c)
+                __crit_desired = part1 + part2 + part3
+                
+                self.to_update_exe__desired_crit_rb.pushback(__crit_desired,overwrite=True)
+                return True
+            return False
+        pass
     #end of function.
     
     def run(self, crit_input_c:torch.Tensor, input_i:torch.Tensor)->torch.Tensor:
-        _crit_and_input_and_mem = torch.concat([crit_input_c,input_i, self.output_and__mem_t_plus_1[self.out_features:]])
+        with torch.no_grad():        
+            _crit_and_input_and_mem = torch.concat([crit_input_c,input_i, self.output_and__mem_t_plus_1[self.out_features:]])
+            pass
         
         if self.step>0:
             # step 1, 
-            self.to_update_ob__crit_rb.pushback(crit_input_c,overwrite=True)
-            #now M is M(t)
-            _output_t_minus_1_and_mem = self.output_and__mem_t_plus_1#from last step
-            self.to_update_ob__output_t_minus_1_and_mem_rb.pushback(_output_t_minus_1_and_mem,overwrite=True)
+            with torch.no_grad():        
+                self.to_update_ob__crit_rb.pushback(crit_input_c,overwrite=True)
+                #now M is M(t)
+                _output_t_minus_1_and_mem = self.output_and__mem_t_plus_1#from last step
+                self.to_update_ob__output_t_minus_1_and_mem_rb.pushback(_output_t_minus_1_and_mem,overwrite=True)
+                pass
             
             # step 2 update ob
             self.set_mode_executing()
@@ -311,7 +317,7 @@ class Artificial_Consciousness(torch.nn.Module):
                 
                 optim_to_update_ob = torch.optim.SGD(params=self.model_ob.parameters(), lr=self.lr_to_update_model_ob)#0.001)
                 loss_function_to_update_ob = torch.nn.MSELoss()
-                _length = self.to_update_ob__output_t_minus_1_and_mem_rb.length
+                _length = self.to_update_ob__output_t_minus_1_and_mem_rb.length.detach()
                 for epoch in range(self.epochs_to_update_model_ob):
                     _output_t_minus_1_and_mem = self.to_update_ob__output_t_minus_1_and_mem_rb.data[:_length]
                     pred = self.model_ob(_output_t_minus_1_and_mem)
@@ -392,13 +398,12 @@ class Artificial_Consciousness(torch.nn.Module):
         #now it's T == t+1
         self.step+=1
         #now T == t+1
-        self.crit_and_input_and_mem = _crit_and_input_and_mem#from T == t
-        #self.mem = output__and_mem_t_plus_1??????????????继续。
-        return self.output_and__mem_t_plus_1[:self.out_features].detach()
-
-        断开一下求导关系。grad_fn。
-    
+        with torch.no_grad():
+            self.crit_and_input_and_mem = _crit_and_input_and_mem#from T == t
+            return self.output_and__mem_t_plus_1[:self.out_features].detach()
+        pass
     #end of function.
+    
     pass
 
 if "index test." and False:

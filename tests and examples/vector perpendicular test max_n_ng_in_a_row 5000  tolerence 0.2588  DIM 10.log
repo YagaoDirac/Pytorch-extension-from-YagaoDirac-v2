@@ -1,0 +1,11 @@
+is_cuda: True, max_n_ng_in_a_row: 5000, tolerence: 0.2588, DIM: 10
+is_cuda: True, max_n_ng_in_a_row: 5000, tolerence: 0.2588, DIM: 10
+5:3  10:384  tolerence: 0.2588, DIM: 10,  final result  10
+5:21  tolerence: 0.2588, DIM: 10,  final result  9
+5:13  10:4984  tolerence: 0.2588, DIM: 10,  final result  10
+5:0  tolerence: 0.2588, DIM: 10,  final result  9
+5:4  tolerence: 0.2588, DIM: 10,  final result  9
+5:0  tolerence: 0.2588, DIM: 10,  final result  9
+------------------------FINISH---------------------------
+------------------------FINISH---------------------------
+------------------------FINISH---------------------------

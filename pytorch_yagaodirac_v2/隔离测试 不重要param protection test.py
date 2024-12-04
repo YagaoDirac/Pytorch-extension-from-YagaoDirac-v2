@@ -1,5 +1,58 @@
 import torch
 
+
+class test_class_for_digital_mapper_v2_3(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        out_features = 3
+        in_features = 4
+        
+        self.raw_weight_o_i = torch.nn.Parameter(torch.randn([out_features, in_features]), requires_grad=False)
+        self.raw_weight_o_i.data = torch.tensor([[-30.,-5],[-30.,5],[-30,0],])
+        pass
+    
+    def run(self):
+        with torch.no_grad():
+        # rand_str = pos_offset = neg_offset = 0
+            rand_str = 0.01
+            pos_offset = 0.1
+            neg_offset = -0.1
+                    
+            #self.raw_weight_o_i+=torch.randn_like(self.raw_weight_o_i.data)*rand_str
+            
+            #self.raw_weight_o_i[0,0]+=torch.rand([1])[0]*pos_offset
+            #self.raw_weight_o_i[0,1]+=torch.rand([1])[0]*neg_offset
+            
+            
+            
+            #now protect it.
+            
+            #offset to align max of each row to 0
+            #this alignment fits with softmax.
+            max_element = self.raw_weight_o_i.max(dim = 1,keepdim=True).values
+            #print(self.raw_weight_o_i.data)
+            self.raw_weight_o_i -= max_element
+            
+            #clamp elements <-15 back to -15.
+            flag_too_small = self.raw_weight_o_i.lt(-15.)
+            self.raw_weight_o_i.data = flag_too_small*-15.+flag_too_small.logical_not()*self.raw_weight_o_i
+            
+            fds=432
+            pass
+    def print(self):
+        print(self.raw_weight_o_i.data)
+        #print(self.raw_weight_o_i.data[0])
+    pass
+obj = test_class_for_digital_mapper_v2_3()
+obj.print()
+for _ in range(10):
+    obj.run()
+    obj.print()
+
+
+raise Exception()
+
+
 class test_class_for_digital_mapper_v2_3(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
