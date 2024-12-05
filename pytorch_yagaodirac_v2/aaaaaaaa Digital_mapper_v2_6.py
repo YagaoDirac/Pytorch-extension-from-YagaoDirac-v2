@@ -14,6 +14,7 @@ from pytorch_yagaodirac_v2.Util import debug_strong_grad_ratio, make_grad_noisy
 from pytorch_yagaodirac_v2.Util import Print_Timing
 from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2
 from pytorch_yagaodirac_v2.training_ended_sound import play_noise
+from pytorch_yagaodirac_v2.torch_vec import torch_vec
 #from Binarize import Binarize
 
 '''
@@ -225,7 +226,7 @@ class DigitalMapper_v2_6(torch.nn.Module):
 
     def __init__(self, in_features: int, out_features: int, \
                 alpha:float, \
-                    gramo_for_each_output:bool, \
+                     gramo_for_each_output:bool, \
                     #is_out_mapper_in_DSPU:bool, \
                  #needs_out_gramo = True, \
                     # auto_print_difference:bool = False, \
@@ -241,34 +242,39 @@ class DigitalMapper_v2_6(torch.nn.Module):
 
         if in_features<2 and not debug_allow_any_shape:
             raise Exception('If this is intentional, search "if statement in python" on google.com.')
-        
-        if in_features<=out_features:
-            raise Exception("shape is not good.")
-        
+
         self.debug_number_in_model = debug_number_in_model
 
         if out_features>in_features and not debug_allow_any_shape:
             raise Exception("out dim must be <= in dim. For debug purpose, set debug_allow_any_shape=True.")
-        self.in_features = torch.nn.Parameter(torch.tensor([in_features], dtype = torch.int64,device=device), requires_grad=False)
-        self.out_features = torch.nn.Parameter(torch.tensor([out_features], dtype = torch.int64,device=device), requires_grad=False)
-        self.gramo_for_each_output = torch.nn.Parameter(torch.tensor([gramo_for_each_output], dtype = torch.bool,device=device), requires_grad=False)
+        self.in_features = torch.nn.Parameter(torch.tensor([in_features], dtype = torch.int64), requires_grad=False)
+        self.out_features = torch.nn.Parameter(torch.tensor([out_features], dtype = torch.int64), requires_grad=False)
+        self.gramo_for_each_output = torch.nn.Parameter(torch.tensor([gramo_for_each_output], dtype = torch.bool), requires_grad=False)
             
-        self.raw_weight_o_i = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
-        
-        self.__reset_parameters__the_plain_rand01_style()
-        #self.update_mapping_index()
-        self.grad_is_answer_strength_previous_o = torch.nn.Parameter(torch.zeros([out_features], **factory_kwargs), requires_grad=True)
-        self.grad_is_answer_strength_previous_o.grad = torch.zeros([out_features], **factory_kwargs)
+        if in_features == out_features:
+            #it's a transparent layer.
+            self.raw_weight_o_i = torch.nn.Parameter(torch.empty((0), **factory_kwargs))
+        else:
+            self.raw_weight_o_i = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
+            #self.mapping_index_previous_o = torch.nn.Parameter(torch.empty(size=[out_features], dtype=torch.int64, device = device), requires_grad=False)
+            #self.mapping_index_previous_o.data.fill_(-1)#this never equals in the first epoch.
+            self.grad_is_answer_strength_previous_o = torch.nn.Parameter(torch.zeros([out_features], **factory_kwargs), requires_grad=True)
+            self.grad_is_answer_strength_previous_o.grad = torch.zeros([out_features], **factory_kwargs)
             
+            self.__reset_parameters__the_plain_rand01_style()
+            #self.update_mapping_index()
+            pass
     
             #这两个暂时没有用上。
-        self.raw_weight_max = torch.nn.Parameter(torch.tensor([0.],device=device), requires_grad=False)
-        self.raw_weight_min = torch.nn.Parameter(torch.tensor([-15.],device=device), requires_grad=False)
+        self.raw_weight_max = torch.nn.Parameter(torch.tensor([1.]), requires_grad=False)
+        self.raw_weight_min = torch.nn.Parameter(torch.tensor([-1.]), requires_grad=False)
         #or this ??? self.raw_weight_min = torch.nn.Parameter(torch.tensor([-1./100]), requires_grad=False)
+
+        self.alpha = torch.nn.Parameter(torch.tensor([alpha]), requires_grad=False)
         
         # 2 param used in randomly making top elements picked in forward path.
-        self.epi_for_float_eq = torch.nn.Parameter(torch.tensor([0.00001],**factory_kwargs), requires_grad=False)
-        self.small_number = torch.nn.Parameter(torch.tensor([0.00003],**factory_kwargs), requires_grad=False)
+        self.epi_for_float_eq = torch.nn.Parameter(torch.tensor([0.00001]), requires_grad=False)
+        self.small_number = torch.nn.Parameter(torch.tensor([0.00003]), requires_grad=False)
         
         self.gramo_for_raw_weight = GradientModification_v2()
         self.out_gramo = GradientModification_v2()
@@ -277,149 +283,9 @@ class DigitalMapper_v2_6(torch.nn.Module):
 
     def __reset_parameters__the_plain_rand01_style(self) -> None:
         '''copied from torch.nn.Linear'''
-        #if 0 == self.mode:
         self.raw_weight_o_i.data = torch.rand_like(self.raw_weight_o_i)# they should be <0.
         pass
-    def ____a() :
-        '''
 
-    def accepts_non_standard_range(self)->str:
-        return "although this layer accepts non standard input, I recommend you only feed standard +-1(np) as input."
-    def outputs_standard_range(self)->str:
-        return "It depends on what you feed in. If the input is standard +-1(np), the output is also standard +-1(np)."   
-    
-    def deduplicate(self, chosen_index:Tuple[torch.Tensor|None] = None)->torch.Tensor:
-        # if chosen_index is None, this is the last layer, or all layers after this layer are all square.
-        # square digital mapper doesn't do anything, and simply pass the chosen_index to previous layer.
-        if self.out_features == self.in_features:
-            return chosen_index
-        if chosen_index is None:
-            self.__deduplicate_plain()
-            result = self.get_max_index_plain().unique()
-            return result
-        if chosen_index.shape[0] == 0:
-            return chosen_index
-        with torch.no_grad():
-            max_index = self.get_max_index_plain()
-            buff = torch.empty([chosen_index.shape[0]], device=self.raw_weight_o_i.device, dtype=max_index.dtype)
-            buff.fill_(-1)
-            buff[0] = max_index[chosen_index[0]]
-            len_s = torch.tensor(1, device=self.raw_weight_o_i.device)
-            for i in range(1,chosen_index.shape[0]):
-                chosen_index_now_s:torch.Tensor = chosen_index[i]
-                max_index_now_s = max_index[chosen_index_now_s]
-                flag = buff[:i].eq(max_index_now_s)
-                if flag.any():
-                    self.raw_weight_o_i.data[chosen_index_now_s,max_index_now_s] = -1.
-                else:
-                    buff[len_s] = max_index_now_s
-                    len_s+=1
-                    pass
-                pass#for 
-            new_max = self.get_max_index_plain()
-            new_max_chosen = new_max[chosen_index]
-            result = new_max_chosen.unique()
-            return result
-        #end of function
-        
-    def __deduplicate_plain(self):
-        if self.out_features == self.in_features:
-            raise Exception("untested")
-            return chosen_index
-        with torch.no_grad():
-            max_index = self.get_max_index_plain()
-            buff = torch.empty([max_index.shape[0]], device=self.raw_weight_o_i.device, dtype=max_index.dtype)
-            buff.fill_(-1)
-            buff[0] = max_index[0]
-            len = torch.tensor([1])
-            for i in range(1,max_index.shape[0]):
-                flag = buff[:i].eq(max_index[i])
-                if flag.any():
-                    self.raw_weight_o_i.data[i,max_index[i]] = -1.
-                else:
-                    buff[len.item()] = max_index[i]
-                    len+=1
-                    pass
-                pass
-            return
-        #end of function
-
-    def deduplicate_smart(self):
-        if self.out_features == self.in_features:
-            raise Exception("untested")
-        with torch.no_grad():
-            the_device=self.raw_weight_o_i.device
-            unused_rough_buff = torch.empty([self.raw_weight_o_i.shape[1]], dtype = torch.bool, device=the_device)
-            unused_rough_buff.fill_(True)
-            used_index = self.get_max_index_plain()
-            unused_rough_buff[used_index] = False
-            
-            unused_count = unused_rough_buff.sum()#.to(torch.int32)
-            unused_buff = torch.empty([unused_count],  dtype = torch.int64, device=the_device)
-            pos = torch.tensor(0, )
-            
-            for i, element in enumerate(unused_rough_buff):
-                if element:
-                    unused_buff[pos] = i
-                    pos+=1
-                    pass
-                pass
-        
-        raise Exception()
-        pass
-        
-        
-        
-    # def outputs_non_standard_range(self)->bool:
-    
-    # def reset_scaling_ratio_for_raw_weight(self):
-    #     ''simply sets the inner''
-    #     #the *10 is conventional. If lr is 0.001, planned epoch is 100, the overall lr is 0.001*100.
-    #     self.gramo_for_raw_weight.set_scaling_ratio(self.sqrt_of_out_features*10.)
-    #     pass
-    # def scale_the_scaling_ratio_for_raw_weight(self, by:float):
-    #     ''simply sets the inner''
-    #     self.gramo_for_raw_weight.set_scaling_ratio((self.gramo_for_raw_weight.scaling_ratio*by).item())
-    #     pass
-    # def set_scaling_ratio_for_raw_weight(self, scaling_ratio:float):
-    #     ''simply sets the inner''
-    #     self.gramo_for_raw_weight.set_scaling_ratio(scaling_ratio)
-    #     pass
-
-    # def set_epoch_factor(self, epoch_factor:float):
-    #     self.epoch_factor = torch.nn.Parameter(torch.tensor([epoch_factor]), requires_grad=False)
-    #     pass
-    
-
-    # def __________set_auto_print_difference_between_epochs(self, set_to:bool = True):
-    #     with torch.no_grad():
-    #         if not set_to:
-    #             self.raw_weight_before = torch.nn.Parameter(torch.empty([0,], requires_grad=False))
-    #             self.raw_weight_before.requires_grad_(False)
-    #             # use self.raw_weight_before.nelement() == 0 to test it.
-    #             pass
-    #         if set_to:
-    #             if self.raw_weight_o_i is None:
-    #                 raise Exception("This needs self.raw_weight first. Report this bug to the author, thanks.")
-    #             if self.raw_weight_o_i.nelement() == 0:
-    #                 raise Exception("Unreachable code. self.raw_weight contains 0 element. It's so wrong.")
-    #             #if not hasattr(self, "raw_weight_before") or self.raw_weight_before is None:
-    #             if self.raw_weight_before is None:
-    #                 self.raw_weight_before = torch.nn.Parameter(torch.empty_like(self.raw_weight_o_i), requires_grad=False)
-    #                 self.raw_weight_before.requires_grad_(False)
-    #                 pass
-    #             self.raw_weight_before.data = self.raw_weight_o_i.detach().clone()
-    #             pass
-    #         pass
-        '''
-
-    def get_eval_only(self)->Tuple[DigitalMapper_eval_only_v2|None]:
-        if self.out_features == self.in_features:
-            raise Exception("untested")
-            return None
-        result = DigitalMapper_eval_only_v2(self.in_features, self.debug__get_max_index_plain())
-        #raise Exception("untested")
-        return result
     def get_plain_max_index_from_raw(self)->torch.Tensor:
         if self.out_features == self.in_features:
             raise Exception("untested")
@@ -429,8 +295,9 @@ class DigitalMapper_v2_6(torch.nn.Module):
             
             the_max_index = self.raw_weight_o_i.max(dim=1,keepdim=False).indices
             return the_max_index
-        
-    def get_mapping_index_previous_o(self)->torch.Tensor:
+
+    def ____get_mapping_index_previous_o(self)->torch.Tensor:
+        raise Exception("do I need this?")
         if self.out_features == self.in_features:
             raise Exception("untested")
             return torch.linspace(0,self.in_features-1,self.in_features,dtype=torch.int64)
@@ -481,6 +348,9 @@ class DigitalMapper_v2_6(torch.nn.Module):
             pass
     #end of function.
 
+    def get_answer_strength(self)->torch.Tensor:
+        return self.grad_is_answer_strength_previous_o.grad
+
     def forward(self, input:torch.Tensor)->torch.Tensor:
         if len(input.shape)!=2:
             raise Exception("DigitalMapper only accept rank-2 tensor. The shape should be[batch, input dim]")
@@ -507,7 +377,6 @@ class DigitalMapper_v2_6(torch.nn.Module):
         '''
 
         if self.out_features == self.in_features:
-            raise Exception("unreachable code.")
             return input
 
         if self.training:
@@ -525,8 +394,12 @@ class DigitalMapper_v2_6(torch.nn.Module):
             else:
                 w_after_gramo = self.gramo_for_raw_weight(self.raw_weight_o_i.reshape(1,-1)).reshape(self.out_features, self.in_features)
                 pass
+            
+            #self.update_mapping_index()
                 
-            x = DigitalMapperFunction_v2_6.apply(x, w_after_gramo)
+            #print(self.mapping_index_previous_o.data, "line 609")
+                
+            x = DigitalMapperFunction_v2_6.apply(x, w_after_gramo, self.grad_is_answer_strength_previous_o)
             
             x = self.out_gramo(x)
             
@@ -537,12 +410,33 @@ class DigitalMapper_v2_6(torch.nn.Module):
             return x
         
         else:#eval mode.
-            raise Exception ("unreachable code.")
+            raise Exception("to do.")
+            
             x = input[:, self.mapping_index_previous_o]
             return x
 
+    def ____update_mapping_index(self):
+        raise Exception (" do I need this anymore?")
+        answer_str_sort_index_previous_o = self.__get_answer_str_sort_index_previous_o()
+    
+            #to do :mapping_index_trying_now_o = torch.empty([self.out_features])
+            #debug
+            #mapping_index_trying_now_o.fill_(-1)
+            
+            #some short cut test? with mapping_index_trying_now_o and mapping_index_previous_o
+            
+        raw_weight_copied_o_i:torch.Tensor = self.raw_weight_o_i.detach().clone()
+            
+            #the last stable fallback.
+        for for_which_output in answer_str_sort_index_previous_o:
+            max_index_here = raw_weight_copied_o_i[for_which_output].argmax()
+            self.mapping_index_previous_o[for_which_output] = max_index_here
+            raw_weight_copied_o_i[:,max_index_here] = -222
+            pass
+        pass
+
     def __get_answer_str_sort_index_previous_o(self):
-        answer_str = self.__get_answer_strength()
+        answer_str = self.get_answer_strength()
         result = answer_str.sort(descending=True).indices#descending=True important.
         
         return result
@@ -603,7 +497,7 @@ class DigitalMapper_v2_6(torch.nn.Module):
             # If they get the same update, only the first one is visible in forward path.
             # This part is design to defend againt this weak point.
             # Some random number is added to the top elements so they are visible to the forward path randomly.
-            flag_too_close_to_1 = self.raw_weight_o_i.data.gt(1-self.epi_for_float_eq)
+            flag_too_close_to_1 = self.raw_weight_o_i.data.gt(0-self.epi_for_float_eq)
             some_rand = torch.randn_like(self.raw_weight_o_i, device=self.raw_weight_o_i.device, dtype=self.raw_weight_o_i.dtype)*self.small_number
             to_add_to_raw_weight = some_rand*flag_too_close_to_1
             self.raw_weight_o_i.data += to_add_to_raw_weight
@@ -616,7 +510,7 @@ class DigitalMapper_v2_6(torch.nn.Module):
         result = debug_strong_grad_ratio(self.raw_weight_o_i, log10_diff, epi_for_w, epi_for_g)
         return result
 
-    def ____deduplicate_v2_6_single_input(self, chosen_index:Tuple[torch.Tensor|None] = None)->Tuple[torch.Tensor|None]:
+    def deduplicate_v2_6(self, chosen_index:Tuple[torch.Tensor|None] = None)->Tuple[torch.Tensor|None]:
         #possible optimization:
         # since the duplication relationship of plain max index should be equivalent to the relationship from
         # "difference between plain max and the non-duplicating mapping relationship of previous",
@@ -630,25 +524,26 @@ class DigitalMapper_v2_6(torch.nn.Module):
             answer_str_sort_index_previous_o = self.__get_answer_str_sort_index_previous_o()#descending=True important.
             
             max_index_plain = self.get_plain_max_index_from_raw()
-            buff = torch.empty([max_index_plain.shape[0]], device=self.raw_weight_o_i.device, dtype=max_index_plain.dtype)
-            buff.fill_(-1)
+            #buff = torch.empty([max_index_plain.shape[0]], device=self.raw_weight_o_i.device, dtype=max_index_plain.dtype)
+            buff = torch_vec(1, init_cap=max_index_plain.shape[0],dtype=torch.int64)#or 32?
+            buff.data.fill_(-1) #for debug purpose.
             for_which_output = answer_str_sort_index_previous_o[0]
-            buff[0] = max_index_plain[for_which_output] 
-            len = torch.tensor([1])
+            #buff[0] = max_index_plain[for_which_output] 
+            buff.pushback(max_index_plain[for_which_output])
+            #len = torch.tensor([1])
             for i in range(1,max_index_plain.shape[0]):
                 #print(buff[:len], "line 748")
                 #print(self.raw_weight_o_i.data)
                 for_which_output = answer_str_sort_index_previous_o[i]
                 max_index_now = max_index_plain[for_which_output]
-                flag = buff[:len].eq(max_index_now)
+                flag = buff.get_useful().eq(max_index_now)
                 if flag.any():
-                    self.raw_weight_o_i.data[for_which_output,max_index_now] = 0.#to do########??????????? or -=0.2???
-                    #self.raw_weight_o_i.data[for_which_output,max_index_now] -= 1.
-                    #set to -1(140,160,200,220,)-0.5(150,160,180,270)0(81,82,110,120)0.5(96,99,110,150)
-                    #minus 0.001(110,120,120,130)0.01(86,110,130,140,)0.1(84,100,110,110)1(95,100,110,130,)
+                    self.raw_weight_o_i.data[for_which_output,max_index_now] -= 1.#to do: test this -1
+                    #to do: test this.
                 else:
-                    buff[int(len.item())] = max_index_now
-                    len+=1
+                    buff.pushback(max_index_now)
+                    #buff[len.item()] = max_index_now
+                    #len+=1
                     pass
                 pass
             
@@ -661,60 +556,8 @@ class DigitalMapper_v2_6(torch.nn.Module):
                 temp2 = temp1[chosen_index]
                 temp3 = temp2.unique()
                 return temp3
-            raise Exception("UNREACHABLE CODE.")            
-            return
         #end of function
-        
-    def ____deduplicate_v2_5_two_inputs(self, chosen_index:Tuple[torch.Tensor|None] = None)->Tuple[torch.Tensor|None]:
-        #possible optimization:
-        # since the duplication relationship of plain max index should be equivalent to the relationship from
-        # "difference between plain max and the non-duplicating mapping relationship of previous",
-        # simply compare the difference and kick off the different element.
-        # But this version is already decent. Let's use it for now.
-        
-        
-        if self.out_features == self.in_features:
-            raise Exception("untested")
-            return chosen_index
-        with torch.no_grad():
-            answer_str_sort_index_previous_o = self.__get_answer_str_sort_index_previous_o()#descending=True important.
-            
-            max_index_plain = self.get_plain_max_index_from_raw()
-            buff = torch.empty([max_index_plain.shape[0]], device=self.raw_weight_o_i.device, dtype=max_index_plain.dtype)
-            buff.fill_(-1)
-            for_which_output = answer_str_sort_index_previous_o[0]
-            buff[0] = max_index_plain[for_which_output] 
-            len = torch.tensor([1])
-            for i in range(1,max_index_plain.shape[0]):
-                #print(buff[:len], "line 748")
-                #print(self.raw_weight_o_i.data)
-                for_which_output = answer_str_sort_index_previous_o[i]
-                max_index_now = max_index_plain[for_which_output]
-                flag = buff[:len].eq(max_index_now)
-                if flag.any():
-                    self.raw_weight_o_i.data[for_which_output,max_index_now] = 0.#to do########??????????? or -=0.2???
-                    #self.raw_weight_o_i.data[for_which_output,max_index_now] -= 1.
-                    #set to -1(140,160,200,220,)-0.5(150,160,180,270)0(81,82,110,120)0.5(96,99,110,150)
-                    #minus 0.001(110,120,120,130)0.01(86,110,130,140,)0.1(84,100,110,110)1(95,100,110,130,)
-                else:
-                    buff[len.item()] = max_index_now
-                    len+=1
-                    pass
-                pass
-            
-            if chosen_index is None:
-                temp1 = self.get_plain_max_index_from_raw()
-                temp3 = temp1.unique()
-                return temp3
-            else:
-                temp1 = self.get_plain_max_index_from_raw()
-                temp2 = temp1[chosen_index]
-                temp3 = temp2.unique()
-                return temp3
-            raise Exception("UNREACHABLE CODE.")            
-            return
-        #end of function
-        
+     
        
     @staticmethod
     def rand_weight_for_target(original_target:torch.Tensor)->torch.Tensor:
@@ -736,26 +579,26 @@ fast_traval____end_of_digital_mapper_layer_class = 432
 # print(b)
 # fds=432
 
-if 'deduplicate v2.6 test' and True:
+if 'deduplicate v2.6 test' and False:
     
     layer = DigitalMapper_v2_6(5,4,0.5,False)
     print(layer.raw_weight_o_i.shape)
-    layer.raw_weight_o_i.data = torch.tensor([[-11.,-11,-11,-0.9,0],
-            [-11,-1,0.,-11,-11],[-1,0.,-11,-11,-11],])
+    layer.raw_weight_o_i.data = torch.tensor([[0.1,0.1,0.4,0.7,0.9],[0.1,0.1,0.4,0.7,0.9],
+                                              [0.1,0.1,0.4,0.7,0.9],[0.1,0.1,0.4,0.7,0.9],])
     
     print(layer.raw_weight_o_i.shape)
     layer.grad_is_answer_strength_previous_o.grad = torch.tensor([1.,2.,3.,2.])
-    print(layer.deduplicate_v2_6())想一下。
+    print(layer.deduplicate_v2_6())
     print(layer.raw_weight_o_i.data)
     
     chosen_index = torch.tensor([2,3])
-    print(layer.deduplicate_v2_5(chosen_index))
+    print(layer.deduplicate_v2_6(chosen_index))
     print(layer.raw_weight_o_i.data)
     pass
     
-if 'get_max_index test' and False:
+if 'get_max_index test 2.6没有这个.' and False:
     gramo_for_each_output = True # This doesn't do anything when output only has 1 element. 
-    layer = DigitalMapper_v2_5(3,2,0.5,gramo_for_each_output)
+    layer = DigitalMapper_v2_6(3,2,0.5,gramo_for_each_output)
     print(layer.get_mapping_index_previous_o())
     
     layer.raw_weight_o_i.data = torch.tensor([[0.,0.2,0.],[0.4,0.,0.]])
@@ -767,7 +610,7 @@ if 'get_max_index test' and False:
     pass
 
 if 'param protection test' and False:
-    layer = DigitalMapper_v2_5(4,3,0.5, gramo_for_each_output=False)
+    layer = DigitalMapper_v2_6(4,3,0.5, gramo_for_each_output=False)
     layer.raw_weight_o_i.data = torch.tensor([[-2.,3,1,-1,],[-4.,5,1,-1,],
                                                  [-3.,-2,0,0,],])
     layer.protect_raw_weight()
@@ -776,10 +619,10 @@ if 'param protection test' and False:
     
 if '''basic single layer test''' and False:
     gramo_for_each_output = True # This doesn't do anything when output only has 1 element. 
-    layer = DigitalMapper_v2_5(3,1,0.5,gramo_for_each_output)
-    #print(layer.raw_weight_o_i.shape)
+    layer = DigitalMapper_v2_6(3,1,0.5,gramo_for_each_output)
+    print(layer.raw_weight_o_i.shape)
     layer.raw_weight_o_i.data = torch.tensor([[-1.,-1., 1.]])
-    #print(layer.raw_weight_o_i.shape)
+    print(layer.raw_weight_o_i.shape)
     #print(layer.raw_weight_o_i.requires_grad)
     input = torch.tensor([[-1., 1., 1.]], requires_grad=True)
     target = torch.tensor([[-1.]]) 
@@ -794,17 +637,17 @@ if '''basic single layer test''' and False:
     print(layer.raw_weight_o_i.data, "weight after step")
     layer.protect_raw_weight()
     print(layer.raw_weight_o_i.data, "weight after protection")
-    print(layer.mapping_index_previous_o.data, "mapping_index_previous_o")
+    #print(layer.mapping_index_previous_o.data, "mapping_index_previous_o")2.6没有这个。
     print(layer.grad_is_answer_strength_previous_o.grad, "answer_strength")
     pass
 
 if '''basic 2 layer test.''' and False:
     #gramo_for_each_output matters. It doesn't do anything useful in v2.3
     gramo_for_each_output = False
-    layer1 = DigitalMapper_v2_5(3,2,0.5,gramo_for_each_output)
-    layer1.raw_weight_o_i.data = torch.tensor([[0., 0., 1.],[0., 1., 0.]])
-    layer2 = DigitalMapper_v2_5(2,1,0.5,gramo_for_each_output)
-    layer2.raw_weight_o_i.data = torch.tensor([[0., 1.]])
+    layer1 = DigitalMapper_v2_6(3,2,0.5,gramo_for_each_output)
+    layer1.raw_weight_o_i.data = torch.tensor([[0., 0., 5.],[0., 5., 0.]])
+    layer2 = DigitalMapper_v2_6(2,1,0.5,gramo_for_each_output)
+    layer2.raw_weight_o_i.data = torch.tensor([[0., 5.]])
     input = torch.tensor([[-1., -1., 1.]], requires_grad=True)
     target = torch.tensor([[1.]]) 
     optim_them = []
@@ -825,10 +668,10 @@ if '''basic 2 layer test.''' and False:
 
 if '''basic 2 layer test 2. Answer with weight.''' and False:
     gramo_for_each_output = False
-    layer1 = DigitalMapper_v2_5(4,3,0.5,gramo_for_each_output)
-    layer1.raw_weight_o_i.data = torch.tensor([[1.,0,0,0],[0., 1.,0,0],[0., 0.,1,0]])
-    layer2 = DigitalMapper_v2_5(3,2,0.5,gramo_for_each_output)
-    layer2.raw_weight_o_i.data = torch.tensor([[0., 1,0],[0., 1,0]])
+    layer1 = DigitalMapper_v2_6(4,3,0.5,gramo_for_each_output)
+    layer1.raw_weight_o_i.data = torch.tensor([[5.,0,0,0],[0., 5.,0,0],[0., 0.,5,0]])
+    layer2 = DigitalMapper_v2_6(3,2,0.5,gramo_for_each_output)
+    layer2.raw_weight_o_i.data = torch.tensor([[0., 5,0],[0., 5,0]])
     input = torch.tensor([[-1.,1.,1., 1.]], requires_grad=True)
     target = torch.tensor([[1.,-1.2]]) 
     optim_them = []
@@ -841,8 +684,8 @@ if '''basic 2 layer test 2. Answer with weight.''' and False:
     pred:torch.Tensor = layer2(mid_result)
     print(pred, "pred")
     pred.backward(target)
-    print(layer1.raw_weight_o_i.grad, "weight grad")
-    print(layer2.raw_weight_o_i.grad, "weight grad")
+    print(layer1.raw_weight_o_i.grad, "l1 weight grad")
+    print(layer2.raw_weight_o_i.grad, "l2 weight grad")
     print(input.grad, "input grad")
     print(mid_result.grad, "mid_result grad")
     print(layer1.grad_is_answer_strength_previous_o.grad, "l1 answer_strength")
@@ -851,47 +694,60 @@ if '''basic 2 layer test 2. Answer with weight.''' and False:
 
 if '1 layer real training.' and False:
     gramo_for_each_output = False
-    layer = DigitalMapper_v2_5(2,1,0.5,gramo_for_each_output)
-    layer.raw_weight_o_i.data = torch.tensor([[1., 0.5]])
+    layer = DigitalMapper_v2_6(2,1,0.5,gramo_for_each_output)
+    layer.raw_weight_o_i.data = torch.tensor([[5., 0.]])
     input = torch.tensor([[-1., 1.]])#, requires_grad=True)
     target = torch.tensor([[1.]]) 
-    optim = torch.optim.SGD(layer.parameters(), lr=0.1)
-    print("11111111", layer(input))
+    optim = torch.optim.SGD(layer.parameters(), lr=1.)
+    print(layer(input), "pred before training")
     for _ in range(5):
-        print(layer.raw_weight_o_i.data)
         pred:torch.Tensor = layer(input)
+        print(layer.raw_weight_o_i.data, "raw weight")
         optim.zero_grad()
         pred.backward(target)
         optim.step()
         pass
-    print(layer.raw_weight_o_i.data)
+    layer.protect_raw_weight()
+    print(layer.raw_weight_o_i.data, "raw weight")
     print(layer(input), "   <-result")
     pass
 
-if '2 layer real training.' and False:
+if '2 layer real training.不一定说明问题，batch只有1.。。' and False:
     alpha = 0.5
     gramo_for_each_output = False
-    layer1 = DigitalMapper_v2_5(4,3,alpha,gramo_for_each_output)
+    layer1 = DigitalMapper_v2_6(4,3,alpha,gramo_for_each_output)
     layer1.raw_weight_o_i.data = torch.tensor([[1.,0,0,0],[0., 1.,0,0],[0., 0.,1,0]])
-    layer2 = DigitalMapper_v2_5(3,2,alpha,gramo_for_each_output)
-    layer2.raw_weight_o_i.data = torch.tensor([[1., 0,0],[0., 1,0]])
+    layer2 = DigitalMapper_v2_6(3,2,alpha,gramo_for_each_output)
+    layer2.raw_weight_o_i.data = torch.tensor([[0., 1,0],[0., 1,0]])
     
-    input = torch.tensor([[1.,1.,1., -1.]])#, requires_grad=True)
+    input = torch.tensor([[-1.,1.,1.,1.]])#, requires_grad=True)
     target = torch.tensor([[1.,-0.5]]) 
     optim_them = []
     optim_them.extend(layer1.parameters())
     optim_them.extend(layer2.parameters())
-    optim = torch.optim.SGD(optim_them, lr=0.1)
+    optim = torch.optim.SGD(optim_them, lr=1.)
     
     print(layer1.raw_weight_o_i.data, "l1 before")
     print(layer2.raw_weight_o_i.data, "l2 before")
-    for _ in range(10):
-        #print(layer1.raw_weight_o_i.data)
-        pred:torch.Tensor = layer2(layer1(input))
+    for _ in range(4):
+        print("--------------------------------")
+        layer1.deduplicate_v2_6()
+        layer2.deduplicate_v2_6()
+        mid_result = layer1(input)
+        pred:torch.Tensor = layer2(mid_result)
+        print(mid_result.data, "mid_result")
+        print(pred.data, "pred")
+        print("-----------")
+        print(layer1.raw_weight_o_i.data, "l1 weight")
+        print(layer2.raw_weight_o_i.data, "l2 weight")
         optim.zero_grad()
+        
         pred.backward(target)
+        print(layer2.raw_weight_o_i.grad, "l2 weight.grad")
         optim.step()
         pass
+    layer1.protect_raw_weight()
+    layer2.protect_raw_weight()
     print(layer1.raw_weight_o_i.data, "l1 after")
     print(layer2.raw_weight_o_i.data, "l2 after")
     print(layer2(layer1(input)), "   the dense way handles this case properly.")
@@ -927,14 +783,14 @@ if 'xxxxxxxxxxxx not for 2.5 xxxxxxxxxxxxxx 2 layer real training WITHOUT dedupl
     print("now uncomment the raise instruction.")
     pass
 
-if 'training loop test.' and False:
+if 'training loop test.应该是正常了。' and False:
     batch = 100
     n_in = 10
     n_out = 5
     input, target = data_gen_for_directly_stacking_test(batch,n_in, n_out, no_duplicated = True)
     # print(input)
     # print(target)
-    layer = DigitalMapper_v2_5(n_in, n_out, 0.5, False)
+    layer = DigitalMapper_v2_6(n_in, n_out, 0.5, False)
     optim = torch.optim.SGD(layer.parameters(), lr = 0.1)
     for epoch in range(10000):
         pred = layer(input)  
@@ -946,13 +802,12 @@ if 'training loop test.' and False:
         pred.backward(target)
         make_grad_noisy(layer, 1.1)
         optim.step()
-        layer.deduplicate_v2_5()
+        layer.deduplicate_v2_6()
         pass        
     pass        
 
 
 
-raise Exception()
 #below are 2 stacking tests.
 
 
@@ -1009,7 +864,7 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
         for i in range(shape_config.__len__()-1):
             in_features = shape_config[i]
             out_features = shape_config[i+1]
-            self.digital_mappers.append(DigitalMapper_v2_5(in_features,out_features,
+            self.digital_mappers.append(DigitalMapper_v2_6(in_features,out_features,
                 alpha,gramo_for_each_output,debug_number_in_model=i))
             pass
         
@@ -1195,11 +1050,11 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
     #I assume the input dim is always bigger than the output dim, because I believe this is the real case in the integrated situation.
     #If the in and out dims are the same, simply paste the input to the output, it should work perfectly.
     #if the input dim is smaller than output, why do I need this shape. This is the case in some test.
-        layer:DigitalMapper_v2_5
+        layer:DigitalMapper_v2_6
         chosen_index:Tuple[torch.Tensor|None] = None
         for i in range(self.digital_mappers.__len__()-1,-1,-1):
             layer = self.digital_mappers[i]
-            chosen_index = layer.deduplicate_v2_5(chosen_index)
+            chosen_index = layer.deduplicate_v2_6(chosen_index)
             pass
         if print_final_max_index_count:
             print("print_final_max_index_count", chosen_index.shape[0])
@@ -1220,17 +1075,18 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
     #end of function.
     pass
 
-if 'deduplicating 2.5. this test is not very carefully done.' and False:
+if 'deduplicating 2.6. this test is not very carefully done.' and True:
     #notice, in 2.5, the init makes sure the get_max_index returns non duplicating result.
     # so the unique function doesn't do anything, except for sorting.
     model = test_directly_stacking_multiple_digital_mappers([10,8,6,4], alpha=0.5)
-    layer:DigitalMapper_v2_5 = model.digital_mappers[-1]
-    uniqued = layer.get_mapping_index_previous_o().unique()
+    layer:DigitalMapper_v2_6 = model.digital_mappers[-1]
+    #uniqued = layer.get_mapping_index_previous_o().unique()
+    uniqued = layer.get_plain_max_index_from_raw().unique()
     print(uniqued)
     print()
     
     layer = model.digital_mappers[-2]
-    pure_max = layer.get_mapping_index_previous_o()
+    pure_max = layer.get_plain_max_index_from_raw()
     print(pure_max)
     chosen_max = pure_max[uniqued]
     print(chosen_max)
@@ -1239,12 +1095,14 @@ if 'deduplicating 2.5. this test is not very carefully done.' and False:
     print()
     
     layer = model.digital_mappers[-3]
-    pure_max = layer.get_mapping_index_previous_o()
+    pure_max = layer.get_plain_max_index_from_raw()
     print(pure_max)
     chosen_max = pure_max[uniqued]
     print(chosen_max)
     uniqued = chosen_max.unique()
     print(uniqued)
+    
+    继续。
     
     #now set breakpoint inside this function. The result may be a bit different, since the function deduplicates.
     model._deduplicate(print_final_max_index_count=True)

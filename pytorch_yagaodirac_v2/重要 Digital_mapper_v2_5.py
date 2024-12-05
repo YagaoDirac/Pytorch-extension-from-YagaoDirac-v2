@@ -25,6 +25,8 @@ from pytorch_yagaodirac_v2.training_ended_sound import play_noise
 #from Binarize import Binarize
 
 '''
+最后的说明。后面加入了对接双输入门的特殊逻辑，但是没有调试。这个版本不调试这个了。
+
 # 2.5的计划。
 # 现在是答案回传，回传过程当中乘的一个类似权重的东西也是稠密的，这个反向传播虽然没有被验证过，但是根据我的经验，这个是没什么问题的。
 # 新版本要做一个绝对不会重复的行为来决定每一次前向传播的时候的最终的对应关系。
@@ -695,66 +697,28 @@ class DigitalMapper_v2_5(torch.nn.Module):
             return x
 
     def update_mapping_index(self):
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        #if self.mode
-        
-        
-        answer_str_sort_index_previous_o = self.__get_answer_str_sort_index_previous_o()
-    
-            #to do :mapping_index_trying_now_o = torch.empty([self.out_features])
-            #debug
-            #mapping_index_trying_now_o.fill_(-1)
-            
-            #some short cut test? with mapping_index_trying_now_o and mapping_index_previous_o
-            #some short cut test? with mapping_index_trying_now_o and mapping_index_previous_o
-            #some short cut test? with mapping_index_trying_now_o and mapping_index_previous_o
-            
-        raw_weight_copied_o_i:torch.Tensor = self.raw_weight_o_i.detach().clone()
-            
-            #the last stable fallback.
-        for for_which_output in answer_str_sort_index_previous_o:
-            max_index_here = raw_weight_copied_o_i[for_which_output].argmax()
-            self.mapping_index_previous_o[for_which_output] = max_index_here
-            raw_weight_copied_o_i[:,max_index_here] = -222
+        if DM_Mode.FOLLOWED_BY_SINGLE_INPUT == self.mode:
+            answer_str_sort_index_previous_o = self.__get_answer_str_sort_index_previous_o()
+                #to do :mapping_index_trying_now_o = torch.empty([self.out_features])
+                #debug
+                #mapping_index_trying_now_o.fill_(-1)
+                
+                #some short cut test? with mapping_index_trying_now_o and mapping_index_previous_o
+            raw_weight_copied_o_i:torch.Tensor = self.raw_weight_o_i.detach().clone()
+                
+                #the last stable fallback.
+            for for_which_output in answer_str_sort_index_previous_o:
+                max_index_here = raw_weight_copied_o_i[for_which_output].argmax()
+                self.mapping_index_previous_o[for_which_output] = max_index_here
+                raw_weight_copied_o_i[:,max_index_here] = -222
+                pass
             pass
+        elif DM_Mode.FOLLOWED_BY_DOUBLE_INPUT == self.mode:
+            raise Exception("to do")
+        else:#2 transparent cases.
+            return
         pass
+    
 
     def __get_answer_str_sort_index_previous_o(self):
         answer_str = self.__get_answer_strength()
@@ -774,6 +738,10 @@ class DigitalMapper_v2_5(torch.nn.Module):
         Do not call this function directly.
         Moves everything between 1 and -1????
         '''
+        if DM_Mode.TRANSPARENT_FOLLOWED_BY_SINGLE_INPUT == self.mode:
+            return
+        if DM_Mode.TRANSPARENT_FOLLOWED_BY_DOUBLE_INPUT == self.mode:
+            return
         with torch.no_grad():
             the_device = self.raw_weight_o_i.device
             the_dtype = self.raw_weight_o_i.dtype
@@ -926,6 +894,8 @@ class DigitalMapper_v2_5(torch.nn.Module):
         #继续。
         #继续。
         
+        raise Exception("to do")
+        
         if self.out_features == self.in_features:
             raise Exception("untested")
             return chosen_index
@@ -977,35 +947,6 @@ class DigitalMapper_v2_5(torch.nn.Module):
         random_number = torch.pow(random_number,3)
         '''
         random_number = torch.rand_like([1,out_features], device=target_ori.device)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
-        #random_number = torch.pow(random_number, check out the test result in both tests.)
         #random_number = torch.pow(random_number, check out the test result in both tests.)
         result = original_target*random_number
         return result
