@@ -415,9 +415,13 @@ class DigitalMapper_v2_5(torch.nn.Module):
         self.alpha = torch.nn.Parameter(torch.tensor([alpha],**factory_kwargs), requires_grad=False)
         
         # 2 param used in randomly making top elements picked in forward path.
+        改，fp16的可能不对。
         self.epi_for_float_eq = torch.nn.Parameter(torch.tensor([0.00001],**factory_kwargs), requires_grad=False)
-        self.small_number = torch.nn.Parameter(torch.tensor([0.00003],**factory_kwargs), requires_grad=False)
-        
+        if dtype == torch.float16:
+            self.small_number = torch.nn.Parameter(torch.tensor([0.01],**factory_kwargs), requires_grad=False)
+        else:
+            self.small_number = torch.nn.Parameter(torch.tensor([0.00003],**factory_kwargs), requires_grad=False)
+            pass
         self.gramo_for_raw_weight = GradientModification_v2()
         self.out_gramo = GradientModification_v2()
         
