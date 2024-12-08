@@ -83,7 +83,10 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
         input_b_i:torch.Tensor = args[0]# shape must be [batch, in_features]
         raw_weight_o_i:torch.Tensor = args[1]# shape must be [out_features, in_features]
         place_holder_for_answer_strength_o:torch.Tensor = args[2]# value doesn't matter. shape[out_features]
-                
+        # this hardenness prevents training.
+        # the_dtype = input_b_i.dtype
+        # input_b_i = input_b_i.gt(0.)*2.-1.        
+        # input_b_i = input_b_i.to(the_dtype)
         softmax_of_raw_weight_o_i = raw_weight_o_i.softmax(dim=1)
         
         input_reshaped_b_i_1 = input_b_i.reshape([input_b_i.shape[0],input_b_i.shape[1],1])
@@ -109,6 +112,10 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
         #input_requires_grad = torch.tensor([input_b_i.requires_grad], device=input_b_i.device)
         
         if w_requires_grad:
+            # this hardenness prevents training.
+            # the_dtype = input_b_i.dtype
+            # input_b_i = input_b_i.gt(0.)*2.-1.        
+            # input_b_i = input_b_i.to(the_dtype)
             g_in_reshaped_b_o_1:torch.Tensor = g_in_b_o[:,:,None]
             input_reshaped_b_1_i:torch.Tensor = input_b_i[:,None,:]
             
@@ -221,6 +228,7 @@ class DigitalMapper_v2_6(torch.nn.Module):
 
     def __init__(self, in_features: int, out_features: int, \
                      gramo_for_each_output:bool, \
+                         deduplicating_strength:float, \
                     #is_out_mapper_in_DSPU:bool, \
                  #needs_out_gramo = True, \
                     # auto_print_difference:bool = False, \
@@ -260,7 +268,11 @@ class DigitalMapper_v2_6(torch.nn.Module):
             pass
     
             #这两个暂时没有用上。
-        self.raw_weight_max = torch.nn.Parameter(torch.tensor([1.]), requires_grad=False)
+        
+        self.gramo_for_raw_weight = GradientModification_v2()
+        self.out_gramo = GradientModification_v2()
+        
+        self.raw_weight_max = torch.nn.Parameter(torch.tensor([1.]), requires_grad=False)#not used now???
         self.raw_weight_min = torch.nn.Parameter(torch.tensor([-1125.]), requires_grad=False)#to test. This is a hyperparam. Test it.
         #or this ??? self.raw_weight_min = torch.nn.Parameter(torch.tensor([-1./100]), requires_grad=False)
         
@@ -271,10 +283,10 @@ class DigitalMapper_v2_6(torch.nn.Module):
         else:
             self.small_number = torch.nn.Parameter(torch.tensor([0.00003]), requires_grad=False)
             pass
+        # deduplicating from another perspective.
+        self.deduplicating_strength = torch.nn.Parameter(torch.tensor(deduplicating_strength, **factory_kwargs), requires_grad=False)
         
-        self.gramo_for_raw_weight = GradientModification_v2()
-        self.out_gramo = GradientModification_v2()
-        
+        self.can_convert_to_eval_only_mode__the_threshold = torch.nn.Parameter(torch.tensor(0.51, **factory_kwargs), requires_grad=False)
         pass
 
     def __reset_parameters__the_plain_rand01_style(self) -> None:
@@ -441,10 +453,6 @@ class DigitalMapper_v2_6(torch.nn.Module):
         #return self.get_answer_strength().sort(descending=True).indices
     #end of function.
 
-    def extra_repr(self) -> str:
-        #return f'Output is standard binary range. In_features={self.in_features}, out_features={self.out_features}'
-        return f'In_features={self.in_features}, out_features={self.out_features}'
-
     def protect_raw_weight(self, report_nan_and_inf = False):
         '''
         this function is designed only to be called in the forward. 
@@ -454,9 +462,6 @@ class DigitalMapper_v2_6(torch.nn.Module):
         
         
         with torch.no_grad():
-            the_device = self.raw_weight_o_i.device
-            the_dtype = self.raw_weight_o_i.dtype
-            
             #step 1, get the flags, then nan to num.
             #flag_inf = self.raw_weight_o_i.isinf()
             #flag_nan = self.raw_weight_o_i.isnan()
@@ -537,14 +542,7 @@ class DigitalMapper_v2_6(torch.nn.Module):
                 max_index_now = max_index_plain[for_which_output]
                 flag = buff.get_useful().eq(max_index_now)
                 if flag.any():
-                    self.raw_weight_o_i.data[for_which_output,max_index_now] -= 100.#to test: test this -1
-                    # with lr == 10# 1(220,300,340,420)10(12,12,19,65)
-                    # with lr == 1.# 0.1()1(32,56,100+0.97)10(34,34,38,49)100(32,36,41,68)
-                    # with lr == 0.1# 0.01(800+unstable 0.82)0.1(270,270,330,400+unstable0.97)1(880,2k,3k2+0.97)
-                    #11111111111111111111111
-                    继续。
-                    
-                    #to test: test this.
+                    self.raw_weight_o_i.data[for_which_output,max_index_now] -= self.deduplicating_strength
                 else:
                     buff.pushback(max_index_now)
                     #buff[len.item()] = max_index_now
@@ -562,8 +560,12 @@ class DigitalMapper_v2_6(torch.nn.Module):
                 temp3 = temp2.unique()
                 return temp3
         #end of function
-     
-       
+    
+    
+    def extra_repr(self) -> str:
+        #return f'Output is standard binary range. In_features={self.in_features}, out_features={self.out_features}'
+        return f'In_features={self.in_features}, out_features={self.out_features}'
+
     @staticmethod
     def rand_weight_for_target(original_target:torch.Tensor)->torch.Tensor:
         raise Exception ("untested.")
@@ -576,8 +578,69 @@ class DigitalMapper_v2_6(torch.nn.Module):
         result = original_target*random_number
         return result
     
+    
+    
+    
+    
+    
+    
+    def device(self)->torch.device:
+        return self.raw_weight_o_i.device
+    def dtype(self)->torch.device:
+        return self.raw_weight_o_i.dtype
+    
+    def set_can_convert_to_eval_only_mode__the_threshold(self, the_threshold:float):
+        if the_threshold<=0.5:
+            raise Exception("Param:the_threshold must > 0.5")
+        if the_threshold>0.9:
+            raise Exception("Trust me.")
+        self.can_convert_to_eval_only_mode__the_threshold = torch.nn.Parameter(torch.tensor([the_threshold],device=self.device(),dtype=self.dtype()), requires_grad=False)
+        pass
+    
+    def can_convert_into_eval_only_mode(self, print_least_strength_now = False)->Tuple[torch.Tensor, torch.Tensor]:
+        r'''This function tests if the raw_weight itself can provide a binarized behavior.
+        No ghost weight or sharpenning algorithm is applied.
+
+        output:
+        >>> [0] can(True) or cannot(False)
+        >>> [1] The least "max strength" of each output. Only for debug.
+        '''
+        with torch.no_grad():
+            w_after_softmax = self.raw_weight_o_i.softmax(dim=1)
+            max_of_each_output = w_after_softmax.amax(dim=1)
+            least_strength = max_of_each_output.amin()
+            #least_strength = least_strength.to(self.device())
+            #print(least_strength)
+            result_flag = least_strength>self.can_convert_to_eval_only_mode__the_threshold
+            #result_flag = result_flag.to(self.device())
+
+            if print_least_strength_now:
+                least_strength_now = least_strength.item()
+                print(least_strength_now,"least_strength_now  __line 1098")
+
+                # old code.
+                # if least_strength_now<0.52 and least_strength_now>0.2:
+                #     if least_strength_now == self.debug_least_strength_last_time:
+                #         print(least_strength_now,"least_strength_now")
+                #         pass
+                #     pass
+                # self.debug_least_strength_last_time = least_strength_now
+                pass
+
+            return (result_flag, least_strength)
+    
+    
     pass
 fast_traval____end_of_digital_mapper_layer_class = 432
+
+
+if 'can_convert_into_eval_only_mode' and False:
+    layer = DigitalMapper_v2_6(4,3,False)
+    print(layer.raw_weight_o_i.shape)
+    layer.raw_weight_o_i.data = torch.tensor([[0.1,0.4,0.7,6.9],[0.1,0.4,0.7,1.7],[0.1,0.4,0.7,2.9]])
+    print(layer.raw_weight_o_i.shape)
+    print(layer.can_convert_into_eval_only_mode())
+    pass
 
 # a = torch.tensor([21,31,11,41,61,51])
 # b = a.sort(descending=True).indices
@@ -586,7 +649,7 @@ fast_traval____end_of_digital_mapper_layer_class = 432
 
 if 'deduplicate v2.6 test' and False:
     
-    layer = DigitalMapper_v2_6(5,4,0.5,False)
+    layer = DigitalMapper_v2_6(5,4,False)
     print(layer.raw_weight_o_i.shape)
     layer.raw_weight_o_i.data = torch.tensor([[0.1,0.1,0.4,0.7,0.9],[0.1,0.1,0.4,0.7,0.9],
                                               [0.1,0.1,0.4,0.7,0.9],[0.1,0.1,0.4,0.7,0.9],])
@@ -855,6 +918,7 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
         return result
     
     def __init__(self, shape_config:List[int], \
+                deduplicating_strength:float, \
             gramo_for_each_output = False, \
             #auto_print_difference:bool = False, \
             device=None, dtype=None) -> None: 
@@ -867,7 +931,7 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
             in_features = shape_config[i]
             out_features = shape_config[i+1]
             self.digital_mappers.append(DigitalMapper_v2_6(in_features,out_features,
-                gramo_for_each_output,debug_number_in_model=i))
+                gramo_for_each_output,deduplicating_strength,debug_number_in_model=i))
             pass
         
         self.index_of_last_update = torch.nn.Parameter(torch.empty([shape_config.__len__()-1, shape_config[0]], dtype=torch.int64), requires_grad=False)
@@ -1027,6 +1091,8 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
         with torch.no_grad():
             layer:DigitalMapper_v2_6 = self.digital_mappers[-1]
             #temp1 = layer.get_mapping_index_previous_o()
+            
+            加点东西。
             temp1 = layer.get_plain_max_index_from_raw()
             previous_index = temp1.unique()
             layer_number = self.digital_mappers.__len__()-1
@@ -1081,6 +1147,57 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
                 pass
             return
     #end of function.
+    
+    def device(self)->torch.device:
+        return self.digital_mappers[0].raw_weight_o_i.device
+    def dtype(self)->torch.dtype:
+        return self.digital_mappers[0].raw_weight_o_i.dtype
+    
+    def can_convert_into_eval_only_mode(self, print_result = False)->Tuple[torch.Tensor, torch.Tensor]:
+        temp_list:List[Tuple[torch.Tensor, torch.Tensor]] = []
+        for layer in self.digital_mappers:
+            temp_list.append(layer.can_convert_into_eval_only_mode())
+            pass
+
+        # temp_list.append(self.first_layer.can_convert_into_eval_only_mode())
+        # layer:DigitalMapper_V1_2
+        # for layer in self.mid_layers:
+        #     temp_list.append(layer.can_convert_into_eval_only_mode())
+        #     pass
+        # temp_list.append(self.last_layer.can_convert_into_eval_only_mode())
+
+        if print_result:
+            for obj in temp_list:
+                print(f"{obj[1].item():.3f}", end=",,,")
+                pass
+            print("    ", epoch, "    from dry stack test can_convert_into_eval_only_mode function.")
+            pass
+
+        the_flag = torch.tensor([True], device=self.device())
+        the_number = torch.tensor([1.], device=self.device())
+        for temp in temp_list:
+            the_flag = the_flag.logical_and(temp[0])
+            the_number = the_number.minimum(temp[1])
+            pass
+        return (the_flag, the_number)
+    
+    pass
+
+if 'can_convert_into_eval_only_mode' and False:
+    model = test_directly_stacking_multiple_digital_mappers([4,3,2])
+    layer:DigitalMapper_v2_6 = model.digital_mappers[0]
+    print(layer.raw_weight_o_i.shape)
+    layer.raw_weight_o_i.data = torch.tensor([[0.,0,0,1],[0.,0,0,3],[0.,0,0,2],])
+    print(layer.raw_weight_o_i.shape)
+    print(layer.can_convert_into_eval_only_mode())
+    
+    layer = model.digital_mappers[1]
+    print(layer.raw_weight_o_i.shape)
+    layer.raw_weight_o_i.data = torch.tensor([[0.,0,4],[0.,0,3],])
+    print(layer.raw_weight_o_i.shape)
+    print(layer.can_convert_into_eval_only_mode())
+    
+    print(model.can_convert_into_eval_only_mode())
     pass
 
 if 'deduplicating 2.6. 2.6版本是一个基于softmax的，deduplicate的行为不是那种很硬的。这个测试意义不大。' and False:
@@ -1141,55 +1258,91 @@ if 'skipped. Maybe I should do it before move on.       print_max_index test'and
 
 
 fast_traval____direct_stack_test = 432
-if 'direct stack test' and True:
-    for _ in range(4):
-        is_half = False#false(4,5,6,6),True(4k+<0.7)
+if 'direct stack test' and False:
+    for _ in range(10):
+        is_half = False#false(4,5,6,6),True(4k+<0.7, the reason is the code doesn't support half, needs more work.)
         
-        gramo_for_each_output = True#????????????false(3,5,5,7))true(4,5,5,6)
-        re_rand_target_weight_every =5
-        deduplicate_every = 1
-        #????????????re:de(result)
-        #1:1(59,64,64)2(64,110,110,140)
-        #2:1(39,44,46,89)2(65,100,110,110)
-        #3:1(41,44,51,120)
-        #4:1(51,52,57,88)
-        #5:1(39,41,51)2(49,72,86)
-        #7:1(54,57,68,80)
-        #10:1(52,56,71,120)
+        gramo_for_each_output = False#
+        '''
+        #false(200,200,450)true(250to390)
+        
+        '''
+        re_rand_target_weight_every = 111111111#inf.
+        deduplicate_every = 1#1
+        '''
+        re inf: de 1(12to15)2(12to15)3(11to16,23,200+)
+        re:de(result)
+        re 1: de 1(15to22,34,20 0.92) 10(42, 190 0.92)
+        re 10: de 1(12to17)           10(12to15,25,30, <100 20 0.97)
+        re 100: de 1(12to16<32)         
+        '''
         
         is_cuda = True
         batch = 10000
         
-        lr = 1.#10
         #11111111111111111111111
-        #lr 0.1(50,51,51,60)1(10,11,13,13)10(4,5,5,5)100(4,4,5,6)1k(3,5,6,8)10k(3,5,9,10)100k(4,4,8,10)
+        deduplicating_strength = float(deduplicate_every)*10 #10
+        lr = 3.#3
+        '''
+        #ds 0.1: lr 0.1(50to110<270)  1(8to11<19)     10(5to8<28)  100(4to7<93,310,1k2)1k(3,6,??,1k8)
+        #ds 1: lr 0.1(44,55,64,66<82) 1(9,10,10,10<19)10(4,4,4,8<9)100(3,5,6,10<55,810)1k(3,4,5,36<1k1)
+        #ds 10: lr 0.1(24,27,27,50<59)1(8,8,9,<13)    10(4,4,4,6<7)100(4,4,6,<36)      1k(4,4,5,5,<26)
+        #ds 100: lr 0.1(23,30,330,330)1(6to10<39)     10(4to10)    100(3to10)          1k(3to7<9)10k(3to10? <19)
+        #to test: test this.
+        '''
         
-        in_features = 100
-        out_features = 20
-        num_layers = 4
-        #10/3/3(3,5,5,8)
-        #10/5/3(6,10,13,14,unstable 0.9)
-        #20/5/3(6,7,8,10)
-        #50/5/3(4,5,6,7)
-        #100/5/3(4,5,5,7)
-        #100/10/3(13,15,15,22)
-        #100/20/3(16,36,unstable 0.95)
-        #100/20/4(<100, unstable 0.87)
+        in_features = 50
+        out_features = 5
+        num_layers = 9
+        '''
+        50/5/4(14to25)
+        50/5/5(96to160)
+        50/5/6(280to520)
+        50/5/7(560to1k1)
+        50/5/8(1k6to3k)
+        50/5/9(2k9,3k4)
+                
+        10/5/4(9to15)
+        20/5/4(13to16)
+        30/5/4(14to19,24)
+        40/5/4(16to21)
+        50/5/4(14to25)
+        70/5/4(16to22,68,130)
+        100/5/4(18to170)
+        
+        50/5/4(14to25)
+        50/10/4(10to12)
+        50/20/4(14to17)
+        50/30/4(unstable 300+)
+        
+        
+        #10/3/3(3to8)
+        #10/5/3(5to12)
+        #20/5/3(6to9<13)
+        #50/5/3(6to9)
+        #100/5/3(6to8)
+        #100/10/3(5,7to8)
+        #100/20/3(8to10)
+        #100/20/4(12to17<340)
+        #100/20/5(40 0.97)
+        #100/20/10(???)
+        '''
         
         def print_config_after_finish():
             #print("re_rand_target_weight_every:", re_rand_target_weight_every, "/deduplicate_every:", deduplicate_every)
-            #print("lr:", lr)
-            print("in_features:", in_features, "/out_features:", out_features, "/num_layers:", num_layers)
+            #print("lr:", lr,"/deduplicating_strength:",deduplicating_strength)
+            print("gramo_for_each_output:", gramo_for_each_output)
+            #print("in_features:", in_features, "/out_features:", out_features, "/num_layers:", num_layers)
             return
         
-        pt = Print_Timing(first=1, max_gap=200, density=0.5)
+        pt = Print_Timing(first=1, max_gap=50, density=0.5)
         
         (input, target_ori) = data_gen_for_directly_stacking_test(batch, in_features, out_features, no_duplicated = True)
         target = target_ori
         #print(target)
 
         the_config = test_directly_stacking_multiple_digital_mappers.gen_shape_config(in_features, out_features, num_layers)
-        model = test_directly_stacking_multiple_digital_mappers(the_config, gramo_for_each_output)
+        model = test_directly_stacking_multiple_digital_mappers(the_config, deduplicating_strength, gramo_for_each_output)
         #model.set_update_str_Decrease()
         #model.scale_the_scaling_ratio_for_raw_weight(3.)
         if False and "print parameters":
@@ -1228,21 +1381,18 @@ if 'direct stack test' and True:
         
         #print(model.digital_mappers[0].raw_weight_o_i.dtype, "  __line 1207")
         
+        try_sharpen_for = 0
         #################################################################training loop
         for epoch in range(1231231):
             if epoch%deduplicate_every == deduplicate_every-1:
-                model.besides_stepping(deduplicate = True,print_all_max_index_count=False)
+                model.besides_stepping(deduplicate = True,print_all_max_index_count=pt.check(epoch))
                 #print("deduplicate")
                 pass
             # re rand the temp weight for target
             if epoch%re_rand_target_weight_every == re_rand_target_weight_every-1:
-                '''
-                random_number = torch.rand([1,out_features], device=target_ori.device)
-                random_number = torch.pow(random_number,3)
-                '''
                 random_number = torch.rand([1,out_features], device=target_ori.device)
                 random_number = torch.pow(random_number,0.01)
-                #0.01(11,16,20)0.1(13,14,22)1(15,17,23)2(19,22,40)10(34,36,40)
+                #0.01(120 30 0.97)0.1(300+?)1()10()
                 target = target_ori*random_number
                 pass
             #print(model.digital_mappers[0].raw_weight_o_i.dtype, "  __line 1207")
@@ -1265,8 +1415,10 @@ if 'direct stack test' and True:
             optimizer.zero_grad()
             
             with torch.inference_mode():
-                (acc, perfect) = bitwise_acc(pred, target)
+                (acc, perfect) = bitwise_acc(pred, target, print_out_when_exact_one=False)
                 if perfect:
+                    #(hard_enough, least_hardness) = model.can_convert_into_eval_only_mode()
+                    #if hard_enough:
                     print("FINISHED, ep:", epoch+1)
                     print("FINISHED, ep:", epoch+1)
                     print("FINISHED, ep:", epoch+1)
@@ -1275,10 +1427,18 @@ if 'direct stack test' and True:
                     print(pred[:1,:7], "pred", "    __line 1260")
                     print(target_ori[:1,:7], "target")
                     break
-                if pt.check(epoch):
-                    print(epoch+1, f"    ep/acc    {acc:.3f}    line 1260")
-                    #model._print_max_index_count()
-                    pass
+                    # else:# acc is 100% but not hard_enough
+                    #     print(epoch+1, f"    ep/acc    {acc:.3f}   /hardness   {least_hardness.item():.3f}     line 1405")
+                    #     print(model.digital_mappers[0].raw_weight_o_i[0])
+                    #     try_sharpen_for+=1
+                    #     if try_sharpen_for>5:
+                    #         break
+                    #     pass
+                else:# acc not 100%
+                    if pt.check(epoch):
+                        print(epoch+1, f"    ep/acc    {acc:.3f}    line 1410")
+                        #model._print_max_index_count()
+                        pass
                 pass
             
             pred.backward(target)#intentional.
@@ -1353,6 +1513,7 @@ if 'direct stack test' and True:
 
 class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.nn.Module):
     def __init__(self, width:int, extra_width:int, layer_count:int, \
+                deduplicating_strength:float, \
             gramo_for_each_output = False, \
             device=None, dtype=None) -> None: 
         factory_kwargs = {'device': device, 'dtype': dtype}
@@ -1367,7 +1528,7 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
         self.digital_mappers = torch.nn.ParameterList([])
         for i in range(layer_count):
             self.digital_mappers.append(DigitalMapper_v2_6(total_width,width,
-                gramo_for_each_output,debug_number_in_model=i))
+                gramo_for_each_output,deduplicating_strength,debug_number_in_model=i))
             pass
         
         #self.index_of_last_update = torch.nn.Parameter(torch.empty([shape_config.__len__()-1, shape_config[0]], dtype=torch.int64), requires_grad=False)
@@ -1378,6 +1539,33 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
         x = input
         for layer in self.digital_mappers:
             halfway_noise = torch.randint(0,2,[batch,self.extra_width], device = x.device)*2-1
+            raise Exception()
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
+            #改
             x_with_noise = torch.concat((x,halfway_noise),dim=-1)
             x = layer(x_with_noise)
         return x
@@ -1531,12 +1719,48 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
     #I assume the input dim is always bigger than the output dim, because I believe this is the real case in the integrated situation.
     #If the in and out dims are the same, simply paste the input to the output, it should work perfectly.
     #if the input dim is smaller than output, why do I need this shape. This is the case in some test.
-        layer:DigitalMapper_v2_5
+        layer:DigitalMapper_v2_6
         useful_chosen:Tuple[torch.Tensor|None] = None
         for i in range(self.digital_mappers.__len__()-1,-1,-1):
             layer = self.digital_mappers[i]
-            chosen_index:torch.Tensor = layer.deduplicate_v2_5(useful_chosen)
+            chosen_index:torch.Tensor = layer.deduplicate_v2_6(useful_chosen)
             flag_useful = chosen_index.lt(self.width)
+            raise Exception()
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
+            #验证一下。
             useful_chosen = chosen_index[flag_useful]
             pass
         if print_final_max_index_count:
@@ -1554,6 +1778,41 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
                 pass
             return
     #end of function.
+    
+    def device(self)->torch.device:
+        return self.digital_mappers[0].raw_weight_o_i.device
+    def dtype(self)->torch.dtype:
+        return self.digital_mappers[0].raw_weight_o_i.dtype
+    
+    
+    def can_convert_into_eval_only_mode(self, print_result = False)->Tuple[torch.Tensor, torch.Tensor]:
+        temp_list:List[Tuple[torch.Tensor, torch.Tensor]] = []
+        for layer in self.digital_mappers:
+            temp_list.append(layer.can_convert_into_eval_only_mode())
+            pass
+
+        # temp_list.append(self.first_layer.can_convert_into_eval_only_mode())
+        # layer:DigitalMapper_V1_2
+        # for layer in self.mid_layers:
+        #     temp_list.append(layer.can_convert_into_eval_only_mode())
+        #     pass
+        # temp_list.append(self.last_layer.can_convert_into_eval_only_mode())
+
+        if print_result:
+            for obj in temp_list:
+                print(f"{obj[1].item():.3f}", end=",,,")
+                pass
+            print("    ", epoch, "    from dry stack test can_convert_into_eval_only_mode function.")
+            pass
+
+        the_flag = torch.tensor([True], device=self.device())
+        the_number = torch.tensor([1.], device=self.device())
+        for temp in temp_list:
+            the_flag = the_flag.logical_and(temp[0])
+            the_number = the_number.minimum(temp[1])
+            pass
+        return (the_flag, the_number)
+    
     pass
 
 if '_print_max_index_count test' and False:

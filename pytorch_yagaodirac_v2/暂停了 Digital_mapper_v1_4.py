@@ -48,9 +48,9 @@ class DigitalMapper_V1_4(torch.nn.Module):
             raise Exception("emmmm")
 
         self.in_features = in_features
-        self.log_of_in_features = torch.nn.Parameter(torch.log(torch.tensor([in_features])), requires_grad=False)
+        self.log_of_in_features = torch.nn.Parameter(torch.log(torch.tensor(in_features)), requires_grad=False)
         self.out_features = out_features
-        self.sqrt_of_out_features = torch.nn.Parameter(torch.sqrt(torch.tensor([out_features])), requires_grad=False)
+        self.sqrt_of_out_features = torch.nn.Parameter(torch.sqrt(torch.tensor(out_features)), requires_grad=False)
         self.out_iota = torch.nn.Parameter(torch.linspace(0,out_features-1, out_features, dtype=torch.int32), requires_grad=False)
           
         # self.raw_weight_boundary_for_f32 = torch.nn.Parameter(torch.tensor([raw_weight_boundary_for_f32]), requires_grad=False)
@@ -59,11 +59,11 @@ class DigitalMapper_V1_4(torch.nn.Module):
         self.__reset_parameters__the_plain_rand01_style()
         if training_ghost_weight_probability<0. or training_ghost_weight_probability>1.:
             raise Exception("Hey, it's a probability.")
-        self.training_ghost_weight_probability = torch.nn.Parameter(torch.tensor([training_ghost_weight_probability]), requires_grad=False)
+        self.training_ghost_weight_probability = torch.nn.Parameter(torch.tensor(training_ghost_weight_probability), requires_grad=False)
         self.use_non_trainable_training_pass_once = False
         #self.backup_raw_weight = torch.nn.Parameter(self.raw_weight.detach().clone(), requires_grad=False)
         #self.raw_weight_max = torch.nn.Parameter(torch.tensor([0.]), requires_grad=False)
-        self.raw_weight_min = torch.nn.Parameter(torch.tensor([-30.-self.log_of_in_features]), requires_grad=False)
+        self.raw_weight_min = torch.nn.Parameter(torch.tensor(-30.-self.log_of_in_features), requires_grad=False)
 
         # self.with_ghost__sharped_mode = False
         # self.with_ghost = False
@@ -92,8 +92,7 @@ class DigitalMapper_V1_4(torch.nn.Module):
         #self.last_acc = torch.nn.Parameter(torch.tensor([0.5]), requires_grad=False)
 
         #threshold to be able to convert into eval only mode.
-        self.can_convert_to_eval_only_mode__the_threshold = torch.nn.Parameter(torch.tensor([0.51], **factory_kwargs), requires_grad=False)
-        self.can_convert_to_eval_only_mode__the_threshold.requires_grad_(False)
+        self.can_convert_to_eval_only_mode__the_threshold = torch.nn.Parameter(torch.tensor(0.51, **factory_kwargs), requires_grad=False)
         self.debug_least_strength_last_time = 0.
         self.eval_mode_0_is_raw__1_is_sharp = eval_mode_0_is_raw__1_is_sharp
         pass
@@ -133,8 +132,7 @@ class DigitalMapper_V1_4(torch.nn.Module):
             raise Exception("Param:the_threshold must > 0.5")
         if the_threshold>0.9:
             raise Exception("Trust me.")
-        self.can_convert_to_eval_only_mode__the_threshold = torch.nn.Parameter(torch.tensor([the_threshold], requires_grad=False))
-        self.can_convert_to_eval_only_mode__the_threshold.requires_grad_(False)
+        self.can_convert_to_eval_only_mode__the_threshold.data = torch.tensor(the_threshold)
         pass
 
     # def set_shaper_factor(self, shaper_factor:float, I_know_what_Im_doing = False):

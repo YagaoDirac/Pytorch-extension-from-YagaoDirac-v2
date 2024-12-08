@@ -788,8 +788,10 @@ def bitwise_acc(a:torch.Tensor, b:torch.Tensor, output_is_01 = False, print_out_
         else:
             temp = a.gt(0.) == b.gt(0.)
             pass
-        if temp.all() and print_out_when_exact_one:
-            print(1., "(NO ROUNDING!!!)   <- the accuracy    inside bitwise_acc function __line 859 ")
+        if temp.all():
+            if print_out_when_exact_one:
+                print(1., "(NO ROUNDING!!!)   <- the accuracy    inside bitwise_acc function __line 859 ")
+                pass
             return (1., True)
         temp2 = temp.sum().to(torch.float32)
         acc = temp2/float(a.shape[0]*a.shape[1])
