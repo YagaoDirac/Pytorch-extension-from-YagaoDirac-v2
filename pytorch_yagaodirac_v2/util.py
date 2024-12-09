@@ -926,3 +926,40 @@ def print_as_np_1(print_me:torch.Tensor):
 # print_as_np_1(a)
 # fds=432
     
+    
+    
+    
+    
+def softmax_dim_1_from_yagaodirac(the_tensor:torch.Tensor, epi:Optional[torch.Tensor]=None)->torch.Tensor:
+    if the_tensor.shape.__len__()!=2:
+        raise Exception("According to my convention, the shape should be [batch, dim].")
+    top_raw_element_of_each_row_b_d = the_tensor.amax(dim=1, keepdim=True)
+    offset_input_b_d = the_tensor-top_raw_element_of_each_row_b_d
+    the_exp_b_d = offset_input_b_d.exp()
+    #only positive values.
+    sum_of_each_row_b_1 = the_exp_b_d.sum(dim=1, keepdim=True)
+    if epi is None:
+        if torch.float16 == the_tensor.dtype:
+            epi = torch.tensor(1e-3,dtype=torch.float16,device=the_tensor.device)
+            pass
+        elif torch.float32 == the_tensor.dtype:
+            epi = torch.tensor(1e-6,dtype=torch.float32,device=the_tensor.device)
+            pass
+        else:
+            raise Exception("dtype is weird. No implemented for fp64 now.")
+    sum_of_each_row__safe__b_1 = sum_of_each_row_b_1.maximum(epi)
+    result = the_exp_b_d/sum_of_each_row__safe__b_1
+    return result
+if 'basic test' and False:
+    input = torch.tensor([[0.,1]],dtype=torch.float16)
+    print(softmax_dim_1_from_yagaodirac(input))
+    print(input.to(torch.float32).softmax(dim=1))
+    pass
+if 'basic test' and False:
+    dummy = torch.tensor([[0,1]],dtype=torch.int64)
+    import random
+    input = torch.randn((random.randint(2,5),random.randint(2,5)),dtype=torch.float16)
+    print(softmax_dim_1_from_yagaodirac(input))
+    print(input.to(torch.float32).softmax(dim=1))
+    pass
+
