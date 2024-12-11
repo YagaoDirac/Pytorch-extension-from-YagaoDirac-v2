@@ -11,13 +11,17 @@ sys.path.append(str(Path(__file__).parent.parent))
 from pytorch_yagaodirac_v2.Util import bitwise_acc, data_gen_for_directly_stacking_test
 from pytorch_yagaodirac_v2.Util import data_gen_for_directly_stacking_test_same_dim_no_duplicated
 from pytorch_yagaodirac_v2.Util import debug_strong_grad_ratio, make_grad_noisy
-from pytorch_yagaodirac_v2.Util import Print_Timing,softmax_dim_1_from_yagaodirac
-from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2
+from pytorch_yagaodirac_v2.Util import Print_Timing
+from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_abs_to_less_than_1
 from pytorch_yagaodirac_v2.training_ended_sound import play_noise
 from pytorch_yagaodirac_v2.torch_vec import torch_vec
 #from Binarize import Binarize
 
+
 '''
+最新笔记。2.6之前的设计有一个问题，就是，其实无法预估元素的最大更新，不是lr*1，后面的系数不是1.
+in dim越大，这个系数越有可能超过1，这个和选用的gramo有关。之前的设计是mean abs那个版本，现在
+准备改成 max bas版本再跑一遍测试。总的来说，之前那个做法是不如直接用2.5的，性能差不多，但是不锐化。
 
 2.6的结果。
 堆叠实验的第二个带中途加宽的，好像基本没有出现过100%的acc。
@@ -108,6 +112,9 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
         output_before_reshape_b_o_1:torch.Tensor = softmax_of_raw_weight_o_i.matmul(input_reshaped_b_i_1)
         output_before_scale_step1_b_o = output_before_reshape_b_o_1.squeeze(dim=2)
         
+        
+        即将扔出去，用单独的层。
+        
         #this helps????? maybe...
         _flag_max_of_each_batch_b_1 = output_before_scale_step1_b_o.abs().amax(dim=1,keepdim=True)
         _flag_max_of_each_batch__safe__b_1 = _flag_max_of_each_batch_b_1.maximum(torch.tensor(0.01, dtype=input_b_i.dtype))
@@ -141,22 +148,23 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
         
         if w_requires_grad:
             
-            #this helps????? maybe...
-            _flag_max_of_each_batch_b_1 = g_in_b_o.abs().amax(dim=1,keepdim=True)
-            _flag_max_of_each_batch__safe__b_1 = _flag_max_of_each_batch_b_1.maximum(torch.tensor(0.01, dtype=input_b_i.dtype))
-            grad_in_expansion_test_bofore_scale_step2_b_o = g_in_b_o/_flag_max_of_each_batch__safe__b_1
-            _flag_grad_pos_b_o = grad_in_expansion_test_bofore_scale_step2_b_o.gt(0.)*2.-1.
-            _abs_of_grad_b_o = grad_in_expansion_test_bofore_scale_step2_b_o.abs()
-            _powered_abs_of_output_b_o = _abs_of_grad_b_o.pow(g_expansion_factor_to_calc_grad_for_weight)
-            g_in_to_calc_gard_for_weight_b_o = _powered_abs_of_output_b_o*_flag_grad_pos_b_o
+            #moved to outside.
+            # #this helps????? maybe...
+            # _flag_max_of_each_batch_b_1 = g_in_b_o.abs().amax(dim=1,keepdim=True)
+            # _flag_max_of_each_batch__safe__b_1 = _flag_max_of_each_batch_b_1.maximum(torch.tensor(0.01, dtype=input_b_i.dtype))
+            # grad_in_expansion_test_bofore_scale_step2_b_o = g_in_b_o/_flag_max_of_each_batch__safe__b_1
+            # _flag_grad_pos_b_o = grad_in_expansion_test_bofore_scale_step2_b_o.gt(0.)*2.-1.
+            # _abs_of_grad_b_o = grad_in_expansion_test_bofore_scale_step2_b_o.abs()
+            # _powered_abs_of_output_b_o = _abs_of_grad_b_o.pow(g_expansion_factor_to_calc_grad_for_weight)
+            # g_in_to_calc_gard_for_weight_b_o = _powered_abs_of_output_b_o*_flag_grad_pos_b_o
             
             
             # this hardenness prevents training.
             # the_dtype = input_b_i.dtype
             # input_b_i = input_b_i.gt(0.)*2.-1.        
             # input_b_i = input_b_i.to(the_dtype)
-            g_in_reshaped_b_o_1:torch.Tensor = g_in_to_calc_gard_for_weight_b_o[:,:,None]
-            #g_in_reshaped_b_o_1:torch.Tensor = g_in_b_o[:,:,None]
+            #g_in_reshaped_b_o_1:torch.Tensor = g_in_to_calc_gard_for_weight_b_o[:,:,None]
+            g_in_reshaped_b_o_1:torch.Tensor = g_in_b_o[:,:,None]
             input_reshaped_b_1_i:torch.Tensor = input_b_i[:,None,:]
             
             grad_for_raw_weight__before_sum__b_o_i:torch.Tensor = g_in_reshaped_b_o_1*(input_reshaped_b_1_i*-1)
@@ -284,6 +292,8 @@ class DigitalMapper_v2_6(torch.nn.Module):
                     raw_weight_min = -25., \
                     output_expansion_factor = 1., \
                     grad_expansion_factor = 1., \
+                    raw_weight_updating_strength_expansion_factor = 1., \
+                    g_in_expansion_factor = 0.67, \
                     #is_out_mapper_in_DSPU:bool, \
                  #needs_out_gramo = True, \
                     # auto_print_difference:bool = False, \
@@ -332,8 +342,13 @@ class DigitalMapper_v2_6(torch.nn.Module):
     
             #这两个暂时没有用上。
         
-        self.gramo_for_raw_weight = GradientModification_v2()
-        self.out_gramo = GradientModification_v2()
+        self.gramo_for_raw_weight = GradientModification_v2_abs_to_less_than_1(raw_weight_updating_strength_expansion_factor)
+        self.out_gramo = GradientModification_v2_abs_to_less_than_1(g_in_expansion_factor)
+        #new code above
+        #old code below
+        #self.gramo_for_raw_weight = GradientModification_v2_mean_abs_to_1()
+        #self.out_gramo = GradientModification_v2_mean_abs_to_1()
+        
         
         #self.raw_weight_max = torch.nn.Parameter(torch.tensor([1.]), requires_grad=False)#not used now???
         self.raw_weight_min = torch.nn.Parameter(torch.tensor([raw_weight_min]), requires_grad=False)

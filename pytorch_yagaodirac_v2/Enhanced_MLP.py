@@ -10,7 +10,7 @@ if "__main__" == __name__:
     sys.path.insert(0, ____package_path__)
     #print("adding sys path:", ____package_path__)
     pass
-from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2, ReLU_with_offset
+from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1, ReLU_with_offset
 from pytorch_yagaodirac_v2.Util import debug_avg_log, data_gen_from_random_teacher, Print_Timing
 
 
@@ -64,9 +64,9 @@ class FCL_from_yagaodirac(torch.nn.Module):
         # self.gramo_for_weight_extra_factor = math.pow(10., self.param_avg_log_expectation-self.grad_avg_log_expectation)
         # self.drag_avg_log_of_scaling_factor_for_out_gramo_to = torch.nn.Parameter(torch.tensor([self.param_avg_log_expectation]), requires_grad=False)
         
-        self.gramo_for_weight = GradientModification_v2()
-        self.gramo_for_bias = GradientModification_v2()
-        self.out_gramo = GradientModification_v2()
+        self.gramo_for_weight = GradientModification_v2_mean_abs_to_1()
+        self.gramo_for_bias = GradientModification_v2_mean_abs_to_1()
+        self.out_gramo = GradientModification_v2_mean_abs_to_1()
         #self.reset_scaling_factor_for_weight()
         pass
     #end of function.
