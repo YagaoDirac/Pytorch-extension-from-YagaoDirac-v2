@@ -1,7 +1,27 @@
 import torch
+# import os
+# import sys
+# print(os.path.dirname(sys.executable))
+# print(torch.__version__)
+# print(torch.rand([2,3]))
 
+'''
+class test_with:
+    def __enter__(self):
+        print("enter")
+        pass
+    def __exit__(self,a,b,c):
+        print(f"exit. params are {a}, {b}, {c}")
+        pass
+    pass
 
+with test_with() as a:
+    print(a)
+    pass
+print(a)
+'''
 
+fds=423
 
 
 

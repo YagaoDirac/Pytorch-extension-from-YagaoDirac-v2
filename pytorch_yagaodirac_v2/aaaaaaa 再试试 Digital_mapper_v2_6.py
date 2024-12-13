@@ -12,7 +12,7 @@ from pytorch_yagaodirac_v2.Util import bitwise_acc, data_gen_for_directly_stacki
 from pytorch_yagaodirac_v2.Util import data_gen_for_directly_stacking_test_same_dim_no_duplicated
 from pytorch_yagaodirac_v2.Util import debug_strong_grad_ratio, make_grad_noisy
 from pytorch_yagaodirac_v2.Util import Print_Timing
-from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_abs_to_less_than_1
+from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_abs_to_less_than_1,XModification_abs_to_less_than_1
 from pytorch_yagaodirac_v2.training_ended_sound import play_noise
 from pytorch_yagaodirac_v2.torch_vec import torch_vec
 #from Binarize import Binarize
@@ -87,8 +87,6 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
     >>> x = args[0]# shape must be [batch, in_features]
     >>> raw_weight:torch.Tensor = args[1]# shape must be [out_features, in_features], must requires grad.
     >>> place_holder_for_answer_strength_o shape[out_features]
-    >>> output_expansion_factor: scalar. to move output of a layer from 0.(>1 is good ?)
-    >>> g_expansion_factor_to_calc_grad_for_weight: scalar. to move output of a layer from 0.(>1 is good ?)
     
     backward input list:
     >>> g_in #shape of g_in must be [batch, out_features]
@@ -98,8 +96,8 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
         input_b_i:torch.Tensor = args[0]# shape must be [batch, in_features]
         raw_weight_o_i:torch.Tensor = args[1]# shape must be [out_features, in_features]
         place_holder_for_answer_strength_o:torch.Tensor = args[2]# value doesn't matter. shape[out_features]
-        output_expansion_factor:torch.Tensor = args[3]# value doesn't matter. shape[out_features]
-        g_expansion_factor_to_calc_grad_for_weight:torch.Tensor = args[4]# value doesn't matter. shape[out_features]
+        #output_expansion_factor:torch.Tensor = args[3]# value doesn't matter. shape[out_features]
+        #g_expansion_factor_to_calc_grad_for_weight:torch.Tensor = args[4]# value doesn't matter. shape[out_features]
         # this hardenness prevents training.
         # the_dtype = input_b_i.dtype
         # input_b_i = input_b_i.gt(0.)*2.-1.        
@@ -110,25 +108,12 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
         input_reshaped_b_i_1 = input_b_i.reshape([input_b_i.shape[0],input_b_i.shape[1],1])
         
         output_before_reshape_b_o_1:torch.Tensor = softmax_of_raw_weight_o_i.matmul(input_reshaped_b_i_1)
-        output_before_scale_step1_b_o = output_before_reshape_b_o_1.squeeze(dim=2)
+        output_b_o = output_before_reshape_b_o_1.squeeze(dim=2)
         
-        
-        即将扔出去，用单独的层。
-        
-        #this helps????? maybe...
-        _flag_max_of_each_batch_b_1 = output_before_scale_step1_b_o.abs().amax(dim=1,keepdim=True)
-        _flag_max_of_each_batch__safe__b_1 = _flag_max_of_each_batch_b_1.maximum(torch.tensor(0.01, dtype=input_b_i.dtype))
-        output_bofore_scale_step2_b_o = output_before_scale_step1_b_o/_flag_max_of_each_batch__safe__b_1
-        #optimizable. change div into mul.
-        
-        _flag_output_pos_b_o = output_bofore_scale_step2_b_o.gt(0.)*2.-1.
-        _abs_of_output_b_o = output_bofore_scale_step2_b_o.abs()
-        _powered_abs_of_output_b_o = _abs_of_output_b_o.pow(output_expansion_factor)
-        output_b_o = _powered_abs_of_output_b_o*_flag_output_pos_b_o
         
         #output.requires_grad_(input_b_i.requires_grad and raw_weight_o_i.requires_grad)
         w_requires_grad = torch.tensor([raw_weight_o_i.requires_grad])
-        ctx.save_for_backward(input_b_i, softmax_of_raw_weight_o_i, w_requires_grad, g_expansion_factor_to_calc_grad_for_weight)
+        ctx.save_for_backward(input_b_i, softmax_of_raw_weight_o_i, w_requires_grad)
         
         return output_b_o
 
@@ -138,27 +123,15 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
         input_b_i:torch.Tensor
         softmax_of_raw_weight_o_i:torch.Tensor
         w_requires_grad:torch.Tensor
-        g_expansion_factor_to_calc_grad_for_weight:torch.Tensor
-        (input_b_i, softmax_of_raw_weight_o_i, w_requires_grad, g_expansion_factor_to_calc_grad_for_weight) = ctx.saved_tensors
+        (input_b_i, softmax_of_raw_weight_o_i, w_requires_grad) = ctx.saved_tensors
         
         grad_for_x_b_i:Tuple[torch.tensor|None] = None
         grad_for_raw_weight_o_i:Tuple[torch.tensor|None] = None
+        answer_strength_o:Tuple[torch.tensor|None] = None
         
         #input_requires_grad = torch.tensor([input_b_i.requires_grad], device=input_b_i.device)
         
         if w_requires_grad:
-            
-            #moved to outside.
-            # #this helps????? maybe...
-            # _flag_max_of_each_batch_b_1 = g_in_b_o.abs().amax(dim=1,keepdim=True)
-            # _flag_max_of_each_batch__safe__b_1 = _flag_max_of_each_batch_b_1.maximum(torch.tensor(0.01, dtype=input_b_i.dtype))
-            # grad_in_expansion_test_bofore_scale_step2_b_o = g_in_b_o/_flag_max_of_each_batch__safe__b_1
-            # _flag_grad_pos_b_o = grad_in_expansion_test_bofore_scale_step2_b_o.gt(0.)*2.-1.
-            # _abs_of_grad_b_o = grad_in_expansion_test_bofore_scale_step2_b_o.abs()
-            # _powered_abs_of_output_b_o = _abs_of_grad_b_o.pow(g_expansion_factor_to_calc_grad_for_weight)
-            # g_in_to_calc_gard_for_weight_b_o = _powered_abs_of_output_b_o*_flag_grad_pos_b_o
-            
-            
             # this hardenness prevents training.
             # the_dtype = input_b_i.dtype
             # input_b_i = input_b_i.gt(0.)*2.-1.        
@@ -179,7 +152,7 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
             grad_for_x_b_i = g_in_b_o.matmul(softmax_of_raw_weight_o_i)
             pass
             
-        return grad_for_x_b_i, grad_for_raw_weight_o_i, answer_strength_o, None, None
+        return grad_for_x_b_i, grad_for_raw_weight_o_i, answer_strength_o
     
     
     # input_b_i:torch.Tensor = args[0]# shape must be [batch, in_features]
@@ -189,7 +162,7 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
 
 
 if '''main check 2.6. 应该正常了。''' and False:
-    is_half = True#something is not implemented for cpu...
+    is_half = False#something is not implemented for cpu...
     b=2
     o=3
     i=5
@@ -291,11 +264,11 @@ class DigitalMapper_v2_6(torch.nn.Module):
                     deduplicating_strength:float, \
                     raw_weight_min = -25., \
                     output_expansion_factor = 1., \
-                    grad_expansion_factor = 1., \
                     raw_weight_updating_strength_expansion_factor = 1., \
-                    g_in_expansion_factor = 0.67, \
+                    g_in_expansion_factor = 1., \
+                        
                     #is_out_mapper_in_DSPU:bool, \
-                 #needs_out_gramo = True, \
+                    #needs_out_gramo = True, \
                     # auto_print_difference:bool = False, \
                     # out_gramo_scale_factor = 1., \
                     # gramo_for_raw_weight_scale_factor = 1., \
@@ -344,6 +317,7 @@ class DigitalMapper_v2_6(torch.nn.Module):
         
         self.gramo_for_raw_weight = GradientModification_v2_abs_to_less_than_1(raw_weight_updating_strength_expansion_factor)
         self.out_gramo = GradientModification_v2_abs_to_less_than_1(g_in_expansion_factor)
+        self.out_xmo = XModification_abs_to_less_than_1(output_expansion_factor)
         #new code above
         #old code below
         #self.gramo_for_raw_weight = GradientModification_v2_mean_abs_to_1()
@@ -352,8 +326,8 @@ class DigitalMapper_v2_6(torch.nn.Module):
         
         #self.raw_weight_max = torch.nn.Parameter(torch.tensor([1.]), requires_grad=False)#not used now???
         self.raw_weight_min = torch.nn.Parameter(torch.tensor([raw_weight_min]), requires_grad=False)
-        self.output_expansion_factor = torch.nn.Parameter(torch.tensor([output_expansion_factor]), requires_grad=False)
-        self.grad_expansion_factor = torch.nn.Parameter(torch.tensor([grad_expansion_factor]), requires_grad=False)
+        #self.output_expansion_factor = torch.nn.Parameter(torch.tensor([output_expansion_factor]), requires_grad=False)
+        #self.grad_expansion_factor = torch.nn.Parameter(torch.tensor([grad_expansion_factor]), requires_grad=False)
         
         #or this ??? self.raw_weight_min = torch.nn.Parameter(torch.tensor([-1./100]), requires_grad=False)
         
@@ -509,20 +483,11 @@ class DigitalMapper_v2_6(torch.nn.Module):
                 w_after_gramo = self.gramo_for_raw_weight(self.raw_weight_o_i.reshape(1,-1)).reshape(self.out_features, self.in_features)
                 pass
             
-            #self.update_mapping_index()
-                
-            #print(self.mapping_index_previous_o.data, "line 609")
-                
-            #print(w_after_gramo.dtype, "  __line 395")
-                
-            x = DigitalMapperFunction_v2_6.apply(x, w_after_gramo, self.grad_is_answer_strength_previous_o,
-                        self.output_expansion_factor, self.grad_expansion_factor)
+            x = DigitalMapperFunction_v2_6.apply(x, w_after_gramo, self.grad_is_answer_strength_previous_o)
             
+            #sequency of the following 2 does NOT matter.
             x = self.out_gramo(x)
-            
-            # if torch.isnan(x).any():
-            #     fds = 432
-            #     pass
+            x = self.out_xmo(x)
             
             return x
         
@@ -829,16 +794,45 @@ if '''basic single layer test''' and False:
     print(layer.grad_is_answer_strength_previous_o.grad, "answer_strength")
     pass
 
+if '''extreme updating strength test''' and False:
+    gramo_for_each_output = True # This doesn't do anything when output only has 1 element. 
+    layer = DigitalMapper_v2_6(3,2,gramo_for_each_output,3.)
+    # print(layer.raw_weight_o_i.shape)
+    # layer.raw_weight_o_i.data = torch.tensor([[-1.,-1., 1.]])
+    # print(layer.raw_weight_o_i.shape)
+    #print(layer.raw_weight_o_i.requires_grad)
+    input = torch.tensor([[111., 0,0]], requires_grad=True)
+    target = torch.tensor([[111., 0.]]) 
+    optim = torch.optim.SGD(layer.parameters(), lr=1.)
+   
+    pred:torch.Tensor = layer(input)
+    print(pred, "pred")
+    pred.backward(target)
+    print(layer.raw_weight_o_i.grad, "weight grad")
+    print(input.grad, "input grad")
+    print(layer.raw_weight_o_i.data, "weight before step")
+    optim.step()
+    print(layer.raw_weight_o_i.data, "weight after step")
+    layer.protect_raw_weight()
+    print(layer.raw_weight_o_i.data, "weight after protection")
+    #print(layer.mapping_index_previous_o.data, "mapping_index_previous_o")2.6没有这个。
+    print(layer.grad_is_answer_strength_previous_o.grad, "answer_strength")
+    pass
+
 if '''basic 2 layer test.''' and False:
-    #gramo_for_each_output matters. It doesn't do anything useful in v2.3
-    output_expansion_factor = 0.1
-    grad_expansion_factor =   0.1
+    raw_weight_updating_strength_expansion_factor = 1.
+    output_expansion_factor = 1
+    g_in_expansion_factor =   1
     gramo_for_each_output = False
-    layer1 = DigitalMapper_v2_6(3,2,gramo_for_each_output, 3.,output_expansion_factor=output_expansion_factor,
-                grad_expansion_factor=grad_expansion_factor)
+    layer1 = DigitalMapper_v2_6(3,2,gramo_for_each_output, 3.,
+            raw_weight_updating_strength_expansion_factor=raw_weight_updating_strength_expansion_factor,
+            output_expansion_factor=output_expansion_factor,
+            g_in_expansion_factor=g_in_expansion_factor,)
     layer1.raw_weight_o_i.data = torch.tensor([[0., 0., 5.],[0., 5., 0.]])
-    layer2 = DigitalMapper_v2_6(2,1,gramo_for_each_output, 3., output_expansion_factor=output_expansion_factor,
-                grad_expansion_factor=grad_expansion_factor)
+    layer2 = DigitalMapper_v2_6(2,1,gramo_for_each_output, 3.,
+            raw_weight_updating_strength_expansion_factor=raw_weight_updating_strength_expansion_factor,
+            output_expansion_factor=output_expansion_factor,
+            g_in_expansion_factor=g_in_expansion_factor,)
     layer2.raw_weight_o_i.data = torch.tensor([[0., 5.]])
     input = torch.tensor([[-1., -1., 1.]], requires_grad=True)
     target = torch.tensor([[1.]]) 
@@ -857,7 +851,6 @@ if '''basic 2 layer test.''' and False:
     print(mid_result.grad, "mid_result.grad")
     print(input.grad, "input grad")
     pass
-
 
 if '''basic 2 layer test 2. Answer with weight.''' and False:
     output_expansion_factor = 0.1
@@ -891,11 +884,16 @@ if '''basic 2 layer test 2. Answer with weight.''' and False:
     pass
 
 if '1 layer real training.' and False:
-    output_expansion_factor = 1.
-    grad_expansion_factor =   1.
+    #this test doesn't contain deduplicating.
+    raw_weight_updating_strength_expansion_factor = 1.
+    output_expansion_factor = 1
+    g_in_expansion_factor =   1
     gramo_for_each_output = False
-    layer = DigitalMapper_v2_6(2,1,gramo_for_each_output, 3.,output_expansion_factor=output_expansion_factor,
-                grad_expansion_factor=grad_expansion_factor)
+    deduplicating_strength = 3.
+    layer = DigitalMapper_v2_6(2,1,gramo_for_each_output,deduplicating_strength,
+            raw_weight_updating_strength_expansion_factor=raw_weight_updating_strength_expansion_factor,
+            output_expansion_factor=output_expansion_factor,
+            g_in_expansion_factor=g_in_expansion_factor,)
     layer.raw_weight_o_i.data = torch.tensor([[5., 0.]])
     input = torch.tensor([[-1., 1.]])#, requires_grad=True)
     target = torch.tensor([[1.]]) 
@@ -1082,6 +1080,25 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
                 grad_expansion_factor=grad_expansion_factor,
                 debug_number_in_model=i,
                 ))
+            
+            
+            继续。
+             raw_weight_updating_strength_expansion_factor = 1.
+    output_expansion_factor = 1
+    g_in_expansion_factor =   1
+    gramo_for_each_output = False
+    deduplicating_strength = 3.
+    layer = DigitalMapper_v2_6(2,1,gramo_for_each_output,deduplicating_strength,
+            raw_weight_updating_strength_expansion_factor=raw_weight_updating_strength_expansion_factor,
+            output_expansion_factor=output_expansion_factor,
+            g_in_expansion_factor=g_in_expansion_factor,)
+            
+            
+            
+            
+            
+            
+            
             pass
         
         self.index_of_last_update = torch.nn.Parameter(torch.empty([shape_config.__len__()-1, shape_config[0]], dtype=torch.int64), requires_grad=False)
@@ -1496,9 +1513,14 @@ if 'direct stack test' and True:
         op 1: grad 1()
         
         '''
-    
-    现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。
-    单独写一个 dm 专用的gramo。
+        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
+        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
+        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
+        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
+        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
+        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
+        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
+        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
         
         def print_config_after_finish():
             #print("re_rand_target_weight_every:", re_rand_target_weight_every, "/deduplicate_every:", deduplicate_every)

@@ -210,17 +210,19 @@ import torch
 
 
 
-class ParamMoFunction_abs_to_less_than_1(torch.autograd.Function):
+class XModificationFunction_abs_to_less_than_1(torch.autograd.Function):
     r'''This autograd function scale grad to have a mean(abs(square)) to specified number(1 by default).
     It's designed mainly to help analogy signal handling with error propagation.
     
     input param:
-    >>> x:torch.Tensor (must be set as require_grad = True)
-    >>> scaling_factor = torch.tensor([1.])
-    >>> epi = torch.tensor([1e-5])
-    >>> div_me_when_g_too_small = torch.tensor([1e-3])
+    
+    >>> x (shape must be [batch, dim])
+    >>> forward_expansion_factor (if this is 1., the layer doesn't do anything.)
+    >>> div_me_when_g_too_small (basically the epi)
 
-    retur type: torch.Tensor
+    return type: torch.Tensor
+    
+    to get a correct result of retain_grad, modify this class.
     '''
     @staticmethod
     def forward(ctx: Any, *args: Any, **kwargs: Any)->Any:
@@ -232,11 +234,11 @@ class ParamMoFunction_abs_to_less_than_1(torch.autograd.Function):
         x:torch.Tensor = args[0]
         forward_expansion_factor = args[1]
         div_me_when_g_too_small = args[2]
-        flag_grad_expansion_back = args[3]
+        #flag_grad_expansion_back = args[3]
         if len(x.shape)!=2:
             raise Exception("GradientModificationFunction only accept rank-2 tensor. The shape should be[batch, something]")
-        
-        
+        x_needs_grad = torch.tensor([x.requires_grad])
+        x_needs_grad_bool = x.requires_grad
         
         #this helps????? maybe...
         max_of_each_batch_b_1 = x.abs().amax(dim=1,keepdim=True)
@@ -253,27 +255,35 @@ class ParamMoFunction_abs_to_less_than_1(torch.autograd.Function):
             x = powered_abs_of_result_b_o*sign__result_b_o
             pass
         
-        x_needs_grad = torch.tensor([x.requires_grad])
-        ctx.save_for_backward(forward_expansion_factor,flag_grad_expansion_back,x_needs_grad)
-        
-        
+        #ctx.save_for_backward(forward_expansion_factor,div_me_when_g_too_small,x_needs_grad)
+        #ctx.save_for_backward(forward_expansion_factor,div_me_when_g_too_small,flag_grad_expansion_back,x_needs_grad)
+        x.requires_grad_(x_needs_grad_bool)
         return x
 
     @staticmethod
     def backward(ctx, g_in_b_o):
+        return g_in_b_o, None, None
         #super().backward()
         forward_expansion_factor:torch.Tensor
+        div_me_when_g_too_small:torch.Tensor
         flag_grad_expansion_back:torch.Tensor
         x_needs_grad:torch.Tensor
-        (forward_expansion_factor,flag_grad_expansion_back,x_needs_grad)= ctx.saved_tensors
+        
+        (forward_expansion_factor,div_me_when_g_too_small,flag_grad_expansion_back,x_needs_grad) = ctx.saved_tensors
         grad_for_x_b_o:Optional[torch.Tensor] = None
         
         if x_needs_grad:
-            if forward_expansion_factor==1.:
-                grad_for_x_b_o = g_in_b_o
+                
+            max_of_each_batch_b_1 = g_in_b_o.abs().amax(dim=1,keepdim=True)
+            max_of_each_batch__safe__b_1 = max_of_each_batch_b_1.maximum(div_me_when_g_too_small)
+            reverse_of_max_of_each_batch__safe__b_1 = (1./max_of_each_batch__safe__b_1).to(g_in_b_o.dtype)
+            grad_for_x_bofore_scale_step2_b_o = g_in_b_o*reverse_of_max_of_each_batch__safe__b_1
+            
+            if forward_expansion_factor==1. or flag_grad_expansion_back.logical_not():
+                grad_for_x_b_o = grad_for_x_bofore_scale_step2_b_o
             else:
-                sign__grad_for_x_pos_b_o = g_in_b_o.gt(0.)*2.-1.
-                abs_of_grad_for_x_b_o = g_in_b_o.abs()
+                sign__grad_for_x_pos_b_o = grad_for_x_bofore_scale_step2_b_o.gt(0.)*2.-1.
+                abs_of_grad_for_x_b_o = grad_for_x_bofore_scale_step2_b_o.abs()
                 powered_abs_of_grad_for_x_b_o = abs_of_grad_for_x_b_o.pow(1./forward_expansion_factor)
                 grad_for_x_b_o = powered_abs_of_grad_for_x_b_o*sign__grad_for_x_pos_b_o
                 pass
@@ -283,93 +293,81 @@ class ParamMoFunction_abs_to_less_than_1(torch.autograd.Function):
 
     pass  # class
 
-if '''dim irrelated ???''' and True:
-    layer = Simple_abs_to_less_than_1()
-    a = torch.zeros([5,2], requires_grad=True, dtype=torch.float16)
-    b = layer(a)
+if '''dim irrelated ???''' and False:
+    forward_expansion_factor = torch.tensor(0.5)
+    div_me_when_g_too_small = torch.tensor(2e-3)
+    #flag_grad_expansion_back = torch.tensor(True)
+    
+    a = torch.tensor([[0.1,0.2],[0.01,0.02,],[0.001,0.002],[1e-4,2e-4],[1e-5,2e-5]], requires_grad=True, dtype=torch.float16)
+    b = XModificationFunction_abs_to_less_than_1.apply(a,forward_expansion_factor,div_me_when_g_too_small)
+    #b = XModificationFunction_abs_to_less_than_1_for_both_path.apply(a,forward_expansion_factor,div_me_when_g_too_small,flag_grad_expansion_back)
+    print(b)
     g_in = torch.tensor([[0.1,0.2],[0.01,0.02,],[0.001,0.002],[1e-4,2e-4],[1e-5,2e-5]], dtype=torch.float16)
     torch.autograd.backward(b, g_in,inputs= a)
     print(a.grad)
     
-    layer = Simple_abs_to_less_than_1()
-    a = torch.zeros([5,1], requires_grad=True, dtype=torch.float16)
-    b = layer(a)
+    a = torch.tensor([[0.1],[0.01],[0.001],[1e-4],[1e-5]], requires_grad=True, dtype=torch.float16)
+    b = XModificationFunction_abs_to_less_than_1.apply(a,forward_expansion_factor,div_me_when_g_too_small)
+    print(b)
     g_in = torch.tensor([[0.1],[0.01],[0.001],[1e-4],[1e-5]], dtype=torch.float16)
     torch.autograd.backward(b, g_in,inputs= a)
     print(a.grad)
-    
-    layer = Simple_abs_to_less_than_1(1.)
-    a = torch.zeros([3,2], requires_grad=True, dtype=torch.float16)
-    b = layer(a)
-    g_in = torch.tensor([[0.1,0.2],[-0.1,0.2],[-0.1,-0.2],], dtype=torch.float16)
-    torch.autograd.backward(b, g_in,inputs= a)
-    print(a.grad)
     pass
 
-if '''dtype adaption.''' and True:
-    layer = Simple_abs_to_less_than_1()
+if '''dtype adaption.''' and False:
+    forward_expansion_factor = torch.tensor(1., dtype=torch.float64)
+    div_me_when_g_too_small = torch.tensor(2e-3, dtype=torch.float16)
     
     a = torch.tensor([[0.]], requires_grad=True, dtype=torch.float16)
     original_dtype = a.dtype
-    
-    b = layer(a)
+    b = XModificationFunction_abs_to_less_than_1.apply(a,forward_expansion_factor,div_me_when_g_too_small)
     ### g = torch.autograd.grad(b, a, retain_graph= True)#this one doesn't help.
     g_in = torch.tensor([[1.]], dtype=torch.float16)
     torch.autograd.backward(b, g_in,inputs= a)
-    #print(g[0])
     print(a.grad.dtype, "should be ", original_dtype)
     pass
 
-if '''device adaption''' and True:
-    layer = Simple_abs_to_less_than_1()
+if '''device adaption''' and False:
+    forward_expansion_factor = torch.tensor(1.).cuda()
+    div_me_when_g_too_small = torch.tensor(2e-3).cuda()
     
     a = torch.tensor([[0.]], requires_grad=True).cuda()
-    b = layer(a)
+    b = XModificationFunction_abs_to_less_than_1.apply(a,forward_expansion_factor,div_me_when_g_too_small)
     g_in = torch.tensor([[1.]]).cuda()
     torch.autograd.backward(b, g_in,inputs= a)
-    #print(g[0])
     print(a.grad.device, "should be cuda")
     pass
 
 
 
-
-
-
-
-
-
-
-
-
-
-class ParamMo_abs_to_less_than_1(torch.nn.Module):
+class XModification_abs_to_less_than_1(torch.nn.Module):
     r"""Remember to set learning rate every iteration(or at least when learning rate is changed.)
     To access the learning rate, you usually need some thing like:
     lr:float = optimizer.param_groups[0]["lr"]
     """
 
-    def __init__(self, grad_expansion_factor:float = 0.3, \
-                       div_me_when_g_too_small=1e-2, \
-                        *args, **kwargs) -> None:
+    def __init__(self, forward_expansion_factor:float,div_me_when_g_too_small=1e-2, \
+                    *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.grad_expansion_factor = torch.nn.Parameter(torch.tensor(grad_expansion_factor), requires_grad=False)
+        self.forward_expansion_factor = torch.nn.Parameter(torch.tensor(forward_expansion_factor), requires_grad=False)
         self.div_me_when_g_too_small=torch.nn.Parameter(torch.tensor(div_me_when_g_too_small), requires_grad=False)
         pass
+    
     def forward(self, x:torch.Tensor)->torch.Tensor:
         # If you know how pytorch works, you can comment this checking out.
 
         if len(x.shape)!=2:
             raise Exception("GradientModification only accept rank-2 tensor. The shape should be[batch, something]")
 
-        result = ParamMoFunction_abs_to_less_than_1.apply(x,self.)
+        result = XModificationFunction_abs_to_less_than_1.apply(
+            x,self.forward_expansion_factor,self.div_me_when_g_too_small)
         
         return result
         
-    def set_grad_expansion_factor(self, grad_expansion_factor:float)->None:
-        the_device = self.grad_expansion_factor.device
-        the_dtype = self.grad_expansion_factor.dtype
-        self.grad_expansion_factor.data = torch.tensor(grad_expansion_factor, device=the_device, dtype=the_dtype, requires_grad=False)
+    def set_forward_expansion_factor(self, forward_expansion_factor:float)->None:
+        the_device = self.forward_expansion_factor.device
+        the_dtype = self.forward_expansion_factor.dtype
+        self.forward_expansion_factor.data = torch.tensor(forward_expansion_factor, device=the_device, dtype=the_dtype, requires_grad=False)
         pass
     def set_div_me_when_g_too_small(self, div_me_when_g_too_small:float)->None:
         the_device = self.div_me_when_g_too_small.device
@@ -379,23 +377,22 @@ class ParamMo_abs_to_less_than_1(torch.nn.Module):
     def extra_repr(self) -> str:
         return f'grad_expansion_factor={self.grad_expansion_factor.item():.3e}, div_me_when_g_too_small={self.div_me_when_g_too_small.item():.2e}'
 
-
-if '''all the setters''' and True:
-    layer = Simple_abs_to_less_than_1()
-    print(layer.grad_expansion_factor.requires_grad, "should be False")
+if '''all the setters''' and False:
+    layer = XModification_abs_to_less_than_1(0.5)
+    print(layer.forward_expansion_factor.requires_grad, "should be False")
     print(layer.div_me_when_g_too_small.requires_grad, "should be False")
-    layer.set_grad_expansion_factor(0.123)
-    print(layer.grad_expansion_factor, "should be 0.123")
-    print(layer.grad_expansion_factor.requires_grad, "should be False")
+    layer.set_forward_expansion_factor(0.123)
+    print(layer.forward_expansion_factor.item(), "should be 0.123")
+    print(layer.forward_expansion_factor.requires_grad, "should be False")
     layer.set_div_me_when_g_too_small(0.234)
-    print(layer.div_me_when_g_too_small, "should be 0.234")
+    print(layer.div_me_when_g_too_small.item(), "should be 0.234")
     print(layer.div_me_when_g_too_small.requires_grad, "should be False")
     pass
 
-if '''dtype adaption.''' and True:
+if '''dtype adaption.''' and False:
     input = torch.tensor([[1.]], requires_grad=True)
     target = torch.tensor([[0.]])
-    model = Simple_abs_to_less_than_1()
+    model = XModification_abs_to_less_than_1(0.5)
     model.to(torch.float64)
     #model.to(torch.float16)
 
@@ -419,33 +416,6 @@ if '''dtype adaption.''' and True:
         model.eval()
         pass
     pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -560,7 +530,6 @@ if '''device adaption''' and False:
     b = GradientModificationFunction_v2_mean_abs_to_1.apply(a,scaling_factor,epi,mul_me_when_g_too_small)
     g_in = torch.tensor([[1.]]).cuda()
     torch.autograd.backward(b, g_in,inputs= a)
-    #print(g[0])
     print(a.grad.device, "should be cuda")
     pass
 
