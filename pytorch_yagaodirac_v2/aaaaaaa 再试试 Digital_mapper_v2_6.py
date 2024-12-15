@@ -262,11 +262,10 @@ class DigitalMapper_v2_6(torch.nn.Module):
     def __init__(self, in_features: int, out_features: int, \
                     gramo_for_each_output:bool, \
                     deduplicating_strength:float, \
-                    raw_weight_min = -25., \
-                    output_expansion_factor = 1., \
-                    raw_weight_updating_strength_expansion_factor = 1., \
-                    g_in_expansion_factor = 1., \
-                        
+                    raw_weight_min:float, \
+                    output_expansion_factor:float, \
+                    g_in_expansion_factor:float, \
+                    raw_weight_updating_strength_expansion_factor:float, \
                     #is_out_mapper_in_DSPU:bool, \
                     #needs_out_gramo = True, \
                     # auto_print_difference:bool = False, \
@@ -283,8 +282,15 @@ class DigitalMapper_v2_6(torch.nn.Module):
             raise Exception()
         if not isinstance(raw_weight_min,float):
             raise Exception()
-
-
+        if raw_weight_min >=0.:
+            raise Exception("must be < 0. better -10 to -25 or - a lot.")
+        if output_expansion_factor<=0:
+            raise Exception("must be > 0. better 0 to 1.")
+        if g_in_expansion_factor<=0:
+            raise Exception("must be > 0. better 0 to 1.")
+        if raw_weight_updating_strength_expansion_factor<=0:
+            raise Exception("must be > 0. better 0 to 1.")
+            
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
 
@@ -353,6 +359,32 @@ class DigitalMapper_v2_6(torch.nn.Module):
         
         self.can_convert_to_eval_only_mode__the_threshold = torch.nn.Parameter(torch.tensor(0.51, **factory_kwargs), requires_grad=False)
         pass
+
+    @classmethod
+    def make_simple(cls, in_features: int, out_features: int, \
+                    gramo_for_each_output = False, \
+                    deduplicating_strength = 3., \
+                    raw_weight_min = -25., \
+                    output_expansion_factor = 1., \
+                    g_in_expansion_factor = 1., \
+                    raw_weight_updating_strength_expansion_factor = 1., \
+                    debug_allow_any_shape = False, \
+                    debug_number_in_model = -1, \
+                    device=None, dtype=None
+                    )->'DigitalMapper_v2_6':
+        return cls(in_features, out_features, \
+                    gramo_for_each_output , \
+                    deduplicating_strength, \
+                    raw_weight_min, \
+                    output_expansion_factor, \
+                    g_in_expansion_factor, \
+                    raw_weight_updating_strength_expansion_factor, \
+                    debug_allow_any_shape, \
+                    debug_number_in_model, \
+                    device, dtype)
+        
+        pass
+    #end of function
 
     def to(self, to_what):
         if torch.float16 == to_what:
@@ -703,6 +735,7 @@ class DigitalMapper_v2_6(torch.nn.Module):
     pass
 fast_traval____end_of_digital_mapper_layer_class = 432
 
+#理论上，需要补一个反向传播更新强度和去重的对抗测试。
 
 if 'can_convert_into_eval_only_mode 感觉这个版本不可能这么美好。。' and False:
     layer = DigitalMapper_v2_6(4,3,False)
@@ -792,6 +825,21 @@ if '''basic single layer test''' and False:
     print(layer.raw_weight_o_i.data, "weight after protection")
     #print(layer.mapping_index_previous_o.data, "mapping_index_previous_o")2.6没有这个。
     print(layer.grad_is_answer_strength_previous_o.grad, "answer_strength")
+    pass
+
+if '''basic multi layer forward test''' and False:
+    layers = []
+    for i in range(5):
+        layers.append(DigitalMapper_v2_6.make_simple(10-i,9-i))
+        pass
+        
+    input = torch.randint(low=0, high=2, size=(1,10)).to(torch.float32)*2.-1.
+    
+    x = input
+    for layer in layers:
+        x = layer(x)
+        print(x)
+        pass
     pass
 
 if '''extreme updating strength test''' and False:
@@ -1055,15 +1103,13 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
         return result
     
     def __init__(self, shape_config:List[int], \
+                gramo_for_each_output:bool, \
                 deduplicating_strength:float, \
                 raw_weight_min:float, \
-                                
-                output_expansion_factor:float,\
-                grad_expansion_factor:float,\
-    
-            gramo_for_each_output = False, \
-            #auto_print_difference:bool = False, \
-            device=None, dtype=None) -> None: 
+                output_expansion_factor:float, \
+                g_in_expansion_factor:float, \
+                raw_weight_updating_strength_expansion_factor:float, \
+                device=None, dtype=None) -> None: 
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
         self.shape_config = shape_config
@@ -1072,33 +1118,16 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
         for i in range(shape_config.__len__()-1):
             in_features = shape_config[i]
             out_features = shape_config[i+1]
-            self.digital_mappers.append(DigitalMapper_v2_6(
-                in_features,out_features,
-                gramo_for_each_output, deduplicating_strength,
-                raw_weight_min = raw_weight_min,
-                output_expansion_factor=output_expansion_factor,
-                grad_expansion_factor=grad_expansion_factor,
-                debug_number_in_model=i,
-                ))
-            
-            
-            继续。
-             raw_weight_updating_strength_expansion_factor = 1.
-    output_expansion_factor = 1
-    g_in_expansion_factor =   1
-    gramo_for_each_output = False
-    deduplicating_strength = 3.
-    layer = DigitalMapper_v2_6(2,1,gramo_for_each_output,deduplicating_strength,
-            raw_weight_updating_strength_expansion_factor=raw_weight_updating_strength_expansion_factor,
-            output_expansion_factor=output_expansion_factor,
-            g_in_expansion_factor=g_in_expansion_factor,)
-            
-            
-            
-            
-            
-            
-            
+                    
+            self.digital_mappers.append(DigitalMapper_v2_6(in_features, out_features, \
+                    gramo_for_each_output, \
+                    deduplicating_strength, \
+                    raw_weight_min, \
+                    output_expansion_factor, \
+                    g_in_expansion_factor, \
+                    raw_weight_updating_strength_expansion_factor, \
+                    device = device, dtype = dtype)
+                    )
             pass
         
         self.index_of_last_update = torch.nn.Parameter(torch.empty([shape_config.__len__()-1, shape_config[0]], dtype=torch.int64), requires_grad=False)
@@ -1140,6 +1169,17 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
             #print(layer.raw_weight_o_i.dtype, "  __line 898")
             x = layer(x)
         return x
+    
+    def debug_print_x(self,input:torch.Tensor):
+        with torch.inference_mode():
+            x = input
+            for layer in self.digital_mappers:
+                #print(layer.raw_weight_o_i.dtype, "  __line 898")
+                x = layer(x)
+                print(x)
+                pass
+            pass
+        #end of function.
     
     #def print_strong_grad_ratio(self):
     #    for layer in self.digital_mappers:
@@ -1428,6 +1468,12 @@ if 'direct stack test' and True:
     for _ in range(10):
         is_half = False#no plan for this. 
         
+        output_expansion_factor=1.
+        g_in_expansion_factor=0.25
+        raw_weight_updating_strength_expansion_factor=0.4
+        #111111111111111111111111111111
+        #to test, to do.
+        
         gramo_for_each_output = False#
         '''
         #false(85to140<180)true(60,94to130,<440)
@@ -1447,7 +1493,7 @@ if 'direct stack test' and True:
         
         #11111111111111111111111
         deduplicating_strength = float(deduplicate_every)*10 #10
-        lr = 3.#3
+        lr = 1.#3
         '''
         #ds 0.1: lr 0.1(50to110<270)  1(8to11<19)     10(5to8<28)  100(4to7<93,310,1k2)1k(3,6,??,1k8)
         #ds 1: lr 0.1(44,55,64,66<82) 1(9,10,10,10<19)10(4,4,4,8<9)100(3,5,6,10<55,810)1k(3,4,5,36<1k1)
@@ -1459,7 +1505,7 @@ if 'direct stack test' and True:
         
         in_features = 50
         out_features = 5
-        num_layers = 6
+        num_layers = 7
         '''
         50/5/5(32to40 <60)
         100/5/5(40to67 <170)
@@ -1505,23 +1551,6 @@ if 'direct stack test' and True:
         raw_weight_min = -25.
         #5(0.55)0(0.55)-5(0.99)-10(40to65)-25(35to59)-100(37to71)
         
-            
-        output_expansion_factor = 1.#11111111111111111111 to test
-        grad_expansion_factor =   1.
-        '''
-        output_expansion:grad_expansion
-        op 1: grad 1()
-        
-        '''
-        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
-        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
-        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
-        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
-        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
-        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
-        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
-        print("现在的问题是，gramo好像不能限制最大的单个元素的更新强度，而去重依赖这个。单独写一个 dm 专用的gramo。")
-        
         def print_config_after_finish():
             #print("re_rand_target_weight_every:", re_rand_target_weight_every, "/deduplicate_every:", deduplicate_every)
             #print("lr:", lr,"/deduplicating_strength:",deduplicating_strength)
@@ -1537,12 +1566,14 @@ if 'direct stack test' and True:
         #print(target)
 
         the_config = test_directly_stacking_multiple_digital_mappers.gen_shape_config(in_features, out_features, num_layers)
-        model = test_directly_stacking_multiple_digital_mappers(
-            the_config,deduplicating_strength,raw_weight_min,
-            output_expansion_factor,grad_expansion_factor,gramo_for_each_output)
+        # model = test_directly_stacking_multiple_digital_mappers(
+        #     the_config,deduplicating_strength,raw_weight_min,
+        #     output_expansion_factor,grad_expansion_factor,gramo_for_each_output)
+        model = test_directly_stacking_multiple_digital_mappers(the_config,
+                gramo_for_each_output, deduplicating_strength, 
+                raw_weight_min, output_expansion_factor, g_in_expansion_factor, 
+                raw_weight_updating_strength_expansion_factor)
             
-        #model.set_update_str_Decrease()
-        #model.scale_the_scaling_ratio_for_raw_weight(3.)
         if False and "print parameters":
             if True and "only the training params":
                 for p in model.parameters():
@@ -1598,18 +1629,18 @@ if 'direct stack test' and True:
             model.train()
             pred = model(input)
             if "shape" and False:
-                print(pred.shape, "pred.shape")
-                print(target.shape, "target.shape")
-                pass
-            if "print pred" and False:
                 if 0 == epoch :
-                    print(pred[:5], "pred")
-                    print(target[:5], "target")
+                    print(pred.shape, "pred.shape")
+                    print(target.shape, "target.shape")
                     pass
                 pass
-            if "print pred" and False:
-                print(pred[:5], "pred")
+            if "print pred" and True:
+                if 0 == epoch :
+                    print(pred[:3], "pred")
+                    print(target[:1], "target")
+                    pass
                 pass
+            
             optimizer.zero_grad()
             
             with torch.inference_mode():
@@ -1641,29 +1672,36 @@ if 'direct stack test' and True:
             
             pred.backward(target)#intentional.
             
-            if "print the grad" and True:
-                if pt.check(epoch):
+            
+            if epoch>166:
+                model.debug_print_x(input)
+                pass            
+                
+                if "print the grad" and True:
+                    #if pt.check(epoch):
                     print(model.digital_mappers[0].raw_weight_o_i.grad, "0th layer    grad")
                     print(model.digital_mappers[1].raw_weight_o_i.grad, "1 layer    grad")
                     print(model.digital_mappers[-1].raw_weight_o_i.grad, "-1 layer    grad")
                     pass
-                pass
-            if "print the weight" and True:
-                layer:DigitalMapper_v2_6 = model.digital_mappers[0]
-                print(layer.raw_weight_o_i[:2,:7], "first_layer   before update")
-                optimizer.step()
-                print(layer.raw_weight_o_i[:2,:7], "first_layer   after update")
+                    pass
+                if "print the weight" and True:
+                    layer:DigitalMapper_v2_6 = model.digital_mappers[0]
+                    print(layer.raw_weight_o_i[:2,:7], "first_layer   before update")
+                    optimizer.step()
+                    print(layer.raw_weight_o_i[:2,:7], "first_layer   after update")
+                    
+                    layer = model.digital_mappers[1]
+                    print(layer.raw_weight_o_i[:2,:7], "second   before update")
+                    optimizer.step()
+                    print(layer.raw_weight_o_i[:2,:7], "second   after update")
+                    
+                    layer = model.digital_mappers[-1]
+                    print(layer.raw_weight_o_i[:2,:7], "last   before update")
+                    optimizer.step()
+                    print(layer.raw_weight_o_i[:2,:7], "last   after update")
+                    pass   
+                pass   
                 
-                layer = model.digital_mappers[1]
-                print(layer.raw_weight_o_i[:2,:7], "second   before update")
-                optimizer.step()
-                print(layer.raw_weight_o_i[:2,:7], "second   after update")
-                
-                layer = model.digital_mappers[-1]
-                print(layer.raw_weight_o_i[:2,:7], "last   before update")
-                optimizer.step()
-                print(layer.raw_weight_o_i[:2,:7], "last   after update")
-                pass    
             if "print_zero_grad_ratio" and False:
                 if pt.check(epoch):
                     model.print_non_zero_grad_ratio()
