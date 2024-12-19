@@ -5,6 +5,7 @@ import math
 __all__ = ['play_noise']
 
 def play_noise():
+    print("playing noise~~~~~~~~~")
     freq_base = 220
     small_two = math.pow(2.,1./12)
     while True:
