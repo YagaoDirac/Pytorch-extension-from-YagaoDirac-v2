@@ -6,6 +6,24 @@
 
 
 '''
+Somethin you need to know, but Idk how to implememt as a param layer.
+When some elements of a forward input of a layer(usually denoted by x)
+are too close to 0, in most cases, the grad any weight element accumulates
+is calculated with something from input of grad, multiplied by the input of forward.
+When either is very close or equals to 0, the weight element doesn't accumulate useful grad.
+The strength is too small.
+When training speed(measured by amount of epochs) is more important than eventual precision, 
+it's ok to dig a hole in both x and g. It's ok to offset them away from 0, 
+usually by add some constant number according to the sign.
+But, to make sure this offset only affects accumulated grad, I can only be done in a integrated
+torch.autograd.function. 
+I provided some code to help you with this, but don't use the code directly.
+Copy paste the code to your customized torch.autograd.function.
+And enjoy.
+'''
+
+
+'''
 I use modification for all the names in this file. The purpose is to make it different from the 
 normalization names being used since ever.
 The difference is that, in most cases, normalization means some normal distribution based algorithm.
@@ -218,6 +236,92 @@ import torch
 #     'GradientModificationFunction', #Should I expose this?
 #     'Linear_gramo', #Should I rename this one? Or somebody help me with the naming?
 #     ]
+
+
+
+
+
+
+def assert_param_shape__batch_dim(param:torch.Tensor):
+    assert param.shape.__len__() == 2, "Only accept rank-2 tensor. The shape should be[batch, something]"
+    pass
+
+
+
+def assert_param_for_ParamMo_make_holo_direct_offset(holo:torch.Tensor, epi:torch.Tensor):
+    #assert param.shape.__len__() == 2, "Only accept rank-2 tensor. The shape should be[batch, something]"
+    assert epi>0.
+    assert holo>0.
+    pass
+
+def ParamMo_make_holo_direct_offset(param:torch.Tensor, holo:torch.Tensor, epi:torch.Tensor)->torch.Tensor:
+    flag_pos = param.gt(epi)
+    flag_neg = param.lt(-epi)
+    flag_zero = flag_pos.logical_not().logical_and(flag_neg.logical_not())
+
+    part_pos = (param+holo)*flag_pos
+    part_neg = (param-holo)*flag_neg
+    
+    some_rand_sign = torch.randint(low=0,high=2,size=[1])*2.-1.
+    part_zero = (param+some_rand_sign*holo)*flag_zero
+    
+    result = part_pos+part_neg+part_zero
+    return result
+
+if 'how to make param holo. Style 1, linear offset.' and False:
+    the_input = torch.tensor([[-1,-0.1,0,0.1,1]])
+    epi = torch.tensor(0.01)
+    holo = torch.tensor(0.2)
+    
+    assert_param_shape__batch_dim(the_input)
+    assert_param_for_ParamMo_make_holo_direct_offset(holo, epi)
+    result = ParamMo_make_holo_direct_offset(the_input, holo, epi)
+    
+    print(the_input)
+    print(result)
+    pass
+
+
+
+def assert_param_for_ParamMo_make_holo_keep_the_max_abs_as_1(holo:torch.Tensor, epi:torch.Tensor):
+    #assert param.shape.__len__() == 2, "Only accept rank-2 tensor. The shape should be[batch, something]"
+    assert epi>0.
+    assert holo>0.
+    pass
+
+def ParamMo_make_holo_keep_the_max_abs_as_1(param:torch.Tensor, holo:torch.Tensor, epi:torch.Tensor)->torch.Tensor:
+    r'''
+    Detail: This method assumes the max abs is already 1, and does NOT modify this boundary.
+    It pushes elements close at 0 away from 0, but doesn't touch elements close to +-1 very much.
+    '''
+    one_minus_holo = 1-holo
+    flag_pos = param.gt(epi)
+    flag_neg = param.lt(-epi)
+    flag_zero = flag_pos.logical_not().logical_and(flag_neg.logical_not())
+
+    part_pos = (param*one_minus_holo+holo)*flag_pos
+    part_neg = (param*one_minus_holo-holo)*flag_neg
+    
+    some_rand_sign = torch.randint(low=0,high=2,size=[1])*2.-1.
+    part_zero = (param+some_rand_sign*holo)*flag_zero
+    
+    result = part_pos+part_neg+part_zero
+    return result
+
+if 'how to make param holo. Style 2, keeps the max abs as 1' and False:
+    the_input = torch.tensor([[-1,-0.1,0,0.1,1]])
+    epi = torch.tensor(0.01)
+    holo = torch.tensor(0.2)
+    
+    assert_param_shape__batch_dim(the_input)
+    assert_param_for_ParamMo_make_holo_keep_the_max_abs_as_1(holo, epi)
+    result = ParamMo_make_holo_keep_the_max_abs_as_1(the_input, holo, epi)
+    
+    print(the_input)
+    print(result)
+    pass
+    
+
 
 
 
@@ -1247,3 +1351,8 @@ if 'basic test' and False:
     input = torch.linspace(0.,1.,10)
     output = layer(input)
     pass
+
+
+
+
+
