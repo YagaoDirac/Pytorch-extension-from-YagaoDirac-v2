@@ -336,8 +336,8 @@ class DigitalMapper_v2_6(torch.nn.Module):
             #这两个暂时没有用上。
         
         #new?
-        self.holo = torch.nn.Parameter(torch.torch(holo, **factory_kwargs), requires_grad=False)
-        self.epi_for_holo = torch.nn.Parameter(torch.torch(epi_for_holo, **factory_kwargs), requires_grad=False)
+        self.holo = torch.nn.Parameter(torch.tensor(holo, **factory_kwargs), requires_grad=False)
+        self.epi_for_holo = torch.nn.Parameter(torch.tensor(epi_for_holo, **factory_kwargs), requires_grad=False)
         
         self.gramo_for_raw_weight = GradientModification_v2_abs_to_less_than_1(raw_weight_updating_strength_expansion_factor)
         self.out_gramo = GradientModification_v2_abs_to_less_than_1(g_in_expansion_factor)
@@ -387,7 +387,7 @@ class DigitalMapper_v2_6(torch.nn.Module):
                     #output_expansion_factor = 1., \
                     g_in_expansion_factor = 1., \
                     raw_weight_updating_strength_expansion_factor = 1., \
-                    holo = 0.2, epi_for_holo = 0.1, \
+                    holo = 0.2, epi_for_holo = 0.01, \
                     init_rand_scaling_factor = 1., \
                     debug_allow_any_shape = False, \
                     debug_number_in_model = -1, \
@@ -817,11 +817,11 @@ if 'param protection test' and False:
     print(layer.raw_weight_o_i.data)
     pass
     
-if '''basic single layer test''' and True:
-    继续。
+if '''basic single layer test. Holo doesn't do anything here.''' and False:
     is_half = False
     gramo_for_each_output = True # This doesn't do anything when output only has 1 element. 
-    layer = DigitalMapper_v2_6(3,1,gramo_for_each_output,3.)
+    layer = DigitalMapper_v2_6.make_simple(3,1,gramo_for_each_output,3.,
+                    holo=0.2,epi_for_holo=0.01)
     print(layer.raw_weight_o_i.shape)
     layer.raw_weight_o_i.data = torch.tensor([[-1.,-1., 1.]])
     print(layer.raw_weight_o_i.shape)
@@ -849,6 +849,24 @@ if '''basic single layer test''' and True:
     print(layer.raw_weight_o_i.data, "weight after protection")
     #print(layer.mapping_index_previous_o.data, "mapping_index_previous_o")2.6没有这个。
     print(layer.grad_is_answer_strength_previous_o.grad, "answer_strength")
+    pass
+
+if '''Holo test''' and False:
+    gramo_for_each_output = True # This doesn't do anything when output only has 1 element. 
+    layer = DigitalMapper_v2_6.make_simple(3,1,gramo_for_each_output,3.,
+                    holo=0.1,epi_for_holo=0.01)
+    #print(layer.raw_weight_o_i.shape)
+    layer.raw_weight_o_i.data = torch.tensor([[0.,0,0]])
+    #print(layer.raw_weight_o_i.shape)
+    #print(layer.raw_weight_o_i.requires_grad)
+    input = torch.tensor([[1., 0.5, 0.1]], requires_grad=True)
+    target = torch.tensor([[1.]]) 
+    optim = torch.optim.SGD(layer.parameters(), lr=0.01)
+    pred:torch.Tensor = layer(input)
+    print(pred, "pred")
+    pred.backward(target)
+    print(layer.raw_weight_o_i.grad, "weight grad")
+    print(input.grad, "input grad")
     pass
 
 if '''basic multi layer forward test''' and False:
@@ -891,20 +909,21 @@ if '''extreme updating strength test''' and False:
     print(layer.grad_is_answer_strength_previous_o.grad, "answer_strength")
     pass
 
-if '''basic 2 layer test.''' and False:
+if '''basic 2 layer test. Holo doesn't do anything here??? yeah.''' and False:
     raw_weight_updating_strength_expansion_factor = 1.
-    output_expansion_factor = 1
-    g_in_expansion_factor =   1
+    #output_expansion_factor = 1.
+    g_in_expansion_factor =   1.
+    holo = 0.02
     gramo_for_each_output = False
-    layer1 = DigitalMapper_v2_6(3,2,gramo_for_each_output, 3.,
+    layer1 = DigitalMapper_v2_6.make_simple(3,2,gramo_for_each_output, 3.,
             raw_weight_updating_strength_expansion_factor=raw_weight_updating_strength_expansion_factor,
-            output_expansion_factor=output_expansion_factor,
-            g_in_expansion_factor=g_in_expansion_factor,)
+            #output_expansion_factor=output_expansion_factor,
+            g_in_expansion_factor=g_in_expansion_factor,holo=holo)
     layer1.raw_weight_o_i.data = torch.tensor([[0., 0., 5.],[0., 5., 0.]])
-    layer2 = DigitalMapper_v2_6(2,1,gramo_for_each_output, 3.,
+    layer2 = DigitalMapper_v2_6.make_simple(2,1,gramo_for_each_output, 3.,
             raw_weight_updating_strength_expansion_factor=raw_weight_updating_strength_expansion_factor,
-            output_expansion_factor=output_expansion_factor,
-            g_in_expansion_factor=g_in_expansion_factor,)
+            #output_expansion_factor=output_expansion_factor,
+            g_in_expansion_factor=g_in_expansion_factor,holo=holo)
     layer2.raw_weight_o_i.data = torch.tensor([[0., 5.]])
     input = torch.tensor([[-1., -1., 1.]], requires_grad=True)
     target = torch.tensor([[1.]]) 
@@ -1326,11 +1345,11 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
     def _print_max_index_count(self):
         r'''only used in besides_stepping. Do not call this function directly.'''
         with torch.no_grad():
-            raise Exception('untested after modified.')
+            #raise Exception('untested after modified.')
             layer_index = self.digital_mappers.__len__()-1
             layer:DigitalMapper_v2_6 = self.digital_mappers[-1]
-            temp1 = layer.get_plain_max_index_from_raw()
-            current_index = temp1.unique()#different
+            plain_max_index = layer.get_plain_max_index_from_raw()
+            current_index = plain_max_index.unique()#different
             if layer_index%10==0:
                 print(f"({layer_index}):", end="")
                 pass
@@ -1338,9 +1357,10 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
             previous_index = current_index
             for layer_index in range(self.digital_mappers.__len__()-2,-1,-1):
                 layer = self.digital_mappers[layer_index]
-                temp1 = layer.get_plain_max_index_from_raw()
-                current_index = temp1[previous_index].unique()#different
-                if i % 10 == 0:
+                plain_max_index = layer.get_plain_max_index_from_raw()
+                chosen_index = plain_max_index[previous_index]
+                current_index = chosen_index.unique()#different
+                if layer_index % 10 == 0:
                     print(f"({layer_index}):", end="")
                     pass
                 print(f"{current_index.shape[0]}, ", end="")
@@ -1484,15 +1504,23 @@ if 'xxxxxxxxxx not for 2.5 xxxxxxxxxxxxx 2 static methods test' and False:
     pass
 
 if 'skipped. Maybe I should do it before move on.       print_max_index test'and False:
-    the_config = test_directly_stacking_multiple_digital_mappers.gen_shape_config(1111,111,21)
-    model = test_directly_stacking_multiple_digital_mappers(the_config,0.5)
+#    the_config = test_directly_stacking_multiple_digital_mappers.gen_shape_config(1111,111,21)
+    the_config = test_directly_stacking_multiple_digital_mappers.gen_shape_config(10,5,3)
+    #model = test_directly_stacking_multiple_digital_mappers(the_config,0.5)
     #model._deduplicate()
+    model = test_directly_stacking_multiple_digital_mappers(the_config,
+                gramo_for_each_output = False, deduplicating_strength=3., 
+                raw_weight_min=-25., g_in_expansion_factor=1., 
+                raw_weight_updating_strength_expansion_factor=1.,
+                holo=0.2, epi_for_holo=0.01, 
+                init_rand_scaling_factor=1.)
+    
     model._print_max_index_count()
     pass
 
 
 fast_traval____direct_stack_test = 432
-if 'direct stack test' and False:
+if 'direct stack test' and True:
     for _ in range(10):
         is_half = False#no plan for this. 
         
@@ -1505,6 +1533,9 @@ if 'direct stack test' and False:
         g_in_expansion_factor=1.
         '''
         g_in_expansion_factor
+        with 70/5/20:
+        0.5(55to87)0.7(32to72)0.8(32to51)0.9(24to43)1(22to36)1.1(28to45)1.5(41to83,500+)2(57to120,600+)
+        
         below: xmo is sign balance. 15 layers.
         0.25(55to120)0.5(35to73)1*(24to40)2(56to85unstable)
         
@@ -1514,9 +1545,13 @@ if 'direct stack test' and False:
         below is old. xmo is max abs to 1.
         0.25(96to150)0.5(84to110)1(61to160)2(62to120,<380)3(87to180,<920)
         '''
-        raw_weight_updating_strength_expansion_factor=0.5
+        raw_weight_updating_strength_expansion_factor=0.3
         '''
         raw_weight_updating_strength_expansion_factor
+        with 70/5/20:
+        0.1(30to49,200+)0.15(30to35,400+unable to deduplicate)
+        0.2(24to43)0.3(29to40)0.5(19to52)1(33to56)3(37,300,1k)
+        
         below: xmo is sign balance. 15 layers.
         0.1(30to53,150)0.2(26to41)0.4(25to35)0.5*(28to38)0.7(25to44)1(21to39)2(24to41,69)5(ng)
         
@@ -1528,6 +1563,9 @@ if 'direct stack test' and False:
         '''
         gramo_for_each_output = True#
         '''
+        with 70/5/20:
+        true(26to43)false(23to66,130)
+        
         below: xmo is sign balance. 15 layers.
         #false(23to43)true*(28to38)
         
@@ -1548,29 +1586,48 @@ if 'direct stack test' and False:
         batch = 10000
         
         #11111111111111111111111
-        deduplicating_strength = float(deduplicate_every)*10. #new style. always 1.
+        deduplicating_strength = float(deduplicate_every)*20. #new style. always 1???.
         '''
+        with 70/5/20:
+        10(24to33)12(21to37)20(17to34)50(13to35)100(14to170)
+        
         deduplicating_strength = float(deduplicate_every)*?
         5(45 75)10(25to36)20(17to32)50(15to28)
         '''
-        
-        print("holo:float, epi_for_holo:float, \   _______line 1556")
-           
-        
-        
-        
-        init_rand_scaling_factor = deduplicating_strength*0.5
+        holo = 0.001
+        epi_for_holo = 0.1
         '''
+        holo
+        0.01(28to100)0.1*(25to42)0.2(31to53)0.5(29to50)0.95(30to61)
+        
+        epi_for_holo
+        0.001*(27to46)0.01(25to42)0.1(26to42)
+        '''        
+        
+        
+        init_rand_scaling_factor = deduplicating_strength*2.
+        '''
+        with 70/5/20:
+        0.5(17to34)1(14to29)2(10to21)5(10to20)10(7to15,56)
+        
         init_rand_scaling_factor
         0.1(25to36)0.2(19to34)0.5(14to29)1(14to26)2(10to27<53)
         '''
-        lr = deduplicating_strength*0.6#8
+        lr = deduplicating_strength*0.7
         '''
+        with 70/5/20:
+        0.6(10to21)0.7*(13to24)0.8(11to24)0.9(16to26,100+unable to deduplicate)1(9to20)
+        1.1(15,200+unable to deduplicate)1.2(14to19,32,200+,sometimes unable to deduplicate)
+        1.5(17to34,200)2(22to37,200+,400+)
+        
         lr = deduplicating_strength*?
         0.2(26to52)0.4(21to37)0.5(21to37)0.6(18to37)0.8(14to29)1(15to24,46,210)2(29,75,200+)
         '''
-        raw_weight_min = deduplicating_strength*-50.
+        raw_weight_min = deduplicating_strength*-25.
         '''
+        with 70/5/20:
+        -25*(13to23)-50(13to24)-100(12to23, maybe unstable?)-200(15to28,79)-500(15to25,60)
+        
         raw_weight_min = deduplicating_strength*?
         -1(53to220)-2(19to34)-5(14to30)-10(17to28)-20(18to37)-50(14to31)-100(18to27)-200(18to25)
         
@@ -1607,16 +1664,17 @@ if 'direct stack test' and False:
         #ds *33: lr                                     10(33to56)
         #ds *100: lr 0.1(190to470<660)1(50to89)3(33to52)10(20to38)33(24to98)100(29to1k)
         '''
-        in_features = 110
+        in_features = 70
         out_features = 5
-        num_layers = 50
+        num_layers = 20
+        继续。推到极致，跑第二个了。
         '''
         50/5/15(14to31)
         70/5/15(19to31,45)
         70/5/20(26to46)
         80/5/30(47to92)
         90/5/40(79to100)
-        110/5/50(to test)
+        110/5/50(to test111111111111111111)
 
         below: xmo is sign balance.
         in/out/layers
@@ -1646,13 +1704,14 @@ if 'direct stack test' and False:
         def print_config_after_finish():
             #print("output_expansion_factor:", output_expansion_factor)
             #print("g_in_expansion_factor:", g_in_expansion_factor)
+            #print("gramo_for_each_output:", gramo_for_each_output)
             #print("raw_weight_updating_strength_expansion_factor:", raw_weight_updating_strength_expansion_factor)
             #print("gramo_for_each_output:", gramo_for_each_output)
             #print("re_rand_target_weight_every:", re_rand_target_weight_every, "/deduplicate_every:", deduplicate_every)
-            #print("/deduplicating_strength:",deduplicating_strength,"lr:", lr,)
+            #print("deduplicating_strength:",deduplicating_strength,"lr:", lr,)
             #print("gramo_for_each_output:", gramo_for_each_output)
-            #print("raw_weight_min:", raw_weight_min)
-            print("in_features:", in_features, "/out_features:", out_features, "/num_layers:", num_layers)
+            print("raw_weight_min:", raw_weight_min)
+            #print("in_features:", in_features, "/out_features:", out_features, "/num_layers:", num_layers)
             return
         
         pt = Print_Timing(first=1, max_gap=50, density=0.5)
@@ -2254,7 +2313,7 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
         deduplicating_strength = float(deduplicate_every)*?
         1(150to410,1k2...)2(65to100)5(47to91)10(28to60,unstable)
         '''
-        print("holo:float, epi_for_holo:float, \   -______line 2256")
+        print("holo:float, epi_for_holo:float,    -______line 2256")
         
         
         init_rand_scaling_factor = deduplicating_strength*1.

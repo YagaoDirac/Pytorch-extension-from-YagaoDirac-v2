@@ -262,7 +262,7 @@ def ParamMo_make_holo_direct_offset(param:torch.Tensor, holo:torch.Tensor, epi:t
     part_pos = (param+holo)*flag_pos
     part_neg = (param-holo)*flag_neg
     
-    some_rand_sign = torch.randint(low=0,high=2,size=[1])*2.-1.
+    some_rand_sign = torch.randint(low=0,high=2,size=[1],device=param.device)*2.-1.
     part_zero = (param+some_rand_sign*holo)*flag_zero
     
     result = part_pos+part_neg+part_zero
@@ -302,7 +302,7 @@ def ParamMo_make_holo_keep_the_max_abs_as_1(param:torch.Tensor, holo:torch.Tenso
     part_pos = (param*one_minus_holo+holo)*flag_pos
     part_neg = (param*one_minus_holo-holo)*flag_neg
     
-    some_rand_sign = torch.randint(low=0,high=2,size=[1])*2.-1.
+    some_rand_sign = torch.randint(low=0,high=2,size=[1],device=param.device)*2.-1.
     part_zero = (param+some_rand_sign*holo)*flag_zero
     
     result = part_pos+part_neg+part_zero
