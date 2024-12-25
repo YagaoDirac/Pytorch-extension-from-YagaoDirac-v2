@@ -1585,28 +1585,55 @@ if 'direct stack test' and True:
         is_cuda = True
         batch = 10000
         
-        #11111111111111111111111
-        deduplicating_strength = float(deduplicate_every)*20. #new style. always 1???.
+        is_testing__deduplicating_strength = False
+        deduplicating_strength = float(deduplicate_every)*10. #new style. always 1???.
+        #继续，holo 0.8
         '''
+        dec 25 pm5
+        holo 0.1:
+        2(300+very slow)10(10to19,300+ failed deduplicating.)20(12to24,1x failed deduplicating.)50(11to18,69,250)
+        100(11to28,2x 300+ failed deduplicating.)
+        500(41to97,200+failed deduplicating.)
+        holo 0.3:
+        5(35to67)10***(13to35)20(11to25,200+failed deduplicating.)50(12to41,130170)
+        holo 0.8:
+        2(very slow)5(34to99)10(17to32,180)20(11to27,560)50(14to30,170)
+        100(11to47,270)500(37to200,200+failed deduplicating.)
+        
         with 70/5/20:
         10(24to33)12(21to37)20(17to34)50(13to35)100(14to170)
         
         deduplicating_strength = float(deduplicate_every)*?
         5(45 75)10(25to36)20(17to32)50(15to28)
         '''
-        holo = 0.001
-        epi_for_holo = 0.1
+        is_testing__holo = True
+        holo = 0.95
+        assert holo>=0.07
+        epi_for_holo = 0.1这个还要再跑一下。
         '''
         holo
-        0.01(28to100)0.1*(25to42)0.2(31to53)0.5(29to50)0.95(30to61)
+        round 2. with deduplicating_strength = float(deduplicate_every)*10:
+        0.1(11to24,250)0.3(11to31,200+failed deduplicating.)
+        0.5(12to35(20x)79,270)0.8(14to25,400+failed deduplicating.)
+        0.85(12to33,50)0.9(12to29(30x))0.95*(12to38(30x))
+        holo 0.95:epi_for_holo 0.1(14to23)0.01(19to35)0.001(12to30)
         
-        epi_for_holo
-        0.001*(27to46)0.01(25to42)0.1(26to42)
+        old
+        0.02(14to31,100)0.05(8to22)0.1(13to22)0.2(9to26)0.4(1031)0.5(11to26)0.6(1126(19x),200+unable to deduplicate)
+        0.8(12to19)0.95(10to32,240)
+        
+        holo 0.1:epi_for_holo 0.001(13to22)0.01(13to24)0.1(11to24)
+        holo 0.5:epi_for_holo 0.001(9to32,200+)0.01(12to21,200+ unable to deduplicate)0.1(9to32,70)
+        holo 0.8:epi_for_holo 0.001(11to22)0.01(10to35)0.1(9to27)
         '''        
         
         
         init_rand_scaling_factor = deduplicating_strength*2.
         '''
+        dec 25 pm5
+        holo 0.1:
+        2(13to22)1111111111111111111111111111
+        
         with 70/5/20:
         0.5(17to34)1(14to29)2(10to21)5(10to20)10(7to15,56)
         
@@ -1667,14 +1694,22 @@ if 'direct stack test' and True:
         in_features = 70
         out_features = 5
         num_layers = 20
-        继续。推到极致，跑第二个了。
         '''
+        with ParamMo_make_holo_keep_the_max_abs_as_1:
+        
+        
+        下面这一组作废。
+        70/5/20(13to23)
+        90/5/40(27to36)
+        110/5/50(34 71, unstable 1x unable to deduplicate)
+        130/5/60(66,unstable)
+        
+        old
         50/5/15(14to31)
         70/5/15(19to31,45)
         70/5/20(26to46)
         80/5/30(47to92)
         90/5/40(79to100)
-        110/5/50(to test111111111111111111)
 
         below: xmo is sign balance.
         in/out/layers
@@ -1702,19 +1737,25 @@ if 'direct stack test' and True:
         #5(0.55)0(0.55)-5(0.99)-10(40to65)-25(35to59)-100(37to71)
         
         def print_config_after_finish():
+            if is_testing__holo:
+                print("holo:", holo,"/epi_for_holo:",epi_for_holo)
+            #if is_testing__epi_for_holo:
+                
+            
             #print("output_expansion_factor:", output_expansion_factor)
             #print("g_in_expansion_factor:", g_in_expansion_factor)
             #print("gramo_for_each_output:", gramo_for_each_output)
             #print("raw_weight_updating_strength_expansion_factor:", raw_weight_updating_strength_expansion_factor)
             #print("gramo_for_each_output:", gramo_for_each_output)
             #print("re_rand_target_weight_every:", re_rand_target_weight_every, "/deduplicate_every:", deduplicate_every)
-            #print("deduplicating_strength:",deduplicating_strength,"lr:", lr,)
+            if is_testing__deduplicating_strength:
+                print("deduplicating_strength:",deduplicating_strength,"lr:", lr,)
             #print("gramo_for_each_output:", gramo_for_each_output)
-            print("raw_weight_min:", raw_weight_min)
+            #print("raw_weight_min:", raw_weight_min)
             #print("in_features:", in_features, "/out_features:", out_features, "/num_layers:", num_layers)
             return
         
-        pt = Print_Timing(first=1, max_gap=50, density=0.5)
+        pt = Print_Timing(first=1, max_gap=20, density=0.5)
         
         (input, target_ori) = data_gen_for_directly_stacking_test(batch, in_features, out_features, no_duplicated = True)
         target = target_ori
