@@ -4,6 +4,8 @@ import sys
 import math
 import torch
 
+我猜当时参数爆炸的问题，可能是学习率写错了。总之打印一下应该能查出来。
+
 import sys
 ori_path = sys.path[0]
 index = ori_path.rfind("\\")

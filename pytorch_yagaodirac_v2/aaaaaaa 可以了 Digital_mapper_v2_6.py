@@ -20,6 +20,15 @@ from pytorch_yagaodirac_v2.torch_vec import torch_vec
 
 
 '''
+2024 dec 27的笔记
+1号测试跑了，效果很好，直接60层，而且肯定还能更夸张。
+这个设计没什么问题了。
+2号测试完全不稳定，但是可以很容易的得到一个0lost的情况，就是说，只有重复在导致训练不稳定。
+反正2.6的100%acc也没什么用，要的就是大多数路径能打透，现在已经实现了，暂时就这样了。
+2.6的一个问题是，去重的地方，因为不是二值化的直接选，所以其实那个操作的数学层面的解释无限牵强。
+如果一定要改的话，可能整个结构都要重新想。现在看来不是很应该做这个事情了。
+2.5.1还没测，先测一下再说。估计后面多半直接尝试合起来的版本了。
+
 准备加ParamMo_make_holo_keep_the_max_abs_as_1
 最新笔记
 第二个测试跑得很艰难，很不稳定。
@@ -116,7 +125,6 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
         
         output_before_reshape_b_o_1:torch.Tensor = softmax_of_raw_weight_o_i.matmul(input_reshaped_b_i_1)
         output_b_o = output_before_reshape_b_o_1.squeeze(dim=2)
-        
         
         #output.requires_grad_(input_b_i.requires_grad and raw_weight_o_i.requires_grad)
         w_requires_grad = torch.tensor([raw_weight_o_i.requires_grad])
@@ -410,6 +418,7 @@ class DigitalMapper_v2_6(torch.nn.Module):
     #end of function
 
     def to(self, to_what):
+        raise Exception()
         if torch.float16 == to_what:
             raise Exception("init as float16")
         if torch.float64 == to_what:
@@ -1376,7 +1385,7 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
     #If the in and out dims are the same, simply paste the input to the output, it should work perfectly.
     #if the input dim is smaller than output, why do I need this shape. This is the case in some test.
         layer:DigitalMapper_v2_6
-        chosen_index:Tuple[torch.Tensor|None] = None
+        chosen_index:Optional[torch.Tensor] = None
         for i in range(self.digital_mappers.__len__()-1,-1,-1):
             layer = self.digital_mappers[i]
             chosen_index = layer.deduplicate_v2_6(chosen_index)
@@ -1520,7 +1529,7 @@ if 'skipped. Maybe I should do it before move on.       print_max_index test'and
 
 
 fast_traval____direct_stack_test = 432
-if 'direct stack test' and True:
+if 'direct stack test' and False:
     for _ in range(10):
         is_half = False#no plan for this. 
         
@@ -1586,7 +1595,7 @@ if 'direct stack test' and True:
         batch = 10000
         
         is_testing__deduplicating_strength = False
-        deduplicating_strength = float(deduplicate_every)*10. #new style. always 1???.
+        deduplicating_strength = float(deduplicate_every)*15. #new style. always 1???.
         #继续，holo 0.8
         '''
         dec 25 pm5
@@ -1595,10 +1604,13 @@ if 'direct stack test' and True:
         100(11to28,2x 300+ failed deduplicating.)
         500(41to97,200+failed deduplicating.)
         holo 0.3:
-        5(35to67)10***(13to35)20(11to25,200+failed deduplicating.)50(12to41,130170)
+        5(35to67)10(13to35)20(11to25,200+failed deduplicating.)50(12to41,130170)
         holo 0.8:
         2(very slow)5(34to99)10(17to32,180)20(11to27,560)50(14to30,170)
         100(11to47,270)500(37to200,200+failed deduplicating.)
+        holo 0.95:最后决定15**********.
+        2(very slow,300+)5(44to76,130,300+ failed deduplicating)10(13to34)
+        20(10to24,33)30(11to20,39,43,86)40(11to29,46(20x))50(10to31,80)
         
         with 70/5/20:
         10(24to33)12(21to37)20(17to34)50(13to35)100(14to170)
@@ -1606,17 +1618,17 @@ if 'direct stack test' and True:
         deduplicating_strength = float(deduplicate_every)*?
         5(45 75)10(25to36)20(17to32)50(15to28)
         '''
-        is_testing__holo = True
+        is_testing__holo = False
         holo = 0.95
         assert holo>=0.07
-        epi_for_holo = 0.1这个还要再跑一下。
+        epi_for_holo = 0.001#这个还要再跑一下。
         '''
         holo
         round 2. with deduplicating_strength = float(deduplicate_every)*10:
         0.1(11to24,250)0.3(11to31,200+failed deduplicating.)
         0.5(12to35(20x)79,270)0.8(14to25,400+failed deduplicating.)
         0.85(12to33,50)0.9(12to29(30x))0.95*(12to38(30x))
-        holo 0.95:epi_for_holo 0.1(14to23)0.01(19to35)0.001(12to30)
+        holo 0.95:epi_for_holo(30x) 0.001*(12to30)0.01(12to35)0.1(12to33 )
         
         old
         0.02(14to31,100)0.05(8to22)0.1(13to22)0.2(9to26)0.4(1031)0.5(11to26)0.6(1126(19x),200+unable to deduplicate)
@@ -1627,12 +1639,13 @@ if 'direct stack test' and True:
         holo 0.8:epi_for_holo 0.001(11to22)0.01(10to35)0.1(9to27)
         '''        
         
-        
-        init_rand_scaling_factor = deduplicating_strength*2.
+        is_testing__init_rand_scaling_factor = False
+        init_rand_scaling_factor = deduplicating_strength*10.
         '''
         dec 25 pm5
-        holo 0.1:
-        2(13to22)1111111111111111111111111111
+        holo 0.95:
+        0.5(18to33)1(15to27,200+failed deduplicating.)2(12to35)5(9to17,71)10*(8to17(20x))
+        20(6to22,43,200+ failed deduplicating)
         
         with 70/5/20:
         0.5(17to34)1(14to29)2(10to21)5(10to20)10(7to15,56)
@@ -1640,8 +1653,12 @@ if 'direct stack test' and True:
         init_rand_scaling_factor
         0.1(25to36)0.2(19to34)0.5(14to29)1(14to26)2(10to27<53)
         '''
-        lr = deduplicating_strength*0.7
+        is_testing__lr = False
+        lr = deduplicating_strength*0.6
         '''
+        dec 25 pm5
+        0.4(814,37,51)0.5(8to21)0.6*(7to15,29x2)0.7(8to17(20x))0.8(10to16,40,200+)0.9(6to24)1.2(8to27,54)1.5(8to21,84,200+failed deduplicating)
+        
         with 70/5/20:
         0.6(10to21)0.7*(13to24)0.8(11to24)0.9(16to26,100+unable to deduplicate)1(9to20)
         1.1(15,200+unable to deduplicate)1.2(14to19,32,200+,sometimes unable to deduplicate)
@@ -1691,12 +1708,16 @@ if 'direct stack test' and True:
         #ds *33: lr                                     10(33to56)
         #ds *100: lr 0.1(190to470<660)1(50to89)3(33to52)10(20to38)33(24to98)100(29to1k)
         '''
-        in_features = 70
+        is_testing__shape = False
+        in_features = 130
         out_features = 5
-        num_layers = 20
+        num_layers = 60
         '''
         with ParamMo_make_holo_keep_the_max_abs_as_1:
-        
+        70/5/20(9to17)
+        90/5/40(9to24,51to99,160)
+        110/5/50(21to32,200)
+        130/5/60(18to31,42)
         
         下面这一组作废。
         70/5/20(13to23)
@@ -1740,8 +1761,8 @@ if 'direct stack test' and True:
             if is_testing__holo:
                 print("holo:", holo,"/epi_for_holo:",epi_for_holo)
             #if is_testing__epi_for_holo:
-                
-            
+            if is_testing__init_rand_scaling_factor:
+                print("init_rand_scaling_factor:",init_rand_scaling_factor)
             #print("output_expansion_factor:", output_expansion_factor)
             #print("g_in_expansion_factor:", g_in_expansion_factor)
             #print("gramo_for_each_output:", gramo_for_each_output)
@@ -1750,9 +1771,13 @@ if 'direct stack test' and True:
             #print("re_rand_target_weight_every:", re_rand_target_weight_every, "/deduplicate_every:", deduplicate_every)
             if is_testing__deduplicating_strength:
                 print("deduplicating_strength:",deduplicating_strength,"lr:", lr,)
+            if is_testing__lr:
+                print("lr:", lr,)
+                
             #print("gramo_for_each_output:", gramo_for_each_output)
             #print("raw_weight_min:", raw_weight_min)
-            #print("in_features:", in_features, "/out_features:", out_features, "/num_layers:", num_layers)
+            if is_testing__shape:
+                print("in_features:", in_features, "/out_features:", out_features, "/num_layers:", num_layers)
             return
         
         pt = Print_Timing(first=1, max_gap=20, density=0.5)
@@ -1769,7 +1794,8 @@ if 'direct stack test' and True:
         #         gramo_for_each_output, deduplicating_strength, 
         #         raw_weight_min, output_expansion_factor, g_in_expansion_factor, 
         #         raw_weight_updating_strength_expansion_factor)#之前的
-        model = test_directly_stacking_multiple_digital_mappers(the_config,
+        model = test_directly_stacking_multiple_digital_mappers(
+                the_config,
                 gramo_for_each_output, deduplicating_strength, 
                 raw_weight_min, g_in_expansion_factor, 
                 raw_weight_updating_strength_expansion_factor,
@@ -1935,7 +1961,7 @@ if 'direct stack test' and True:
     pass
     play_noise()
 
-#result below~
+
 
 
 
@@ -2007,11 +2033,24 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
         pass
     
     def forward(self, input:torch.Tensor)->torch.Tensor:
+        the_device = input.device
         x = input
+        layer:DigitalMapper_v2_6
         for layer in self.digital_mappers:
-            halfway_noise_raw = torch.randint(0,2,[batch,self.extra_width], device = x.device)*2-1
-            _temp_rand = torch.rand_like(halfway_noise_raw,dtype=torch.float32)
-            halfway_noise = halfway_noise_raw*_temp_rand
+            rand_for_halfway_noise_raw = torch.rand([input.shape[0],self.extra_width],device=input.device, dtype=input.dtype)*2.-1.
+            
+            sum_b_1 = x.abs().sum(dim=1,keepdim=True)
+            avg_b_1 = sum_b_1/torch.tensor(x.shape[1], device=the_device, dtype=sum_b_1.dtype)+0.001
+            avg_b_1_safe = avg_b_1.minimum(torch.tensor(1.,dtype=avg_b_1.dtype, device=the_device))
+            
+            #_temp_rand = torch.rand_like(halfway_noise_raw,dtype=torch.float32)
+            halfway_noise_raw = rand_for_halfway_noise_raw*avg_b_1_safe*2.
+            flag_halfway_noise_raw_too_big:torch.Tensor = halfway_noise_raw.gt(1.)
+            halfway_noise_raw_2 = flag_halfway_noise_raw_too_big+ flag_halfway_noise_raw_too_big.logical_not()*halfway_noise_raw
+            
+            flag_halfway_noise_raw_too_small:torch.Tensor = halfway_noise_raw.lt(-1.)
+            halfway_noise = flag_halfway_noise_raw_too_small*-1.+ flag_halfway_noise_raw_too_small.logical_not()*halfway_noise_raw_2
+            
             x_with_noise = torch.concat((x,halfway_noise),dim=-1)
             x = layer(x_with_noise)
         return x
@@ -2186,6 +2225,54 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
             return
     #end of function.
     
+    
+    
+    def _print_lost_index_count(self):
+        r'''only used in besides_stepping. Do not call this function directly.'''
+        with torch.no_grad():
+            
+            layer_index = self.digital_mappers.__len__()-1
+            layer:DigitalMapper_v2_6 = self.digital_mappers[-1]
+            #rough_current_index:torch.Tensor = torch.empty([0],device=self.digital_mappers[0].raw_weight_o_i.device)
+            mapping_index_of_layer = layer.get_plain_max_index_from_raw()
+            
+            #different
+            all_uniqued_chosen_index:torch.Tensor = mapping_index_of_layer.unique()
+            #different
+            
+            flag_not_lost = all_uniqued_chosen_index.lt(self.width)
+            if layer_index % 10 == 0:
+                print(f"({layer_index}):", end="")
+                pass
+            print(f"{flag_not_lost.logical_not().sum().item()}, ", end="")
+            not_lost_current_index = all_uniqued_chosen_index[flag_not_lost]
+            not_lost_previous_index = not_lost_current_index
+            #rough_current_index:torch.Tensor = torch.empty([0],device=self.digital_mappers[0].raw_weight_o_i.device)
+            for layer_index in range(self.digital_mappers.__len__()-2,-1,-1):
+                layer:DigitalMapper_v2_6 = self.digital_mappers[layer_index]
+                mapping_index_of_layer = layer.get_plain_max_index_from_raw()
+                
+                #different???
+                mapping_index_chosen_by_next_layer = mapping_index_of_layer[not_lost_previous_index]
+                all_uniqued_chosen_index = mapping_index_chosen_by_next_layer.unique()
+                #different???
+                
+                flag_not_lost = all_uniqued_chosen_index.lt(self.width)
+                if layer_index % 10 == 0:
+                    print(f"({layer_index}):", end="")
+                    pass
+                print(f"{flag_not_lost.logical_not().sum().item()}, ", end="")
+                
+                not_lost_current_index = all_uniqued_chosen_index[flag_not_lost]
+                not_lost_previous_index = not_lost_current_index
+                #previous_index = current_index
+                pass
+            print("   _____lost index    ____line 2250")
+            return
+    #end of function.
+    
+    
+    
     def _deduplicate(self, print_final_max_index_count = False):
         r'''only used in besides_stepping. Do not call this function directly.'''
     #I assume the input dim is always bigger than the output dim, because I believe this is the real case in the integrated situation.
@@ -2204,13 +2291,17 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
             pass
         pass#end of function.
     
-    def besides_stepping(self, deduplicate = True, print_final_max_index_count = False, print_all_max_index_count = False):
+    def besides_stepping(self, deduplicate = True, print_final_max_index_count = False, \
+                print_all_max_index_count = False, print_lost_index_count = False):
         with torch.no_grad():
             if deduplicate:
                 self._deduplicate(print_final_max_index_count)
                 pass
             if print_all_max_index_count:
                 self._print_max_index_count()
+                pass
+            if print_lost_index_count:
+                self._print_lost_index_count()
                 pass
             return
     #end of function.
@@ -2264,10 +2355,11 @@ if '_print_max_index_count test. 不是很认真的确认的。有可能不对�
 
 if 'basic shape test' and False:
     batch = 11
-    width = 2
+    width = 4
     extra_width = 3
     (input, target) = data_gen_for_directly_stacking_test(batch, width, width, no_duplicated = True)
-    model = test_directly_stacking_multiple_digital_mappers_with_halfway_widen(width,extra_width,4,0.05)
+    input = torch.rand_like(input).pow(0.7)*input
+    model = test_directly_stacking_multiple_digital_mappers_with_halfway_widen.make_simple(width,extra_width,4)
     print(model(input))
     pass
 
@@ -2318,9 +2410,15 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
     for _ in range(10):
         is_half = False#no plan for this. 
         
-        
-        g_in_expansion_factor=0.03
+        is_testing__g_in_expansion_factor = False
+        g_in_expansion_factor=1.#or 0.01?
+        #1.#0.03
         '''
+        dec 26 pm 9
+        0.1(130,unstable)0.3(250,480,1k,unstable)0.5*(83,260,400,unstable)0.7(150,410,unstable)
+        1(54,200,1k,2k+,1duplicate.)2(200,2duplicate)
+        
+        
         g_in_expansion_factor
         0.01(100to140,410,unstable)0.02(110to290)0.03(100to170)
         0.04(80to150,unstable)        0.05(95to370)
@@ -2329,9 +2427,20 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
         
         0.15(24to38,120)0.25(25to51)0.33(27to45)0.5(25to64,300)1(0.95)
         '''
-        raw_weight_updating_strength_expansion_factor=0.2
-        
+        is_testing__raw_weight_updating_strength_expansion_factor = True
+        raw_weight_updating_strength_expansion_factor=1.#0.2
         '''
+        dec 26 pm 9
+        0.1()0.3(83,260,400,unstable)0.5(30 ?,390,unstable)1(53to280,unstable)2(19,43to450,930,unstable)5(62to370,600,1k3,unstable)
+        10(52to300,940)20(57to320,1k,1k3)
+        
+        
+        这一组作废。
+        0.1(80to180 0losts)0.3(60to200 0losts)0.5(74finished. 60,120,160 0losts)
+        ??
+        1(80finished.40,180 0losts. 1k still loses)2(220 0losts. 130,340,600finished)
+        
+        
         0.2(unable to deduplicate???????????)0.5(170,very unstable)1(330,vert unstable)
         2(100to170)5(110to160,820,unstable)10(120to390,2k1)
         
@@ -2346,37 +2455,50 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
         deduplicate_every = 1#1
         
         
-        is_cuda = True
-        batch = 1000
+        is_cuda = False
+        batch = 7
+        assert batch>100
+        print("batch: ",batch,"   _______line 2445")
         
-        deduplicating_strength = float(deduplicate_every)*5. #new style. always 1.
+        is_testing__deduplicating_strength = False
+        deduplicating_strength = float(deduplicate_every)*15.#5. #new style. always 1.
         '''
         deduplicating_strength = float(deduplicate_every)*?
         1(150to410,1k2...)2(65to100)5(47to91)10(28to60,unstable)
         '''
-        print("holo:float, epi_for_holo:float,    -______line 2256")
+        is_testing__holo = False
+        holo = 0.3#0.95
+        assert holo>=0.07
+        epi_for_holo = 0.001#这个还要再跑一下。
+        '''
+        holo:
+        0.3(470 finished. 2 duplicates.)
         
         
-        init_rand_scaling_factor = deduplicating_strength*1.
+        '''
+        is_testing__init_rand_scaling_factor = False
+        init_rand_scaling_factor = deduplicating_strength*10.#1.
         '''
         init_rand_scaling_factor = deduplicating_strength*?
         0.1(41to94,170)0.2(53to90)0.5(37to99)1(39to83)2(41to140)
         '''
-        lr = deduplicating_strength*0.6#8
+        is_testing__lr = False
+        lr = deduplicating_strength*0.6#0.6
         '''
         lr = deduplicating_strength*?
         0.2(77to240)0.4(54to150)0.5(51,150,270)0.6*(39to83)0.7(33to73,200)0.8(35to130,unstable)1(ng)
         '''
-        raw_weight_min = deduplicating_strength*-50.
+        raw_weight_min = deduplicating_strength*-25.#-50.
         '''
         raw_weight_min = deduplicating_strength*?
         -1(59to380)-3(41to76)-10(48to99)-25(48to140)-50(39to83)
         -100(32to89)-200(35to95)
         '''
 
+        is_testing__shape = False
         width = 10#10
-        extra_width = 30#25
-        num_layers = 10#2
+        extra_width = 1#25
+        num_layers = 5#2
         '''
         width/extra_width/layers
         10/20/6(39to83)
@@ -2398,25 +2520,42 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
         '''
         
         
-        pt = Print_Timing(first=1, max_gap=200, density=0.5)
         
         def print_config_after_finish():
+            if is_testing__g_in_expansion_factor:
+                print("g_in_expansion_factor:", g_in_expansion_factor)
+            if is_testing__raw_weight_updating_strength_expansion_factor:
+                print("raw_weight_updating_strength_expansion_factor:", raw_weight_updating_strength_expansion_factor)
+            if is_testing__holo:
+                print("holo:", holo,"/epi_for_holo:",epi_for_holo)
+            #if is_testing__epi_for_holo:
+            if is_testing__init_rand_scaling_factor:
+                print("init_rand_scaling_factor:",init_rand_scaling_factor)
             #print("output_expansion_factor:", output_expansion_factor)
             #print("g_in_expansion_factor:", g_in_expansion_factor)
+            #print("gramo_for_each_output:", gramo_for_each_output)
             #print("raw_weight_updating_strength_expansion_factor:", raw_weight_updating_strength_expansion_factor)
             #print("gramo_for_each_output:", gramo_for_each_output)
             #print("re_rand_target_weight_every:", re_rand_target_weight_every, "/deduplicate_every:", deduplicate_every)
-            #print("/deduplicating_strength:",deduplicating_strength,"lr:", lr,)
+            if is_testing__deduplicating_strength:
+                print("deduplicating_strength:",deduplicating_strength,"lr:", lr,)
+            if is_testing__lr:
+                print("lr:", lr,)
+                
             #print("gramo_for_each_output:", gramo_for_each_output)
             #print("raw_weight_min:", raw_weight_min)
-            print("width:", width, "/extra_width:", extra_width, "/num_layers:", num_layers)
+            if is_testing__shape:
+                print("width:", width, "/extra_width:", extra_width, "/num_layers:", num_layers)
             return
+        
+        pt = Print_Timing(first=1, max_gap=200, density=0.5)
         
         (input, target_ori) = data_gen_for_directly_stacking_test_same_dim_no_duplicated(batch, width)
         target = target_ori
         #print(target)
 
-        model = test_directly_stacking_multiple_digital_mappers_with_halfway_widen(width,extra_width,num_layers,
+        model = test_directly_stacking_multiple_digital_mappers_with_halfway_widen(
+                width,extra_width,num_layers,
                 gramo_for_each_output, deduplicating_strength, 
                 raw_weight_min, g_in_expansion_factor, 
                 raw_weight_updating_strength_expansion_factor,
@@ -2455,11 +2594,41 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
         for _ in range(5):
             model.besides_stepping(deduplicate = True,print_final_max_index_count=False)
             pass
-        
         #################################################################training loop
         for epoch in range(1231231):
+            #if epoch>90 and (epoch%50 == 50-1):
+            #if epoch%20 == 20-1:
+            if False:
+                model.debug_print_x(input)
+                pass            
+                
+                if "print the grad" and True:
+                    #if pt.check(epoch):
+                    print(model.digital_mappers[0].raw_weight_o_i.grad, "0th layer    grad")
+                    print(model.digital_mappers[1].raw_weight_o_i.grad, "1 layer    grad")
+                    print(model.digital_mappers[-1].raw_weight_o_i.grad, "-1 layer    grad")
+                    pass
+                if "print the weight" and True:
+                    layer:DigitalMapper_v2_6 = model.digital_mappers[0]
+                    print(layer.raw_weight_o_i[:2,:7], "first_layer   before update")
+                    optimizer.step()
+                    print(layer.raw_weight_o_i[:2,:7], "first_layer   after update")
+                    
+                    layer = model.digital_mappers[1]
+                    print(layer.raw_weight_o_i[:2,:7], "second   before update")
+                    optimizer.step()
+                    print(layer.raw_weight_o_i[:2,:7], "second   after update")
+                    
+                    layer = model.digital_mappers[-1]
+                    print(layer.raw_weight_o_i[:2,:7], "last   before update")
+                    optimizer.step()
+                    print(layer.raw_weight_o_i[:2,:7], "last   after update")
+                    pass   
+                pass  
+            
             if epoch%deduplicate_every == deduplicate_every-1:
-                model.besides_stepping(deduplicate = True,print_all_max_index_count=pt.check(epoch))
+                model.besides_stepping(deduplicate = True,print_all_max_index_count=pt.check(epoch),
+                                       print_lost_index_count=pt.check(epoch))
                 #print("deduplicate")
                 pass
             # re rand the temp weight for target
@@ -2474,8 +2643,10 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
             model.train()
             pred = model(input)
             if "shape" and False:
-                print(pred.shape, "pred.shape")
-                print(target.shape, "target.shape")
+                if 0 == epoch :
+                    print(pred.shape, "pred.shape")
+                    print(target.shape, "target.shape")
+                    pass
                 pass
             if "print pred" and False:
                 if 0 == epoch :
@@ -2514,42 +2685,6 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
                 pass
         
             pred.backward(target)#intentional.
-            
-            
-            
-            
-            
-            #if epoch>90 and (epoch%50 == 50-1):
-            #if epoch%20 == 20-1:
-            if False:
-                model.debug_print_x(input)
-                pass            
-                
-                if "print the grad" and True:
-                    #if pt.check(epoch):
-                    print(model.digital_mappers[0].raw_weight_o_i.grad, "0th layer    grad")
-                    print(model.digital_mappers[1].raw_weight_o_i.grad, "1 layer    grad")
-                    print(model.digital_mappers[-1].raw_weight_o_i.grad, "-1 layer    grad")
-                    pass
-                    pass
-                if "print the weight" and True:
-                    layer:DigitalMapper_v2_6 = model.digital_mappers[0]
-                    print(layer.raw_weight_o_i[:2,:7], "first_layer   before update")
-                    optimizer.step()
-                    print(layer.raw_weight_o_i[:2,:7], "first_layer   after update")
-                    
-                    layer = model.digital_mappers[1]
-                    print(layer.raw_weight_o_i[:2,:7], "second   before update")
-                    optimizer.step()
-                    print(layer.raw_weight_o_i[:2,:7], "second   after update")
-                    
-                    layer = model.digital_mappers[-1]
-                    print(layer.raw_weight_o_i[:2,:7], "last   before update")
-                    optimizer.step()
-                    print(layer.raw_weight_o_i[:2,:7], "last   after update")
-                    pass   
-                pass     
-            
             
             
                 
