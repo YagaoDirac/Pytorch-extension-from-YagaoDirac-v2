@@ -20,6 +20,14 @@ from pytorch_yagaodirac_v2.torch_vec import torch_vec
 
 
 '''
+2024 dec 29的笔记
+现在有2个东西可以做，一个是锐化，一个是expansion的自适应。想了一下，先做expansion的自适应
+
+2024 dec 28的笔记
+又在跑测试2了。现在的情况是，结束条件是acc0.85，有一些有电反常识的事情发生了。
+我感觉应该是，训练的前半截和后半截所需要的东西不一样。有些保护在不同阶段可能要不同。暂时不碰这个问题了。
+后面安排一个2.6.1，就是直接在softmax面前乘一个锐化系数，用惩罚的方式给拉高，如果能锐化，就解决大问题了。
+
 2024 dec 27的笔记
 1号测试跑了，效果很好，直接60层，而且肯定还能更夸张。
 这个设计没什么问题了。
@@ -1539,6 +1547,7 @@ if 'direct stack test' and False:
         output_expansion_factor
         0.3(110to210)1(100to170)3(98to150,<560)
         '''
+        is_testing__g_in_expansion_factor = False
         g_in_expansion_factor=1.
         '''
         g_in_expansion_factor
@@ -1554,6 +1563,7 @@ if 'direct stack test' and False:
         below is old. xmo is max abs to 1.
         0.25(96to150)0.5(84to110)1(61to160)2(62to120,<380)3(87to180,<920)
         '''
+        is_testing__raw_weight_updating_strength_expansion_factor = True
         raw_weight_updating_strength_expansion_factor=0.3
         '''
         raw_weight_updating_strength_expansion_factor
@@ -1758,14 +1768,16 @@ if 'direct stack test' and False:
         #5(0.55)0(0.55)-5(0.99)-10(40to65)-25(35to59)-100(37to71)
         
         def print_config_after_finish():
+            if is_testing__g_in_expansion_factor:
+                print("g_in_expansion_factor:", g_in_expansion_factor)
+            if is_testing__raw_weight_updating_strength_expansion_factor:
+                print("raw_weight_updating_strength_expansion_factor:", raw_weight_updating_strength_expansion_factor)
             if is_testing__holo:
                 print("holo:", holo,"/epi_for_holo:",epi_for_holo)
-            #if is_testing__epi_for_holo:
             if is_testing__init_rand_scaling_factor:
                 print("init_rand_scaling_factor:",init_rand_scaling_factor)
             #print("output_expansion_factor:", output_expansion_factor)
             #print("g_in_expansion_factor:", g_in_expansion_factor)
-            #print("gramo_for_each_output:", gramo_for_each_output)
             #print("raw_weight_updating_strength_expansion_factor:", raw_weight_updating_strength_expansion_factor)
             #print("gramo_for_each_output:", gramo_for_each_output)
             #print("re_rand_target_weight_every:", re_rand_target_weight_every, "/deduplicate_every:", deduplicate_every)
@@ -1774,10 +1786,9 @@ if 'direct stack test' and False:
             if is_testing__lr:
                 print("lr:", lr,)
                 
-            #print("gramo_for_each_output:", gramo_for_each_output)
             #print("raw_weight_min:", raw_weight_min)
             if is_testing__shape:
-                print("in_features:", in_features, "/out_features:", out_features, "/num_layers:", num_layers)
+                print("width:", width, "/extra_width:", extra_width, "/num_layers:", num_layers)
             return
         
         pt = Print_Timing(first=1, max_gap=20, density=0.5)
@@ -2406,117 +2417,109 @@ if 'should be correct????? besides_stepping' and False:
     pass
 
 fast_traval____direct_stack_test____with_halfway_widen = 432
+#raise Exception("all the test ends at acc 85%.")
 if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
     for _ in range(10):
         is_half = False#no plan for this. 
         
+        '''
+        本来计划的是还是acc100%作为结束条件，结果并不行。
+        现在在怀疑不同阶段可能要不同的超参，但是太麻烦了，而且不符合我的审美。
+    
+        现在的问题应该是，width太大了，deduplicate会永远解决不了最后一个。
+        width太小了，batch又不够，正交性体现不出来。
+        中间甚至没有一个同时满足的区域？
+        '''
+        
         is_testing__g_in_expansion_factor = False
-        g_in_expansion_factor=1.#or 0.01?
+        g_in_expansion_factor=1.#暂时无效化。
         #1.#0.03
         '''
+        g_in_expansion_factor
+        dec 28 85%acc
+        0.2(43to200,500+)0.5(36to84)0.7(36to85)1(26to87)1.5(32to67)2(39to140)5(87to180)
+        
         dec 26 pm 9
         0.1(130,unstable)0.3(250,480,1k,unstable)0.5*(83,260,400,unstable)0.7(150,410,unstable)
         1(54,200,1k,2k+,1duplicate.)2(200,2duplicate)
-        
-        
-        g_in_expansion_factor
-        0.01(100to140,410,unstable)0.02(110to290)0.03(100to170)
-        0.04(80to150,unstable)        0.05(95to370)
-        0.1(110to340)0.15(82to320,very unstable)0.25(110340,unstable)
-        0.33(110to310,520,10k)0.5(160,190 520 840 11111111111)1(???)
-        
-        0.15(24to38,120)0.25(25to51)0.33(27to45)0.5(25to64,300)1(0.95)
         '''
-        is_testing__raw_weight_updating_strength_expansion_factor = True
+        is_testing__raw_weight_updating_strength_expansion_factor = False
         raw_weight_updating_strength_expansion_factor=1.#0.2
         '''
+        dec 28 85%acc
+        0.2(500+,slow)0.5(57to350,500+,slow)1(26to87)2(26to49)5(23to65)10(15to62)
+        
         dec 26 pm 9
         0.1()0.3(83,260,400,unstable)0.5(30 ?,390,unstable)1(53to280,unstable)2(19,43to450,930,unstable)5(62to370,600,1k3,unstable)
         10(52to300,940)20(57to320,1k,1k3)
-        
-        
-        这一组作废。
-        0.1(80to180 0losts)0.3(60to200 0losts)0.5(74finished. 60,120,160 0losts)
-        ??
-        1(80finished.40,180 0losts. 1k still loses)2(220 0losts. 130,340,600finished)
-        
-        
-        0.2(unable to deduplicate???????????)0.5(170,very unstable)1(330,vert unstable)
-        2(100to170)5(110to160,820,unstable)10(120to390,2k1)
-        
-        0.25(0.95)0.5(40to100,220)1(30to85)2(27to45)5(30to49)
         '''        
+        is_testing__gramo_for_each_output = False
         gramo_for_each_output = True#
         '''
         gramo_for_each_output
-        true(27to45)false(0.95,slow)
+        dec 28 85%acc
+        True(20to69,160)False(71to170,280)
         '''
         re_rand_target_weight_every = 111111111#inf.
         deduplicate_every = 1#1
         
         
-        is_cuda = False
-        batch = 7
-        assert batch>100
-        print("batch: ",batch,"   _______line 2445")
+        is_cuda = True
+        
         
         is_testing__deduplicating_strength = False
-        deduplicating_strength = float(deduplicate_every)*15.#5. #new style. always 1.
+        deduplicating_strength = float(deduplicate_every)*3.#5. #new style. always 1.
         '''
         deduplicating_strength = float(deduplicate_every)*?
-        1(150to410,1k2...)2(65to100)5(47to91)10(28to60,unstable)
+        dec 28 85%acc
+        0.1(500+ lr is small.)0.5(26to47)1(10to18)2(7to13)3*(8to13)4(7to13)5(11to18)15(20to69,160)50(98to240,390,450)
+        round 2, bigger model. 85%acc
+        1(73to270,5k4...)2(26to46)3*(19to33)4(20to44)5(26to66)
         '''
         is_testing__holo = False
-        holo = 0.3#0.95
+        holo = 0.5#0.95
         assert holo>=0.07
         epi_for_holo = 0.001#这个还要再跑一下。
         '''
         holo:
-        0.3(470 finished. 2 duplicates.)
-        
-        
+        dec 28 85%acc
+        0.1(24to52)0.3(25to44)0.4(22to52)0.5*(19to33(20x))0.6(21to52)0.8(23to44)0.9(22to41)0.95(23to48)
         '''
         is_testing__init_rand_scaling_factor = False
         init_rand_scaling_factor = deduplicating_strength*10.#1.
         '''
         init_rand_scaling_factor = deduplicating_strength*?
-        0.1(41to94,170)0.2(53to90)0.5(37to99)1(39to83)2(41to140)
+        dec 28 85%acc
+        0.5(too slow)2(43to120)5(20to40)10(19to33)15(25to47)20(25to81)50(62120,240,390)
         '''
         is_testing__lr = False
         lr = deduplicating_strength*0.6#0.6
         '''
         lr = deduplicating_strength*?
-        0.2(77to240)0.4(54to150)0.5(51,150,270)0.6*(39to83)0.7(33to73,200)0.8(35to130,unstable)1(ng)
+        dec 28 85%acc
+        0.2(41to86)0.4(26to41)0.5(19to42)0.6*(19to33)0.7(24to44)0.8(18to36)0.9(20to44)1.0(21to76,200+)1.2(98,unstable)
         '''
-        raw_weight_min = deduplicating_strength*-25.#-50.
+        is_testing__raw_weight_min = False       
+        raw_weight_min = deduplicating_strength*-10.#-50.
         '''
         raw_weight_min = deduplicating_strength*?
-        -1(59to380)-3(41to76)-10(48to99)-25(48to140)-50(39to83)
-        -100(32to89)-200(35to95)
+        dec 28 85%acc
+        -2(140,200+)-5(21to42)-10*(20to35)-25(21to62)-50(23to40)
         '''
-
-        is_testing__shape = False
-        width = 10#10
-        extra_width = 1#25
-        num_layers = 5#2
+        batch = 10000
+        assert batch>100
+        #print("batch: ",batch,"   _______line 2445")
+        is_testing__shape = True
+        width = 20#10
+        assert width>10
+        extra_width = 20#25
+        num_layers = 15#2
         '''
-        width/extra_width/layers
-        10/20/6(39to83)
-        10/20/7(59to150,unstable)
-        10/20/8(64to160)
-        10/20/10(90to370)
-        10/20/12(130to250,unstable)
-        10/20/15(150to350,unstable)
-        
-        10/20/6(39to83)
-        10/30/6(45to130)
-        10/50/6(55to140)
-        10/100/6(56to110,unstable)
-        
-        10/20/6(39to83)
-        15/20/6(47to140)
-        20/20/6(77to210,unstable)
-        25/20/6(very unstable)
+        dec 28 85%acc
+        20/20/10(18to29)
+        20/20/15(33to53)
+        20/20/20(51to160)
+        20/20/25(93to260,6??,7??,2k)
         '''
         
         
@@ -2528,27 +2531,27 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
                 print("raw_weight_updating_strength_expansion_factor:", raw_weight_updating_strength_expansion_factor)
             if is_testing__holo:
                 print("holo:", holo,"/epi_for_holo:",epi_for_holo)
-            #if is_testing__epi_for_holo:
             if is_testing__init_rand_scaling_factor:
                 print("init_rand_scaling_factor:",init_rand_scaling_factor)
+            if is_testing__gramo_for_each_output:
+                print("gramo_for_each_output:",gramo_for_each_output)
+            if is_testing__raw_weight_min:
+                print("raw_weight_min:", raw_weight_min)
+                
             #print("output_expansion_factor:", output_expansion_factor)
             #print("g_in_expansion_factor:", g_in_expansion_factor)
-            #print("gramo_for_each_output:", gramo_for_each_output)
             #print("raw_weight_updating_strength_expansion_factor:", raw_weight_updating_strength_expansion_factor)
-            #print("gramo_for_each_output:", gramo_for_each_output)
             #print("re_rand_target_weight_every:", re_rand_target_weight_every, "/deduplicate_every:", deduplicate_every)
             if is_testing__deduplicating_strength:
                 print("deduplicating_strength:",deduplicating_strength,"lr:", lr,)
             if is_testing__lr:
                 print("lr:", lr,)
                 
-            #print("gramo_for_each_output:", gramo_for_each_output)
-            #print("raw_weight_min:", raw_weight_min)
             if is_testing__shape:
                 print("width:", width, "/extra_width:", extra_width, "/num_layers:", num_layers)
             return
         
-        pt = Print_Timing(first=1, max_gap=200, density=0.5)
+        pt = Print_Timing(first=1, max_gap=100, density=0.5)
         
         (input, target_ori) = data_gen_for_directly_stacking_test_same_dim_no_duplicated(batch, width)
         target = target_ori
@@ -2665,6 +2668,15 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
                     print("FINISHED, ep:", epoch+1)
                     print("FINISHED, ep:", epoch+1)
                     print("FINISHED, ep:", epoch+1)
+                    print_config_after_finish()
+                    print_config_after_finish()
+                    print(pred[:1,:7], "pred", "    __line 1260")
+                    print(target_ori[:1,:7], "target")
+                    break
+                if acc>0.75:
+                    print("acc>0.75 acc>0.75 acc>0.75        FINISHED, ep:", epoch+1)
+                    print("acc>0.75 acc>0.75 acc>0.75        FINISHED, ep:", epoch+1)
+                    print("acc>0.75 acc>0.75 acc>0.75        FINISHED, ep:", epoch+1)
                     print_config_after_finish()
                     print_config_after_finish()
                     print(pred[:1,:7], "pred", "    __line 1260")
