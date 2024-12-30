@@ -233,34 +233,6 @@ import torch
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # __all__ = [
 #     'make_grad_noisy',
 #     'GradientModification',
@@ -269,6 +241,7 @@ import torch
 #     'GradientModificationFunction', #Should I expose this?
 #     'Linear_gramo', #Should I rename this one? Or somebody help me with the naming?
 #     ]
+
 
 
 
@@ -360,43 +333,6 @@ if 'how to make param holo. Style 2, keeps the max abs as 1' and False:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class GradientModificationFunction_v2_abs_to_less_than_1__adaptive_expansion(torch.autograd.Function):
     r'''This autograd function scale grad to have a max(abs) to 1.
     With a known lr, the maximum updating strength is limited to a known range, 
@@ -479,8 +415,11 @@ class GradientModificationFunction_v2_abs_to_less_than_1__adaptive_expansion(tor
                 log_over_log__nan_to_num__b_1 = log_over_log__raw__b_1.nan_to_num(0.,posinf=0.,neginf=0.)
                 log_over_log_b_1 = flag_has_useful_element_b_1*log_over_log__nan_to_num__b_1+\
                         flag_has_useful_element_b_1.logical_not()*expansion_factor_fallback   
-                powered_abs_of_grad_for_x_b_o = abs_of_grad_for_x_bofore_scale_step2_b_o.pow(log_over_log_b_1)
+            继续
+                if g_in_b_o.shape[0] == 10000:
+                    print(log_over_log_b_1)
             
+                powered_abs_of_grad_for_x_b_o = abs_of_grad_for_x_bofore_scale_step2_b_o.pow(log_over_log_b_1)
                 grad_for_x_b_o = powered_abs_of_grad_for_x_b_o*sign_of_g_in_b_o
                 pass
             else:
@@ -494,8 +433,7 @@ class GradientModificationFunction_v2_abs_to_less_than_1__adaptive_expansion(tor
 
     pass  # class
 
-
-if '''basic test''' and True:
+if '''basic test''' and False:
     div_me_when_g_too_small=torch.tensor([1e-3], dtype=torch.float32)
     median_expansion_to = torch.tensor(0.5)
     useful_element_lower_boundary = torch.tensor(0.01)
@@ -526,9 +464,35 @@ if '''basic test''' and True:
                 useful_element_upper_boundary,expansion_factor_fallback)
     torch.autograd.backward(b, g_in,inputs= a)
     print(a.grad)
+    print()
+    
+    g_in = torch.tensor([[0.,-0.00001,0.1,-0.9999,1.]])
+    a = torch.zeros_like(g_in, requires_grad=True)
+    b = GradientModificationFunction_v2_abs_to_less_than_1__adaptive_expansion.apply(a,\
+            div_me_when_g_too_small,median_expansion_to,useful_element_lower_boundary,
+                useful_element_upper_boundary,expansion_factor_fallback)
+    torch.autograd.backward(b, g_in,inputs= a)
+    print(a.grad)
+    
+    g_in = torch.tensor([[0.,0.00001,-0.1,0.9999,1.],[0.,-0.00001,0.00001,-0.9999,-1.]])
+    a = torch.zeros_like(g_in, requires_grad=True)
+    b = GradientModificationFunction_v2_abs_to_less_than_1__adaptive_expansion.apply(a,\
+            div_me_when_g_too_small,median_expansion_to,useful_element_lower_boundary,
+                useful_element_upper_boundary,expansion_factor_fallback)
+    torch.autograd.backward(b, g_in,inputs= a)
+    print(a.grad)
+    
+    g_in = torch.tensor([[0.,0.00001,-0.00001,0.9999,1.]])
+    a = torch.zeros_like(g_in, requires_grad=True)
+    b = GradientModificationFunction_v2_abs_to_less_than_1__adaptive_expansion.apply(a,\
+            div_me_when_g_too_small,median_expansion_to,useful_element_lower_boundary,
+                useful_element_upper_boundary,expansion_factor_fallback)
+    torch.autograd.backward(b, g_in,inputs= a)
+    
+    print(a.grad)
     pass
 
-if '''dtype adaption.''' and True:
+if '''dtype adaption.''' and False:
     div_me_when_g_too_small=torch.tensor([1e-3],dtype=torch.float64)
     median_expansion_to = torch.tensor(0.5,dtype=torch.float64)
     useful_element_lower_boundary = torch.tensor(0.01,dtype=torch.float64)
@@ -547,7 +511,7 @@ if '''dtype adaption.''' and True:
     print(a.grad.dtype, "should be ", original_dtype)
     pass
 
-if '''device adaption''' and True:
+if '''device adaption''' and False:
     div_me_when_g_too_small=torch.tensor([1e-3], dtype=torch.float32).cuda()
     median_expansion_to = torch.tensor(0.5).cuda()
     useful_element_lower_boundary = torch.tensor(0.01).cuda()
@@ -567,51 +531,88 @@ if '''device adaption''' and True:
 
 
 
-负数还没测试。下面这个类还没改。
-
 class GradientModification_v2_abs_to_less_than_1__adaptive_expansion(torch.nn.Module):
     r"""Remember to set learning rate every iteration(or at least when learning rate is changed.)
     To access the learning rate, you usually need some thing like:
     lr:float = optimizer.param_groups[0]["lr"]
     """
 
-    def __init__(self, grad_expansion_factor:float = 0.3, \
-                       div_me_when_g_too_small=1e-2, \
-                        *args, **kwargs) -> None:
+
+    def __init__(self, div_me_when_g_too_small=1e-3, median_expansion_to =0.5, \
+            useful_element_lower_boundary =0.01,useful_element_upper_boundary = 0.99,\
+            expansion_factor_fallback = 0.3, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.grad_expansion_factor = torch.nn.Parameter(torch.tensor(grad_expansion_factor), requires_grad=False)
-        self.div_me_when_g_too_small=torch.nn.Parameter(torch.tensor(div_me_when_g_too_small), requires_grad=False)
+        
+        self.div_me_when_g_too_small = torch.nn.Parameter(torch.tensor(div_me_when_g_too_small), requires_grad=False)
+        self.median_expansion_to = torch.nn.Parameter(torch.tensor(median_expansion_to), requires_grad=False)
+        self.useful_element_lower_boundary = torch.nn.Parameter(torch.tensor(useful_element_lower_boundary), requires_grad=False)
+        self.useful_element_upper_boundary = torch.nn.Parameter(torch.tensor(useful_element_upper_boundary), requires_grad=False)
+        self.expansion_factor_fallback=torch.nn.Parameter(torch.tensor(expansion_factor_fallback), requires_grad=False)
         pass
     def forward(self, x:torch.Tensor)->torch.Tensor:
         # If you know how pytorch works, you can comment this checking out.
-
         assert_param_shape__batch_dim(x)
-        #forward(ctx, x:torch.Tensor, scaling_factor:torch.Tensor, epi=torch.Tensor, \
-        #div_me_when_g_too_small:torch.Tensor)->torch.Tensor:
-        return GradientModificationFunction_v2_abs_to_less_than_1__adaptive_expansion.apply(x, self.grad_expansion_factor, self.div_me_when_g_too_small)
-    def set_grad_expansion_factor(self, grad_expansion_factor:float)->None:
-        the_device = self.grad_expansion_factor.device
-        the_dtype = self.grad_expansion_factor.dtype
-        self.grad_expansion_factor.data = torch.tensor(grad_expansion_factor, device=the_device, dtype=the_dtype, requires_grad=False)
-        pass
+        
+        return GradientModificationFunction_v2_abs_to_less_than_1__adaptive_expansion.apply(x,\
+                self.div_me_when_g_too_small,self.median_expansion_to,self.useful_element_lower_boundary,
+                self.useful_element_upper_boundary,self.expansion_factor_fallback)
+        #end of function
+    
     def set_div_me_when_g_too_small(self, div_me_when_g_too_small:float)->None:
         the_device = self.div_me_when_g_too_small.device
         the_dtype = self.div_me_when_g_too_small.dtype
         self.div_me_when_g_too_small.data = torch.tensor(div_me_when_g_too_small, device=the_device, dtype=the_dtype, requires_grad=False)
         pass
+    
+    def set_median_expansion_to(self, median_expansion_to:float)->None:
+        the_device = self.median_expansion_to.device
+        the_dtype = self.median_expansion_to.dtype
+        self.median_expansion_to.data = torch.tensor(median_expansion_to, device=the_device, dtype=the_dtype, requires_grad=False)
+        pass
+    
+    def set_useful_element_lower_boundary(self, useful_element_lower_boundary:float)->None:
+        the_device = self.useful_element_lower_boundary.device
+        the_dtype = self.useful_element_lower_boundary.dtype
+        self.useful_element_lower_boundary.data = torch.tensor(useful_element_lower_boundary, device=the_device, dtype=the_dtype, requires_grad=False)
+        pass
+    
+    def set_useful_element_upper_boundary(self, useful_element_upper_boundary:float)->None:
+        the_device = self.useful_element_upper_boundary.device
+        the_dtype = self.useful_element_upper_boundary.dtype
+        self.useful_element_upper_boundary.data = torch.tensor(useful_element_upper_boundary, device=the_device, dtype=the_dtype, requires_grad=False)
+        pass
+            
+    def set_expansion_factor_fallback(self, expansion_factor_fallback:float)->None:
+        the_device = self.expansion_factor_fallback.device
+        the_dtype = self.expansion_factor_fallback.dtype
+        self.expansion_factor_fallback.data = torch.tensor(expansion_factor_fallback, device=the_device, dtype=the_dtype, requires_grad=False)
+        pass
+    
     def extra_repr(self) -> str:
-        return f'grad_expansion_factor={self.grad_expansion_factor.item():.3e}, div_me_when_g_too_small={self.div_me_when_g_too_small.item():.2e}'
+        return f'div_me_when_g_too_small={self.div_me_when_g_too_small.item():.2e}, median_expansion_to={self.median_expansion_to.item():.2e}, useful_element_lower_boundary={self.useful_element_lower_boundary.item():.2e}, useful_element_upper_boundary={self.useful_element_upper_boundary.item():.2e}, expansion_factor_fallback={self.expansion_factor_fallback.item():.2e}'
 
 if '''all the setters''' and False:
     model = GradientModification_v2_abs_to_less_than_1__adaptive_expansion()
-    print(model.grad_expansion_factor.requires_grad, "should be False")
     print(model.div_me_when_g_too_small.requires_grad, "should be False")
-    model.set_grad_expansion_factor(0.123)
-    print(model.grad_expansion_factor, "should be 0.123")
-    print(model.grad_expansion_factor.requires_grad, "should be False")
-    model.set_div_me_when_g_too_small(0.234)
-    print(model.div_me_when_g_too_small, "should be 0.234")
+    print(model.median_expansion_to.requires_grad, "should be False")
+    print(model.useful_element_lower_boundary.requires_grad, "should be False")
+    print(model.useful_element_upper_boundary.requires_grad, "should be False")
+    print(model.expansion_factor_fallback.requires_grad, "should be False")
+    model.set_div_me_when_g_too_small(0.111)
+    print(model.div_me_when_g_too_small, "should be 0.111")
     print(model.div_me_when_g_too_small.requires_grad, "should be False")
+    model.set_median_expansion_to(0.234)
+    print(model.median_expansion_to, "should be 0.234")
+    print(model.median_expansion_to.requires_grad, "should be False")
+    model.set_useful_element_lower_boundary(0.456)
+    print(model.useful_element_lower_boundary, "should be 0.456")
+    print(model.useful_element_lower_boundary.requires_grad, "should be False")
+    model.set_useful_element_upper_boundary(0.654)
+    print(model.useful_element_upper_boundary, "should be 0.654")
+    print(model.useful_element_upper_boundary.requires_grad, "should be False")
+    model.set_expansion_factor_fallback(0.432)
+    print(model.expansion_factor_fallback, "should be 0.432")
+    print(model.expansion_factor_fallback.requires_grad, "should be False")
     pass
 
 if '''dtype adaption.''' and False:
@@ -641,25 +642,6 @@ if '''dtype adaption.''' and False:
         model.eval()
         pass
     pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1263,6 +1245,8 @@ if '''dtype adaption.''' and False:
         model.eval()
         pass
     pass
+
+
 
 
 
