@@ -114,7 +114,7 @@ in dim越大，这个系数越有可能超过1，这个和选用的gramo有关�
 
     
 
-
+old 2.6.
 class DigitalMapperFunction_v2_6(torch.autograd.Function):
     r'''
     forward input list:
@@ -1556,8 +1556,9 @@ if 'skipped. Maybe I should do it before move on.       print_max_index test'and
     pass
 
 
+
 fast_traval____direct_stack_test = 432
-if 'direct stack test' and True:
+if 'direct stack test' and False:
     for _ in range(10):
         is_half = False#no plan for this. 
         
@@ -1567,9 +1568,19 @@ if 'direct stack test' and True:
         output_expansion_factor
         0.3(110to210)1(100to170)3(98to150,<560)
         '''
-        is_testing__g_in_expansion_target = False
-        g_in_expansion_target=0.5#1. new in 2.6.1
+        is_testing__g_in_expansion_target = True
+        g_in_expansion_target=0.2#new in 2.6.1
         '''
+        g_in_expansion_target
+        round 2  70/5/20
+        0.1(9to28)0.2*(11to27)0.3(9to25)0.5(20to40,54)
+        
+        50/5/20
+        0.2(7to23,100+)0.3(11to31)0.5(14to50)0.7(16to53)
+        70/5/20
+        0.2(9to34,100+)0.3*(13to21)0.4(14to26,51)0.5(19to55)0.7(29to100)0.9(56to340,700+)
+        
+        below old(non adaptive.)
         g_in_expansion_factor
         with 70/5/20:
         0.5(55to87)0.7(32to72)0.8(32to51)0.9(24to43)1(22to36)1.1(28to45)1.5(41to83,500+)2(57to120,600+)
@@ -1583,9 +1594,13 @@ if 'direct stack test' and True:
         below is old. xmo is max abs to 1.
         0.25(96to150)0.5(84to110)1(61to160)2(62to120,<380)3(87to180,<920)
         '''
-        is_testing__raw_weight_updating_strength_expansion_target = True
-        raw_weight_updating_strength_expansion_target=0.5#0.3 new in 2.6.1
+        is_testing__raw_weight_updating_strength_expansion_target = False
+        raw_weight_updating_strength_expansion_target=0.2#new in 2.6.1
         '''
+        raw_weight_updating_strength_expansion_target
+        0.1(12to29)0.2*(12to26)0.3(10to28)0.5(9to24,40)0.7(14to44,300+)
+        
+        below old(non adaptive.)
         raw_weight_updating_strength_expansion_factor
         with 70/5/20:
         0.1(30to49,200+)0.15(30to35,400+unable to deduplicate)
@@ -1739,7 +1754,7 @@ if 'direct stack test' and True:
         #ds *100: lr 0.1(190to470<660)1(50to89)3(33to52)10(20to38)33(24to98)100(29to1k)
         '''
         is_testing__shape = False
-        in_features = 50
+        in_features = 70
         out_features = 5
         num_layers = 20
         '''
@@ -1811,7 +1826,7 @@ if 'direct stack test' and True:
                 print("width:", width, "/extra_width:", extra_width, "/num_layers:", num_layers)
             return
         
-        pt = Print_Timing(first=1, max_gap=20, density=0.5)
+        pt = Print_Timing(first=1, max_gap=50, density=0.5)
         
         (input, target_ori) = data_gen_for_directly_stacking_test(batch, in_features, out_features, no_duplicated = True)
         target = target_ori
@@ -2044,7 +2059,7 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
         self.gramo_for_each_output = gramo_for_each_output
         self.digital_mappers = torch.nn.ParameterList([])
         for i in range(layer_count):
-            self.digital_mappers.append(DigitalMapper_v2_6(
+            self.digital_mappers.append(DigitalMapper_v2_6_1(
                 total_width,width,
                     gramo_for_each_output, \
                     deduplicating_strength, \
@@ -2309,7 +2324,7 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
     #I assume the input dim is always bigger than the output dim, because I believe this is the real case in the integrated situation.
     #If the in and out dims are the same, simply paste the input to the output, it should work perfectly.
     #if the input dim is smaller than output, why do I need this shape. This is the case in some test.
-        layer:DigitalMapper_v2_6
+        layer:DigitalMapper_v2_6_1
         useful_chosen:Tuple[torch.Tensor|None] = None
         for i in range(self.digital_mappers.__len__()-1,-1,-1):
             layer = self.digital_mappers[i]
@@ -2437,7 +2452,7 @@ if 'should be correct????? besides_stepping' and False:
     pass
 
 fast_traval____direct_stack_test____with_halfway_widen = 432
-#raise Exception("all the test ends at acc 85%.")
+#raise Exception("all the test ends at acc 85% or 75??????.")
 if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
     for _ in range(10):
         is_half = False#no plan for this. 
@@ -2452,11 +2467,16 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
         '''
         
         is_testing__g_in_expansion_target = False
-        g_in_expansion_target=0.5#1. new in 2.6.1
+        g_in_expansion_target=0.2#1. new in 2.6.1
         #1.#0.03
+        
         '''
+        g_in_expansion_target   75% acc
+        0.1(30to50,230)0.2*(22to39)0.3(22to46)0.5(19to42)0.9(51to100,210)
+        
+        below old(non adaptive.)
         g_in_expansion_factor
-        dec 28 85%acc
+        dec 28 ?5%acc
         0.2(43to200,500+)0.5(36to84)0.7(36to85)1(26to87)1.5(32to67)2(39to140)5(87to180)
         
         dec 26 pm 9
@@ -2464,9 +2484,13 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
         1(54,200,1k,2k+,1duplicate.)2(200,2duplicate)
         '''
         is_testing__raw_weight_updating_strength_expansion_target = False
-        raw_weight_updating_strength_expansion_target=0.5#1. new in 2.6.1
+        raw_weight_updating_strength_expansion_target=0.2#1. new in 2.6.1
         '''
-        dec 28 85%acc
+        g_in_expansion_target   75% acc
+        0.1(24to45)0.2*(24to44)0.3(21to53)0.5(29to71)0.9(100to390)
+        
+        below old(non adaptive.)
+        dec 28 ?5%acc
         0.2(500+,slow)0.5(57to350,500+,slow)1(26to87)2(26to49)5(23to65)10(15to62)
         
         dec 26 pm 9
@@ -2496,13 +2520,19 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
         round 2, bigger model. 85%acc
         1(73to270,5k4...)2(26to46)3*(19to33)4(20to44)5(26to66)
         '''
-        is_testing__holo = False
-        holo = 0.5#0.95
+        is_testing__holo = True
+        holo = 0.95#0.95
         assert holo>=0.07
         epi_for_holo = 0.001#这个还要再跑一下。
+        
+        如果有用的是0.2以上的holo，那么，g也要holo
+        
         '''
-        holo:
-        dec 28 85%acc
+        holo:  75% acc
+        0.1(22to76)0.3(23to37)0.5(25to44)0.8(24to36,56,66)0.95(29to48)
+        
+        below old(non adaptive.)
+        dec 28 ?5%acc
         0.1(24to52)0.3(25to44)0.4(22to52)0.5*(19to33(20x))0.6(21to52)0.8(23to44)0.9(22to41)0.95(23to48)
         '''
         is_testing__init_rand_scaling_factor = False
@@ -2529,7 +2559,7 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
         batch = 10000
         assert batch>100
         #print("batch: ",batch,"   _______line 2445")
-        is_testing__shape = True
+        is_testing__shape = False
         width = 20#10
         assert width>10
         extra_width = 20#25
@@ -2693,7 +2723,7 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
                     print(pred[:1,:7], "pred", "    __line 1260")
                     print(target_ori[:1,:7], "target")
                     break
-                if acc>0.75:
+                if acc>0.75 and True:
                     print("acc>0.75 acc>0.75 acc>0.75        FINISHED, ep:", epoch+1)
                     print("acc>0.75 acc>0.75 acc>0.75        FINISHED, ep:", epoch+1)
                     print("acc>0.75 acc>0.75 acc>0.75        FINISHED, ep:", epoch+1)
@@ -2702,13 +2732,6 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
                     print(pred[:1,:7], "pred", "    __line 1260")
                     print(target_ori[:1,:7], "target")
                     break
-                    # else:# acc is 100% but not hard_enough
-                    #     print(epoch+1, f"    ep/acc    {acc:.3f}   /hardness   {least_hardness.item():.3f}     line 1405")
-                    #     print(model.digital_mappers[0].raw_weight_o_i[0])
-                    #     try_sharpen_for+=1
-                    #     if try_sharpen_for>5:
-                    #         break
-                    #     pass
                 else:# acc not 100%
                     if pt.check(epoch):
                         print(epoch+1, f"    ep/acc    {acc:.3f}    _______line 2368")

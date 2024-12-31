@@ -415,9 +415,8 @@ class GradientModificationFunction_v2_abs_to_less_than_1__adaptive_expansion(tor
                 log_over_log__nan_to_num__b_1 = log_over_log__raw__b_1.nan_to_num(0.,posinf=0.,neginf=0.)
                 log_over_log_b_1 = flag_has_useful_element_b_1*log_over_log__nan_to_num__b_1+\
                         flag_has_useful_element_b_1.logical_not()*expansion_factor_fallback   
-            继续
-                if g_in_b_o.shape[0] == 10000:
-                    print(log_over_log_b_1)
+                # if g_in_b_o.shape[0] == 10000:
+                #     print(log_over_log_b_1)
             
                 powered_abs_of_grad_for_x_b_o = abs_of_grad_for_x_bofore_scale_step2_b_o.pow(log_over_log_b_1)
                 grad_for_x_b_o = powered_abs_of_grad_for_x_b_o*sign_of_g_in_b_o

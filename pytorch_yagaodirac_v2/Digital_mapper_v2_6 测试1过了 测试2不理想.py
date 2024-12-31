@@ -20,6 +20,9 @@ from pytorch_yagaodirac_v2.torch_vec import torch_vec
 
 
 '''
+2024 dec 31的笔记
+突然想到，holo可能比较有用。那，给g也套一下。
+
 2024 dec 29的笔记
 现在有2个东西可以做，一个是锐化，一个是expansion的自适应。想了一下，先做expansion的自适应
 
@@ -107,13 +110,14 @@ in dim越大，这个系数越有可能超过1，这个和选用的gramo有关�
     
 
 
-class DigitalMapperFunction_v2_6(torch.autograd.Function):
+class DigitalMapperFunction_v2_6__double_holo(torch.autograd.Function):
     r'''
     forward input list:
     >>> x = args[0]# shape must be [batch, in_features]
     >>> raw_weight:torch.Tensor = args[1]# shape must be [out_features, in_features], must requires grad.
     >>> place_holder_for_answer_strength_o shape[out_features]
-    >>> holo. For make holo.
+    >>> holo_for_x. 
+    >>> holo_for_g. 
     >>> epi_for_holo. 
     
     backward input list:
@@ -124,8 +128,9 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
         input_b_i:torch.Tensor = args[0]# shape must be [batch, in_features]
         raw_weight_o_i:torch.Tensor = args[1]# shape must be [out_features, in_features]
         place_holder_for_answer_strength_o:torch.Tensor = args[2]# value doesn't matter. shape[out_features]
-        holo:torch.Tensor = args[3]
-        epi_for_holo:torch.Tensor = args[4]
+        holo_for_x:torch.Tensor = args[3]
+        holo_for_g:torch.Tensor = args[4]
+        epi_for_holo:torch.Tensor = args[5]
         
         softmax_of_raw_weight_o_i = raw_weight_o_i.softmax(dim=1)
         
@@ -136,7 +141,7 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
         
         #output.requires_grad_(input_b_i.requires_grad and raw_weight_o_i.requires_grad)
         w_requires_grad = torch.tensor([raw_weight_o_i.requires_grad])
-        ctx.save_for_backward(input_b_i, softmax_of_raw_weight_o_i, w_requires_grad, holo, epi_for_holo)
+        ctx.save_for_backward(input_b_i,softmax_of_raw_weight_o_i,w_requires_grad,holo_for_x,holo_for_g,epi_for_holo)
         
         return output_b_o
 
@@ -146,9 +151,10 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
         input_b_i:torch.Tensor
         softmax_of_raw_weight_o_i:torch.Tensor
         w_requires_grad:torch.Tensor
-        holo:torch.Tensor
+        holo_for_x:torch.Tensor
+        holo_for_g:torch.Tensor
         epi_for_holo:torch.Tensor
-        (input_b_i, softmax_of_raw_weight_o_i, w_requires_grad, holo, epi_for_holo) = ctx.saved_tensors
+        (input_b_i,softmax_of_raw_weight_o_i,w_requires_grad,holo_for_x,holo_for_g,epi_for_holo) = ctx.saved_tensors
         
         grad_for_x_b_i:Tuple[torch.tensor|None] = None
         grad_for_raw_weight_o_i:Tuple[torch.tensor|None] = None
@@ -157,7 +163,8 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
         #input_requires_grad = torch.tensor([input_b_i.requires_grad], device=input_b_i.device)
         
         if w_requires_grad:
-            holo_ed_input_b_i = ParamMo_make_holo_keep_the_max_abs_as_1(input_b_i, holo, epi_for_holo)
+            holo_ed_input_b_i = ParamMo_make_holo_keep_the_max_abs_as_1(input_b_i, holo_for_x, epi_for_holo)
+            holo_ed_g_in_b_o = ParamMo_make_holo_keep_the_max_abs_as_1(g_in_b_o, holo_for_g, epi_for_holo)
             
             
             # this hardenness prevents training.
@@ -165,7 +172,7 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
             # input_b_i = input_b_i.gt(0.)*2.-1.        
             # input_b_i = input_b_i.to(the_dtype)
             #g_in_reshaped_b_o_1:torch.Tensor = g_in_to_calc_gard_for_weight_b_o[:,:,None]
-            g_in_reshaped_b_o_1:torch.Tensor = g_in_b_o[:,:,None]
+            g_in_reshaped_b_o_1:torch.Tensor = holo_ed_g_in_b_o[:,:,None]
             input_reshaped_b_1_i:torch.Tensor = holo_ed_input_b_i[:,None,:]
             
             grad_for_raw_weight__before_sum__b_o_i:torch.Tensor = g_in_reshaped_b_o_1*(input_reshaped_b_1_i*-1)
@@ -180,7 +187,7 @@ class DigitalMapperFunction_v2_6(torch.autograd.Function):
             grad_for_x_b_i = g_in_b_o.matmul(softmax_of_raw_weight_o_i)
             pass
             
-        return grad_for_x_b_i, grad_for_raw_weight_o_i, answer_strength_o, None, None
+        return grad_for_x_b_i, grad_for_raw_weight_o_i, answer_strength_o, None, None, None
     
     
     # input_b_i:torch.Tensor = args[0]# shape must be [batch, in_features]
@@ -297,7 +304,7 @@ class DigitalMapper_v2_6(torch.nn.Module):
                     #output_expansion_factor:float, \
                     g_in_expansion_factor:float, \
                     raw_weight_updating_strength_expansion_factor:float, \
-                    holo:float, epi_for_holo:float, \
+                    holo_for_x:float, holo_for_g:float, epi_for_holo:float, \
                     init_rand_scaling_factor:float, \
                     #is_out_mapper_in_DSPU:bool, \
                     #needs_out_gramo = True, \
@@ -316,8 +323,9 @@ class DigitalMapper_v2_6(torch.nn.Module):
         #assert output_expansion_factor>0, "must be > 0. better 0 to 1."
         assert g_in_expansion_factor>0, "must be > 0. better 0 to 1."
         assert raw_weight_updating_strength_expansion_factor>0,"must be > 0. better 0 to 1."
-        assert holo>0.
-        assert epi_for_holo>0.
+        assert holo_for_x>0. and holo_for_x<=1.
+        assert holo_for_g>0. and holo_for_g<=1.
+        assert epi_for_holo>0. and epi_for_holo<0.9
         assert isinstance(init_rand_scaling_factor, float)
         assert init_rand_scaling_factor>0.
             
@@ -352,7 +360,8 @@ class DigitalMapper_v2_6(torch.nn.Module):
             #这两个暂时没有用上。
         
         #new?
-        self.holo = torch.nn.Parameter(torch.tensor(holo, **factory_kwargs), requires_grad=False)
+        self.holo_for_g = torch.nn.Parameter(torch.tensor(holo_for_g, **factory_kwargs), requires_grad=False)
+        self.holo_for_x = torch.nn.Parameter(torch.tensor(holo_for_x, **factory_kwargs), requires_grad=False)
         self.epi_for_holo = torch.nn.Parameter(torch.tensor(epi_for_holo, **factory_kwargs), requires_grad=False)
         
         self.gramo_for_raw_weight = GradientModification_v2_abs_to_less_than_1(raw_weight_updating_strength_expansion_factor)
@@ -403,7 +412,7 @@ class DigitalMapper_v2_6(torch.nn.Module):
                     #output_expansion_factor = 1., \
                     g_in_expansion_factor = 1., \
                     raw_weight_updating_strength_expansion_factor = 1., \
-                    holo = 0.2, epi_for_holo = 0.01, \
+                    holo_for_x = 0.3, holo_for_g = 0.3, epi_for_holo = 0.01, \
                     init_rand_scaling_factor = 1., \
                     debug_allow_any_shape = False, \
                     debug_number_in_model = -1, \
@@ -416,7 +425,7 @@ class DigitalMapper_v2_6(torch.nn.Module):
                     #output_expansion_factor, \
                     g_in_expansion_factor, \
                     raw_weight_updating_strength_expansion_factor, \
-                    holo, epi_for_holo, \
+                    holo_for_x, holo_for_g, epi_for_holo, \
                     init_rand_scaling_factor, \
                     debug_allow_any_shape, \
                     debug_number_in_model, \
@@ -555,7 +564,8 @@ class DigitalMapper_v2_6(torch.nn.Module):
                 w_after_gramo = self.gramo_for_raw_weight(self.raw_weight_o_i.reshape(1,-1)).reshape(self.out_features, self.in_features)
                 pass
             
-            x = DigitalMapperFunction_v2_6.apply(x, w_after_gramo, self.grad_is_answer_strength_previous_o, self.holo, self.epi_for_holo)
+            x = DigitalMapperFunction_v2_6__double_holo.apply(x, w_after_gramo, self.grad_is_answer_strength_previous_o, 
+                        self.holo_for_x, self.holo_for_g, self.epi_for_holo)
             
             #sequency of the following 2 does NOT matter.
             x = self.out_gramo(x)
@@ -1169,7 +1179,7 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
                 #output_expansion_factor:float, \
                 g_in_expansion_factor:float, \
                 raw_weight_updating_strength_expansion_factor:float, \
-                holo:float, epi_for_holo:float, \
+                holo_for_x:float, holo_for_g:float, epi_for_holo:float, \
                 init_rand_scaling_factor:float, \
                 device=None, dtype=None) -> None: 
         factory_kwargs = {'device': device, 'dtype': dtype}
@@ -1189,7 +1199,7 @@ class test_directly_stacking_multiple_digital_mappers(torch.nn.Module):
                     #output_expansion_factor, \
                     g_in_expansion_factor, \
                     raw_weight_updating_strength_expansion_factor, \
-                    holo, epi_for_holo, \
+                    holo_for_x, holo_for_g, epi_for_holo, \
                     init_rand_scaling_factor, \
                     debug_number_in_model=i, \
                     device = device, dtype = dtype)
@@ -1537,7 +1547,7 @@ if 'skipped. Maybe I should do it before move on.       print_max_index test'and
 
 
 fast_traval____direct_stack_test = 432
-if 'direct stack test' and False:
+if 'direct stack test' and True:
     for _ in range(10):
         is_half = False#no plan for this. 
         
@@ -1563,7 +1573,7 @@ if 'direct stack test' and False:
         below is old. xmo is max abs to 1.
         0.25(96to150)0.5(84to110)1(61to160)2(62to120,<380)3(87to180,<920)
         '''
-        is_testing__raw_weight_updating_strength_expansion_factor = True
+        is_testing__raw_weight_updating_strength_expansion_factor = False
         raw_weight_updating_strength_expansion_factor=0.3
         '''
         raw_weight_updating_strength_expansion_factor
@@ -1629,10 +1639,25 @@ if 'direct stack test' and False:
         5(45 75)10(25to36)20(17to32)50(15to28)
         '''
         is_testing__holo = False
-        holo = 0.95
-        assert holo>=0.07
+        holo_for_x = 0.6 
+        holo_for_g = 0.2 
+        assert holo_for_x>=0.07
+        assert holo_for_g>=0.07
         epi_for_holo = 0.001#这个还要再跑一下。
+        
         '''
+        2024 dec 31
+        double holo  70/5/30
+        x0.1: g 0.1(9to25,54) 0.2(10to18,75)   0.3(11to28)   0.5(10to20,100+)
+        x0.2: g 0.1(9to23,64) 0.2(12to20,200+) 0.3(10to15,45)0.5(10to18)
+        x0.3: g 0.1(10to30)   0.2(14to25,69,85)0.3(8to26,76) 0.5(12to22,120)
+        x0.5: g 0.1(12to38)   0.2(10to25)      0.3(8to20,39) 0.5(9to26,89)
+        x0.6: g 0.1(13to22,45)0.2*(12to20)      0.3(11to24,38)
+        x0.7: g               0.2(12to20)
+        x0.8: g 0.1(9to33,100+)0.2(11to19,44,66,73)0.3(14to24,34)
+        x0.95:g 0.1(11to21,73,110) 0.2(9to25,62,68)0.3(12to30,72) 0.5(11to23,62,63)
+        
+        below is single holo:        
         holo
         round 2. with deduplicating_strength = float(deduplicate_every)*10:
         0.1(11to24,250)0.3(11to31,200+failed deduplicating.)
@@ -1718,11 +1743,20 @@ if 'direct stack test' and False:
         #ds *33: lr                                     10(33to56)
         #ds *100: lr 0.1(190to470<660)1(50to89)3(33to52)10(20to38)33(24to98)100(29to1k)
         '''
-        is_testing__shape = False
+        is_testing__shape = True
         in_features = 130
         out_features = 5
         num_layers = 60
+        继续。
         '''
+        with double holo:
+        2024 dec 31
+        70/5/ 30 (11to21,33)
+        90/5/40(12to34)
+        110/5/50(16to26,40)
+        
+        
+        below is single holo:        
         with ParamMo_make_holo_keep_the_max_abs_as_1:
         70/5/20(9to17)
         90/5/40(9to24,51to99,160)
@@ -1773,7 +1807,7 @@ if 'direct stack test' and False:
             if is_testing__raw_weight_updating_strength_expansion_factor:
                 print("raw_weight_updating_strength_expansion_factor:", raw_weight_updating_strength_expansion_factor)
             if is_testing__holo:
-                print("holo:", holo,"/epi_for_holo:",epi_for_holo)
+                print("holo_for_x:", holo_for_x,"holo_for_g:", holo_for_g,"/epi_for_holo:",epi_for_holo)
             if is_testing__init_rand_scaling_factor:
                 print("init_rand_scaling_factor:",init_rand_scaling_factor)
             #print("output_expansion_factor:", output_expansion_factor)
@@ -1788,7 +1822,7 @@ if 'direct stack test' and False:
                 
             #print("raw_weight_min:", raw_weight_min)
             if is_testing__shape:
-                print("width:", width, "/extra_width:", extra_width, "/num_layers:", num_layers)
+                print("in_features:", in_features, "/out_features:", out_features, "/num_layers:", num_layers)
             return
         
         pt = Print_Timing(first=1, max_gap=20, density=0.5)
@@ -1810,7 +1844,7 @@ if 'direct stack test' and False:
                 gramo_for_each_output, deduplicating_strength, 
                 raw_weight_min, g_in_expansion_factor, 
                 raw_weight_updating_strength_expansion_factor,
-                holo, epi_for_holo, 
+                holo_for_x, holo_for_g, epi_for_holo, 
                 init_rand_scaling_factor)
             
         if False and "print parameters":
@@ -1989,7 +2023,7 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
                 #output_expansion_factor:float, \
                 g_in_expansion_factor = 1., \
                 raw_weight_updating_strength_expansion_factor=1., \
-                holo = 0.2, epi_for_holo = 0.01, \
+                holo_for_x = 0.3, holo_for_g = 0.3, epi_for_holo = 0.01, \
                 init_rand_scaling_factor=1., \
                 device=None, dtype=None) -> 'test_directly_stacking_multiple_digital_mappers_with_halfway_widen': 
         return cls(width, extra_width, layer_count, \
@@ -1999,7 +2033,7 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
                 #output_expansion_factor:float, \
                 g_in_expansion_factor, \
                 raw_weight_updating_strength_expansion_factor, \
-                holo, epi_for_holo, \
+                holo_for_x, holo_for_g, epi_for_holo, \
                 init_rand_scaling_factor, \
                 device, dtype)
         #end of function
@@ -2011,7 +2045,7 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
                 #output_expansion_factor:float, \
                 g_in_expansion_factor:float, \
                 raw_weight_updating_strength_expansion_factor:float, \
-                holo:float, epi_for_holo:float, \
+                holo_for_x:float, holo_for_g:float, epi_for_holo:float, \
                 init_rand_scaling_factor:float, \
                 device=None, dtype=None) -> None: 
         factory_kwargs = {'device': device, 'dtype': dtype}
@@ -2032,7 +2066,7 @@ class test_directly_stacking_multiple_digital_mappers_with_halfway_widen(torch.n
                     #output_expansion_factor, \
                     g_in_expansion_factor, \
                     raw_weight_updating_strength_expansion_factor, \
-                    holo, epi_for_holo, \
+                    holo_for_x, holo_for_g, epi_for_holo, \
                     init_rand_scaling_factor, \
                     debug_number_in_model=i, \
                     device = device, dtype = dtype)
@@ -2477,7 +2511,8 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
         1(73to270,5k4...)2(26to46)3*(19to33)4(20to44)5(26to66)
         '''
         is_testing__holo = False
-        holo = 0.5#0.95
+        holo_for_x = 0.3#0.95
+        holo_for_g = 0.3#0.95
         assert holo>=0.07
         epi_for_holo = 0.001#这个还要再跑一下。
         '''
@@ -2530,7 +2565,7 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
             if is_testing__raw_weight_updating_strength_expansion_factor:
                 print("raw_weight_updating_strength_expansion_factor:", raw_weight_updating_strength_expansion_factor)
             if is_testing__holo:
-                print("holo:", holo,"/epi_for_holo:",epi_for_holo)
+                print("holo_for_x:", holo_for_x,"holo_for_g:", holo_for_g,"/epi_for_holo:",epi_for_holo)
             if is_testing__init_rand_scaling_factor:
                 print("init_rand_scaling_factor:",init_rand_scaling_factor)
             if is_testing__gramo_for_each_output:
@@ -2562,7 +2597,7 @@ if 'direct stack test WITH HALFWAY WIDEN!!!' and True:
                 gramo_for_each_output, deduplicating_strength, 
                 raw_weight_min, g_in_expansion_factor, 
                 raw_weight_updating_strength_expansion_factor,
-                holo, epi_for_holo, 
+                holo_for_x, holo_for_g, epi_for_holo, 
                 init_rand_scaling_factor)
             
         if False and "print parameters":
