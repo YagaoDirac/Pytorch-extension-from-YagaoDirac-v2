@@ -1,8 +1,11 @@
-# ok, cool. I didn't write py for 8 mon.
-# a = int( "1000", 2)
-# b = 0b111
-# s = "{:b}".format(a)
-# ss = s[3]
+assert False, '''
+
+read me
+this version is a bit wrong. It's a backup now.
+
+'''
+
+
 '''
 Author:YagaoDirac (also on X.com)
 
@@ -23,15 +26,47 @@ import random
 #part1 infrastructures of logic algebra.
 
 
+
+class Enum_LogicNode_Type(Enum):
+    CONST = 1
+    PURE_VAR = 2
+    PURE_IRRELEVANT = 3
+    OR_0 = 4
+    OR_1 = 5
+    pass
+if "some code" and False:
+    # match nodetype:#optimizable
+    #     case Enum_LogicNode_Type.CONST:
+    #     case Enum_LogicNode_Type.PURE_VAR:
+    #     case Enum_LogicNode_Type.PURE_IRRELEVANT:
+    #     case Enum_LogicNode_Type.OR_0:
+    #     case Enum_LogicNode_Type.OR_1:
+    #     case _:
+    #         assert False, "unreachable"
+    pass
+
+
+class LogicValue:
+    vartype:Enum_LogicNode_Type
+    is_non_not:bool#the prime symbol. CONST only care about this.
+    def __init__(self, vartype:Enum_LogicNode_Type, is_non_not:bool):
+        self.vartype = vartype
+        self.is_non_not = is_non_not
+        pass
+    pass
+        
 class LogicNode_Var:
-    is_const:bool
+    '''This is a trinary logic value. All the logic calculations are defined here.
+    
+    When it's pure_irrelevant, the the second value from the get_value function doesn't matter.'''
+    nodetype:Enum_LogicNode_Type 
     index:int
-    is_non_not:bool
-    value:bool
+    is_non_not:bool#the prime symbol. CONST only care about this.
+    value:bool#set value to this.
     name:Optional[str]
-    def __init__(self, is_const:bool, index:int, is_non_not:bool, 
+    def __init__(self, nodetype:Enum_LogicNode_Type, index:int, is_non_not:bool, 
                 value:bool = False, name:Optional[str]=None):
-        self.is_const = is_const
+        self.nodetype = nodetype
         self.index = index
         self.is_non_not = is_non_not
         self.value = value
@@ -40,14 +75,37 @@ class LogicNode_Var:
     def set_value(self, new_value:bool):
         self.value = new_value
         pass
-    def get_value(self)->bool:
-        result:bool = not (self.value^self.is_non_not)
-        return result
+    def get_value(self)->LogicValue:
+        '''When it's pure_irrelevant, the the second value from this function doesn't matter.'''
+        nodetype:Enum_LogicNode_Type = self.nodetype
+        match nodetype:#optimizable
+            case Enum_LogicNode_Type.CONST:
+                return LogicValue(nodetype, self.is_non_not)
+            case Enum_LogicNode_Type.PURE_VAR:
+                result:bool = not (self.value^self.is_non_not)
+                return LogicValue(nodetype, result)
+            case Enum_LogicNode_Type.PURE_IRRELEVANT:
+                return LogicValue(nodetype, False)
+            case Enum_LogicNode_Type.OR_0:
+                return LogicValue(nodetype, self.is_non_not)
+            case Enum_LogicNode_Type.OR_1:
+                return LogicValue(nodetype, self.is_non_not)
+            case _:
+                assert False, "unreachable"
     def __get_name_when_const(self)->str:
         if self.is_non_not:
             return "1"
         else:
             return "0"
+        #end of function    
+    def __get_postfix_when_compound(self)->str:
+        match self.nodetype:#optimizable
+            case Enum_LogicNode_Type.OR_0:
+                return " or0"
+            case Enum_LogicNode_Type.OR_1:
+                return " or1"
+            case _:
+                assert False, "unreachable"
         #end of function    
     def __get_not_str(self)->str:
         if self.is_non_not:
@@ -56,66 +114,136 @@ class LogicNode_Var:
             return "'"
         #end of function    
     def __str__(self)->str:
-        if self.is_const:
-            result = self.__get_name_when_const()
-            return result
-        result = "<{}>".format(self.index)+self.__get_not_str()
-        return result
+        #LogicNode_Type(Enum):
+        # CONST = 1
+        # VAR = 2
+        # IRRELEVANT = 3
+        match self.nodetype:
+            case Enum_LogicNode_Type.CONST:
+                result = self.__get_name_when_const()
+                return result
+            case Enum_LogicNode_Type.PURE_VAR:
+                result = "<{}>".format(self.index)+self.__get_not_str()
+                return result
+            case Enum_LogicNode_Type.PURE_IRRELEVANT:
+                return "<Irr>"
+            case Enum_LogicNode_Type.OR_0:
+                result = "<{} or0>".format(self.index)+self.__get_not_str()
+                return result
+            case Enum_LogicNode_Type.OR_1:
+                result = "<{} or1>".format(self.index)+self.__get_not_str()
+                return result
+            case _:
+                assert False, "unreachable"
+        pass#end of function.
     def _str_name(self)->str:
-        if self.is_const:
-            result = self.__get_name_when_const()
-            return result
-        
+        #LogicNode_Type(Enum):
+        # CONST = 1
+        # VAR = 2
+        # IRRELEVANT = 3
         name:str
-        if self.name is None:
-            assert self.index<26, "this can only print out a to z."
-            name = chr(self.index+97)
-            pass
-        else:
-            name = self.name
-            pass
-        result = name+self.__get_not_str()#+" "
-        return result
+        match self.nodetype:
+            case Enum_LogicNode_Type.CONST:
+                result = self.__get_name_when_const()
+                return result
+            case Enum_LogicNode_Type.PURE_VAR:
+                if self.name is None:
+                    assert self.index<26, "this can only print out a to z."
+                    name = chr(self.index+97)
+                    pass
+                else:
+                    name = self.name
+                    pass
+                result = name+self.__get_not_str()#+" "
+                return result
+            case Enum_LogicNode_Type.PURE_IRRELEVANT:
+                return "<Irr>"
+            case Enum_LogicNode_Type.OR_0:
+                if self.name is None:
+                    assert self.index<26, "this can only print out a to z."
+                    name = chr(self.index+97)
+                    pass
+                else:
+                    name = self.name
+                    pass
+                result = "<{} or0>".format(name+self.__get_not_str())
+                return result
+            case Enum_LogicNode_Type.OR_1:
+                if self.name is None:
+                    assert self.index<26, "this can only print out a to z."
+                    name = chr(self.index+97)
+                    pass
+                else:
+                    name = self.name
+                    pass
+                result = "<{} or1>".format(name+self.__get_not_str())
+                return result
+            case _:
+                assert False, "unreachable"
+        pass#end of function.
     def _str_binary(self)->str:
-        if self.is_const:
-            result = self.__get_name_when_const()
-            return result
-        
-        addr:str
-        addr = "<{:b}>".format(self.index)
-        result = addr+self.__get_not_str()
-        return result
+        #LogicNode_Type(Enum):
+        # CONST = 1
+        # VAR = 2
+        # IRRELEVANT = 3
+        match self.nodetype:
+            case Enum_LogicNode_Type.CONST:
+                result = self.__get_name_when_const()
+                return result
+            case Enum_LogicNode_Type.PURE_VAR:
+                addr:str
+                addr = "<{:b}>".format(self.index)
+                result = addr+self.__get_not_str()
+                return result
+            case Enum_LogicNode_Type.PURE_IRRELEVANT:
+                return "<Irr>"
+        match self.nodetype:#optimizable
+            case Enum_LogicNode_Type.OR_0:
+                result = "<{:b}{} or0>".format(self.index,self.__get_not_str())
+                return result
+            case Enum_LogicNode_Type.OR_1:
+                result = "<{:b}{} or1>".format(self.index,self.__get_not_str())
+                return result
+            case _:
+                assert False, "unreachable"
+        pass#end of function.
     #end of class
-if "test get_value" and False:
-    print(LogicNode_Var(True, 0, False).get_value())
-    print(LogicNode_Var(True, 0, True).get_value())
-    print(LogicNode_Var(True, 0, False, False).get_value())
-    print(LogicNode_Var(True, 0, False, True).get_value())
-    print(LogicNode_Var(True, 0, True, False).get_value())
-    print(LogicNode_Var(True, 0, True, True).get_value())
-    print(LogicNode_Var(False, 0, False, False).get_value())
-    print(LogicNode_Var(False, 0, False, True).get_value())
-    print(LogicNode_Var(False, 0, True, False).get_value())
-    print(LogicNode_Var(False, 0, True, True).get_value())
+if "test get_value" and True:
+    print(LogicNode_Var(Enum_LogicNode_Type.CONST, 0, False, False).get_value())
+    print(LogicNode_Var(Enum_LogicNode_Type.CONST, 0, False, True).get_value())
+    print(LogicNode_Var(Enum_LogicNode_Type.CONST, 0, True, False).get_value())
+    print(LogicNode_Var(Enum_LogicNode_Type.CONST, 0, True, True).get_value())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 0, False, False).get_value())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 0, False, True).get_value())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 0, True, False).get_value())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 0, True, True).get_value())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_IRRELEVANT, 0, True, True).get_value())
     pass
 if "test _str_" and False:
-    print(LogicNode_Var(True, 0, False))
-    print(LogicNode_Var(True, 0, True))
-    print(LogicNode_Var(False, 0, True))
-    print(LogicNode_Var(False, 1, True))
-    print(LogicNode_Var(False, 1, False))
-    print(LogicNode_Var(False, 2, False))
-    print(LogicNode_Var(False, 0, True )._str_name())
-    print(LogicNode_Var(False, 1, True )._str_name())
-    print(LogicNode_Var(False, 1, False)._str_name())
-    print(LogicNode_Var(False, 2, False)._str_name())
-    print(LogicNode_Var(False, 0, True )._str_binary())
-    print(LogicNode_Var(False, 1, True )._str_binary())
-    print(LogicNode_Var(False, 1, False)._str_binary())
-    print(LogicNode_Var(False, 2, False)._str_binary())
+    print(LogicNode_Var(Enum_LogicNode_Type.CONST, 0, False))
+    print(LogicNode_Var(Enum_LogicNode_Type.CONST, 0, True) )
+    print(LogicNode_Var(Enum_LogicNode_Type.CONST, 0, False)._str_name())
+    print(LogicNode_Var(Enum_LogicNode_Type.CONST, 0, True) ._str_name())
+    print(LogicNode_Var(Enum_LogicNode_Type.CONST, 0, False)._str_binary())
+    print(LogicNode_Var(Enum_LogicNode_Type.CONST, 0, True) ._str_binary())
+    print("var below")
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 0, True))
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 1, True))
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 1, False))
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 2, False))
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 0, True )._str_name())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 1, True )._str_name())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 1, False)._str_name())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 2, False)._str_name())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 0, True )._str_binary())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 1, True )._str_binary())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 1, False)._str_binary())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_VAR, 2, False)._str_binary())
+    print("irr below")
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_IRRELEVANT, 0, False))
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_IRRELEVANT, 0, False)._str_name())
+    print(LogicNode_Var(Enum_LogicNode_Type.PURE_IRRELEVANT, 0, False)._str_binary())
     pass
-
-
 
 
 
@@ -134,37 +262,48 @@ class LogicNode_Op:
         self.not_the_output = not_the_output
         self.children = children
         pass
-    def get_value(self)->bool:
-        zeroth_childUnion:Union[LogicNode_Var, 'LogicNode_Op'] = self.children[0]
-        result:bool = zeroth_childUnion.get_value()#maybe recursive.
-        # if zeroth_childUnion is LogicNode_Op:#optimizable
-        #     result = zeroth_childUnion.get_value()
-        # elif zeroth_childUnion is LogicNode_Var:
-        #     result = zeroth_childUnion.get_value()
-        #pass
-        #return True
-        match self.op:
-            case Logic_Op.AND:
-                for i in range(1,self.children.__len__()):
-                    item = self.children[i]
-                    result = result & item.get_value()
-                    pass
-                pass
-            case Logic_Op.OR:
-                for i in range(1,self.children.__len__()):
-                    item = self.children[i]
-                    result = result | item.get_value()
-                    pass
-                pass
-            case Logic_Op.XOR:
-                for i in range(1,self.children.__len__()):
-                    item = self.children[i]
-                    result = result ^ item.get_value()
-                    pass
-                pass
-            case _:
-                assert False
-        return result
+    
+    
+    #继续
+    #继续
+    #继续
+    #继续
+    #继续
+    #继续
+    #继续
+    #继续
+    #继续
+    # def get_value(self)->LogicValue:
+    #     zeroth_childUnion:Union[LogicNode_Var, 'LogicNode_Op'] = self.children[0]
+    #     result:LogicValue = zeroth_childUnion.get_value()#maybe recursive.
+    #     # if zeroth_childUnion is LogicNode_Op:#optimizable
+    #     #     result = zeroth_childUnion.get_value()
+    #     # elif zeroth_childUnion is LogicNode_Var:
+    #     #     result = zeroth_childUnion.get_value()
+    #     #pass
+    #     #return True
+    #     match self.op:
+    #         case Logic_Op.AND:
+    #             for i in range(1,self.children.__len__()):
+    #                 item = self.children[i]
+    #                 result = result & item.get_value()
+    #                 pass
+    #             pass
+    #         case Logic_Op.OR:
+    #             for i in range(1,self.children.__len__()):
+    #                 item = self.children[i]
+    #                 result = result | item.get_value()
+    #                 pass
+    #             pass
+    #         case Logic_Op.XOR:
+    #             for i in range(1,self.children.__len__()):
+    #                 item = self.children[i]
+    #                 result = result ^ item.get_value()
+    #                 pass
+    #             pass
+    #         case _:
+    #             assert False
+    #     return result
     
     #to do 等价变换。估计好几个。
     # def apply_not_to_children(self):
@@ -227,7 +366,7 @@ class LogicNode_Op:
         result = start_str+main_str+end_str
         return result
     #end of class
-if "test" and True:
+if "test" and False:
     children:list[LogicNode_Var | LogicNode_Op] = []
     children.append(LogicNode_Var(True,0,True,True))
     children.append(LogicNode_Var(True,0,True,False))
@@ -254,7 +393,20 @@ if "test" and True:
 
 
 
-继续。后面要写容器，和最最基本的化简。化简写在容器里面。
+# type LogicNode = Union[LogicNode_Op,LogicNode_Var]
+# class LogicExpr:
+#     root:LogicNode
+#     _duplicate_cont:list#a subset of root. only used in simplification.
+#     def __init__(self, root:LogicNode=LogicNode_Var(Enum_LogicNode_Type.PURE_IRRELEVANT,0)):
+#         self.root = root
+#         self._duplicate_cont = []
+#         pass
+#     def simplify(self):
+#         #总的来说，要写的东西有点多，交叠，吸收，组合成xor，而且化简方法要重新研究，不能直接套公式。
+#         #还有3元逻辑代数那一套。有点多。
+#         assert False, "unfinished"
+    
+
 
 
 
