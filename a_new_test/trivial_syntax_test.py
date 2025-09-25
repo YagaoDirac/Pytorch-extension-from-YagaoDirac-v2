@@ -3,27 +3,30 @@
 
 
 class test:
+    FieldLength:int
+    bitmask:int
+    addr:int
+    dataset:list[tuple[int,bool]]
     def __init__(self):
-        self.FieldLength = 5
-        self.bitmask = 0b11000
-        #self.addr = 0b01000
-        self.dataset = [
-            (0b01000,True),(0b01001,True),(0b01010,True),(0b01011,True),
-            (0b01100,True),(0b01101,True),(0b01110,True),(0b01111,True),
-                        ]
+        # self.FieldLength = 5
+        # self.bitmask = 0b11000
+        # self.addr = 0b01000
+        # self.dataset = []
         pass
-    def detect_best_bit_to_split(self):
+    def _check_all_addr(self)->None:
+        reversed_bitmask = ~self.bitmask
+        addr_bits_out_of_bitmask = self.addr&reversed_bitmask
+        assert 0 == addr_bits_out_of_bitmask, "self.addr is bad. It has bit set to 1 outside the bitmask."
+        masked_addr = self.addr&self.bitmask
+        for item in self.dataset:
+            masked_addr_of_item = item[0]&self.bitmask
+            assert masked_addr == masked_addr_of_item
+            pass
+        pass
+    def detect_best_bit_to_split(self)->None:
         actual_index:list[int] = []
         num_of_same:list[int] = []
-        # str_bitmask = "{:b}".format(self.bitmask)
-        # str_bitmask_len = str_bitmask.__len__()
-        # start = str_bitmask_len-self.FieldLength
         for i in range(self.FieldLength-1,-1,-1):
-            # bit = 0
-            # if i>=0:
-            #     bit = int(str_bitmask[i], 2)
-            #     pass
-            # if bit=0
             one_shift_by_i:int = 1<<i
             bit_of_bitmask_for_this_i = one_shift_by_i&self.bitmask
             if bit_of_bitmask_for_this_i != 0:
@@ -49,14 +52,29 @@ class test:
         print(actual_index)
         print(num_of_same)
         pass#end of function.
-    
+
+if "check_all_addr" and False:
+    a = test()
+    a.bitmask = 0b11000
+    a.addr =    0b01000
+    a.dataset = [
+        (0b01000,True),(0b01001,True),(0b01010,True),(0b01011,True),
+        (0b01100,True),(0b01101,True),(0b01110,True),(0b01111,True),
+                    ]
+    a.check_all_addr()
+    pass
+
+
+
 a = test()
 a.FieldLength = 5
 a.bitmask = 0b11000
+a.addr = 0b01000
 a.dataset = [
-    (0b01000,True),(0b01001,True),(0b01010,True),(0b01011,True),
-    (0b01100,True),(0b01101,True),(0b01110,True),(0b01111,True),
+    (0b01000,True),(0b01001,True),(0b01010,True),(0b01011,False),
+    (0b01100,True),(0b01101,True),(0b01110,False),#(0b01111,False),
                 ]
+a._check_all_addr()
 a.detect_best_bit_to_split()
 print()
 
@@ -67,6 +85,7 @@ a.dataset = [
     (0b01001,True),(0b01011,True),
     (0b01101,True),(0b01111,True),
                 ]
+a._check_all_addr()
 a.detect_best_bit_to_split()
 print()
 
@@ -77,6 +96,7 @@ a.dataset = [
     (0b01000,True),(0b01001,True),(0b01010,True),(0b01011,True),
     #(0b01100,True),(0b01101,True),(0b01110,True),(0b01111,True),
                 ]
+a._check_all_addr()
 a.detect_best_bit_to_split()
 print()
 
