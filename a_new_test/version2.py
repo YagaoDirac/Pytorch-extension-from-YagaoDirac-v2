@@ -112,7 +112,110 @@ if "test" and True:
     #a.reset()
     pass
 
-1q明天跟着重新整理的条件重新搞一下。
+#1q明天跟着重新整理的条件重新搞一下。
+
+'''DatasetField class:
+First, the entire tool does a reverse way to use Karnaugh map. In the normal
+way, it starts with the 1x2 circles, and if these 1x2 also combines, it's 1x4
+or 2x2. The normal way of simplify a logic boolean algebra expression is from
+small circles to big ones. But in this tool, it's the reverse way. The entire 
+Karnaugh map(I don't mean you need to print it visibly) is cut into 2 halves, 
+based on the correlation of the bit and the Y. Let's say a input is x1 to xn and the 
+result of the boolean algebra expression is Y(let's consider only 1 output first),
+if x1 and Y are the most likely to be the same(or different), then, the map
+will be split by x1. This makes the 2 subfields most likely to have more correlation 
+then the entire map(not mathmatically proved yet, but true in some examples I checked.).
+Then, repeat this method to get a binary-tree-like structure.
+I call the Karnaugh map a dataset in this tool(self.dataset). Only relevant items
+are stored. Irrelevant items don't show up in it.
+
+Main jobs of this class.
+1, detect a raw dataset.
+2, split a sorted dataset and get 2 subfield(if necessary. and the 2 subfields will be 
+easier to build.)
+3, look up(input the value of x1 to xn, and get the result.)
+
+4, (no plan) dynamically update. It will be a minimum update.
+5, (no plan) formula based simplification. Maybe it not gonna work? 
+6, (no plan) integer, float point number(ieee754 like) support with acceptable error.
+
+
+How to detect a raw dataset.
+In the __init__ function, if the dataset comes without any specifies(the first object 
+of this class, and the dataset is from other source. The class must be able to handle this).
+The init func must be able to detect useful info from the dataset, and get it ready for 
+future use.
+Steps are:
+1, is dataset empty. If true, it's a leaf node. [return]
+2, is dataset full. If true, it has no irrelevant items.
+3, detect the dataset, and get has_1, has_0, and (max_I_forgot_name_of_this_var,
+split_at_this_bit).
+4, a special case is ***all xor***. Condition is (no_irrelevant and 
+0 == max_I_forgot_name_of_this_var). If true, it's a leaf node. [return]
+5, if the dataset doesn't have 1 or doesn't have 0, it's a leaf node. [return]
+6, it's not a leaf node, split it[split][return]
+
+The split function not only creats the dataset for subfield(children if you deem it
+as a binary tree), it also creats the suggestions for them. 
+Suggestions include:
+(is_dataset_empty too easy, not included here.)
+is_dataset_full.
+has_1, has_0
+Also, the dataset is also sorted by *addr*
+
+If an object of this class is created with suggestion, the init func is easier.
+But it still has to do the rest of the job.
+
+
+Lookup:
+To lookup in this tool, provide a set of the values of each input. They can be
+1, 0 or irrelevant(irr for short)
+[WIP] A lookup requist comes with some suggestions, like: allow_irr, better_non_irr, 
+better_irr. 
+The lookup starts from the root node. When a node cannot decide the result, it 
+calls 1 of its 2 subfield(children) to do the job. This should only happen 
+when the node is non-leaf.
+
+Split:
+To create subfields(children), iterates its own dataset, paste(or move???) it's own
+items into 2 new datasets. While doing this, all the useful flags are created. Then
+datasets and suggestions(flags) are sent to new objects, so new objects' init function
+is easier.
+
+
+(no plan) dynamically update:
+If any relevant item is removed, theoritically, the tree can stay while provides 
+correct result. But if any item is modified(from true to false or viseversa), or added
+, it's not guarunteed to provide correct result anymore. This happens in AI. When 
+agent adapts to environment, it happens.
+A minimum update method is to keep all the split relationship, but to split more from 
+the existing leaf nodes. If any leaf node, let's say, it has no 0(false), and gets a 0,
+then it needs to split more.
+A not minimum but probably better way is to check correlation value. Because the splitting
+happens at the most correlative bit, if it's not the best place to split, then the entire 
+subtree must all be recreated.
+The first way fits the *shortest updating time* demand, while the second fits *shortest 
+inference time* demand.
+
+(no plan) formula based simplification. Maybe it not gonna work? 
+I'm not sure if this is needed. So yeah, if I progress, I'll write it here.
+
+
+(no plan) integer, float point number(ieee754 like) support with acceptable error.
+This will be implemented after the other parts finish.
+The idea is to allow some error, because these are numbers. If the most/more 
+significant bits are correct, then the least/less significant bits are much less 
+important. If we allow some error, the tree maybe smaller.
+In my another (probably failed) approach (digital neural network), I also have similar 
+design. Yeah, it's natually to come up with this idea.
+A possible way to do this is a progressive way. If a number is 8 bits, and all bits 
+matters(it can be 128 to 255, if unsigned.), then it's possible to only consider the 
+first 2 or 3 bits in the first round of training(let me use this word). Then, based 
+on the reulst, add more bits of these numbers, and do a progressive training. To a 
+point, the error is small enough, and the rest of the bits are not needed anymore. 
+Or at least, the training progress maybe easier, and if anything goes wrong, it's 
+possible to detect it earlier and cheaper.
+'''
 class DatasetField:
     #core info
     bitmask:int
