@@ -20,7 +20,7 @@ class TriState(Enum):
     pass
 
 
-
+#still useful, but not used in the class.
 def is_addr_valid(bit_in_use_mask:int, fixed_addr:int)->bool:
     '''Checks if fixed_addr has no 1s outside the bits marked by bit_in_use_mask
     
@@ -148,10 +148,10 @@ future use.
 Steps are:
 1, is dataset empty. If true, it's a leaf node. [return]
 2, is dataset full. If true, it has no irrelevant items.
-3, detect the dataset, and get has_1, has_0, and (max_I_forgot_name_of_this_var,
-split_at_this_bit).
-4, a special case is ***all xor***. Condition is (no_irrelevant and 
-0 == max_I_forgot_name_of_this_var). If true, it's a leaf node. [return]
+3, detect the dataset, and get has_1, has_0, and 
+(best_index_to_split, best_abs_of_num_of_same).
+4, a special case is ***all xor***. Condition is (dataset_if_full and 
+0 == best_abs_of_num_of_same). If true, it's a leaf node. [return]
 5, if the dataset doesn't have 1 or doesn't have 0, it's a leaf node. [return]
 6, it's not a leaf node, split it[split][return]
 
@@ -171,10 +171,12 @@ Lookup:
 To lookup in this tool, provide a set of the values of each input. They can be
 1, 0 or irrelevant(irr for short)
 [WIP] A lookup requist comes with some suggestions, like: allow_irr, better_non_irr, 
-better_irr. 
+better_irr, true_when_irr, false_when_irr.
 The lookup starts from the root node. When a node cannot decide the result, it 
 calls 1 of its 2 subfield(children) to do the job. This should only happen 
 when the node is non-leaf.
+The sequence for leaf node: 1 all_irr, 2 all_xor, 3 normal leaf(no 0 or no 1).
+
 
 Split:
 To create subfields(children), iterates its own dataset, paste(or move???) it's own
@@ -224,7 +226,7 @@ class DatasetField:
     bits_already_in_use:int
     dataset:list[tuple[int,bool]]
     #lookup tables.
-    index_of_children_split:int
+    index_to_split:int
     children:Optional[tuple['DatasetField','DatasetField']]#yeah, Im a tree.
     ready_for_lookup:bool
     #irrelevant_lookup:list[]??? to do 
@@ -234,7 +236,7 @@ class DatasetField:
     has_0:bool
     has_irr:bool
     is_dataset_sorted:bool
-    already_leaf:bool
+    is_leaf_node:bool
     all_xor:bool
     #simple flags
     not_after_xor:bool
@@ -242,17 +244,16 @@ class DatasetField:
     all_irr:bool
     def __init__(self, bitmask:int, addr:int, FieldLength:int, bits_already_in_use:int, 
                 dataset:list[tuple[int,bool]], 
-                suggest_about_1_0_irr__already_leaf:bool=False, 
-                suggest_has_1:bool=False, suggest_has_0:bool=False, suggest_has_irr:bool=False, 
-                suggest_dataset_is_sorted:bool=False, 
-                suggest_already_leaf:bool=False, 
-                check_addr = False, continue_splitting = True
+                with_suggest:bool=False, 
+                suggest_has_1:bool=False, suggest_has_0:bool=False, #suggest_has_irr:bool=False, 
+                #suggest_dataset_is_full = False,
+                #suggest_dataset_is_sorted:bool=False, 
+                #suggest_already_leaf:bool=False, 
+                _debug__check_all_safety:bool = True,# __debug__continue_splitting = True,
+                #check_addr = False, #__debug_check_all_safety = False, 
                 ):
-        #safety check
-        if check_addr:
-            is_addr_valid(bit_in_use_mask=bitmask, fixed_addr=addr)
-            pass
-        #core info
+        
+        #core info. simple copy paste.
         self.bitmask = bitmask
         self.addr = addr
         self.FieldLength = FieldLength
@@ -260,189 +261,104 @@ class DatasetField:
         self.dataset = dataset
         #lookup tables
         self.children = None
+        
+        #safety check
+        if _debug__check_all_safety:
+            self._init_only__check_all_addr()
+            pass
+        
+        # 1, is dataset empty. If true, it's a leaf node. [return]
         if dataset.__len__() == 0:
+            self.ready_for_lookup = True
+            self.has_1 = False
+            self.has_0 = False
+            self.has_irr = True
             self.all_irr = True
-            pass
+            self.is_dataset_sorted = True#only to init. not a real result.
+            self.is_leaf_node = True
+            self.all_xor = False
+            self.not_after_xor = False#only to init. not a real result.
+            self.already_const = True#only to init. not a real result.
+            return
         
+        # 2, is dataset full. If true, it has no irrelevant items.
+        num_of_irr = self._init_only__get_num_of_irrelevant()
+        dataset_if_full = 0 == num_of_irr
         
-        #flags
-        has_1 = OneTimeSetup_Bool()
-        has_0 = OneTimeSetup_Bool()
-        has_irr = OneTimeSetup_Bool()
-        is_dataset_sorted = OneTimeSetup_Bool()
-        already_leaf = OneTimeSetup_Bool()
-        all_xor = OneTimeSetup_Bool()
-        
-        if suggest_about_1_0_irr__already_leaf:
-            has_1.set(suggest_has_1)
-            has_0.set(suggest_has_0)
-            has_irr.set(suggest_has_irr)
-            already_leaf.set(suggest_already_leaf)
-            pass
-        if suggest_dataset_is_sorted:
-            is_dataset_sorted.set()
-            pass
-        
-        if dataset.__len__() == 0:
-            #only irrelevant.
-            has_1.set(False)
-            has_0.set(False)
-            has_irr.set()
-            is_dataset_sorted.set() #no need to sort it anymore.
-            already_leaf.set() #no need to split it.
-            all_xor.set(False)
-        
+        # 3, detect the dataset, and get has_1, has_0, and 
+        # (best_index_to_split, best_abs_of_num_of_same).
+        if with_suggest:
+            self.has_1 = suggest_has_1
+            self.has_0 = suggest_has_0
+            self.is_dataset_sorted = True#this maybe a bit dangerous?
             pass
         else:
-            #At least 1 item in the dataset. (item is true or false. Irrelevant is not stored there.)
-            
-            if FieldLength == bits_already_in_use:
-                #full addr. The dataset has 1 or 0 item, and 0 item case is already checked uppon.
-                #so here is full addr+only 1 item. It's a minimun item and it's relevant.
-                all_xor.set(False)
-                is_dataset_sorted.set() #no need to sort it anymore.
-                already_leaf.set() #no need to split it.
-                if dataset.__len__() == 1:
-                    has_irr.set(False)
-                    #the only item is relevant.
-                    temp = dataset[0][1]
-                    if temp:
-                        has_1.set()
-                        has_0.set(False)
-                        pass
-                    else:
-                        has_1.set(False)
-                        has_0.set()
-                        pass
-                    pass#if dataset.__len__() == 1:
-                else:
-                    assert False, "unreachable."
-                pass
-            else:
-                # NON_full addr. The dataset has at least 1 item.
-                # The dataset needs to be iterated to check what's in it.
-                #but, sort it first.
-                
-               
-                # step 1, if the dataset contains 1 and 0.
-                if suggest_dataset_is_sorted:
-                    is_dataset_sorted.set()
-                    pass
-                if is_dataset_sorted.uninit:
-                    self.__sort_dataset()
-                    pass
-                if not suggest_about_1_0_irr__already_leaf:
-                    ignore_true = False
-                    ignore_false = False
-                    found_true = suggest_has_1
-                    found_false = suggest_has_0
-                    for item in dataset:
-                        if (not ignore_true) and item[1]:
-                            ignore_true = True
-                            found_true = True
-                            pass
-                        if (not ignore_false) and not item[1]:
-                            ignore_false = True
-                            found_false = True
-                            pass
-                        if ignore_true and ignore_false:
-                            break
-                        pass
-                    has_1.set(found_true)
-                    has_0.set(found_false)
-                    pass
-                
-                # step 2, irrelevant item exists?
-                num_of_irrelevant = self._get_num_of_irrelevant()
-                if num_of_irrelevant>0:
-                    has_irr.set()
+            self._init_only__sort_dataset()
+            found_true = False
+            found_false = False
+            for item in dataset:
+                if item[1]:
+                    found_true = True
                     pass
                 else:
-                    has_irr.set(False)
+                    found_false = True
                     pass
-                
-                # step 3, splittable. condition is, has both 1 and 0.
-                if (not has_1.get_value_safe()) or (not has_0.get_value_safe()):
-                    already_leaf.set() #no need to split it.
-                    pass
-                else:
-                    # case here. Has both 1 and 0. Either not already_leaf, or all xor.
-                    # step 4, figure out the best bit to split. If it doesn't split any more, this is still needed.
-                    best_index_to_split, best_abs_of_num_of_same = self._detect_best_bit_to_split()
-                    self.index_of_children_split = best_index_to_split
-                    
-                    # step 5, all_xor. Condition is, no irrelevant, all sum_of_same equal 0(best abs is 0).
-                    temp_no_irr = not has_irr.get_value_safe()
-                    temp_best_abs_of_num_of_same__are_all_0 = 0 == best_abs_of_num_of_same
-                    all_xor.set(temp_no_irr&temp_best_abs_of_num_of_same__are_all_0)
-                    #if it's all_xor, it's leaf. Otherwise not.
-                    already_leaf.set(not all_xor.value)
-                    pass
-                pass#else of else# NON_full addr. The dataset has at least 1 item.
-            pass#if FieldLength == bits_already_in_use:
-            
-            #for all cases. from the safe one-time-bool to a normal bool.
-            self.has_1 = has_1.get_value_safe()
-            self.has_0 = has_0.get_value_safe()
-            self.has_irr = has_irr.get_value_safe()
-            self.is_dataset_sorted = is_dataset_sorted.get_value_safe()
-            self.already_leaf = already_leaf.get_value_safe()
-            self.all_xor = all_xor.get_value_safe()
-            #lastly, 
-            #If this obj is the end of splitting, either case happens.
-            #1, it's a all-xor-field.
-            #2, it doesn't have 1 or 0.
-            not_after_xor = OneTimeSetup_Bool()
-            all_1 = OneTimeSetup_Bool()
-            all_0 = OneTimeSetup_Bool()
-            all_1_and_irr = OneTimeSetup_Bool()
-            all_0_and_irr = OneTimeSetup_Bool()
-            ready_for_lookup = OneTimeSetup_Bool()
-            if self.all_xor:
-                not_after_xor.set(self._get__if_not_after_xor__it_s_already_all_xor())
-                all_1.set(False)
-                all_0.set(False)
-                already_leaf_node.set(False)
-                ready_for_lookup.set()
+                if found_true and found_false:
+                    break
                 pass
-            self.not_after_xor = (not not_after_xor.uninit)and not_after_xor.value
-                
-            if not self.has_1:
-                if not self.has_0:
-                    
-                    all_1.set(False)
-                    all_0.set(False)
-                    already_leaf_node.set(False)
-                    ready_for_lookup.set()
-                    
-                    already_const.set(False)
-                    ready_for_lookup.set()
-                    pass
-                else:
-                    #has 0 but no 1
-                    already_const.set()
-                    ready_for_lookup.set()
-                    pass
-                pass
-            else:
-                #has 1
-                if not self.has_0:
-                    #has 1 but no 0
-                    already_const.set()
-                    pass
-                pass
-            
-            
-            self.ready_for_lookup = False
-            if continue_splitting and self.splittable:
-                self.split(best_index_to_split)
-                self.ready_for_lookup = True
-                pass
-        pass#end of function
-                
+            self.has_1 = found_true
+            self.has_0 = found_false
+            pass
+        self.best_index_to_split, best_abs_of_num_of_same = self._detect_best_bit_to_split()
+        
+        # 4, a special case is ***all xor***. Condition is (dataset_if_full and 
+        # 0 == max_I_forgot_name_of_this_var). If true, it's a leaf node. [return]
+        if dataset_if_full and (0 == best_abs_of_num_of_same):
+            self.not_after_xor = self._init_only__get__if_not_after_xor__it_s_already_all_xor()
+            self.ready_for_lookup = True
+            #self.has_1 see uppon
+            #self.has_0 see uppon
+            self.has_irr = not dataset_if_full
+            self.all_irr = False
+            self.is_dataset_sorted = True
+            self.is_leaf_node = True
+            self.all_xor = True
+            #self.not_after_xor see uppon
+            self.already_const = False#only to init. not a real result.
+            return
+        
+        # 5, if the dataset doesn't have 1 or doesn't have 0, it's a leaf node. [return]
+        if (not self.has_1) or (not self.has_0):
+            #at least 1 true. If both false, it's a all_irr case, which returned long ago.
+            self.ready_for_lookup = True
+            #self.has_1 see uppon
+            #self.has_0 see uppon
+            self.has_irr = not dataset_if_full
+            self.all_irr = False
+            self.is_dataset_sorted = True
+            self.is_leaf_node = True
+            self.all_xor = False
+            self.not_after_xor = False#only to init. not a real result.
+            self.already_const = not self.has_irr
+            return 
+        
+        # 6, it's not a leaf node, split it[split][return]
+        _check_all_safety = _debug__check_all_safety
+        self.split(self.best_index_to_split, _debug__check_all_safety_in_split = _check_all_safety)
+        self.ready_for_lookup = True
+        #self.has_1 see uppon
+        #self.has_0 see uppon
+        self.has_irr = not dataset_if_full
+        self.all_irr = False
+        self.is_dataset_sorted = True
+        self.is_leaf_node = False
+        self.all_xor = False
+        self.not_after_xor = False#only to init. not a real result.
+        self.already_const = False#only to init. not a real result.
+        return #end of function
 
                 
-    def _get__if_not_after_xor__it_s_already_all_xor(self)->bool:
+    def _init_only__get__if_not_after_xor__it_s_already_all_xor(self)->bool:
         assert self.all_xor, "non-all-xor case can not call this function."
         #pick anything from self.dataset and detect if all input are Falses(simpler than true), is the output the xor result, or the reversed.
         #actually, the dataset should already be sorted, but the performance is probably similar and trivial?
@@ -465,7 +381,7 @@ class DatasetField:
         is_num_of_ones_in_addr_even = (num_of_ones_in_addr&1) == 0
         return result_of_item ^ is_num_of_ones_in_addr_even
     
-    def _check_all_addr(self)->None:
+    def _init_only__check_all_addr(self)->None:
         #part 1, bits_already_in_use must equal to 1s in bitmask
         temp_bitmask = self.bitmask
         ones_in_bitmask = 0
@@ -528,18 +444,48 @@ class DatasetField:
         return (best_index_to_split, best_abs_of_num_of_same)
         pass#end of function.
     
-    def _get_num_of_irrelevant(self)->int:
+    def _init_only__get_num_of_irrelevant(self)->int:
         '''Because only relevant items are stored in "dataset", 
             and the total possible number is 1<<N.'''
         length = self.dataset.__len__()
         total_possible = 1<<self.FieldLength
         result = total_possible-length
         return result
-    def __sort_dataset(self):
-        self.is_dataset_sorted.set()
+    def _init_only__sort_dataset(self):
+        self.is_dataset_sorted = True
         self.dataset.sort(key=lambda item:item[0])
         pass
-    def __unfinished_______lookup(self, addr:int)->tuple[bool,bool]:
+    def lookup(self, addr:int, )->tuple[None,None,bool,bool]:
+        #to do :suggest, like allow_irr, better_non_irr, better_irr, true_when_irr, false_when_irr.
+        
+        #the sequence is the same as __init__.
+        '''return (result_is_irr, result_is_true, is_irr_raw, is_true_raw)'''
+        
+        # 1, is dataset empty. 
+        if self.all_irr:
+            '''return (result_is_irr, result_is_true, is_irr_raw, is_true_raw)'''
+            return(None, None, True, False)
+        
+        # 2 and 3 don't return.
+        
+        # 4, a special case is ***all xor***. 
+        if self.all_xor:
+            继续。。
+        
+            
+        # 5, if the dataset doesn't have 1 or doesn't have 0, it's a leaf node. [return]
+        # 6, it's not a leaf node, split it[split][return]
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         assert self.ready_for_lookup, "The __init__ stoped this object from detecting the inner structure."
         assert False, "可能写错了。"
         if not self.is_dataset_sorted:
@@ -559,72 +505,95 @@ class DatasetField:
             else:
                 right = mid - 1  # Search in the left half
 
-        return (False, False)  # Target found
-    # def has_only_irr(self)->bool:
-    #     result = (TriState.false == self.has_1)and(TriState.false == self.has_0)
-    #     if result:
-    #         self.has_irr = TriState.true
-    #         pass
-    #     return result
-    
         
-    def split(self, bit_index:int):#->tuple['DatasetField','DatasetField']:
+        return (result_is_irr, result_is_true, is_irr_raw, is_true_raw)
+ 
+        
+    def split(self, bit_index:int, _debug__check_all_safety_in_split: bool = False,)->None:#->tuple['DatasetField','DatasetField']:
         #assert False, "untested"
         #safety ckeck
-        to_add_this_bit = 1<<bit_index
-        assert self.bitmask&to_add_this_bit == 0, "bit_index already used in this dataset_field."
-                
-        #sort first.
-        if not self.is_dataset_sorted:
-            self.__sort_dataset()
+        split_at_this_bit:int = 1<<bit_index
+        if _debug__check_all_safety_in_split:
+            assert self.bitmask&split_at_this_bit == 0, "bit_index already used in this dataset_field."
             pass
         
-        new_bitmask = self.bitmask|to_add_this_bit
+        #this is not needed. dataset is sorted in init.
+        #sort first.
+        # if not self.is_dataset_sorted:
+        #     self.__sort_dataset()
+        #     pass
+        
+        new_bitmask = self.bitmask|split_at_this_bit
         false_addr = self.addr
-        true_addr = self.addr|to_add_this_bit
+        true_addr = self.addr|split_at_this_bit
         
         #optimizable
-        false_dataset:list[tuple[int,bool]] = []
         true_dataset:list[tuple[int,bool]] = []
-        assert False,"顺便把有什么东西一起找了。"
+        true_has_0 = False
+        true_has_1 = False
+        false_dataset:list[tuple[int,bool]] = []
+        false_has_0 = False
+        false_has_1 = False
+        #assert False,"顺便把有什么东西一起找了。"
         for item in self.dataset:
-            if item[1]:
+            the_bit_in_item_addr_with_shift = item[0]&split_at_this_bit
+            the_bit_in_item_addr:bool = the_bit_in_item_addr_with_shift!=0
+            if the_bit_in_item_addr:
                 true_dataset.append(item)
+                #optimizable? like:
+                # if not (true_has_1) and item[1]???
+                # if not (true_has_0) and item[1]???
+                if item[1]:
+                    true_has_1=True
+                    pass
+                else:
+                    true_has_0=True
+                    pass
                 pass
-            else:# the false case
+            else:
                 false_dataset.append(item)
+                #also here.
+                if item[1]:
+                    false_has_1=True
+                    pass
+                else:
+                    false_has_0=True
+                    pass
                 pass
             pass
         
+        #this is not needed. the items are added in sequence.
         #maybe optimizable.
-        false_dataset.sort(key=lambda item:item[0])
-        true_dataset.sort(key=lambda item:item[0])
+        #false_dataset.sort(key=lambda item:item[0])
+        #true_dataset.sort(key=lambda item:item[0])
+        
+        __check_all_safety = _debug__check_all_safety_in_split
         
         #这是一幅对联
-        false_part = DatasetField( , , , self.bits_already_in_use+1, True)
+        true_part = DatasetField(bitmask = new_bitmask, addr=true_addr, FieldLength=self.FieldLength,
+            bits_already_in_use = self.bits_already_in_use+1, dataset=true_dataset,with_suggest = True,
+            suggest_has_1 = true_has_1, suggest_has_0 = true_has_0, 
+            _debug__check_all_safety = __check_all_safety,)
+
+        false_part = DatasetField(bitmask = new_bitmask, addr=false_addr, FieldLength=self.FieldLength,
+            bits_already_in_use = self.bits_already_in_use+1, dataset=false_dataset,with_suggest = True,
+            suggest_has_1 = false_has_1, suggest_has_0 = false_has_0, 
+            _debug__check_all_safety = __check_all_safety,)
         
-        
-        DatasetField(bitmask = new_bitmask, addr = false_addr, FieldLength = self.FieldLength,
-                bits_already_in_use = self.bits_already_in_use+1, dataset = false_dataset,
-                suggest_about_1: bool = False,
-    suggest_has_1: bool = False,
-    suggest_about_0: bool = False,
-    suggest_has_0: bool = False,
-    suggest_about_irr: bool = False,
-    suggest_has_irr: bool = False,
-    suggest_dataset_is_sorted: bool = False,
-    suggest_about_splittable: bool = False,
-    suggest_is_splittable: bool = False,
-    check_addr: bool = False,
-    continue_splitting: bool = True
-        
-        
-        
-        
-        
-        
-        true_part  = DatasetField(self.N, false_dataset,  true_addr, new_bitmask, self.bits_already_in_use+1, True)
-        return (false_part, true_part)
+        self.children = (true_part, false_part)
+        pass
+
+#要测试的。init，split，lookup。
+继续。
+if "init and split" and True:
+    a_DatasetField = DatasetField(bitmask = 0b11000, addr = 0b01001, FieldLength=5, bits_already_in_use=2, \
+                    dataset = [
+        (0b01000,True),(0b01001,True),(0b01010,True),(0b01011,True),
+        (0b01100,True),(0b01101,True),(0b01110,True),(0b01111,True),
+                    ],
+                    with_suggest=False,_debug__check_all_safety = True)
+    pass
+
 
 
 
