@@ -13,11 +13,11 @@ from typing import Optional, Union
 from enum import Enum
 import random
 
-class TriState(Enum):
-    true = 1,
-    false = 0,
-    tbd = -1,
-    pass
+# class TriState(Enum):
+#     true = 1,
+#     false = 0,
+#     tbd = -1,
+#     pass
 
 
 #still useful, but not used in the class.
@@ -42,7 +42,7 @@ if "test" and False:
     pass
 
 
-
+#not in use. But let's leave it.
 class OneTimeSetup_Bool:
     def __init__(self):
         self.uninit = True
@@ -76,7 +76,7 @@ class OneTimeSetup_Bool:
         else:
             return str(self.value)
     #end of class
-if "test" and True:
+if "test" and False:
     print(OneTimeSetup_Bool())
     
     print("---get_value_safe")
@@ -112,7 +112,50 @@ if "test" and True:
     #a.reset()
     pass
 
-#1q明天跟着重新整理的条件重新搞一下。
+
+
+
+
+
+
+
+def rand_dataset_sorted(N:int, p_False:float, p_True:float, seed:int = 0)->list[tuple[int,bool]]:
+    '''The result looks like addr:value. The addr is naturally sorted???
+    
+    For debug purpose.'''
+    dataset:list[tuple[int,bool]] = []
+    random.seed(seed)
+    p_both = p_True + p_False
+    for i in range(1<<N):
+        r = random.random()
+        if r < p_False:
+            dataset.append((i, False))
+        elif r < p_both:
+            dataset.append((i, True))
+        else:
+            # irrelevant items are not in dataset
+            pass
+        pass
+    return dataset
+if "test" and False:
+    ds2 = rand_dataset_sorted(4, 0.1, 0.1, 123)
+    print(ds2)
+    ds3 = rand_dataset_sorted(4, 0.1, 0.1, 123)
+    print(ds3)
+    ds4 = rand_dataset_sorted(4, 0.2, 0. , 123)
+    print(ds4)
+    pass
+#to do optimization: sort the dataset 
+
+
+
+
+
+
+
+
+
+
 
 '''DatasetField class:
 First, the entire tool does a reverse way to use Karnaugh map. In the normal
@@ -226,7 +269,7 @@ class DatasetField:
     bits_already_in_use:int
     dataset:list[tuple[int,bool]]
     #lookup tables.
-    index_to_split:int
+    best_index_to_split:int
     children:Optional[tuple['DatasetField','DatasetField']]#yeah, Im a tree.
     ready_for_lookup:bool
     #irrelevant_lookup:list[]??? to do 
@@ -240,8 +283,46 @@ class DatasetField:
     all_xor:bool
     #simple flags
     not_after_xor:bool
-    already_const:bool
+    #already_const_without_irr:bool
     all_irr:bool
+    def print_directly(self):
+        temp = f"<DatasetField> bitmask:{self.bitmask}, addr:{self.addr:b}, FieldLength{self.FieldLength}, "
+        temp += f"bits_already_in_use{self.bits_already_in_use}, "
+        temp += f"dataset__len__:{self.dataset.__len__()}, best_index_to_split:{self.best_index_to_split}, "
+        if self.children is None:
+            temp+="children is None, "
+        else:
+            temp+="has children, "
+            pass
+        print(temp)
+        temp2 = f"has_irr:{self.has_irr}, all_irr:{self.all_irr}, has_0:{self.has_0}, has_1:{self.has_1}, all_xor:{self.all_xor}, "
+        temp2 += f"already_const_without_irr:{self.get_already_const_without_irr()}, "
+        temp2 += f"ready_for_lookup:{self.ready_for_lookup}, is_dataset_sorted:{self.is_dataset_sorted}, is_leaf_node:{self.is_leaf_node}, "
+        temp2 += f"not_after_xor:{self.not_after_xor}, "
+        print(temp2)
+        pass
+    def get_readable_addr(self)->str:
+        '''Call this function after check the addr, otherwise the behavior of this function is undefined.
+        
+        This function at least takes advantage of an assuption, that, if the addr is correct, it only has 1s where the bitmask has 1s.
+        Which means, if a bit in bitmask is 0, in addr, it must be 0, '''
+        bitmask_in_str = f"{self.bitmask:b}"
+        addr_in_str = f"{self.addr:b}"
+        bitmask_is_this_longer_than_addr = bitmask_in_str.__len__()-addr_in_str.__len__()
+        temp_str = ""
+        for i in range(bitmask_in_str.__len__()):
+            bit = bitmask_in_str[i]
+            if "0" == bit:
+                temp_str += "_"
+                pass
+            else:#"1" == bit:
+                temp_str += addr_in_str[i-bitmask_is_this_longer_than_addr]
+                pass
+            pass
+        how_many_underscores_needs_in_the_left = self.FieldLength-bitmask_in_str.__len__()
+        result = "_"*how_many_underscores_needs_in_the_left+temp_str
+        return result
+        
     def __init__(self, bitmask:int, addr:int, FieldLength:int, bits_already_in_use:int, 
                 dataset:list[tuple[int,bool]], 
                 with_suggest:bool=False, 
@@ -267,7 +348,7 @@ class DatasetField:
             self._init_only__check_all_addr()
             pass
         
-        # 1, is dataset empty. If true, it's a leaf node. [return]
+        # only_irr 1, is dataset empty. If true, it's a leaf node. [return]
         if dataset.__len__() == 0:
             self.ready_for_lookup = True
             self.has_1 = False
@@ -278,7 +359,8 @@ class DatasetField:
             self.is_leaf_node = True
             self.all_xor = False
             self.not_after_xor = False#only to init. not a real result.
-            self.already_const = True#only to init. not a real result.
+            #self.already_const_without_irr = True#only to init. not a real result.
+            self.best_index_to_split = -1
             return
         
         # 2, is dataset full. If true, it has no irrelevant items.
@@ -294,6 +376,7 @@ class DatasetField:
             pass
         else:
             self._init_only__sort_dataset()
+            #self.is_dataset_sorted = True#keep it a comment, only for check.
             found_true = False
             found_false = False
             for item in dataset:
@@ -312,19 +395,20 @@ class DatasetField:
         self.best_index_to_split, best_abs_of_num_of_same = self._detect_best_bit_to_split()
         
         # 4, a special case is ***all xor***. Condition is (dataset_if_full and 
-        # 0 == max_I_forgot_name_of_this_var). If true, it's a leaf node. [return]
-        if dataset_if_full and (0 == best_abs_of_num_of_same):
-            self.not_after_xor = self._init_only__get__if_not_after_xor__it_s_already_all_xor()
+        # 0 == max_I_forgot_name_of_this_var and has_0 and has_1). If true, it's a leaf node. [return]
+        if (0 == best_abs_of_num_of_same) and dataset_if_full and self.has_0 and self.has_1:
+            self.not_after_xor = self._init_only__get__whether_not_after_xor__it_s_already_all_xor()
             self.ready_for_lookup = True
             #self.has_1 see uppon
             #self.has_0 see uppon
             self.has_irr = not dataset_if_full
             self.all_irr = False
-            self.is_dataset_sorted = True
+            #self.is_dataset_sorted = True already set before
             self.is_leaf_node = True
             self.all_xor = True
             #self.not_after_xor see uppon
-            self.already_const = False#only to init. not a real result.
+            #self.already_const_without_irr = False#only to init. not a real result.
+            self.best_index_to_split = -1
             return
         
         # 5, if the dataset doesn't have 1 or doesn't have 0, it's a leaf node. [return]
@@ -335,11 +419,12 @@ class DatasetField:
             #self.has_0 see uppon
             self.has_irr = not dataset_if_full
             self.all_irr = False
-            self.is_dataset_sorted = True
+            #self.is_dataset_sorted = True already set before
             self.is_leaf_node = True
             self.all_xor = False
             self.not_after_xor = False#only to init. not a real result.
-            self.already_const = not self.has_irr
+            #self.already_const_without_irr = not self.has_irr
+            self.best_index_to_split = -1
             return 
         
         # 6, it's not a leaf node, split it[split][return]
@@ -350,16 +435,20 @@ class DatasetField:
         #self.has_0 see uppon
         self.has_irr = not dataset_if_full
         self.all_irr = False
-        self.is_dataset_sorted = True
+        #self.is_dataset_sorted = True already set before
         self.is_leaf_node = False
         self.all_xor = False
         self.not_after_xor = False#only to init. not a real result.
-        self.already_const = False#only to init. not a real result.
+        #self.already_const_without_irr = False#only to init. not a real result.
         return #end of function
 
-                
-    def _init_only__get__if_not_after_xor__it_s_already_all_xor(self)->bool:
-        assert self.all_xor, "non-all-xor case can not call this function."
+    def get_already_const_without_irr(self)->bool:
+        has_only_one_side = (self.has_0 ^ self.has_1)
+        has_only_one_side_without_irr = has_only_one_side and (not self.has_irr)
+        return has_only_one_side_without_irr
+
+    def _init_only__get__whether_not_after_xor__it_s_already_all_xor(self)->bool:
+        #assert self.all_xor, "non-all-xor case can not call this function."
         #pick anything from self.dataset and detect if all input are Falses(simpler than true), is the output the xor result, or the reversed.
         #actually, the dataset should already be sorted, but the performance is probably similar and trivial?
         # So, yeah, I don't care, I detect the addr here, instead of check the "sorted" and do the trick.
@@ -380,6 +469,31 @@ class DatasetField:
             pass
         is_num_of_ones_in_addr_even = (num_of_ones_in_addr&1) == 0
         return result_of_item ^ is_num_of_ones_in_addr_even
+    def _lookup_only__all_xor_only(self, addr:int)->bool:
+        assert self.all_xor, "non-all-xor case can not call this function."
+        #the docs here is copied form the _init_only__get__if_not_after_xor__it_s_already_all_xor and probably wrong.
+        #pick anything from self.dataset and detect if all input are Falses(simpler than true), is the output the xor result, or the reversed.
+        #actually, the dataset should already be sorted, but the performance is probably similar and trivial?
+        # So, yeah, I don't care, I detect the addr here, instead of check the "sorted" and do the trick.
+        #maybe it's optimizable. But not for now.
+        #addr_of_item = self.dataset[0][0]
+        #result_of_item = self.dataset[0][1]
+        num_of_ones_in_addr = 0
+        for i in range(self.FieldLength-1,-1,-1):
+            one_shift_by_i:int = 1<<i
+            bit_of_bitmask_for_this_i = one_shift_by_i&self.bitmask
+            if bit_of_bitmask_for_this_i != 0:
+                #This bit is in bitmask, ignore this i.
+                continue
+            bit_in_addr_for_this_i = addr & one_shift_by_i
+            if bit_in_addr_for_this_i != 0:
+                num_of_ones_in_addr = num_of_ones_in_addr + 1
+                pass
+            pass
+        is_num_of_ones_in_addr_even = (num_of_ones_in_addr&1) == 0
+        result = is_num_of_ones_in_addr_even^self.not_after_xor
+        return result
+    
     
     def _init_only__check_all_addr(self)->None:
         #part 1, bits_already_in_use must equal to 1s in bitmask
@@ -389,7 +503,7 @@ class DatasetField:
             if (temp_bitmask&1)!=0:
                 ones_in_bitmask = ones_in_bitmask + 1
                 pass
-            temp_bitmask>>1
+            temp_bitmask = temp_bitmask>>1
         assert self.bits_already_in_use == ones_in_bitmask
         #part 2, addr bits outside the bitmask must be 0s.
         reversed_bitmask = ~self.bitmask
@@ -431,7 +545,7 @@ class DatasetField:
             pass#for i in range
         # print(actual_index)
         # print(num_of_same)
-        best_index_to_split:int=0
+        best_index_to_split:int=-1
         best_abs_of_num_of_same:int = 0
         for i in range(actual_index.__len__()):
             index = actual_index[i]
@@ -448,66 +562,82 @@ class DatasetField:
         '''Because only relevant items are stored in "dataset", 
             and the total possible number is 1<<N.'''
         length = self.dataset.__len__()
-        total_possible = 1<<self.FieldLength
+        total_possible = 1<<(self.FieldLength-self.bits_already_in_use)
         result = total_possible-length
         return result
     def _init_only__sort_dataset(self):
         self.is_dataset_sorted = True
         self.dataset.sort(key=lambda item:item[0])
         pass
-    def lookup(self, addr:int, )->tuple[None,None,bool,bool]:
+    
+    def _get_child(self, true_or_false:bool)->'DatasetField':
+        # self.children = (true_part, false_part)
+        if self.children is None:
+            raise Exception("should be a tuple.")
+        else:
+            if true_or_false:
+                return self.children[0]
+            else:
+                return self.children[1]  
+        #end of function
+        
+    def lookup(self, addr:int, )->tuple[bool,bool]:#[None,None,bool,bool]:
         #to do :suggest, like allow_irr, better_non_irr, better_irr, true_when_irr, false_when_irr.
         
         #the sequence is the same as __init__.
-        '''return (result_is_irr, result_is_true, is_irr_raw, is_true_raw)'''
+        '''return (result_is_irr, result_is_true)'''
+        #to do:return (result_is_irr, result_is_true, is_irr_raw, is_true_raw)'''
+        
+        # 0, this is different. I guess a lot calling to this function is not the end, 
+        # so let's detect non leaf node first.
+        if not self.is_leaf_node:
+            _temp__mask_of_this_bit = 1<<self.best_index_to_split
+            this_bit_of_addr__with_shift = _temp__mask_of_this_bit&addr
+            this_bit_of_addr = this_bit_of_addr__with_shift != 0
+            the_child = self._get_child(this_bit_of_addr)
+            return the_child.lookup(addr)
         
         # 1, is dataset empty. 
         if self.all_irr:
             '''return (result_is_irr, result_is_true, is_irr_raw, is_true_raw)'''
-            return(None, None, True, False)
+            return(True, False)#irr.
         
         # 2 and 3 don't return.
         
         # 4, a special case is ***all xor***. 
         if self.all_xor:
-            继续。。
-        
+            result = self._lookup_only__all_xor_only(addr)
+            return(False, result)
             
         # 5, if the dataset doesn't have 1 or doesn't have 0, it's a leaf node. [return]
-        # 6, it's not a leaf node, split it[split][return]
-
+        # the dataset is assumed to be sorted.
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        assert self.ready_for_lookup, "The __init__ stoped this object from detecting the inner structure."
-        assert False, "可能写错了。"
-        if not self.is_dataset_sorted:
-            self.__sort_dataset()
-            pass
-
         #a binary search pasted from bing.
-        left, right = 0, self.dataset.__len__() - 1
+        left = 0
+        right = self.dataset.__len__() - 1
+        #found = False
         while left <= right:
             mid:int = (left + right) // 2
-
             addr_here = self.dataset[mid][0]
             if addr_here == addr:
-                return (True, self.dataset[mid][1])  # Target found
+                return (False, self.dataset[mid][1])  # Target found
             elif addr_here < addr:
                 left = mid + 1  # Search in the right half
+                pass
             else:
                 right = mid - 1  # Search in the left half
-
+                pass
+            pass
         
-        return (result_is_irr, result_is_true, is_irr_raw, is_true_raw)
- 
+        # the raw way.
+        # for item in self.dataset:
+        #     if addr == item[0]:
+        #         return(False, item[1])
+        #     pass
+        return(True, False)#irr.
+        # Moved to top. The case 0. Case 6 in init, it's not a leaf node, split it[split][return]
+        #end of function
+        
         
     def split(self, bit_index:int, _debug__check_all_safety_in_split: bool = False,)->None:#->tuple['DatasetField','DatasetField']:
         #assert False, "untested"
@@ -584,8 +714,408 @@ class DatasetField:
         pass
 
 #要测试的。init，split，lookup。
-继续。
 if "init and split" and True:
+    # it's not allowed to have no input. So test starts with 1 input.
+    if "1 bit input, 0 free bit" and False:
+        if "two wrong addr, they raise" and False:
+            dataset = [(0b1,True), ]
+            a_DatasetField = DatasetField(bitmask = 1, addr = 0, FieldLength=1, bits_already_in_use=1, \
+                            dataset = dataset,
+                            with_suggest=False,_debug__check_all_safety = True)
+            dataset = [(0b0,True), ]
+            a_DatasetField = DatasetField(bitmask = 1, addr = 1, FieldLength=1, bits_already_in_use=1, \
+                            dataset = dataset,
+                            with_suggest=False,_debug__check_all_safety = True)
+            pass
+        #irr 
+        a_DatasetField = DatasetField(bitmask = 1, addr = 0, FieldLength=1, bits_already_in_use=1, \
+                        dataset = [], with_suggest=False,_debug__check_all_safety = True)
+        lookup_result = a_DatasetField.lookup(0)
+        assert lookup_result[0]
+        readable_addr = a_DatasetField.get_readable_addr()
+        assert readable_addr == "0"
+        a_DatasetField = DatasetField(bitmask = 1, addr = 1, FieldLength=1, bits_already_in_use=1, \
+                        dataset = [], with_suggest=False,_debug__check_all_safety = True)
+        lookup_result = a_DatasetField.lookup(0)
+        assert lookup_result[0]
+        readable_addr = a_DatasetField.get_readable_addr()
+        assert readable_addr == "1"
+        
+        #relevant.
+        dataset = [(0b0,True), ]
+        a_DatasetField = DatasetField(bitmask = 1, addr = 0, FieldLength=1, bits_already_in_use=1, \
+                        dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+        lookup_result = a_DatasetField.lookup(dataset[0][0])
+        assert lookup_result[1] == dataset[0][1]
+        readable_addr = a_DatasetField.get_readable_addr()
+        assert readable_addr == "0"
+        
+        dataset = [(0b0,False), ]
+        a_DatasetField = DatasetField(bitmask = 1, addr = 0, FieldLength=1, bits_already_in_use=1, \
+                        dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+        lookup_result = a_DatasetField.lookup(dataset[0][0])
+        assert lookup_result[1] == dataset[0][1]
+        readable_addr = a_DatasetField.get_readable_addr()
+        assert readable_addr == "0"
+        
+        dataset = [(0b1,True), ]
+        a_DatasetField = DatasetField(bitmask = 1, addr = 1, FieldLength=1, bits_already_in_use=1, \
+                        dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+        lookup_result = a_DatasetField.lookup(dataset[0][0])
+        assert lookup_result[1] == dataset[0][1]
+        readable_addr = a_DatasetField.get_readable_addr()
+        assert readable_addr == "1"
+        
+        dataset = [(0b1,False), ]
+        a_DatasetField = DatasetField(bitmask = 1, addr = 1, FieldLength=1, bits_already_in_use=1, \
+                        dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+        lookup_result = a_DatasetField.lookup(dataset[0][0])
+        assert lookup_result[1] == dataset[0][1]
+        readable_addr = a_DatasetField.get_readable_addr()
+        assert readable_addr == "1"
+        pass
+    
+    if "1 bit input, 1 free bit" and True:
+        if "already checked" and False:
+            dataset = [(0b0,True), (0b1,True), ]
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=1, bits_already_in_use=0, \
+                            dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+            assert not a_DatasetField.all_irr
+            assert 0 == a_DatasetField.addr
+            assert not a_DatasetField.all_xor
+            assert -1 == a_DatasetField.best_index_to_split
+            assert 0 == a_DatasetField.bitmask
+            assert 0 == a_DatasetField.bits_already_in_use
+            assert a_DatasetField.children is None
+            assert 1 == a_DatasetField.FieldLength
+            assert a_DatasetField.get_already_const_without_irr()
+            assert not a_DatasetField.has_irr
+            assert not a_DatasetField.has_0
+            assert a_DatasetField.has_1
+            assert a_DatasetField.is_dataset_sorted
+            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.ready_for_lookup
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            #assert not a_DatasetField.not_after_xor not important.
+            readable_addr = a_DatasetField.get_readable_addr()
+            assert readable_addr == "_"
+            
+            for item in dataset:
+                temp = a_DatasetField.lookup(item[0])
+                assert item[1] == temp[1]
+                pass
+            
+            # a smallese non-leaf.
+            # optimizable. it's equalavent to a 1bit xor, and possible to do some optimization. But let's keep it simple.
+            dataset = [(0b0,True), (0b1,False), ]
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=1, bits_already_in_use=0, \
+                            dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+            assert not a_DatasetField.all_irr
+            assert 0 == a_DatasetField.addr
+            assert not a_DatasetField.all_xor
+            assert 0 == a_DatasetField.best_index_to_split
+            assert 0 == a_DatasetField.bitmask
+            assert 0 == a_DatasetField.bits_already_in_use
+            assert a_DatasetField.children is not None
+            assert 1 == a_DatasetField.FieldLength
+            assert not a_DatasetField.get_already_const_without_irr()
+            assert not a_DatasetField.has_irr
+            assert a_DatasetField.has_0
+            assert a_DatasetField.has_1
+            assert a_DatasetField.is_dataset_sorted
+            assert not a_DatasetField.is_leaf_node
+            assert a_DatasetField.ready_for_lookup
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert 0 == best_index_to_split
+            assert 2 == best_abs_of_num_of_same
+            readable_addr = a_DatasetField.get_readable_addr()
+            assert readable_addr == "_"
+            
+            addr_1_child = a_DatasetField._get_child(true_or_false=True)
+            assert not addr_1_child.all_irr
+            assert 1 == addr_1_child.addr
+            assert not addr_1_child.all_xor
+            assert -1 == addr_1_child.best_index_to_split
+            assert 1 == addr_1_child.bitmask
+            assert 1 == addr_1_child.bits_already_in_use
+            assert addr_1_child.children is None
+            assert 1 == addr_1_child.FieldLength
+            assert addr_1_child.get_already_const_without_irr()
+            assert not addr_1_child.has_irr
+            assert addr_1_child.has_0
+            assert not addr_1_child.has_1
+            assert addr_1_child.is_dataset_sorted
+            assert addr_1_child.is_leaf_node
+            assert addr_1_child.ready_for_lookup
+            best_index_to_split, best_abs_of_num_of_same = addr_1_child._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            readable_addr = addr_1_child.get_readable_addr()
+            assert readable_addr == "1"
+            
+            addr_0_child = a_DatasetField._get_child(true_or_false=False)
+            assert not addr_0_child.all_irr
+            assert 0 == addr_0_child.addr
+            assert not addr_0_child.all_xor
+            assert -1 == addr_0_child.best_index_to_split
+            assert 1 == addr_0_child.bitmask
+            assert 1 == addr_0_child.bits_already_in_use
+            assert addr_0_child.children is None
+            assert 1 == addr_0_child.FieldLength
+            assert addr_0_child.get_already_const_without_irr()
+            assert not addr_0_child.has_irr
+            assert not addr_0_child.has_0
+            assert addr_0_child.has_1
+            assert addr_0_child.is_dataset_sorted
+            assert addr_0_child.is_leaf_node
+            assert addr_0_child.ready_for_lookup
+            best_index_to_split, best_abs_of_num_of_same = addr_0_child._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            readable_addr = addr_0_child.get_readable_addr()
+            assert readable_addr == "0"
+            
+            for item in dataset:
+                temp = a_DatasetField.lookup(item[0])
+                assert item[1] == temp[1]
+                pass
+            
+            
+            dataset = [(0b0,False), (0b1,False), ]
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=1, bits_already_in_use=0, \
+                            dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+            assert not a_DatasetField.all_irr
+            assert 0 == a_DatasetField.addr
+            assert not a_DatasetField.all_xor
+            assert -1 == a_DatasetField.best_index_to_split
+            assert 0 == a_DatasetField.bitmask
+            assert 0 == a_DatasetField.bits_already_in_use
+            assert a_DatasetField.children is None
+            assert 1 == a_DatasetField.FieldLength
+            assert a_DatasetField.get_already_const_without_irr()
+            assert not a_DatasetField.has_irr
+            assert a_DatasetField.has_0
+            assert not a_DatasetField.has_1
+            assert a_DatasetField.is_dataset_sorted
+            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.ready_for_lookup
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            #assert not a_DatasetField.not_after_xor not important.
+            readable_addr = a_DatasetField.get_readable_addr()
+            assert readable_addr == "_"
+            
+            for item in dataset:
+                temp = a_DatasetField.lookup(item[0])
+                assert item[1] == temp[1]
+                pass
+        
+            
+            # the other smallese non-leaf.
+            # optimizable. it's equalavent to a 1bit xor, and possible to do some optimization. But let's keep it simple.
+            dataset = [(0b0,False), (0b1,True), ]
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=1, bits_already_in_use=0, \
+                            dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+            assert not a_DatasetField.all_irr
+            assert 0 == a_DatasetField.addr
+            assert not a_DatasetField.all_xor
+            assert 0 == a_DatasetField.best_index_to_split
+            assert 0 == a_DatasetField.bitmask
+            assert 0 == a_DatasetField.bits_already_in_use
+            assert a_DatasetField.children is not None
+            assert 1 == a_DatasetField.FieldLength
+            assert not a_DatasetField.get_already_const_without_irr()
+            assert not a_DatasetField.has_irr
+            assert a_DatasetField.has_0
+            assert a_DatasetField.has_1
+            assert a_DatasetField.is_dataset_sorted
+            assert not a_DatasetField.is_leaf_node
+            assert a_DatasetField.ready_for_lookup
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert 0 == best_index_to_split
+            assert 2 == best_abs_of_num_of_same
+            readable_addr = a_DatasetField.get_readable_addr()
+            assert readable_addr == "_"
+            
+            addr_1_child = a_DatasetField._get_child(true_or_false=True)
+            assert not addr_1_child.all_irr
+            assert 1 == addr_1_child.addr
+            assert not addr_1_child.all_xor
+            assert -1 == addr_1_child.best_index_to_split
+            assert 1 == addr_1_child.bitmask
+            assert 1 == addr_1_child.bits_already_in_use
+            assert addr_1_child.children is None
+            assert 1 == addr_1_child.FieldLength
+            assert addr_1_child.get_already_const_without_irr()
+            assert not addr_1_child.has_irr
+            assert not addr_1_child.has_0
+            assert addr_1_child.has_1
+            assert addr_1_child.is_dataset_sorted
+            assert addr_1_child.is_leaf_node
+            assert addr_1_child.ready_for_lookup
+            best_index_to_split, best_abs_of_num_of_same = addr_1_child._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            readable_addr = addr_1_child.get_readable_addr()
+            assert readable_addr == "1"
+                
+            addr_0_child = a_DatasetField._get_child(true_or_false=False)
+            assert not addr_0_child.all_irr
+            assert 0 == addr_0_child.addr
+            assert not addr_0_child.all_xor
+            assert -1 == addr_0_child.best_index_to_split
+            assert 1 == addr_0_child.bitmask
+            assert 1 == addr_0_child.bits_already_in_use
+            assert addr_0_child.children is None
+            assert 1 == addr_0_child.FieldLength
+            assert addr_0_child.get_already_const_without_irr()
+            assert not addr_0_child.has_irr
+            assert addr_0_child.has_0
+            assert not addr_0_child.has_1
+            assert addr_0_child.is_dataset_sorted
+            assert addr_0_child.is_leaf_node
+            assert addr_0_child.ready_for_lookup
+            best_index_to_split, best_abs_of_num_of_same = addr_0_child._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            readable_addr = addr_0_child.get_readable_addr()
+            assert readable_addr == "0"
+            
+            for item in dataset:
+                temp = a_DatasetField.lookup(item[0])
+                assert item[1] == temp[1]
+                pass
+            
+        
+            #partly irr
+            dataset = [(0b1,False), ]#both 0b0 and 0b1 pass the test.
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=1, bits_already_in_use=0, \
+                            dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+            assert not a_DatasetField.all_irr
+            assert 0 == a_DatasetField.addr
+            assert not a_DatasetField.all_xor
+            assert -1 == a_DatasetField.best_index_to_split
+            assert 0 == a_DatasetField.bitmask
+            assert 0 == a_DatasetField.bits_already_in_use
+            assert a_DatasetField.children is None
+            assert 1 == a_DatasetField.FieldLength
+            assert not a_DatasetField.get_already_const_without_irr()
+            assert a_DatasetField.has_irr
+            assert a_DatasetField.has_0
+            assert not a_DatasetField.has_1
+            assert a_DatasetField.is_dataset_sorted
+            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.ready_for_lookup
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert 0 == best_index_to_split
+            assert 1 == best_abs_of_num_of_same
+            #assert not a_DatasetField.not_after_xor not important.
+            readable_addr = a_DatasetField.get_readable_addr()
+            assert readable_addr == "_"
+            
+            for item in dataset:
+                temp = a_DatasetField.lookup(item[0])
+                assert item[1] == temp[1]
+                pass
+            temp = a_DatasetField.lookup(0b0)
+            assert temp[0]#irr
+        
+            dataset = [(0b0,True), ]#both 0b0 and 0b1 pass the test.
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=1, bits_already_in_use=0, \
+                            dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+            assert not a_DatasetField.all_irr
+            assert 0 == a_DatasetField.addr
+            assert not a_DatasetField.all_xor
+            assert -1 == a_DatasetField.best_index_to_split
+            assert 0 == a_DatasetField.bitmask
+            assert 0 == a_DatasetField.bits_already_in_use
+            assert a_DatasetField.children is None
+            assert 1 == a_DatasetField.FieldLength
+            assert not a_DatasetField.get_already_const_without_irr()
+            assert a_DatasetField.has_irr
+            assert not a_DatasetField.has_0
+            assert a_DatasetField.has_1
+            assert a_DatasetField.is_dataset_sorted
+            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.ready_for_lookup
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert 0 == best_index_to_split
+            assert 1 == best_abs_of_num_of_same
+            #assert not a_DatasetField.not_after_xor not important.
+            readable_addr = a_DatasetField.get_readable_addr()
+            assert readable_addr == "_"
+            
+            for item in dataset:
+                temp = a_DatasetField.lookup(item[0])
+                assert item[1] == temp[1]
+                pass
+            temp = a_DatasetField.lookup(0b1)
+            assert temp[0]#irr
+        
+            #all irr
+            dataset = []
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=1, bits_already_in_use=0, \
+                            dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+            assert a_DatasetField.all_irr
+            assert 0 == a_DatasetField.addr
+            assert not a_DatasetField.all_xor
+            assert -1 == a_DatasetField.best_index_to_split
+            assert 0 == a_DatasetField.bitmask
+            assert 0 == a_DatasetField.bits_already_in_use
+            assert a_DatasetField.children is None
+            assert 1 == a_DatasetField.FieldLength
+            assert not a_DatasetField.get_already_const_without_irr()
+            assert a_DatasetField.has_irr
+            assert not a_DatasetField.has_0
+            assert not a_DatasetField.has_1
+            assert a_DatasetField.is_dataset_sorted
+            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.ready_for_lookup
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            #assert not a_DatasetField.not_after_xor not important.
+            readable_addr = a_DatasetField.get_readable_addr()
+            assert readable_addr == "_"
+            
+            # for item in dataset:
+            #     temp = a_DatasetField.lookup(item[0])
+            #     assert item[1] == temp[1]
+            #     pass
+            for addr in range(0b10):
+                temp = a_DatasetField.lookup(addr)
+                assert temp[0]
+                pass
+            
+            
+            pass
+        
+        
+        继续，2bit xor，然后上随机数据集测试。
+        做一点针对偏树的测试。
+        
+        fds=432
+        
+    
+    
+    
+if "test with random dataset" and False:
+    dataset = rand_dataset_sorted(1,0.3,0.3)
+    a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=1, bits_already_in_use=0, \
+                    dataset = dataset,
+                    with_suggest=False,_debug__check_all_safety = True)
+    a_DatasetField.print_directly()
+    
+    for item in dataset:
+        temp = a_DatasetField.lookup(item[0])
+        assert item[1] == temp[1]
+        pass
+    
+    
+    
     a_DatasetField = DatasetField(bitmask = 0b11000, addr = 0b01001, FieldLength=5, bits_already_in_use=2, \
                     dataset = [
         (0b01000,True),(0b01001,True),(0b01010,True),(0b01011,True),
@@ -597,15 +1127,15 @@ if "init and split" and True:
 
 
 
-if "check_all_addr" and True:
-    a_DatasetField = DatasetField(bitmask = 0b11000, addr = 0b01001, FieldLength=5, bits_already_in_use=2, \
-                    dataset = [
-        (0b01000,True),(0b01001,True),(0b01010,True),(0b01011,True),
-        (0b01100,True),(0b01101,True),(0b01110,True),(0b01111,True),
-                    ])
-    a_DatasetField._check_all_addr()
-    #继续。加上自动推荐，加上自动的检查和让更深的子域自动检查。
-    pass    
+# if "check_all_addr" and True:
+#     a_DatasetField = DatasetField(bitmask = 0b11000, addr = 0b01001, FieldLength=5, bits_already_in_use=2, \
+#                     dataset = [
+#         (0b01000,True),(0b01001,True),(0b01010,True),(0b01011,True),
+#         (0b01100,True),(0b01101,True),(0b01110,True),(0b01111,True),
+#                     ])
+#     a_DatasetField._check_all_addr()
+#     #继续。加上自动推荐，加上自动的检查和让更深的子域自动检查。
+#     pass    
 
 # if "detect" and True:
 # a = test()
@@ -621,6 +1151,3 @@ if "check_all_addr" and True:
 # print()
 
 
-
-
-a = 123
