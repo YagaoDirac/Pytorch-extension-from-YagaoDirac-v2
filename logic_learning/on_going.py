@@ -119,14 +119,16 @@ if "test" and False:
 
 
 
-def rand_dataset_sorted(FieldLength:int, p_False:float, p_True:float, seed:int = 0)->list[tuple[int,bool]]:
+def rand_dataset_sorted(FieldLength:int, p_False:float, p_True:float, seed:Optional[int]=None)->list[tuple[int,bool]]:
     '''The result looks like addr:value. The addr is naturally sorted???
     
     For debug purpose.'''
     dataset:list[tuple[int,bool]] = []
-    random.seed(seed)
+    if seed:
+        random.seed(seed)
+        pass
     p_both = p_True + p_False
-    for i in range(1<<N):
+    for i in range(1<<FieldLength):
         r = random.random()
         if r < p_False:
             dataset.append((i, False))
@@ -148,10 +150,115 @@ if "test" and False:
 #to do optimization: sort the dataset 
 
 
-def get_irr_addr_from_dataset(FieldLength:int, dataset:list[tuple[int,bool]])->list[int]:
+def get_irr_addr_from_dataset(FieldLength:int, dataset:list[tuple[int,bool]])->tuple[bool, list[int]]:
+    '''return (at least one item, the list)'''
+    if dataset.__len__() == 0:
+        return (False, [])
     dataset.sort(key=lambda item:item[0])
-    for addr in range(1<<)
-
+    index = 0
+    irr_addr:list[int] = []
+    addr = 0
+    one_shift_FieldLength = 1<<FieldLength
+    for addr in range(one_shift_FieldLength):
+        if addr == dataset[index][0]:
+            index+=1
+            if dataset.__len__() == index:
+                addr = addr + 1
+                break
+            pass
+        else:
+            irr_addr.append(addr)
+            pass
+        pass
+    for addr2 in range(addr, one_shift_FieldLength):
+        irr_addr.append(addr2)
+        pass
+    return (True, irr_addr)
+if "test" and False:
+    #special cases.
+    #empty
+    a_dataset:list[tuple[int, bool]] = []
+    irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength = 1,dataset=a_dataset)
+    irr_amount = irr_addr_list_tuple[1].__len__()
+    assert not irr_addr_list_tuple[0]
+    if irr_addr_list_tuple[0]:
+        assert 2 == irr_amount
+    
+    #full
+    a_dataset = [(0,True), (1,True), ]
+    irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength = 1,dataset=a_dataset)
+    irr_amount = irr_addr_list_tuple[1].__len__()
+    assert irr_addr_list_tuple[0]
+    assert 0 == irr_amount
+    
+    #the last one is irrelevant.
+    a_dataset = [(0,True), ]
+    irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength = 1,dataset=a_dataset)
+    irr_amount = irr_addr_list_tuple[1].__len__()
+    assert irr_addr_list_tuple[0]
+    assert 1 == irr_amount
+    
+    a_dataset = [(0,True), ]
+    irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength = 2,dataset=a_dataset)
+    irr_amount = irr_addr_list_tuple[1].__len__()
+    assert irr_addr_list_tuple[0]
+    assert 3 == irr_amount
+    
+    #random cases.
+    #empty 
+    for FieldLength in range(1,5):
+        irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength = FieldLength,dataset = [])
+        assert not irr_addr_list_tuple[0]
+        pass
+    
+    #full
+    for FieldLength in range(1,5):
+        for _ in range(FieldLength*5):
+            a_dataset = rand_dataset_sorted(FieldLength,0.5,0.501)
+            irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength = FieldLength,dataset=a_dataset)
+            irr_amount = irr_addr_list_tuple[1].__len__()
+            assert irr_addr_list_tuple[0]
+            assert 0 == irr_amount
+            pass
+        pass
+    
+    for _test_iter in range(333):
+        print(_test_iter, end=", ")
+        #partly
+        for FieldLength in range(1,15):
+            for _ in range(FieldLength*25):
+                a_dataset = rand_dataset_sorted(FieldLength,0.2,0.2)
+                irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength = FieldLength,dataset=a_dataset)
+                irr_amount = irr_addr_list_tuple[1].__len__()
+                if irr_addr_list_tuple[0]:
+                    assert a_dataset.__len__() + irr_amount == (1<<FieldLength)
+                    pass
+                pass
+            pass
+    
+        #one side.
+        for FieldLength in range(1,15):
+            for _ in range(FieldLength*25):
+                a_dataset = rand_dataset_sorted(FieldLength,0.2,0)
+                irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength = FieldLength,dataset=a_dataset)
+                irr_amount = irr_addr_list_tuple[1].__len__()
+                if irr_addr_list_tuple[0]:
+                    assert a_dataset.__len__() + irr_amount == (1<<FieldLength)
+                    pass
+                pass
+            pass
+        for FieldLength in range(1,15):
+            for _ in range(FieldLength*25):
+                a_dataset = rand_dataset_sorted(FieldLength,0,0.2)
+                irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength = FieldLength,dataset=a_dataset)
+                irr_amount = irr_addr_list_tuple[1].__len__()
+                if irr_addr_list_tuple[0]:
+                    assert a_dataset.__len__() + irr_amount == (1<<FieldLength)
+                    pass
+                pass
+            pass
+    
+    pass
 
 
 
@@ -735,8 +842,6 @@ class DatasetField:
         self.children = (true_part, false_part)
         pass
 
-#要测试的。init，split，lookup。
-
 if "readable addr" and False:
     for addr in range(0b10):
         a_DatasetField = DatasetField(bitmask = 0b1, addr = addr, FieldLength=1, bits_already_in_use=1, \
@@ -774,8 +879,6 @@ if "readable addr" and False:
         pass
     
     pass
-
-
 
 if "init and split" and True:
     # it's not allowed to have no input. So test starts with 1 input.
@@ -1369,6 +1472,11 @@ if "init and split" and True:
                     pass
     
     if "random dataset test" and True:
+        # empty
+        # full
+        # partly
+        # one side
+        
         FieldLength = 2
         p_False = 0.5
         p_True = 0.5
@@ -1380,6 +1488,14 @@ if "init and split" and True:
             temp = a_DatasetField.lookup(item[0])
             assert item[1] == temp[1]
             pass
+        irr_addr_list_tuple = get_irr_addr_from_dataset(dataset)
+        if irr_addr_list_tuple[0]:
+            for item in irr_addr_list_tuple[1]:
+                temp = a_DatasetField.lookup(item[0])
+                assert item[0]
+                pass
+            pass
+        继续。
             
         temp = a_DatasetField.lookup(0b11)
         assert temp[0]#irr
