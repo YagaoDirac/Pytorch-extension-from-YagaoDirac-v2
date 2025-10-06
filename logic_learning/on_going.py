@@ -593,62 +593,188 @@ class DatasetField:
         _check_all_safety = _debug__check_all_safety
         self.split(self.best_index_to_split_from_right_side, _debug__check_all_safety_in_split = _check_all_safety)#this line was on top.
         return #end of function
-
-明天来写一个新的。看来是O(n)了。
+    
+    
+    
+    
     def _init_only__detect_xor_info(self)->tuple[bool, bool, int]:
-        '''return(is full xor, needs a not after xor(if is full xor), best bit to split(if not a full xor))'''
-        #assert self.all_xor, "non-all-xor case can not call this function."
-        #pick anything from self.dataset and detect if all input are Falses(simpler than true), is the output the xor result, or the reversed.
-        #actually, the dataset should already be sorted, but the performance is probably similar and trivial?
-        # So, yeah, I don't care, I detect the addr here, instead of check the "sorted" and do the trick.
-        #maybe it's optimizable. But not for now.
-        #unused addr_of_first_item = self.dataset[0][0]
-        result_of_first_item = self.dataset[0][1]
-        temp_dataset_len_left = self.dataset.__len__()
-        data_1_tuple:tuple[int, bool] = self.dataset[0]
-        data_2_tuple:tuple[int, bool]
-        #is_xor = True
-        #skip_first_iteration = True
-        for i in range(self.FieldLength-1,-1,-1):
-            one_shift_by_i:int = 1<<i
+        '''return(is full xor, needs a not after xor(if is full xor), best bit to split from_right_side(if not a full xor))'''
+        score_of_xor_list_from_right_side:list[int] = []
+        score_of_xor = 0
+        for index_1 in range(0, self.dataset.__len__(), 2):
+            '''case 1, last bit.
+            0and1, 2and3, ind2-ind1 is 1. step is 1??, chunk is 2.'''
+            index_2 = index_1+1
+            data_1_tuple:tuple[int, bool] = self.dataset[index_1]
+            data_2_tuple:tuple[int, bool] = self.dataset[index_2]
+            assert data_1_tuple[0]^data_2_tuple[0] == 1 #not needed in real case. 
+            if data_1_tuple[1]^data_2_tuple[1]:
+                score_of_xor = score_of_xor +1
+                pass
+            pass
+        score_of_xor_list_from_right_side.append(score_of_xor)
+        
+        for i in range(1, self.FieldLength-self.bits_already_in_use):
+            '''
+            case 2, 
+            0and2, 1and3,,, 4and6, 5and7. ind2-ind1 is 2. step is 1, chunk is 4.
+            0-4, 1-5, 2-6, 3-7,,, 8-12, 9-13, 10-14, 11-15. ind2-ind1 is 4. step is 1, chunk is 8.
+            '''
+            score_of_xor = 0
+            index_2_minus_index_1 = 1<<i #this is also half chunk size.
+            chunk_size = index_2_minus_index_1<<1
+            for chunk_start_addr in range(0, self.dataset.__len__(), chunk_size):
+                chunk_start_addr_plus_half_chunk_size = chunk_start_addr+index_2_minus_index_1#
+                for index_1 in range(chunk_start_addr, chunk_start_addr_plus_half_chunk_size):
+                    index_2 = index_1 + index_2_minus_index_1
+                    data_1_tuple = self.dataset[index_1]
+                    data_2_tuple = self.dataset[index_2]
+                    assert data_1_tuple[0]^data_2_tuple[0] == index_2_minus_index_1 #not needed in real case. 
+                    if data_1_tuple[1]^data_2_tuple[1]:
+                        score_of_xor = score_of_xor +1
+                        pass
+                    pass#for index_1
+                pass#for chunk_start_addr
+            score_of_xor_list_from_right_side.append(score_of_xor)
+            pass#for i
+        
+        min_of_score_list____from_right_side = self.dataset.__len__()# the max of this is len/2, so this is big enough.
+        arg_min_of_score_list____from_right_side = -1
+        for i in range(score_of_xor_list_from_right_side.__len__()):
+            item = score_of_xor_list_from_right_side[i]
+            if item<min_of_score_list____from_right_side:
+                min_of_score_list____from_right_side = item
+                arg_min_of_score_list____from_right_side = i
+                pass
+            pass
+        
+        if self.dataset.__len__()/2 == min_of_score_list____from_right_side:
+            '''true xor'''
+            '''return(is full xor, needs a not after xor(if is full xor), best bit to split from_right_side(if not a full xor))'''
+            needs_not_after_xor = self.dataset[0][1]#result of the pure not addr.
+            return (True, needs_not_after_xor, -2)
+
+        '''fake xor. Split at the least xor bit.'''
+        '''translate the index to actual index.'''
+        actual_bit_index___from_right_side = -1
+        _temp = 0
+        for actual_bit_index___from_right_side in range(self.FieldLength):
+            one_shift_by_i:int = 1<<actual_bit_index___from_right_side
             bit_of_bitmask_for_this_i = one_shift_by_i&self.bitmask
             if bit_of_bitmask_for_this_i != 0:
                 #This bit is in bitmask, ignore this i.
                 continue
-            # if skip_first_iteration:
-            #     skip_first_iteration = False
-            #     continue
+            if _temp == arg_min_of_score_list____from_right_side:
+                '''return(is full xor, needs a not after xor(if is full xor), best bit to split from_right_side(if not a full xor))'''
+                return(False, False, actual_bit_index___from_right_side)
             
-            temp_dataset_len_left = temp_dataset_len_left>>1
-            index_for_data_2 = self.dataset.__len__()- temp_dataset_len_left
-            data_2_tuple = self.dataset[index_for_data_2]
-            
-            data_1_addr_with_bit_as_true_at_this_i = data_1_tuple[0] | one_shift_by_i
-            assert data_2_tuple[0] == data_1_addr_with_bit_as_true_at_this_i
-            
-            temp_bool:bool = data_1_tuple[1]^data_2_tuple[1]
-            if not temp_bool:
-                return (False, False, i)
-            #for the next iteration.
-            data_1_tuple = data_2_tuple
-            if "collaps" and False:
-            
-            #bit_in_addr_for_this_i = addr_of_first_item & one_shift_by_i
-            #assert 0 == bit_in_addr_for_this_i
-            #flip the bit, and check if the result is also flipped.
-            #temp_addr = temp_addr|one_shift_by_i
-            #index = self.dataset.__len__() - temp_dataset_len_left
-            #assert self.dataset[index][0] == temp_addr
-            #temp_dataset_len_left = temp_dataset_len_left>>1
-            
-            
-            # if bit_in_addr_for_this_i != 0:
-            #     num_of_ones_in_addr = num_of_ones_in_addr + 1
-            #     pass
-                pass
+            _temp = _temp + 1
             pass
-        # self.not_after_xor # if all 0s, and not_after_xor is false, result is false. Every one flips it once.
-        return (True, result_of_first_item, -2)
+        assert False, "unreachable"
+            
+        
+
+    if "untested but probably wrong. actually the version 2." and False:
+        def _init_only__detect_xor_info(self)->tuple[bool, bool, int]:
+            '''return(is full xor, needs a not after xor(if is full xor), best bit to split(if not a full xor))'''
+            '''
+            The case is, 1001 0000 0000 1001 is wrongly detected as true xor in the old O(log(n)) version.
+            I don't have any idea how to make it O(log(n)) anymore, so I decide to do the old good O(n) version.
+            new notes uppon
+            old notes below.
+            assert self.all_xor, "non-all-xor case can not call this function."
+            pick anything from self.dataset and detect if all input are Falses(simpler than true), is the output the xor result, or the reversed.
+            actually, the dataset should already be sorted, but the performance is probably similar and trivial?
+            So, yeah, I don't care, I detect the addr here, instead of check the "sorted" and do the trick.
+            maybe it's optimizable. But not for now.
+            '''
+                
+            for i in range(self.FieldLength-self.bits_already_in_use):
+                dist_between_1_and_2 = 1<<i
+                dist_to_next = 2<<i
+                for index_1 in range(0, self.dataset.__len__(), dist_to_next):
+                    index_2:int = index_1 + dist_between_1_and_2
+                    data_1_tuple:tuple[int, bool] = self.dataset[index_1]
+                    data_2_tuple:tuple[int, bool] = self.dataset[index_2]
+                    if __debug__:
+                        temp_to_check = data_1_tuple[0] ^ data_2_tuple[0]
+                        assert temp_to_check&self.bitmask == 0
+                        num_of_ones = 0
+                        while temp_to_check>0:
+                            if temp_to_check&1:
+                                num_of_ones = num_of_ones + 1
+                                pass
+                            temp_to_check>>1
+                        assert 1 == num_of_ones
+                        pass
+                    if not(data_1_tuple[1] ^ data_2_tuple[1]):
+                        split_at_this_bit = data_1_tuple[0] ^ data_2_tuple[0]
+                        index_of_this_bit_from_right_side = 0
+                        while split_at_this_bit>0:
+                            if split_at_this_bit&1 == 1:
+                                return (False, False, index_of_this_bit_from_right_side)
+                            #tail of iter.
+                            index_of_this_bit_from_right_side =index_of_this_bit_from_right_side +1
+                            split_at_this_bit = split_at_this_bit >> 1
+                            pass#while split_at_this_bit>0:
+                        assert False, "unreachable."
+                            
+    if "the old wrong O(log(n)) version." and False:
+        def _init_only__detect_xor_info(self)->tuple[bool, bool, int]:
+            '''return(is full xor, needs a not after xor(if is full xor), best bit to split(if not a full xor))'''
+            #assert self.all_xor, "non-all-xor case can not call this function."
+            #pick anything from self.dataset and detect if all input are Falses(simpler than true), is the output the xor result, or the reversed.
+            #actually, the dataset should already be sorted, but the performance is probably similar and trivial?
+            # So, yeah, I don't care, I detect the addr here, instead of check the "sorted" and do the trick.
+            #maybe it's optimizable. But not for now.
+            #unused addr_of_first_item = self.dataset[0][0]
+            result_of_first_item = self.dataset[0][1]
+            temp_dataset_len_left = self.dataset.__len__()
+            data_1_tuple:tuple[int, bool] = self.dataset[0]
+            data_2_tuple:tuple[int, bool]
+            #is_xor = True
+            #skip_first_iteration = True
+            for i in range(self.FieldLength-1,-1,-1):
+                one_shift_by_i:int = 1<<i
+                bit_of_bitmask_for_this_i = one_shift_by_i&self.bitmask
+                if bit_of_bitmask_for_this_i != 0:
+                    #This bit is in bitmask, ignore this i.
+                    continue
+                # if skip_first_iteration:
+                #     skip_first_iteration = False
+                #     continue
+                
+                temp_dataset_len_left = temp_dataset_len_left>>1
+                index_for_data_2 = self.dataset.__len__()- temp_dataset_len_left
+                data_2_tuple = self.dataset[index_for_data_2]
+                
+                data_1_addr_with_bit_as_true_at_this_i = data_1_tuple[0] | one_shift_by_i
+                assert data_2_tuple[0] == data_1_addr_with_bit_as_true_at_this_i
+                
+                temp_bool:bool = data_1_tuple[1]^data_2_tuple[1]
+                if not temp_bool:
+                    return (False, False, i)
+                #for the next iteration.
+                data_1_tuple = data_2_tuple
+                if "collaps" and False:
+                
+                #bit_in_addr_for_this_i = addr_of_first_item & one_shift_by_i
+                #assert 0 == bit_in_addr_for_this_i
+                #flip the bit, and check if the result is also flipped.
+                #temp_addr = temp_addr|one_shift_by_i
+                #index = self.dataset.__len__() - temp_dataset_len_left
+                #assert self.dataset[index][0] == temp_addr
+                #temp_dataset_len_left = temp_dataset_len_left>>1
+                
+                
+                # if bit_in_addr_for_this_i != 0:
+                #     num_of_ones_in_addr = num_of_ones_in_addr + 1
+                #     pass
+                    pass
+                pass
+            # self.not_after_xor # if all 0s, and not_after_xor is false, result is false. Every one flips it once.
+            return (True, result_of_first_item, -2)
+        pass
     
     def _init_only__check_all_addr(self)->None:
         #part 1, bits_already_in_use must equal to 1s in bitmask
@@ -1515,7 +1641,7 @@ if "init and split" and True:
             temp = a_DatasetField.lookup(0b11)
             assert temp[0]#irr
         
-        if "2 bits xor(and xnor)" and False:
+        if "2 bits xor(and xnor)" and True:
             #xor.
             dataset = [(0b00,True), (0b01,False), (0b10,False), (0b11,True), ]
             a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=2, bits_already_in_use=0, \
@@ -1572,7 +1698,7 @@ if "init and split" and True:
                     assert item[1] == temp[1]
                     pass
 
-    if "3 bits fake xor" and False:
+    if "3 bits fake xor" and True:
         '''Generally, xor is a 2 bits structure. The result is either 1001 or 0110. 
         People call the 1001 xnor, but in this tool, they are both xor.
         In this tool, more than 2 bits can also be treated as xor, to simplify and speed up.
@@ -1669,11 +1795,12 @@ if "init and split" and True:
         # partly
         # one side
         
-        def log_the_error(FieldLength:int):
+        def log_the_error(FieldLength:int, dataset:list[tuple[int, bool]]):
             with open("wrong case log.txt", mode="+a", encoding="utf-8") as file:
                 FieldLength_str = f"FieldLength = {FieldLength}"
                 file.write(FieldLength_str)
-                dataset_str = f"dataset = {dataset}"
+                dataset_str:str = f"dataset = {dataset}"
+                #dataset_str:str = f"dataset = "+dataset.__str__()
                 file.write(dataset_str)
                 file.write("    ")
                 pass
