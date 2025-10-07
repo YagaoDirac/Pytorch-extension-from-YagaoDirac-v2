@@ -40,8 +40,6 @@ if "test" and False:
     #assert is_addr_valid(int("10",2), int("1",2))
     assert is_addr_valid(int("10",2), int("0",2))
     pass
-
-
 #not in use. But let's leave it here.
 class OneTimeSetup_Bool:
     def __init__(self):
@@ -115,10 +113,6 @@ if "test" and False:
 
 
 
-
-
-
-
 def rand_dataset_sorted(FieldLength:int, p_False:float, p_True:float, seed:Optional[int]=None)->list[tuple[int,bool]]:
     '''The result looks like addr:value. The addr is naturally sorted???
     
@@ -148,7 +142,6 @@ if "test" and False:
     print(ds4)
     pass
 #to do optimization: sort the dataset 
-
 
 def get_irr_addr_from_dataset(FieldLength:int, dataset:list[tuple[int,bool]])->tuple[bool, list[int]]:
     '''return (at least one item in input dataset, the list)'''
@@ -260,6 +253,61 @@ if "test" and False:
     
     pass
 
+def dataset_from_str(input:str)->tuple[list[tuple[int,bool]],int]:
+    '''return (dataset, min of field length)'''
+    _temp_input_len = input.__len__()
+    min_of_field_len = 0
+    while _temp_input_len>0:
+        min_of_field_len = min_of_field_len +1
+        #tail
+        _temp_input_len>>1
+        pass
+    result:list[tuple[int,bool]] = []
+    addr = 0
+    for value in input:
+        value_in_bool:bool = (value == "1")
+        result.append((addr,value_in_bool))
+        #tail
+        addr = addr +1
+        pass
+    return result, min_of_field_len
+if "test" and True:
+    a_Dataset_tuple = dataset_from_str("1001")
+    a_Dataset_tuple = dataset_from_str("100")
+    a_Dataset_tuple = dataset_from_str("101")
+    a_Dataset_tuple = dataset_from_str("00000")
+    pass
+
+    
+
+def add_const_bit_into_addr(FieldLength:int, index_from_right_side:int, value:bool, dataset:list[tuple[int,bool]])->list[tuple[int,bool]]:
+    '''xyz, add a T in 1st(from right side), is xyTz'''
+    
+    '''xyz, 1st, T. 
+    xyz into xy0 and z. The mask is 110(1<<3 - 1<<1, 3is the FieldLength) and 1(1<<1 -1).
+    xy0 into xy00, shift by 1 bit.
+    insert T0(T<<1, 1 is the index)
+    
+    wxyz, 2nd, T.
+    wxyz into wx00 and yz. The mask is 1100(1<<4 - 1<<2, 4is the FieldLength) and 11(1<<2 -1)
+    wx00 into wx000, shift by 1 bit.
+    insert T00(T<<2, 2 is the index)
+    '''
+    insert_this = value<<index_from_right_side
+    mask_for_high_bits = (1<<FieldLength)-(1<<index_from_right_side)
+    mask_for_low_bits = (1<<index_from_right_side)-1
+    result:list[tuple[int,bool]] = []
+    for item in dataset:
+        high_part__before_shift = item[0] & mask_for_high_bits
+        high_part = high_part__before_shift <<1 
+        low_part = item[0] & mask_for_low_bits
+        new_addr = high_part|insert_this|low_part
+        result.append((new_addr, item[1]))
+        pass
+    return result
+if "test" and True:
+    assert False, "test this !!!!!!!!!"
+    
 
 
 
@@ -656,7 +704,6 @@ class DatasetField:
 
         '''fake xor. Split at the least xor bit.'''
         '''translate the index to actual index.'''
-        actual_bit_index___from_right_side = -1
         _temp = 0
         for actual_bit_index___from_right_side in range(self.FieldLength):
             one_shift_by_i:int = 1<<actual_bit_index___from_right_side
@@ -1641,7 +1688,7 @@ if "init and split" and True:
             temp = a_DatasetField.lookup(0b11)
             assert temp[0]#irr
         
-        if "2 bits xor(and xnor)" and True:
+        if "2 bits xor(and xnor)" and False:
             #xor.
             dataset = [(0b00,True), (0b01,False), (0b10,False), (0b11,True), ]
             a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=2, bits_already_in_use=0, \
@@ -1698,7 +1745,7 @@ if "init and split" and True:
                     assert item[1] == temp[1]
                     pass
 
-    if "3 bits fake xor" and True:
+    if "3 bits fake xor" and False:
         '''Generally, xor is a 2 bits structure. The result is either 1001 or 0110. 
         People call the 1001 xnor, but in this tool, they are both xor.
         In this tool, more than 2 bits can also be treated as xor, to simplify and speed up.
@@ -1713,65 +1760,66 @@ if "init and split" and True:
         a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=FieldLength, bits_already_in_use=0, \
                                 dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
         
-        
-        assert a_DatasetField.bitmask == 0
-        assert a_DatasetField.addr == 0
-        assert a_DatasetField.FieldLength == 3
-        assert a_DatasetField.bits_already_in_use == 0
-        #assert a_DatasetField.dataset:list[tuple[int,bool]]
-        assert a_DatasetField._debug__how_did_I_quit_init_func == How_did_I_quit_init_func.BRANCH
-        assert a_DatasetField.best_index_to_split_from_right_side == 2
-        assert a_DatasetField._it_was_a_temp_var__best_abs_of_num_of_same == 0
-        assert a_DatasetField.children is not None
-        assert a_DatasetField.ready_for_lookup
-        assert a_DatasetField.has_1
-        assert a_DatasetField.has_0
-        assert a_DatasetField.has_irr == False
-        assert a_DatasetField.is_dataset_sorted
-        assert a_DatasetField.is_leaf_node == False
-        assert a_DatasetField.all_xor == False
-        assert a_DatasetField.not_after_xor == False
-        assert a_DatasetField.all_irr ==False
-        
-        addr_1_child = a_DatasetField._get_child(true_or_false=True)
-        assert addr_1_child.bitmask == 0b100
-        assert addr_1_child.addr == 0b100
-        assert addr_1_child.FieldLength == 3
-        assert addr_1_child.bits_already_in_use == 1
-        #assert addr_1_child.dataset:list[tuple[int,bool]]
-        assert addr_1_child._debug__how_did_I_quit_init_func == How_did_I_quit_init_func.XOR
-        assert addr_1_child.best_index_to_split_from_right_side == -1
-        assert addr_1_child._it_was_a_temp_var__best_abs_of_num_of_same == 0
-        assert addr_1_child.children is None
-        assert addr_1_child.ready_for_lookup
-        assert addr_1_child.has_1
-        assert addr_1_child.has_0
-        assert addr_1_child.has_irr == False
-        assert addr_1_child.is_dataset_sorted
-        assert addr_1_child.is_leaf_node #== False
-        assert addr_1_child.all_xor #== False
-        assert addr_1_child.not_after_xor == False
-        assert addr_1_child.all_irr ==False
-        
-        addr_0_child = a_DatasetField._get_child(true_or_false=False)
-        assert addr_0_child.bitmask == 0b100
-        assert addr_0_child.addr == 0b000
-        assert addr_0_child.FieldLength == 3
-        assert addr_0_child.bits_already_in_use == 1
-        #assert addr_1_child.dataset:list[tuple[int,bool]]
-        assert addr_0_child._debug__how_did_I_quit_init_func == How_did_I_quit_init_func.XOR
-        assert addr_0_child.best_index_to_split_from_right_side == -1
-        assert addr_0_child._it_was_a_temp_var__best_abs_of_num_of_same == 0
-        assert addr_0_child.children is None
-        assert addr_0_child.ready_for_lookup
-        assert addr_0_child.has_1
-        assert addr_0_child.has_0
-        assert addr_0_child.has_irr == False
-        assert addr_0_child.is_dataset_sorted
-        assert addr_0_child.is_leaf_node #== False
-        assert addr_0_child.all_xor #== False
-        assert addr_0_child.not_after_xor == False
-        assert addr_0_child.all_irr ==False
+        if True:
+            assert a_DatasetField.bitmask == 0
+            assert a_DatasetField.addr == 0
+            assert a_DatasetField.FieldLength == 3
+            assert a_DatasetField.bits_already_in_use == 0
+            #assert a_DatasetField.dataset:list[tuple[int,bool]]
+            assert a_DatasetField._debug__how_did_I_quit_init_func == How_did_I_quit_init_func.BRANCH
+            assert a_DatasetField.best_index_to_split_from_right_side == 2
+            assert a_DatasetField._it_was_a_temp_var__best_abs_of_num_of_same == 0
+            assert a_DatasetField.children is not None
+            assert a_DatasetField.ready_for_lookup
+            assert a_DatasetField.has_1
+            assert a_DatasetField.has_0
+            assert a_DatasetField.has_irr == False
+            assert a_DatasetField.is_dataset_sorted
+            assert a_DatasetField.is_leaf_node == False
+            assert a_DatasetField.all_xor == False
+            assert a_DatasetField.not_after_xor == False
+            assert a_DatasetField.all_irr ==False
+            
+            addr_1_child = a_DatasetField._get_child(true_or_false=True)
+            assert addr_1_child.bitmask == 0b100
+            assert addr_1_child.addr == 0b100
+            assert addr_1_child.FieldLength == 3
+            assert addr_1_child.bits_already_in_use == 1
+            #assert addr_1_child.dataset:list[tuple[int,bool]]
+            assert addr_1_child._debug__how_did_I_quit_init_func == How_did_I_quit_init_func.XOR
+            assert addr_1_child.best_index_to_split_from_right_side == -1
+            assert addr_1_child._it_was_a_temp_var__best_abs_of_num_of_same == 0
+            assert addr_1_child.children is None
+            assert addr_1_child.ready_for_lookup
+            assert addr_1_child.has_1
+            assert addr_1_child.has_0
+            assert addr_1_child.has_irr == False
+            assert addr_1_child.is_dataset_sorted
+            assert addr_1_child.is_leaf_node #== False
+            assert addr_1_child.all_xor #== False
+            assert addr_1_child.not_after_xor == False
+            assert addr_1_child.all_irr ==False
+            
+            addr_0_child = a_DatasetField._get_child(true_or_false=False)
+            assert addr_0_child.bitmask == 0b100
+            assert addr_0_child.addr == 0b000
+            assert addr_0_child.FieldLength == 3
+            assert addr_0_child.bits_already_in_use == 1
+            #assert addr_1_child.dataset:list[tuple[int,bool]]
+            assert addr_0_child._debug__how_did_I_quit_init_func == How_did_I_quit_init_func.XOR
+            assert addr_0_child.best_index_to_split_from_right_side == -1
+            assert addr_0_child._it_was_a_temp_var__best_abs_of_num_of_same == 0
+            assert addr_0_child.children is None
+            assert addr_0_child.ready_for_lookup
+            assert addr_0_child.has_1
+            assert addr_0_child.has_0
+            assert addr_0_child.has_irr == False
+            assert addr_0_child.is_dataset_sorted
+            assert addr_0_child.is_leaf_node #== False
+            assert addr_0_child.all_xor #== False
+            assert addr_0_child.not_after_xor == False
+            assert addr_0_child.all_irr ==False
+            pass
         
         for item in dataset:
             temp_tuple = a_DatasetField.lookup(item[0])
@@ -1788,7 +1836,27 @@ if "init and split" and True:
         #         pass
         #     pass
         
+    if "a 4 bits fake xor case" and True:
+        '''0110 1111 1111 0110'''
+        FieldLength = 4
+        dataset = [(0, False), (1, True), (2, True), (3, False), (4, True), (5, True), (6, True), (7, True), (8, True), 
+                (9, True), (10, True), (11, True), (12, False), (13, True), (14, True), (15, False)]
+        a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=FieldLength, bits_already_in_use=0, \
+                                dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+        for item in dataset:
+            temp_tuple = a_DatasetField.lookup(item[0])
+            assert not temp_tuple[0]
+            assert item[1] == temp_tuple[1]
+            pass
+        irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength, dataset)
+        if irr_addr_list_tuple[0]:
+            for irr_addr in irr_addr_list_tuple[1]:
+                temp = a_DatasetField.lookup(irr_addr)
+                assert item[0]
+                pass
+            pass
         
+        pass
     
     if "random dataset test" and True:
         # empty
@@ -1808,22 +1876,6 @@ if "init and split" and True:
                 
         
         
-        FieldLength = 4
-        dataset = [(0, False), (1, True), (2, True), (3, False), (4, True), (5, True), (6, True), (7, True), (8, True), (9, True), (10, True), (11, True), (12, False), (13, True), (14, True), (15, False)]
-        a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=FieldLength, bits_already_in_use=0, \
-                                dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        for item in dataset:
-            temp_tuple = a_DatasetField.lookup(item[0])
-            assert not temp_tuple[0]
-            assert item[1] == temp_tuple[1]
-            pass
-        irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength, dataset)
-        if irr_addr_list_tuple[0]:
-            for irr_addr in irr_addr_list_tuple[1]:
-                temp = a_DatasetField.lookup(irr_addr)
-                assert item[0]
-                pass
-            pass
         
         
         
@@ -1864,8 +1916,6 @@ if "init and split" and True:
         
     
     fds=432
-    
-    
     
     
 if "test with random dataset" and False:
