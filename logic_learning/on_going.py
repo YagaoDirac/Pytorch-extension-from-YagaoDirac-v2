@@ -12,6 +12,18 @@ a lot untested and unfinished. Simply search these 2 words to find them.
 from typing import Optional, Union
 from enum import Enum
 import random
+import sys
+
+def _line_():
+    caller_s_frame = sys._getframe(1)
+    caller_s_line_number = caller_s_frame.f_lineno
+    return caller_s_line_number#######
+if "test" and False:
+    a = _line_()
+    b = _line_()
+    c = _line_()
+    pass
+
 
 # class TriState(Enum):
 #     true = 1,
@@ -255,33 +267,57 @@ if "test" and False:
 
 def dataset_from_str(input:str)->tuple[list[tuple[int,bool]],int]:
     '''return (dataset, min of field length)'''
-    _temp_input_len = input.__len__()
+    if input.__len__() == 0:
+        return ([], 0)#the same behavior as "_"
+    
     min_of_field_len = 0
-    while _temp_input_len>0:
+    _temp_input_len = input.__len__()-1
+    while _temp_input_len!=0:
         min_of_field_len = min_of_field_len +1
         #tail
-        _temp_input_len>>1
+        _temp_input_len = _temp_input_len >>1
         pass
+    pass
     result:list[tuple[int,bool]] = []
     addr = 0
     for value in input:
-        value_in_bool:bool = (value == "1")
-        result.append((addr,value_in_bool))
+        match value:
+            case "1":
+                result.append((addr,True))
+                pass
+            case "0":
+                result.append((addr,False))
+                pass
+            case "_":
+                pass
+            case _:
+                assert False, "unreachable, unknown char in the input. use only 1, 0, _ to represent true, false and irrelevant."
+        pass
         #tail
         addr = addr +1
-        pass
     return result, min_of_field_len
-if "test" and True:
-    a_Dataset_tuple = dataset_from_str("1001")
-    a_Dataset_tuple = dataset_from_str("100")
-    a_Dataset_tuple = dataset_from_str("101")
-    a_Dataset_tuple = dataset_from_str("00000")
+if "test" and False:
+    a_Dataset_tuple_0 = dataset_from_str("")
+    a_Dataset_tuple_1 = dataset_from_str("10011")
+    a_Dataset_tuple_2 = dataset_from_str("1001")
+    a_Dataset_tuple_3 = dataset_from_str("100")
+    a_Dataset_tuple_4 = dataset_from_str("101")
+    a_Dataset_tuple_5 = dataset_from_str("00000")
+    a_Dataset_tuple_6 = dataset_from_str("_")
+    a_Dataset_tuple_7 = dataset_from_str("__")
+    a_Dataset_tuple_8 = dataset_from_str("1_")
+    a_Dataset_tuple_8b = dataset_from_str("_1")
+    a_Dataset_tuple_9 = dataset_from_str("1_01")
+    a_Dataset_tuple_10 = dataset_from_str("1_01_")
     pass
 
     
 
-def add_const_bit_into_addr(FieldLength:int, index_from_right_side:int, value:bool, dataset:list[tuple[int,bool]])->list[tuple[int,bool]]:
-    '''xyz, add a T in 1st(from right side), is xyTz'''
+def add_const_bit_into_addr(FieldLength:int, index_from_right_side:int, value:bool, 
+            dataset:list[tuple[int,bool]])->tuple[list[tuple[int,bool]],int]:
+    '''return (dataset, new FieldLength)
+    
+    xyz, add a T in 1st(from right side), is xyTz'''
     
     '''xyz, 1st, T. 
     xyz into xy0 and z. The mask is 110(1<<3 - 1<<1, 3is the FieldLength) and 1(1<<1 -1).
@@ -293,6 +329,7 @@ def add_const_bit_into_addr(FieldLength:int, index_from_right_side:int, value:bo
     wx00 into wx000, shift by 1 bit.
     insert T00(T<<2, 2 is the index)
     '''
+    assert index_from_right_side <= FieldLength
     insert_this = value<<index_from_right_side
     mask_for_high_bits = (1<<FieldLength)-(1<<index_from_right_side)
     mask_for_low_bits = (1<<index_from_right_side)-1
@@ -304,9 +341,48 @@ def add_const_bit_into_addr(FieldLength:int, index_from_right_side:int, value:bo
         new_addr = high_part|insert_this|low_part
         result.append((new_addr, item[1]))
         pass
-    return result
-if "test" and True:
-    assert False, "test this !!!!!!!!!"
+    return (result, FieldLength+1)
+if "test" and False:
+    dataset_tuple = dataset_from_str("1001")
+    new_dataset, _ = add_const_bit_into_addr(dataset_tuple[1],1,True, dataset_tuple[0])
+    assert new_dataset[0b00][0] == 0b010
+    assert new_dataset[0b01][0] == 0b011
+    assert new_dataset[0b10][0] == 0b110
+    assert new_dataset[0b11][0] == 0b111
+    
+    dataset_tuple = dataset_from_str("1001")
+    new_dataset, _ = add_const_bit_into_addr(dataset_tuple[1],1,False, dataset_tuple[0])
+    assert new_dataset[0b00][0] == 0b000
+    assert new_dataset[0b01][0] == 0b001
+    assert new_dataset[0b10][0] == 0b100
+    assert new_dataset[0b11][0] == 0b101
+    
+    dataset_tuple = dataset_from_str("101")
+    new_dataset, _ = add_const_bit_into_addr(dataset_tuple[1],1,True, dataset_tuple[0])
+    assert new_dataset[0b00][0] == 0b010
+    assert new_dataset[0b01][0] == 0b011
+    assert new_dataset[0b10][0] == 0b110
+
+    dataset_tuple = dataset_from_str("10_1")
+    new_dataset, _ = add_const_bit_into_addr(dataset_tuple[1],1,True, dataset_tuple[0])
+    assert new_dataset[0b00][0] == 0b010
+    assert new_dataset[0b01][0] == 0b011
+    assert new_dataset[0b10][0] == 0b111
+    
+    new_dataset, _ = add_const_bit_into_addr(5,0,True, [(0,True)])
+    assert new_dataset[0][0] == 0b1
+    new_dataset, _ = add_const_bit_into_addr(5,1,True, [(0,True)])
+    assert new_dataset[0][0] == 0b10
+    new_dataset, _ = add_const_bit_into_addr(5,3,True, [(0,True)])
+    assert new_dataset[0][0] == 0b1000
+    new_dataset, _ = add_const_bit_into_addr(5,5,True, [(0,True)])
+    #new_dataset = add_const_bit_into_addr(5,6,True, [(0,True)])
+    
+    new_dataset, _ = add_const_bit_into_addr(5,0,False, [(0b11111,True)])
+    assert new_dataset[0][0] == 0b111110
+    new_dataset, _ = add_const_bit_into_addr(5,3,False, [(0b11111,True)])
+    assert new_dataset[0][0] == 0b110111
+    pass
     
 
 
@@ -642,9 +718,6 @@ class DatasetField:
         self.split(self.best_index_to_split_from_right_side, _debug__check_all_safety_in_split = _check_all_safety)#this line was on top.
         return #end of function
     
-    
-    
-    
     def _init_only__detect_xor_info(self)->tuple[bool, bool, int]:
         '''return(is full xor, needs a not after xor(if is full xor), best bit to split from_right_side(if not a full xor))'''
         score_of_xor_list_from_right_side:list[int] = []
@@ -655,7 +728,7 @@ class DatasetField:
             index_2 = index_1+1
             data_1_tuple:tuple[int, bool] = self.dataset[index_1]
             data_2_tuple:tuple[int, bool] = self.dataset[index_2]
-            assert data_1_tuple[0]^data_2_tuple[0] == 1 #not needed in real case. 
+            #wrong assert data_1_tuple[0]^data_2_tuple[0] == 1 #not needed in real case. 
             if data_1_tuple[1]^data_2_tuple[1]:
                 score_of_xor = score_of_xor +1
                 pass
@@ -677,7 +750,7 @@ class DatasetField:
                     index_2 = index_1 + index_2_minus_index_1
                     data_1_tuple = self.dataset[index_1]
                     data_2_tuple = self.dataset[index_2]
-                    assert data_1_tuple[0]^data_2_tuple[0] == index_2_minus_index_1 #not needed in real case. 
+                    #wrong assert data_1_tuple[0]^data_2_tuple[0] == index_2_minus_index_1 #not needed in real case. 
                     if data_1_tuple[1]^data_2_tuple[1]:
                         score_of_xor = score_of_xor +1
                         pass
@@ -718,8 +791,6 @@ class DatasetField:
             _temp = _temp + 1
             pass
         assert False, "unreachable"
-            
-        
 
     if "untested but probably wrong. actually the version 2." and False:
         def _init_only__detect_xor_info(self)->tuple[bool, bool, int]:
@@ -1071,7 +1142,7 @@ class DatasetField:
                 return self.children[1]  
         #end of function
     
-    def print_directly(self):
+    def print_all_info_directly(self):
         temp = f"<DatasetField> bitmask:{self.bitmask}, addr:{self.addr:b}, FieldLength{self.FieldLength}, "
         temp += f"bits_already_in_use{self.bits_already_in_use}, "
         temp += f"dataset__len__:{self.dataset.__len__()}, best_index_to_split:{self.best_index_to_split_from_right_side}, "
@@ -1087,6 +1158,55 @@ class DatasetField:
         temp2 += f"not_after_xor:{self.not_after_xor}, "
         print(temp2)
         pass
+    
+    def readable_as_tree(self, depth:int = -1, use_TF = False)->str:
+        '''Behavior:
+        leaf node: addr, result.
+        branch node:
+        depth: -1 to print all depth. 
+        depth: 0, has children, print addr(...)
+        depth: +num, print addr(child1, child2) 
+        '''
+        true_char = "1"
+        false_char = "0"
+        if use_TF:
+            true_char = "T"
+            false_char = "F"
+            pass
+            
+        addr_str = self.get_readable_addr()+":"
+        if self.is_leaf_node:
+            if self.all_xor:
+                if self.not_after_xor:
+                    return addr_str+"xnor"
+                else:
+                    return addr_str+"xor"
+            elif self.all_irr:
+                return addr_str+"ir"        
+            else:
+                
+                if self.has_irr:
+                    if self.has_0:#0+irr
+                        return addr_str+false_char+"+ir"        
+                    else:#1+irr
+                        return addr_str+true_char+"+ir"        
+                else:#no irr
+                    if self.has_0:
+                        return addr_str+false_char   
+                    else:
+                        return addr_str+true_char
+        else:# self is not leaf_node:
+            if 0 == depth:
+                return addr_str+"(..)"
+            else:
+                new_depth = depth-1
+                false_child = self._get_child(False)
+                true_child = self._get_child(True)
+                false_str = false_child.readable_as_tree(new_depth, use_TF)
+                true_str = true_child.readable_as_tree(new_depth, use_TF)
+                return addr_str+f"({false_str}, {true_str})"
+        #end of function
+    
     def get_readable_addr(self)->str:
         '''Call this function after check the addr, otherwise the behavior of this function is undefined.
         
@@ -1151,6 +1271,67 @@ if "readable addr" and False:
         temp_str = a_DatasetField.get_readable_addr()
         assert addr == int(temp_str,2)
         pass
+    
+    pass
+
+if "readable tree" and True:
+    a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=1, bits_already_in_use=0, \
+                        dataset = [], with_suggest=False,_debug__check_all_safety = True)
+    tree_str = a_DatasetField.readable_as_tree()
+    assert tree_str == "_:ir"
+    tree_str_TF = a_DatasetField.readable_as_tree(use_TF=True)
+    assert tree_str_TF == "_:ir"
+    
+    def str_to_readable_tree(input:str)->tuple[str, str]:
+        dataset_tuple = dataset_from_str(input)
+        a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=dataset_tuple[1], bits_already_in_use=0, \
+                            dataset = dataset_tuple[0], with_suggest=False,_debug__check_all_safety = True)
+        tree_str = a_DatasetField.readable_as_tree()
+        tree_str_TF = a_DatasetField.readable_as_tree(use_TF=True)
+        return (tree_str, tree_str_TF)
+    if "already tested" and False:
+        tree_str, tree_str_TF = str_to_readable_tree("10")
+        assert tree_str == "_:(0:1, 1:0)"
+        assert tree_str_TF == "_:(0:T, 1:F)"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("1_")
+        assert tree_str == "_:1+ir"
+        assert tree_str_TF == "_:T+ir"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("_1")
+        assert tree_str == "_:1+ir"
+        assert tree_str_TF == "_:T+ir"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("0_")
+        assert tree_str == "_:0+ir"
+        assert tree_str_TF == "_:F+ir"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("111_")
+        assert tree_str_TF == "__:T+ir"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("1100")
+        assert tree_str_TF == "__:(0_:T, 1_:F)"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("11_0")
+        assert tree_str_TF == "__:(0_:T, 1_:F+ir)"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("1110")
+        assert tree_str_TF == "__:(0_:T, 1_:(10:T, 11:F))"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("0110")
+        assert tree_str_TF == "__:xor"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("01101001")
+        assert tree_str_TF == "___:xor"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("01100110")
+        assert tree_str_TF == "___:(0__:xor, 1__:xor)"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("0110100110010110")
+        assert tree_str_TF == "____:xor"
+    
+    tree_str, tree_str_TF = str_to_readable_tree("0110111111110110")
+    assert tree_str_TF == "____:(___0:(__00:xor, __10:T), ___1:(__01:T, __11:xor))"
     
     pass
 
@@ -1534,7 +1715,7 @@ if "init and split" and True:
             pass
         pass
         
-    if "2 bits input, has 1,0 and irr" and True:
+    if "2 bits input, has 1,0 and irr" and False:
         if "already tested" and False:
             dataset = [(0b00,True), (0b01,True), (0b10,False), ]
             a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=2, bits_already_in_use=0, \
@@ -1829,14 +2010,14 @@ if "init and split" and True:
         irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength, dataset)
         assert irr_addr_list_tuple[0]
         assert irr_addr_list_tuple[1].__len__() == 0
-        # if irr_addr_list_tuple[0]:
+        # if irr_addr_list_tuple[1].__len__() != 0:
         #     for irr_addr in irr_addr_list_tuple[1]:
         #         temp = a_DatasetField.lookup(irr_addr)
         #         assert item[0]
         #         pass
         #     pass
         
-    if "a 4 bits fake xor case" and True:
+    if "a 4 bits fake xor case" and False:
         '''0110 1111 1111 0110'''
         FieldLength = 4
         dataset = [(0, False), (1, True), (2, True), (3, False), (4, True), (5, True), (6, True), (7, True), (8, True), 
@@ -1849,7 +2030,10 @@ if "init and split" and True:
             assert item[1] == temp_tuple[1]
             pass
         irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength, dataset)
-        if irr_addr_list_tuple[0]:
+        assert irr_addr_list_tuple[0]
+        assert irr_addr_list_tuple[1].__len__() == 0
+        
+        if irr_addr_list_tuple[1].__len__() != 0:
             for irr_addr in irr_addr_list_tuple[1]:
                 temp = a_DatasetField.lookup(irr_addr)
                 assert item[0]
@@ -1859,30 +2043,95 @@ if "init and split" and True:
         pass
     
     if "random dataset test" and True:
-        # empty
-        # partly
-        # one side
-        
-        def log_the_error(FieldLength:int, dataset:list[tuple[int, bool]]):
+        def log_the_error(FieldLength:int, dataset:list[tuple[int, bool]], comment = ""):
             with open("wrong case log.txt", mode="+a", encoding="utf-8") as file:
+                file.write(comment)
                 FieldLength_str = f"FieldLength = {FieldLength}"
                 file.write(FieldLength_str)
                 dataset_str:str = f"dataset = {dataset}"
                 #dataset_str:str = f"dataset = "+dataset.__str__()
                 file.write(dataset_str)
-                file.write("    ")
+                file.write("\n")
                 pass
             pass
+        if "test" and False:
+            log_the_error(5, [(2,True), (3,True), (5,False), (8,True), ], comment="Feature test. Not real log.")
+            pass
+        
+        
+        1继续。
+        
+        # empty
+        print("empty, line:"+str(_line_()))
+        for ____total_iter in range(9):
+            print(____total_iter, end=", ")
+            print()
+            for FieldLength in range(1, 12):
+                print(FieldLength, end=", ")
+                #temp_rand = random.random()*0.6
+                p_False:float = 0
+                p_True:float = 0
                 
+                dataset = rand_dataset_sorted(FieldLength, p_False = p_False, p_True = p_True)
+                a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=FieldLength, bits_already_in_use=0, \
+                                dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+                
+                assert a_DatasetField.all_irr
+                assert a_DatasetField.is_leaf_node
+                assert a_DatasetField.children is None
+                pass#for FieldLength in range(1, 12):
+            pass#for ____total_iter
+        
+        
+        # partly
+        print("partly, line:"+str(_line_()))
+        for ____total_iter in range(99999):
+            print(____total_iter, end=", ")
+            for FieldLength in range(1, 12):
+                temp_rand = random.random()*0.6
+                temp_rand2 = random.random()*0.6+0.2
+                p_False = (0.2+temp_rand)*temp_rand2
+                p_True = (0.8-temp_rand)*temp_rand2
+                
+                dataset = rand_dataset_sorted(FieldLength, p_False = p_False, p_True = p_True)
+                a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=FieldLength, bits_already_in_use=0, \
+                                dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
+                for item in dataset:
+                    temp_tuple = a_DatasetField.lookup(item[0])
+                    #assert not temp_tuple[0]
+                    if temp_tuple[0]:
+                        log_the_error(FieldLength, dataset)
+                        break
+                    #assert item[1] == temp_tuple[1]
+                    if  item[1] != temp_tuple[1]:
+                        log_the_error(FieldLength, dataset)
+                        break
+                    pass
+                irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength, dataset)
+                if irr_addr_list_tuple[1].__len__() != 0:
+                    for irr_addr in irr_addr_list_tuple[1]:
+                        temp = a_DatasetField.lookup(irr_addr)
+                        #assert item[0]
+                        if not item[0]:
+                            log_the_error(FieldLength, dataset)
+                            break
+                        pass
+                    pass#if irr_addr_list_tuple
+                pass#for FieldLength
+            pass#for ____total_iter
         
         
         
         
         
+        # one side
+        1继续。
         
         # full
-        for FieldLength in range(1, 12):
-            for _ in range(FieldLength*15):
+        print("full, line:"+str(_line_()))
+        for ____total_iter in range(99999):
+            print(____total_iter, end=", ")
+            for FieldLength in range(1, 12):
                 temp_rand = random.random()*0.6
                 p_False = 0.2+temp_rand
                 p_True = 0.8-temp_rand+0.001
@@ -1902,18 +2151,10 @@ if "init and split" and True:
                         break
                     pass
                 irr_addr_list_tuple = get_irr_addr_from_dataset(FieldLength, dataset)
-                if irr_addr_list_tuple[0]:
-                    for irr_addr in irr_addr_list_tuple[1]:
-                        temp = a_DatasetField.lookup(irr_addr)
-                        #assert item[0]
-                        if not item[0]:
-                            log_the_error(FieldLength, dataset)
-                            break
-                        pass
-                    pass
-                pass#for _ in range(FieldLength*15):
-            pass#for FieldLength in range(1, 12):
-        
+                assert irr_addr_list_tuple[0]
+                assert irr_addr_list_tuple[1].__len__() == 0
+                pass#for FieldLength
+            pass#for ____total_iter
     
     fds=432
     
