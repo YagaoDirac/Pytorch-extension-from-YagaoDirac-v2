@@ -1300,18 +1300,21 @@ class DatasetField:
         result = "_"*how_many_underscores_needs_in_the_left+temp_str
         return result
     
-    def valid(self, dataset:list[tuple[int,bool]], total_amount = -1, total_amount_irr = -1, valid_irr = False):
-        #safety first.
-        _last_addr_in_input = dataset[-1][0]
-        assert _last_addr_in_input < (1<<self.FieldLength)
-        
+    def valid(self, dataset:list[tuple[int,bool]], 
+            total_amount = -1, total_amount_irr = -1, valid_irr = False):
         #if the dataset is empty, the field should also be all irr.
         if dataset.__len__() == 0:
             if not self.all_irr: 
                 log_the_error(self.FieldLength, dataset)
-                return
+                pass
+            return
+        #safety first.
+        _last_addr_in_input = dataset[-1][0]
+        assert _last_addr_in_input < (1<<self.FieldLength)
         
-        #
+        # relevant
+        # relevant
+        # relevant
         if total_amount>dataset.__len__():
             total_amount = -1
             pass
@@ -1344,12 +1347,21 @@ class DatasetField:
                 total_amount = total_amount -1
                 pass#while
             
+        #irrelevant
+        #irrelevant
+        #irrelevant
+        if 0 == total_amount_irr:
+            return
+        
         total_possible_amount = 1<<self.FieldLength
         total_possible_amount_of_irr = total_possible_amount - dataset.__len__()
         if total_amount_irr>total_possible_amount_of_irr:
             total_amount_irr = -1
             pass
-        if -1 == total_amount_irr:#valid all irr.
+        if -1 == total_amount_irr:
+            #valid all irr.
+            #valid all irr.
+            #valid all irr.
             _, irr_addr_list = get_irr_addr_from_dataset(self.FieldLength, dataset)
             #dataset already non-empty.
             for irr_addr in irr_addr_list:
@@ -1363,12 +1375,15 @@ class DatasetField:
         else:#only check random irrelevant:
             if total_possible_amount_of_irr< total_possible_amount/3:
                 # not very many irr, so first get the list
+                #random pick from irr list
+                #random pick from irr list
+                #random pick from irr list
                 _, irr_addr_list = get_irr_addr_from_dataset(self.FieldLength, dataset)
                 #dataset already non-empty.
                 while total_amount_irr>0:
                     rand_addr:int = irr_addr_list[random.randint(0, irr_addr_list.__len__()-1)]
                     temp_tuple = self.lookup(rand_addr)
-                    #assert not temp_tuple[0]
+                    #assert temp_tuple[0]#irr
                     if not temp_tuple[0]:
                         log_the_error(self.FieldLength, dataset)
                         break
@@ -1377,46 +1392,60 @@ class DatasetField:
                     pass#while
                 pass#if 
             else:#a lot irr, random and check if it's a irr in ref set, and then.
-                total_trial_amount = total_amount_irr*5
+                # guess
+                # guess
+                # guess
+                total_trial_amount = total_amount_irr*3
+                already_guessed:set[int] = set()
                 while total_trial_amount>0 and total_amount_irr>0:
                     one_shift_field_len_minus_one = (1<<self.FieldLength )-1
                     guess_addr = random.randint(0, one_shift_field_len_minus_one)
-                    
+                    if guess_addr in already_guessed:
+                        #tail
+                        total_trial_amount = total_trial_amount -1
+                        continue
+                    else:
+                        already_guessed.add(guess_addr)
+                        pass
+                    #find the item in dataset. But if it finds, it's bad guess. 
                     #binary search # two valid style.
+                    #guess_addr is the input. key = lambda item:dataset[item][0]
                     found = False
                     left = 0
                     right = dataset.__len__()-1
-                    mid:int = (left+right)//2
                     while left<=right:
-                        if guess_addr<mid:
+                        mid:int = (left+right)//2
+                        temp_addr = dataset[mid][0]
+                        if guess_addr<temp_addr:
                             right = mid-1# two valid style.
-                            pass
-                        if guess_addr>mid:
+                            continue
+                        elif guess_addr>temp_addr:
                             left = mid+1# two valid style.
-                            pass
-                        if guess_addr == mid:
+                            continue
+                        else:#guess_addr == dataset[mid][0]:
                             found = True
                             break
                         pass#while of binary search.
-                    if not found:
+                    if found: # the guess_addr is found in dataset, so it's a relevant. Ignore it.
                         #tail
                         total_trial_amount = total_trial_amount -1
                         continue
                     
                     #now the guess_addr is a irr according to dataset.
-                    temp_tuple = self.lookup(item[0])
-                    #assert not temp_tuple[0]
+                    temp_tuple = self.lookup(guess_addr)
+                    #assert temp_tuple[0]#irr
                     if not temp_tuple[0]:
                         log_the_error(self.FieldLength, dataset)
                         break
                     #tail
                     total_trial_amount = total_trial_amount -1
+                    total_amount_irr = total_amount_irr -1
                     pass#while
                 if total_amount_irr>0:
                     log_the_error(self.FieldLength, dataset, "not totally tested.txt")
                     pass
                 pass#else
-                
+            pass#if -1 == total_amount_irr:#valid all irr.
             
             
             #log_the_error(self.FieldLength,dataset)
@@ -1425,22 +1454,41 @@ class DatasetField:
     #end of class
     
 if "valid function" and True:
-    #normal
-    FieldLength = 5
-    dataset = rand_dataset_sorted(FieldLength, 0.2, 0.2)
+    FieldLength = 3
+    dataset:list[tuple[int, bool]] = []
     a_DatasetField = DatasetField._new(FieldLength, dataset)
+    # empty
     a_DatasetField.valid(dataset)
-    a_DatasetField.valid(dataset, total_amount=5,total_amount_irr=3)
+    
+    FieldLength = 2
+    dataset = [(0,True), (1,False), (3,True),]
+    a_DatasetField = DatasetField._new(FieldLength, dataset)
+    # all relevant
+    a_DatasetField.valid(dataset, total_amount=-1,total_amount_irr=0)
+    # random relevant
+    a_DatasetField.valid(dataset, total_amount=2,total_amount_irr=0)
+    
+    FieldLength = 1
+    dataset = [(0,True), ]
+    a_DatasetField = DatasetField._new(FieldLength, dataset)
+    # a double all.
     a_DatasetField.valid(dataset, total_amount=111,total_amount_irr=111)
     
-    1继续
-    #few irr case
-    FieldLength = 5
-    dataset = rand_dataset_sorted(FieldLength, 0.4, 0.4)
+    FieldLength = 2
+    dataset = [(0,True), (1,False), (3,True),]
     a_DatasetField = DatasetField._new(FieldLength, dataset)
-    a_DatasetField.valid(dataset)
-    a_DatasetField.valid(dataset, total_amount=5,total_amount_irr=1)
-    a_DatasetField.valid(dataset, total_amount=111,total_amount_irr=111)
+    # all irr
+    a_DatasetField.valid(dataset, total_amount=0, total_amount_irr=-1)
+    # random from irr list
+    a_DatasetField.valid(dataset, total_amount=0, total_amount_irr=1)
+    
+    FieldLength = 3
+    dataset = [(0,True), (1,False), (3,True), (4,False), ]
+    a_DatasetField = DatasetField._new(FieldLength, dataset)
+    # guess irr
+    a_DatasetField.valid(dataset, total_amount=0, total_amount_irr=2)
+    
+    1w test on some wrong set.
     pass
     
     
