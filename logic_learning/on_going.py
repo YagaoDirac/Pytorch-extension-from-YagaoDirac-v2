@@ -1452,11 +1452,17 @@ class DatasetField:
                 # guess
                 # guess
                 # guess
-                total_trial_amount = total_amount_irr*3
+                total_trial_amount = total_amount_irr*20
                 already_guessed:set[int] = set()
+                one_shift_field_len_minus_one = (1<<self.FieldLength )-1
+                #one_shift_field_len = 1<<self.FieldLength
+                #_not_important_incr = 0
                 while total_trial_amount>0 and total_amount_irr>0:
-                    one_shift_field_len_minus_one = (1<<self.FieldLength )-1
                     guess_addr = random.randint(0, one_shift_field_len_minus_one)
+                    #_not_important_incr = _not_important_incr + int(one_shift_field_len*61/337)
+                    #_not_important_incr = _not_important_incr % one_shift_field_len
+                    #guess_addr = (guess_addr+_not_important_incr) %one_shift_field_len
+                    
                     if guess_addr in already_guessed:
                         #tail
                         total_trial_amount = total_trial_amount -1
@@ -1503,14 +1509,24 @@ class DatasetField:
                     return
                 pass#else
             pass#if -1 == total_amount_irr:#valid all irr.
-            
-            
-            #log_the_error(self.FieldLength,dataset)
         pass# end of function.
             
     #end of class
     
-if "some special case" and False:
+if "some special case" and True:
+    # for _ in range(10000):
+    #     FieldLength = 8
+    #     temp_rand = random.random()*0.6
+    #     temp_rand2 = random.random()*0.6+0.2
+    #     p_False = (0.2+temp_rand)*temp_rand2
+    #     p_True = (0.8-temp_rand)*temp_rand2
+        
+    #     dataset = rand_dataset_sorted(FieldLength, p_False = p_False, p_True = p_True)
+    #     a_DatasetField = DatasetField._new(FieldLength, dataset)
+    #     a_DatasetField.valid(dataset, total_amount = 100, total_amount_irr = 100)
+    
+    # fds=432
+    
     if "1" and False:
         FieldLength = 7
         addr = 114
@@ -2425,7 +2441,7 @@ if "init and split" and False:
     
 
 
-if "random dataset test" and True:
+if "random dataset test" and False:
     # empty
     print("empty, line:"+str(_line_()))
     for ____total_iter in range(13):
@@ -2450,8 +2466,8 @@ if "random dataset test" and True:
             pass
         
         # full
-        print("full, line:"+str(_line_()) +"      "+ str(datetime.now().time()))
-        for ____total_iter in range(1000):
+        print("full,     line:"+str(_line_()) +"      "+ str(datetime.now().time()))
+        for ____total_iter in range(200):
             for FieldLength in range(1, 12):
                 temp_rand = random.random()*0.6
                 p_False = 0.2+temp_rand
@@ -2463,8 +2479,8 @@ if "random dataset test" and True:
                 pass#for FieldLength
             pass#for ____total_iter
 
-        # non full, but dense
-        print("dense, line:"+str(_line_()) +"      "+ str(datetime.now().time()))
+        # dense, non full
+        print("dense,    line:"+str(_line_()) +"      "+ str(datetime.now().time()))
         for ____total_iter in range(1000):
             for FieldLength in range(1, 12):
                 temp_rand = random.random()*0.6
@@ -2479,7 +2495,7 @@ if "random dataset test" and True:
             pass#for ____total_iter
         
         # sparse
-        print("sparse, line:"+str(_line_()) +"      "+ str(datetime.now().time()))
+        print("sparse,   line:"+str(_line_()) +"      "+ str(datetime.now().time()))
         for ____total_iter in range(3000):
             for FieldLength in range(1, 12):
                 temp_rand = random.random()*0.6
@@ -2495,7 +2511,7 @@ if "random dataset test" and True:
         
         # one side
         print("one side, line:"+str(_line_()) +"      "+ str(datetime.now().time()))
-        for ____total_iter in range(100):
+        for ____total_iter in range(500):
             for FieldLength in range(1, 12):
                 if random.random() <0.5:
                     p_False = random.random()*0.6
@@ -2545,8 +2561,188 @@ if "test with random dataset" and False:
 
 
 
+'''
+From here on, it's only my curiosity.
+The tool passed all the test above. If it's provided with perfect dataset, it fits.
+But, how much can it extrapolation?
+
+The test below is, if it's only provided with a proportion of a perfect dataset, can it fit?
+How much accurate can it get.
+Let's say, a 3 bits full adder, it's a 7bits input, 4 bits output. In total, it can have 2^7(128)
+different cases. If the tool only sees part of them, let's say 20%, then how much acc can it get.
+And what's the relationship between the feed% and acc%. 
+
+This is probably the first binary learning/logic learning test in half-real-case in the world.
+Today is 2025 oct 12.
+I'm YagaoDirac, a natural Earth human(without a BCI).
+I'm in China, Earth.
+'''
+
+
+
+
+
+def _____unchecked___get_adder_testset_full(input_bit_amount, amount_needed=-1)->list[list[tuple[int,bool]]]:
+    total_bit_amount = input_bit_amount*2+1
+    total_result_bit_amount = input_bit_amount+1
+
+    big_dataset_from_most_to_least:list[list[tuple[int,bool]]] = []
+    for _ in range(total_result_bit_amount):
+        big_dataset_from_most_to_least.append([])
+        pass
+    mask_1 = (1<<input_bit_amount)<<(input_bit_amount+1)
+    mask_2 = (1<<input_bit_amount)<<1
+    mask_c = 1
+    for addr in range(1<<total_bit_amount):
+        input_1 = (addr&mask_1)>>(input_bit_amount+1)
+        input_2 = (addr&mask_2)>>1
+        input_c = addr&mask_c
+        add_result = input_1 + input_2 + input_c
+        add_result_in_str = f"{add_result:b}"
+        for i in range(total_result_bit_amount):
+            the_char = add_result_in_str[i]
+            result = ("1" == the_char)
+            big_dataset_from_most_to_least[i].append((addr,result))
+            pass
+        pass
+    if amount_needed > (1<<total_bit_amount):
+        return big_dataset_from_most_to_least
+    if amount_needed <= 0:
+        return big_dataset_from_most_to_least
+    
+    part_big_dataset_from_most_to_least:list[list[tuple[int,bool]]] = []
+    for _ in range(total_result_bit_amount):
+        part_big_dataset_from_most_to_least.append([])
+        pass
+    for _ in range(amount_needed):
+        a_rand_num = random.randint(0, big_dataset_from_most_to_least[0].__len__()-1)
+        for i in range(total_result_bit_amount):
+            popped = big_dataset_from_most_to_least[i].pop(a_rand_num)
+            part_big_dataset_from_most_to_least[i].append(popped)
+            pass
+        pass
+    return part_big_dataset_from_most_to_least
+
+    
+    
+def binary_into_boollist(input:int, length:int)->list[bool]:
+    assert input >=0
+    result = []
+    for _ in range(length):
+        result.append(False)
+        pass
+    the_str = f"{input:b}"
+    offset = length-the_str.__len__()
+    assert offset >= 0
+    for i in range(the_str.__len__()-1,-1,-1):
+        char = the_str[i]
+        if "1" == char:
+            result[i+offset] = True
+            pass
+        pass
+    return result
+if "test" and False:
+    boollist = binary_into_boollist(0b1010,4)
+    assert boollist == [True,False,True,False,]
+    boollist = binary_into_boollist(0b1010,6)
+    assert boollist == [False,False,True,False,True,False,]
+    boollist = binary_into_boollist(0b11010,6)
+    assert boollist == [False,True,True,False,True,False,]
+    pass
+    
+def make_itemset(addr:int, boollist:list[bool])->list[tuple[int,bool]]:
+    result:list[tuple[int,bool]] = []
+    for the_bool in boollist:
+        result.append((addr, the_bool))
+        pass
+    return result
+    pass
+if "test" and False:
+    boollist = binary_into_boollist(0b1010,6)
+    itemset = make_itemset(123,boollist)  
+    assert itemset == [(123,False),(123,False),(123,True),(123,False),(123,True),(123,False),]
+    pass
+
+def add_itemset_to_big_dataset(big_dataset:list[list[tuple[int,bool]]], itemset:list[tuple[int,bool]]):
+    assert big_dataset.__len__() == itemset.__len__()
+    for i in range(big_dataset.__len__()):
+        big_dataset[i].append(itemset[i])
+        pass
+    pass
+if "test" and False:
+    big_dataset = [[],[],[]]
+    
+    boollist = binary_into_boollist(0b101,3)
+    itemset = make_itemset(11,boollist)  
+    add_itemset_to_big_dataset(big_dataset,itemset)
+    
+    boollist = binary_into_boollist(0b101,3)
+    itemset = make_itemset(22,boollist)  
+    add_itemset_to_big_dataset(big_dataset,itemset)
+    
+    boollist = binary_into_boollist(0b110,3)
+    itemset = make_itemset(33,boollist)  
+    add_itemset_to_big_dataset(big_dataset,itemset)
+    boollist = binary_into_boollist(0b011,3)
+    itemset = make_itemset(44,boollist)  
+    add_itemset_to_big_dataset(big_dataset,itemset)
+    
+    pass
+
+def sort_big_dataset(big_dataset:list[list[tuple[int,bool]]])->list[list[tuple[int,bool]]]:
+    for dataset in big_dataset:
+        dataset.sort(key=lambda item:item[0])
+        pass
+    pass
+if "test" and False:
+    big_dataset = [[(2,True),(1,True),], [(33,True),(11,True),], ]
+    sort_big_dataset(big_dataset)
+    pass
+
+def get_adder_testset_partly(input_bit_amount:int, proportion = 0.2):#->list[list[tuple[int,bool]]]:
+    total_bit_amount = input_bit_amount*2+1
+    total_result_bit_amount = input_bit_amount+1
+    one_shift_by__total_bit_amount = 1<<total_bit_amount
+    assert proportion<0.8, "don't torture the also. You don't need a 0.8+ proportion. Or get some other also."
+    assert proportion>0.
+    amount_needed = int(proportion * one_shift_by__total_bit_amount)
+    if 0 == amount_needed:
+        amount_needed = 1
+        pass
+    
+    assert amount_needed > 0
+    temp_set = set()
+    while True:
+        a_rand_num = random.randint(0, one_shift_by__total_bit_amount-1)
+        temp_set.add(a_rand_num)
+        if temp_set.__len__() == amount_needed:
+            break
+        pass#while
+    1w 继续。
+    
+    
+    
+if "test" and True:
+    get_adder_testset_partly()
+    
+    
+    
+    
+
+    
+
+
+    
+    
+    
+    
+    
+    
+    
+    
 
 assert False , "要不要做一个专门的fake xor检测？？？"
+assert False , "那加法乘法那些来验证一下。包括外延能力。"
 
 
 
