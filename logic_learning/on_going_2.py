@@ -173,8 +173,8 @@ if "test" and False:
 class Dataset:
     data:list[tuple[int,bool]]
     is_sorted:bool
-    def __init__(self, input:list[tuple[int,bool]] = [], is_sorted:bool = False):
-        self.data = input
+    def __init__(self, input:Optional[list[tuple[int,bool]]] = None, is_sorted:bool = False):
+        self.data = input or []
         if self.data.__len__()<2:
             self.is_sorted = True
             pass
@@ -708,8 +708,6 @@ class DatasetField:
         FieldLength:int
         bits_already_in_use:int
         dataset:Optional[Dataset]
-        #leaf_keep_dataset:bool 
-        #branch_keep_dataset:bool 
         _debug__how_did_I_quit_init_func:How_did_I_quit_init_func
         #lookup tables.
         best_index_to_split_from_right_side:int
@@ -732,16 +730,21 @@ class DatasetField:
         pass
     @staticmethod
     def _new(FieldLength, dataset, leaf_keep_dataset:bool = False)->'DatasetField':
+        '''If you want to keep accurate irrelevant item info, set leaf_keep_dataset=True.
+        Otherwise, only irr field is reported as irr. The 1+irr field or 0+irr field is reported 
+        as 1 and 0 respectively.'''
         result = DatasetField(0,0,FieldLength,0,dataset, leaf_keep_dataset = leaf_keep_dataset,)
         return result
     
-    def __init__(self, bitmask:int, addr:int, FieldLength:int, bits_already_in_use:int, 
-                dataset:Dataset, 
+    def __init__(self, bitmask:int, addr:int, FieldLength:int, 
+                bits_already_in_use:int, dataset:Dataset, 
                 
                 with_suggest:bool=False, 
-                suggest_has_1:bool=False, suggest_has_0:bool=False, 
+                suggest_has_1:bool=False, 
+                suggest_has_0:bool=False, 
                 
                 _debug__check_all_safety:bool = True,
+                
                 leaf_keep_dataset:bool = False,
                 branch_keep_dataset:bool = False,
                 ):
@@ -1330,7 +1333,7 @@ class DatasetField:
             else:
                 return(False, True)
         else:#with the dataset for leaf node, it's 
-            assert self.dataset is not None
+            assert self.dataset is not None, "Set leaf_keep_dataset=True when create this object or the root object."
             found, _ = self.dataset.find_addr(addr)
             if found:
                 if self.has_0:
@@ -1501,17 +1504,23 @@ class DatasetField:
         result = "_"*how_many_underscores_needs_in_the_left+temp_str
         return result
     
-    def valid(self, dataset:Dataset, total_amount = -1):
+    def valid(self, dataset:Dataset, total_amount = -1, 
+            log_the_error_to_file_and_return_immediately = True)->tuple[bool,int,int]:
+        '''return (finished_the_check?, check_count, error_count)'''
+        
+        assert total_amount!=0
+        
         #if the dataset is empty, the field should also be all irr.
         if dataset._len() == 0:
             if not self.all_irr: 
                 log_the_error(self.FieldLength, dataset)
-                pass
-            return
+                return (False, 1, 1)
+            return (True, 1, 0)
         #safety first.
         _last_addr_in_input = dataset.data[-1][0]
         assert _last_addr_in_input < (1<<self.FieldLength)
         
+        error_count = 0
         if total_amount>=dataset._len():
             total_amount = -1
             pass
@@ -1520,40 +1529,60 @@ class DatasetField:
                 temp_tuple:tuple[bool, bool] = self.lookup(item[0])
                 #assert not temp_tuple[0]
                 if temp_tuple[0]:
-                    log_the_error(self.FieldLength, dataset)
-                    return
+                    if log_the_error_to_file_and_return_immediately:
+                        log_the_error(self.FieldLength, dataset)
+                        return (False, -1, 1)
+                    error_count = error_count +1
+                    pass
                 #assert item[1] == temp_tuple[1]
                 if  item[1] != temp_tuple[1]:
-                    log_the_error(self.FieldLength, dataset)
-                    return
+                    if log_the_error_to_file_and_return_immediately:
+                        log_the_error(self.FieldLength, dataset)
+                        return (False, -1, 1)
+                    error_count = error_count +1
+                    pass
                 pass#for
+            return (True, dataset._len(), error_count)
             pass#if total_amount
         else:#valid random but only part of them.
-            while total_amount>0:
+            _total_amount = total_amount
+            while _total_amount>0:
                 item = dataset.data[random.randint(0, dataset._len()-1)]
                 temp_tuple = self.lookup(item[0])
                 #assert not temp_tuple[0]
                 if temp_tuple[0]:
-                    log_the_error(self.FieldLength, dataset)
-                    return
+                    if log_the_error_to_file_and_return_immediately:
+                        log_the_error(self.FieldLength, dataset)
+                        return (False, -1, 1)
+                    error_count = error_count +1
+                    pass
                 #assert item[1] == temp_tuple[1]
                 if  item[1] != temp_tuple[1]:
-                    log_the_error(self.FieldLength, dataset)
-                    return
+                    if log_the_error_to_file_and_return_immediately:
+                        log_the_error(self.FieldLength, dataset)
+                        return (False, -1, 1)
+                    error_count = error_count +1
+                    pass
                 #tail
-                total_amount = total_amount -1
+                _total_amount = _total_amount -1
                 pass#while
+            return (True, total_amount, error_count)
             pass#else of if -1 == total_amount
-        pass#end of function.
+        
+        s#end of function.
             
             
-    def valid_irr(self, dataset:Dataset, total_amount_irr = -1):
+    def valid_irr(self, dataset:Dataset, total_amount_irr = -1, 
+                log_the_error_to_file_and_return_immediately = True)->tuple[bool,int,int]:
+        '''return (finished_the_check?, check_count, error_count)'''
+        assert total_amount_irr!=0
+        
         #if the dataset is empty, the field should also be all irr.
         if dataset._len() == 0:
             if not self.all_irr: 
                 log_the_error(self.FieldLength, dataset)
-                pass
-            return
+                return(False, 1, 1)
+            return(True, 1, 0)
         #safety first.
         assert dataset.is_sorted
         _last_addr_in_input = dataset.data[-1][0]
@@ -1564,6 +1593,7 @@ class DatasetField:
         if total_amount_irr>=total_possible_amount_of_irr:
             total_amount_irr = -1
             pass
+        error_count = 0
         if -1 == total_amount_irr:
             #valid all irr.
             #valid all irr.
@@ -1574,9 +1604,13 @@ class DatasetField:
                 temp_tuple = self.lookup(irr_addr, lookup_in_leaf_dataset=True)
                 #assert item[0]
                 if not temp_tuple[0]:
-                    log_the_error(self.FieldLength, dataset,filename="wrong irr case log.txt")
-                    return
+                    if log_the_error_to_file_and_return_immediately:
+                        log_the_error(self.FieldLength, dataset)
+                        return (False, -1, 1)
+                    error_count = error_count +1
+                    pass
                 pass
+            return (True, total_possible_amount_of_irr, error_count)
             pass#-1 == total_amount_irr
         else:#only check random irrelevant:
             if total_possible_amount_of_irr< total_possible_amount/3:
@@ -1586,27 +1620,35 @@ class DatasetField:
                 #random pick from irr list
                 _, irr_addr_list = dataset.get_irr_addr___sorts_self(self.FieldLength)
                 #dataset already non-empty.
-                while total_amount_irr>0:
+                _total_amount_irr = total_amount_irr
+                while _total_amount_irr>0:
                     rand_addr:int = irr_addr_list[random.randint(0, irr_addr_list.__len__()-1)]
                     temp_tuple = self.lookup(rand_addr, lookup_in_leaf_dataset=True)
                     #assert temp_tuple[0]#irr
                     if not temp_tuple[0]:
-                        log_the_error(self.FieldLength, dataset, filename="wrong irr case log.txt")
-                        return
+                        if log_the_error_to_file_and_return_immediately:
+                            log_the_error(self.FieldLength, dataset)
+                            return (False, -1, 1)
+                        error_count = error_count +1
+                        pass
                     #tail
-                    total_amount_irr = total_amount_irr -1
+                    _total_amount_irr = _total_amount_irr -1
                     pass#while
+                return (True, total_amount_irr, error_count)
                 pass#if 
+                
             else:#a lot irr, random and check if it's a irr in ref set, and then.
                 # guess
                 # guess
                 # guess
                 total_trial_amount = total_amount_irr*20
+                _total_amount_irr = total_amount_irr
+                _total_trial_amount = total_trial_amount
                 already_guessed:set[int] = set()
                 one_shift_field_len_minus_one = (1<<self.FieldLength )-1
                 #one_shift_field_len = 1<<self.FieldLength
                 #_not_important_incr = 0
-                while total_trial_amount>0 and total_amount_irr>0:
+                while _total_trial_amount>0 and _total_amount_irr>0:
                     guess_addr = random.randint(0, one_shift_field_len_minus_one)
                     #_not_important_incr = _not_important_incr + int(one_shift_field_len*61/337)
                     #_not_important_incr = _not_important_incr % one_shift_field_len
@@ -1614,7 +1656,7 @@ class DatasetField:
                     
                     if guess_addr in already_guessed:
                         #tail
-                        total_trial_amount = total_trial_amount -1
+                        _total_trial_amount = _total_trial_amount -1
                         continue
                     else:
                         already_guessed.add(guess_addr)
@@ -1625,6 +1667,7 @@ class DatasetField:
                     found = False
                     left = 0
                     right = dataset._len()-1
+                    #if any bug occurs here, use the dataset.find_addr instead.
                     while left<=right:
                         mid:int = (left+right)//2
                         temp_addr = dataset.data[mid][0]
@@ -1640,7 +1683,7 @@ class DatasetField:
                         pass#while of binary search.
                     if found: # the guess_addr is found in dataset, so it's a relevant. Ignore it.
                         #tail
-                        total_trial_amount = total_trial_amount -1
+                        _total_trial_amount = _total_trial_amount -1
                         continue
                     
                     #now the guess_addr is a irr according to dataset.
@@ -1648,22 +1691,27 @@ class DatasetField:
                     
                     #assert temp_tuple[0]#irr
                     if not temp_tuple[0]:
-                        log_the_error(self.FieldLength, dataset, filename="wrong irr case log.txt")
-                        return
+                        if log_the_error_to_file_and_return_immediately:
+                            log_the_error(self.FieldLength, dataset)
+                            return (False, -1, 1)
+                        error_count = error_count +1
+                        pass
                     #tail
-                    total_trial_amount = total_trial_amount -1
-                    total_amount_irr = total_amount_irr -1
+                    _total_trial_amount = _total_trial_amount -1
+                    _total_amount_irr = _total_amount_irr -1
                     pass#while
-                if total_amount_irr>0:
+                if _total_amount_irr>0:#not fully checked.
                     log_the_error(self.FieldLength, dataset, "not totally tested.txt")
-                    return
+                    return (False, total_amount_irr - _total_amount_irr, error_count)
+                else:#_total_amount_irr == 0:
+                    return (True, total_amount_irr, error_count)
                 pass#else
             pass#if -1 == total_amount_irr:#valid all irr.
         pass# end of function.
             
     #end of class
     
-if "some special case" and True:
+if "some special case" and False:
     if "2025 oct 14":
         FieldLength = 1
         dataset = Dataset([(0, True)])
@@ -1701,78 +1749,104 @@ if "some special case" and True:
         a_DatasetField.valid(dataset)
     pass
         
-if "valid function" and True:
+if "valid function" and False:
     if "correct dataset" and True:
         FieldLength = 3
         dataset = Dataset()
         a_DatasetField = DatasetField._new(FieldLength, dataset)
         # empty
-        a_DatasetField.valid(dataset)
+        result_tuple = a_DatasetField.valid(dataset)
+        assert result_tuple == (True, 1, 0)
         
         FieldLength = 2
         dataset = Dataset([(0,True), (1,False), (3,True),])
         a_DatasetField = DatasetField._new(FieldLength, dataset)
         # all relevant
-        a_DatasetField.valid(dataset)
+        result_tuple = a_DatasetField.valid(dataset)
+        assert result_tuple == (True, 3, 0)
         # random relevant
-        a_DatasetField.valid(dataset, total_amount=2)
+        result_tuple = a_DatasetField.valid(dataset, total_amount=2)
+        assert result_tuple == (True, 2, 0)
         
         FieldLength = 1
         dataset = Dataset([(0,True), ])
         a_DatasetField = DatasetField._new(FieldLength, dataset)
         # big number.
-        a_DatasetField.valid(dataset, total_amount=111)
+        result_tuple = a_DatasetField.valid(dataset, total_amount=111)
+        assert result_tuple == (True, 1, 0)
         
         FieldLength = 2
         dataset = Dataset([(0,True), (1,False), (3,True),])
         a_DatasetField = DatasetField._new(FieldLength, dataset, leaf_keep_dataset = True)
         tree = a_DatasetField.readable_as_tree()
+        result_tuple = a_DatasetField.valid(dataset)
+        assert result_tuple == (True, 3, 0)
+        
         # all irr
-        a_DatasetField.valid(dataset)
-        a_DatasetField.valid_irr(dataset)
+        result_tuple = a_DatasetField.valid_irr(dataset)
+        assert result_tuple == (True, 1, 0)
+        
         # random from irr list
-        a_DatasetField.valid_irr(dataset, total_amount_irr=1)
+        FieldLength = 3
+        dataset = Dataset([(0,True), (1,False), (3,True), (4,False), (5,True), (7,False), ])
+        a_DatasetField = DatasetField._new(FieldLength, dataset, leaf_keep_dataset = True)
+        result_tuple = a_DatasetField.valid_irr(dataset, total_amount_irr=1)
+        assert result_tuple == (True, 1, 0)
         
         FieldLength = 3
         dataset = Dataset([(0,True), (1,False), (3,True), (4,False), ])
         a_DatasetField = DatasetField._new(FieldLength, dataset, leaf_keep_dataset = True)
         # guess irr
-        a_DatasetField.valid_irr(dataset, total_amount_irr=2)
+        result_tuple = a_DatasetField.valid_irr(dataset, total_amount_irr=2)
+        #this should be (True, 2, 0). But if it guessed 40 times and less than 2 useful guess, then it's (False, 0 or 1, 0)
+        assert result_tuple[2] == 0
         # big number.
-        a_DatasetField.valid_irr(dataset, total_amount_irr=111)
+        result_tuple = a_DatasetField.valid_irr(dataset, total_amount_irr=111)
+        assert result_tuple == (True, 4, 0)
         pass
         
     if "wrong dataset" and True:
         FieldLength = 2
         dataset = Dataset([(0,True), (1,False), ])
-        a_DatasetField = DatasetField._new(FieldLength, dataset)
+        a_DatasetField = DatasetField._new(FieldLength, dataset, leaf_keep_dataset=True)
         # all relevant
         wrong_dataset_1 = Dataset([(0,False), ])
-        #a_DatasetField.valid(wrong_dataset_1)
+        result_tuple = a_DatasetField.valid(wrong_dataset_1,log_the_error_to_file_and_return_immediately=False)
+        assert result_tuple == (True, 1, 1)
+        
+        
         wrong_dataset_1 = Dataset([(2,False), ])
-        #a_DatasetField.valid(wrong_dataset_1)
+        result_tuple = a_DatasetField.valid(wrong_dataset_1,log_the_error_to_file_and_return_immediately=False)
+        assert result_tuple == (True, 1, 1)
         # random relevant
         wrong_dataset_2 = Dataset([(0,False), (1,True), ])
-        #a_DatasetField.valid(wrong_dataset_2, total_amount=1)
+        result_tuple = a_DatasetField.valid(wrong_dataset_2, total_amount=1,log_the_error_to_file_and_return_immediately=False)
+        assert result_tuple == (True, 1, 1)
         wrong_dataset_2 = Dataset([(2,False), (3,True), ])
-        #a_DatasetField.valid(wrong_dataset_2, total_amount=1)
+        result_tuple = a_DatasetField.valid(wrong_dataset_2, total_amount=1,log_the_error_to_file_and_return_immediately=False)
+        assert result_tuple == (True, 1, 1)
         # all irr
         wrong_dataset_3 = Dataset([(1,True), (2,True), (3,False), ])
-        #a_DatasetField.valid_irr(wrong_dataset_3, total_amount_irr=-1)
+        wrong_dataset_3.sort()
+        result_tuple = a_DatasetField.valid_irr(wrong_dataset_3, log_the_error_to_file_and_return_immediately=False)
+        assert result_tuple == (True, 1, 1)
         
         # random from irr list
         FieldLength = 3
         dataset = Dataset([(0,True), (1,False), (2,True), (3,True), (4,False), (5,False), (6,False), (7,False), ])
-        a_DatasetField = DatasetField._new(FieldLength, dataset)
+        a_DatasetField = DatasetField._new(FieldLength, dataset, leaf_keep_dataset=True)
         wrong_dataset_4 = Dataset([(0,True), (1,True), (2,True), (3,True), (4,True), (5,True), ])
-        #a_DatasetField.valid_irr(wrong_dataset_4, total_amount_irr=1)
+        wrong_dataset_4.sort()
+        result_tuple = a_DatasetField.valid_irr(wrong_dataset_4, total_amount_irr=1,log_the_error_to_file_and_return_immediately=False)
+        assert result_tuple == (True, 1, 1)
         # guess irr
         wrong_dataset_5 = Dataset([(0,True), ])
-        #a_DatasetField.valid_irr(wrong_dataset_5, total_amount_irr=1)
+        result_tuple = a_DatasetField.valid_irr(wrong_dataset_5, total_amount_irr=1,log_the_error_to_file_and_return_immediately=False)
+        assert result_tuple == (True, 1, 1)
         pass
     pass
     
-if "readable addr" and True:
+if "readable addr" and False:
     for addr in range(0b10):
         a_DatasetField = DatasetField(bitmask = 0b1, addr = addr, FieldLength=1, bits_already_in_use=1, \
                         dataset = Dataset(), with_suggest=False,_debug__check_all_safety = True)
@@ -1810,7 +1884,7 @@ if "readable addr" and True:
     
     pass
 
-if "readable tree" and True:
+if "readable tree" and False:
     #111111111111111可以继续
     a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=1, bits_already_in_use=0, \
                         dataset = Dataset(), with_suggest=False,_debug__check_all_safety = True)
@@ -1872,7 +1946,7 @@ if "readable tree" and True:
     
     pass
 
-if "init and split" and True:
+if "init and split" and False:
     # it's not allowed to have no input. So test starts with 1 input.
     if "1 bit input, 0 free bit" and False:
         if "two wrong addr, they raise" and False:
@@ -2589,8 +2663,7 @@ if "init and split" and True:
         #1w
         pass
 
-
-if "random dataset test   slow" and True:
+if "random dataset test   slow" and False:
     # empty
     print("empty, line:"+str(_line_()))
     for ____total_iter in range(13):
@@ -2641,6 +2714,7 @@ if "random dataset test   slow" and True:
                 dataset = Dataset.rand__sorted(FieldLength, p_False = p_False, p_True = p_True)
                 a_DatasetField = DatasetField._new(FieldLength, dataset)
                 a_DatasetField.valid(dataset, total_amount = 100)
+                a_DatasetField = DatasetField._new(FieldLength, dataset, leaf_keep_dataset=True)
                 a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
                 pass#for FieldLength
             pass#for ____total_iter
@@ -2657,6 +2731,7 @@ if "random dataset test   slow" and True:
                 dataset = Dataset.rand__sorted(FieldLength, p_False = p_False, p_True = p_True)
                 a_DatasetField = DatasetField._new(FieldLength, dataset)
                 a_DatasetField.valid(dataset, total_amount = 100)
+                a_DatasetField = DatasetField._new(FieldLength, dataset, leaf_keep_dataset=True)
                 a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
                 pass#for FieldLength
             pass#for ____total_iter
@@ -2677,19 +2752,13 @@ if "random dataset test   slow" and True:
                 dataset = Dataset.rand__sorted(FieldLength, p_False = p_False, p_True = p_True)
                 a_DatasetField = DatasetField._new(FieldLength, dataset)
                 a_DatasetField.valid(dataset, total_amount = 100)
+                a_DatasetField = DatasetField._new(FieldLength, dataset, leaf_keep_dataset=True)
                 a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
                 assert a_DatasetField.children is None
                 pass#for FieldLength
             pass#for ____total_iter
         pass#while
     
-    
-    
-    
-
-
-
-
 
 '''
 From here on, it's only my curiosity.
@@ -2707,15 +2776,198 @@ Today is 2025 oct 12.
 I'm YagaoDirac, a natural Earth human(without a BCI).
 I'm in China, Earth.
 '''
-#######
-#######
-#######
-#######
-#######
-#######
-#######
+
+    
+
+    
+    
+class Dataset_Set:
+    data:list[Dataset]
+    is_data_sorted:bool
+    def __init__(self, length:int):
+        self.data = []
+        for _ in range(length):
+            self.data.append(Dataset())
+            pass
+        self.is_data_sorted = True
+        pass
+    def _check(self):
+        if self._len()>1:
+            for i in range(1, self._len()):
+                self.data[0]._len() == self.data[i]._len()
+                for ii in range(self.data[0]._len()):
+                    _element_0_addr = self.data[0].data[ii][0]
+                    _element_i_addr = self.data[i].data[ii][0]
+                    assert _element_0_addr == _element_i_addr
+                    pass#ii
+                pass#i
+            pass
+        pass#end of function
+    
+    def get_readable___check_btw(self)->str:
+        #check
+        self._check()
+        
+        result_str = ""
+        for i in range(self.data[0]._len()):
+            addr = self.data[0].data[i][0]
+            result_str+= f"{addr}:"
+            for ii in range(0, self._len()):
+                content = self.data[ii].data[i][1]
+                result_str+= f"{content:b}"
+                pass
+            result_str+= f", "
+            pass#i
+        return result_str
+    
+    def _len(self)->int:
+        return self.data.__len__()
+    def sort(self):
+        for dataset in self.data:
+            dataset.sort()
+            pass
+        self.is_data_sorted = True
+        pass
+    
+    def add_binary(self, input:int, addr:int):
+        the_str = f"{input:b}"
+        assert the_str.__len__()<=self._len()
+        bool_list = []
+        for _ in range(self._len()):
+            bool_list.append(False)
+            pass
+        offset = self._len()-the_str.__len__()
+        assert offset >= 0
+        for i in range(the_str.__len__()-1,-1,-1):
+            char = the_str[i]
+            if "1" == char:
+                bool_list[i+offset] = True
+                pass
+            pass
+    
+        for i in range(self._len()):
+            self.data[i].data.append((addr, bool_list[i]))
+            pass
+        
+        self.is_data_sorted = False
+        pass#end of function
+    def get_recommended_FieldLength(self)->int:
+        self._check()
+        assert self.is_data_sorted
+        _greatest_addr = self.data[0].data[-1][0]
+        result = 0
+        while _greatest_addr>0:
+            result = result +1
+            #tail
+            _greatest_addr = _greatest_addr >>1
+            pass
+        return result
+        
+    #end of class
+    
+if "test" and True:
+    datasetset = Dataset_Set(3)
+    datasetset.add_binary(0b111, addr=111)
+    datasetset.add_binary(0b100, addr=100)
+    datasetset.add_binary(0b101, addr=101)
+    datasetset.add_binary(0b001, addr=1)
+    datasetset.sort()
+    # print(datasetset.data[0].data)
+    # print(datasetset.data[1].data)
+    # print(datasetset.data[2].data)
+    # print(datasetset.get_readable___check_btw())
+    1w
+    assert datasetset.get_recommended_FieldLength() == 7
+    pass
 
 
+
+
+
+
+
+class DatasetField_Set:
+    leaf_keep_dataset:bool
+    fields:list[DatasetField]
+    def __init__(self, FieldLength:int, datasetset:Dataset_Set, leaf_keep_dataset:bool = False):
+        assert datasetset.is_data_sorted
+        
+        self.leaf_keep_dataset = leaf_keep_dataset
+        self.fields = []
+        for dataset in datasetset.data:
+            _temp_datasetfield = DatasetField._new(FieldLength, dataset, leaf_keep_dataset)
+            self.fields.append(_temp_datasetfield)
+            pass
+        pass
+    def _len(self)->int:
+        return self.fields.__len__()
+    
+    def valid(self, datasetset:Dataset_Set, total_amount: int = -1)->list[tuple[int,int]]:
+        '''return (check_count, error_count)'''
+        #safety first
+        assert self._len() == datasetset._len()
+        
+        result:list[tuple[int,int]] = []
+        for i in range(self._len()):
+            dataset = datasetset.data[i]
+            datasetfield = self.fields[i]
+            _temp_tuple = datasetfield.valid(dataset, total_amount, log_the_error_to_file_and_return_immediately = False)
+            assert _temp_tuple[0]
+            result.append((_temp_tuple[1], _temp_tuple[2]))
+            pass
+        return result
+    
+    def valid_irr(self, datasetset:Dataset_Set, total_amount_irr: int = -1)->list[tuple[int,int]]:
+        '''return (check_count, error_count)'''
+        #safety first
+        assert self._len() == datasetset._len()
+        
+        result:list[tuple[int,int]] = []
+        for i in range(self._len()):
+            dataset = datasetset.data[i]
+            datasetfield = self.fields[i]
+            _temp_tuple = datasetfield.valid_irr(dataset, total_amount_irr, log_the_error_to_file_and_return_immediately = False)
+            assert _temp_tuple[0]
+            result.append((_temp_tuple[1], _temp_tuple[2]))
+            pass
+        return result
+    
+    pass#end of class
+    
+if "test" and True:
+    a_Dataset_Set = Dataset_Set(3)
+    a_Dataset_Set.add_binary(0b111, 11)
+    a_Dataset_Set.add_binary(0b110, 15)
+    a_Dataset_Set.add_binary(0b100, 21)
+    a_Dataset_Set.add_binary(0b000, 25)
+    a_Dataset_Set.sort()
+    
+    a_DatasetField_Set = DatasetField_Set(a_Dataset_Set)
+    
+
+def ____unfinished____get_adder_testset_partly(input_bit_amount:int, proportion = 0.2):#->list[list[tuple[int,bool]]]:
+    total_bit_amount = input_bit_amount*2+1
+    total_result_bit_amount = input_bit_amount+1
+    one_shift_by__total_bit_amount = 1<<total_bit_amount
+    assert proportion<0.8, "Don't torture the also. You don't need a 0.8+ proportion. Or get some other also."
+    assert proportion>0.
+    amount_needed = int(proportion * one_shift_by__total_bit_amount)
+    if 0 == amount_needed:
+        amount_needed = 1
+        pass
+    
+    assert amount_needed > 0
+    temp_set = set()
+    while True:
+        a_rand_num = random.randint(0, one_shift_by__total_bit_amount-1)
+        temp_set.add(a_rand_num)
+        if temp_set.__len__() == amount_needed:
+            break
+        pass#while
+    
+    
+    
+    
 
 
 def _____unchecked___get_adder_testset_full(input_bit_amount, amount_needed=-1)->list[list[tuple[int,bool]]]:
@@ -2760,188 +3012,16 @@ def _____unchecked___get_adder_testset_full(input_bit_amount, amount_needed=-1)-
     return part_big_dataset_from_most_to_least
 
     
-class Dataset_Set:
-    data:list[Dataset]
-    is_sorted:bool
-    def __init__(self, input:list[Dataset] = [], is_sorted = False):
-        self.data = input
-        self.is_sorted = is_sorted
-        pass
-    def _len(self)->int:
-        return self.data.__len__()
-    def sort(self):
-        for dataset in self.data:
-            dataset.sort()
-            pass
-        self.is_sorted = True
-        pass
-    
-    if "old seperated" and False:
-        @staticmethod
-        def binary_into_boollist(input:int, length:int)->list[bool]:
-            assert input >=0
-            boollist = []
-            for _ in range(length):
-                boollist.append(False)
-                pass
-            the_str = f"{input:b}"
-            offset = length-the_str.__len__()
-            assert offset >= 0
-            for i in range(the_str.__len__()-1,-1,-1):
-                char = the_str[i]
-                if "1" == char:
-                    boollist[i+offset] = True
-                    pass
-                pass
-            return boollist
-        
-        @staticmethod
-        def boollist_into_itemset(boollist:list[bool], addr:int)->list[tuple[int,bool]]:
-            result:list[tuple[int,bool]] = []
-            for the_bool in boollist:
-                result.append((addr, the_bool))
-                pass
-            return result
-            pass
-        pass
-        
-        
-    
-    def add_binary(self, input:int, length:int, addr:int):
-        #safety first
-        assert self._len() == length
-        _input_bits = 0
-        _temp_input = input
-        while _temp_input>0:
-            _input_bits = _input_bits +1
-            _temp_input = _temp_input <<1
-            pass
-        assert _input_bits <=length
-        assert input >=0
-        
-        bool_list = []
-        for _ in range(length):
-            bool_list.append(False)
-            pass
-        the_str = f"{input:b}"
-        offset = length-the_str.__len__()
-        assert offset >= 0
-        for i in range(the_str.__len__()-1,-1,-1):
-            char = the_str[i]
-            if "1" == char:
-                bool_list[i+offset] = True
-                pass
-            pass
-    
-        # itemset:list[tuple[int,bool]] = []
-        # for the_bool in bool_list:
-        #     itemset.append((addr, the_bool))
-        #     pass
-   
-        assert self._len() == itemset.__len__()
-        for i in range(self._len()):
-            self.data[i].data.append((addr, bool_list[i]))
-            pass
-        pass
-    
-
-    
-if "test" and True:
-    if "sort" and True:
-        datasetset = Dataset_Set([Dataset([(2,True),(1,True),]), Dataset([(33,True),(11,True),]), ])
-        datasetset.sort()
-        assert datasetset.data[0].data == [(1,True),(2,True),]
-        assert datasetset.data[1].data == [(11,True),(33,True),]
-        pass
-    
-    if "binary_into_boollist" and True:
-        boollist = Dataset_Set.binary_into_boollist(0b1010,4)
-        assert boollist == [True,False,True,False,]
-        boollist = Dataset_Set.binary_into_boollist(0b1010,6)
-        assert boollist == [False,False,True,False,True,False,]
-        boollist = Dataset_Set.binary_into_boollist(0b11010,6)
-        assert boollist == [False,True,True,False,True,False,]
-        pass
-    if "boollist_into_itemset" and True:
-        boollist = Dataset_Set.binary_into_boollist(0b1010, 6)
-        itemset = Dataset_Set.boollist_into_itemset(boollist, 123)  
-        assert itemset == [(123,False),(123,False),(123,True),(123,False),(123,True),(123,False),]
-        pass
-
-    
-    
-    
-    pass
-
-def get_adder_testset_partly(input_bit_amount:int, proportion = 0.2):#->list[list[tuple[int,bool]]]:
-    total_bit_amount = input_bit_amount*2+1
-    total_result_bit_amount = input_bit_amount+1
-    one_shift_by__total_bit_amount = 1<<total_bit_amount
-    assert proportion<0.8, "don't torture the also. You don't need a 0.8+ proportion. Or get some other also."
-    assert proportion>0.
-    amount_needed = int(proportion * one_shift_by__total_bit_amount)
-    if 0 == amount_needed:
-        amount_needed = 1
-        pass
-    
-    assert amount_needed > 0
-    temp_set = set()
-    while True:
-        a_rand_num = random.randint(0, one_shift_by__total_bit_amount-1)
-        temp_set.add(a_rand_num)
-        if temp_set.__len__() == amount_needed:
-            break
-        pass#while
-    #1111111111111111w 继续。
-        
-        
-    
     
 if "test" and True:
     assert False
     get_adder_testset_partly()
     
     
-        
-    
-
-    
-
-
-    
-    
-    
-    
-    
-    
-    
     
 
 assert False , "要不要做一个专门的fake xor检测？？？"
-assert False , "那加法乘法那些来验证一下。包括外延能力。"
 
 
 
-# if "check_all_addr" and True:
-#     a_DatasetField = DatasetField(bitmask = 0b11000, addr = 0b01001, FieldLength=5, bits_already_in_use=2, \
-#                     dataset = [
-#         (0b01000,True),(0b01001,True),(0b01010,True),(0b01011,True),
-#         (0b01100,True),(0b01101,True),(0b01110,True),(0b01111,True),
-#                     ])
-#     a_DatasetField._check_all_addr()
-#     #继续。加上自动推荐，加上自动的检查和让更深的子域自动检查。
-#     pass    
-
-# if "detect" and True:
-# a = test()
-# a.FieldLength = 5
-# a.bitmask = 0b11000
-# a.addr = 0b01000
-# a.dataset = [
-#     (0b01000,True),(0b01001,True),(0b01010,True),(0b01011,False),
-#     (0b01100,True),(0b01101,True),(0b01110,False),#(0b01111,False),
-#                 ]
-# a._check_all_addr()
-# a.detect_best_bit_to_split()
-# print()
 
