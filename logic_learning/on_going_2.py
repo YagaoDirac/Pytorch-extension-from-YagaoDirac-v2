@@ -1569,7 +1569,7 @@ class DatasetField:
             return (True, total_amount, error_count)
             pass#else of if -1 == total_amount
         
-        s#end of function.
+        #end of function.
             
             
     def valid_irr(self, dataset:Dataset, total_amount_irr = -1, 
@@ -2804,7 +2804,47 @@ class Dataset_Set:
             pass
         pass#end of function
     
-    def get_readable___check_btw(self)->str:
+    def get_as_int___check_btw(self)->list[tuple[int,int]]:
+        '''return list[(addr, bools as int)]'''
+        #check
+        self._check()
+        assert int(True) == 1
+        assert int(False) == 0
+        
+        result_list:list[tuple[int,int]] = []
+        for i in range(self.data[0]._len()):
+            addr = self.data[0].data[i][0]
+            result_for_this_i = 0
+            for ii_left_to_right in range(self._len()):
+                content = int(self.data[ii_left_to_right].data[i][1])
+                ii_right_to_left = (self._len() -1) - ii_left_to_right
+                shifted_content = content<<(ii_right_to_left)
+                result_for_this_i += shifted_content
+                pass
+            result_list.append((addr, result_for_this_i))
+            pass#i
+        return result_list
+    
+    
+    def get_readable___check_btw(self, addr_also_as_binary = False)->str:
+        _temp_result_list = self.get_as_int___check_btw()
+        _temp_str_list:list[str] = []
+        for _addr_result in _temp_result_list:
+            if addr_also_as_binary:
+                addr_str = f"{_addr_result[0]:b}"
+                pass
+            else:
+                addr_str = f"{_addr_result[0]}"
+                pass
+            
+            content = f"{_addr_result[1]:b}"
+            _content_len = content.__len__()
+            needs_zeros = self._len()-_content_len
+            _temp_str_list.append(f"{addr_str}:{"0"*needs_zeros}{_addr_result[1]:b}")
+            pass
+        result_str = ", ".join(_temp_str_list)
+        return result_str
+        
         #check
         self._check()
         
@@ -2829,8 +2869,8 @@ class Dataset_Set:
         self.is_data_sorted = True
         pass
     
-    def add_binary(self, input:int, addr:int):
-        the_str = f"{input:b}"
+    def add_binary(self, addr:int, the_bits:int):
+        the_str = f"{the_bits:b}"
         assert the_str.__len__()<=self._len()
         bool_list = []
         for _ in range(self._len()):
@@ -2862,25 +2902,121 @@ class Dataset_Set:
             _greatest_addr = _greatest_addr >>1
             pass
         return result
+    
+    
+    @staticmethod
+    def explain_as_full_adder(input:int, input_bit_amount:int, safety_check = True)->tuple[int,int,int,int]:
+        '''return (in1, in2, in_carry, out)'''
+        if safety_check:
+            assert input_bit_amount>0
+            _input = input
+            _input_binary_length = 0
+            while _input>0:
+                _input_binary_length = _input_binary_length +1
+                #tail
+                _input = _input >>1
+                pass
+            assert _input_binary_length<=(input_bit_amount*2+1)
+            pass#safety
         
+        mask_1 = ((1<<input_bit_amount)-1)<<(input_bit_amount+1)
+        mask_2 = ((1<<input_bit_amount)-1)<<1
+        mask_c = 1
+        
+        number_1 = (input&mask_1)>>input_bit_amount+1
+        number_2 = (input&mask_2)>>1
+        number_c = input&mask_c
+        sum = number_1+number_2+number_c
+        return (number_1, number_2, number_c, sum)
+    
+    @staticmethod
+    def get_full_adder_testset_partly(input_bit_amount:int, proportion = 0.2):#->list[list[tuple[int,bool]]]:
+        '''return (datasetset, FieldLength)'''
+        total_bit_amount = input_bit_amount*2+1
+        one_shift_by__total_bit_amount = 1<<total_bit_amount
+        assert proportion<0.8, "Don't torture the also. You don't need a 0.8+ proportion. Or get some other also."
+        assert proportion>0.
+        amount_needed = int(proportion * one_shift_by__total_bit_amount)
+        if 0 == amount_needed:
+            amount_needed = 1
+            pass
+        assert amount_needed > 0
+        
+        addr_set = set()
+        while True:
+            a_rand_num = random.randint(0, one_shift_by__total_bit_amount-1)
+            addr_set.add(a_rand_num)
+            if addr_set.__len__() == amount_needed:
+                break
+            pass#while
+        
+        addr_list = list(addr_set)
+        addr_list.sort()
+        
+        # mask_1 = ((1<<input_bit_amount)-1)<<(input_bit_amount+1)
+        # mask_2 = ((1<<input_bit_amount)-1)<<1
+        # mask_c = 1
+        
+        FieldLength = input_bit_amount*2+1
+        datasetset = Dataset_Set(input_bit_amount+1)
+        for addr in addr_list:
+            # number_1 = (addr&mask_1)>>input_bit_amount+1
+            # number_2 = (addr&mask_2)>>1
+            # number_c = addr&mask_c
+            # sum = number_1+number_2+number_c
+            _result_tuple = Dataset_Set.explain_as_full_adder(addr, input_bit_amount, False)
+            datasetset.add_binary(addr, _result_tuple[3])
+            pass
+        
+        datasetset.sort()#maybe this is repeating?
+        return (datasetset,FieldLength)
+
+
     #end of class
     
 if "test" and True:
     datasetset = Dataset_Set(3)
-    datasetset.add_binary(0b111, addr=111)
-    datasetset.add_binary(0b100, addr=100)
-    datasetset.add_binary(0b101, addr=101)
-    datasetset.add_binary(0b001, addr=1)
+    datasetset.add_binary(addr=111, the_bits = 0b111)
+    datasetset.add_binary(addr=100, the_bits = 0b100)
+    datasetset.add_binary(addr=101, the_bits = 0b101)
+    datasetset.add_binary(addr=1  , the_bits = 0b001)
     datasetset.sort()
+    _int_tuple = datasetset.get_as_int___check_btw()
+    assert _int_tuple[0][0] == 1
+    assert _int_tuple[0][1] == 1
+    assert _int_tuple[1][0] == 100
+    assert _int_tuple[1][1] == 0b100
+    assert _int_tuple[2][0] == 101
+    assert _int_tuple[2][1] == 0b101
+    assert _int_tuple[3][0] == 111
+    assert _int_tuple[3][1] == 0b111
+    readable_str = datasetset.get_readable___check_btw()
+    assert readable_str == "1:001, 100:100, 101:101, 111:111"
+    readable_str = datasetset.get_readable___check_btw(addr_also_as_binary = True)
+    assert readable_str == "1:001, 1100100:100, 1100101:101, 1101111:111"
     # print(datasetset.data[0].data)
     # print(datasetset.data[1].data)
     # print(datasetset.data[2].data)
-    # print(datasetset.get_readable___check_btw())
-    1w
     assert datasetset.get_recommended_FieldLength() == 7
     pass
 
-
+if "test" and True:
+    _result_tuple_int_int_int_int = Dataset_Set.explain_as_full_adder(0b00001,2)
+    assert _result_tuple_int_int_int_int == (0,0,1,1)
+    _result_tuple_int_int_int_int = Dataset_Set.explain_as_full_adder(0b00101,2)
+    assert _result_tuple_int_int_int_int == (0,2,1,3)
+    _result_tuple_int_int_int_int = Dataset_Set.explain_as_full_adder(0b11001,2)
+    assert _result_tuple_int_int_int_int == (3,0,1,4)
+    _result_tuple_int_int_int_int = Dataset_Set.explain_as_full_adder(0b01010,2)
+    assert _result_tuple_int_int_int_int == (1,1,0,2)
+    _result_tuple_int_int_int_int = Dataset_Set.explain_as_full_adder(0b11111,2)
+    assert _result_tuple_int_int_int_int == (3,3,1,7)
+    
+    a_Dataset_Set, FieldLength = Dataset_Set.get_full_adder_testset_partly(2,0.2)
+    #print(a_Dataset_Set.get_readable___check_btw(True))
+    assert a_Dataset_Set._len() == 3
+    assert FieldLength == 5
+    pass
 
 
 
@@ -2936,34 +3072,73 @@ class DatasetField_Set:
     
 if "test" and True:
     a_Dataset_Set = Dataset_Set(3)
-    a_Dataset_Set.add_binary(0b111, 11)
-    a_Dataset_Set.add_binary(0b110, 15)
-    a_Dataset_Set.add_binary(0b100, 21)
-    a_Dataset_Set.add_binary(0b000, 25)
+    a_Dataset_Set.add_binary(11, 0b111)
+    a_Dataset_Set.add_binary(15, 0b110)
+    a_Dataset_Set.add_binary(21, 0b100)
+    a_Dataset_Set.add_binary(25, 0b000)
     a_Dataset_Set.sort()
+    FieldLength = a_Dataset_Set.get_recommended_FieldLength()
+    a_DatasetField_Set = DatasetField_Set(FieldLength, a_Dataset_Set)
+    assert a_DatasetField_Set._len() == 3
+    _result_tuple_list = a_DatasetField_Set.valid(a_Dataset_Set)
+    assert [(4, 0), (4, 0), (4, 0), ] == _result_tuple_list
     
-    a_DatasetField_Set = DatasetField_Set(a_Dataset_Set)
+    a_Dataset_Set = Dataset_Set(3)
+    a_Dataset_Set.add_binary(11, 0b111)
+    a_Dataset_Set.add_binary(15, 0b110)
+    a_Dataset_Set.sort()
+    _result_tuple_list = a_DatasetField_Set.valid(a_Dataset_Set)
+    assert [(2, 0), (2, 0), (2, 0), ] == _result_tuple_list
     
+    a_Dataset_Set = Dataset_Set(3)
+    a_Dataset_Set.add_binary(11, 0b111)
+    a_Dataset_Set.add_binary(15, 0b110)
+    a_Dataset_Set.add_binary(21, 0b100)
+    a_Dataset_Set.add_binary(25, 0b000)
+    a_Dataset_Set.sort()
+    FieldLength = a_Dataset_Set.get_recommended_FieldLength()
+    a_DatasetField_Set = DatasetField_Set(FieldLength, a_Dataset_Set, leaf_keep_dataset = True)
+    assert a_DatasetField_Set._len() == 3
+    _result_tuple_list = a_DatasetField_Set.valid_irr(a_Dataset_Set, 10)
+    assert [(10, 0), (10, 0), (10, 0), ] == _result_tuple_list, "this is not stable. Usually, simply retry and the test passes."
+    pass
+    
+if "a real extrapolation test. You know, it's exciting." and True:
+    if "small scale validation" and True:
+        bits_count = 1
+        trainingset_proportion = 0.3
+        testset_proportion = 0.5
+        #preparing the DatasetField object.
+        trainingset_Set, FieldLength = Dataset_Set.get_full_adder_testset_partly(bits_count, trainingset_proportion)
+        a_DatasetField_Set = DatasetField_Set(FieldLength, trainingset_Set)
+        training_correctness_list = a_DatasetField_Set.valid(trainingset_Set)
+        for training_correctness in training_correctness_list:
+            assert training_correctness[0] == trainingset_Set.data[0].data.__len__()
+            assert training_correctness[1] == 0
+            pass
+        
+        #now the real excitement.
+        testset_Set, _ = Dataset_Set.get_full_adder_testset_partly(bits_count, testset_proportion)
+        test_correctness_list = a_DatasetField_Set.valid(testset_Set)
 
-def ____unfinished____get_adder_testset_partly(input_bit_amount:int, proportion = 0.2):#->list[list[tuple[int,bool]]]:
-    total_bit_amount = input_bit_amount*2+1
-    total_result_bit_amount = input_bit_amount+1
-    one_shift_by__total_bit_amount = 1<<total_bit_amount
-    assert proportion<0.8, "Don't torture the also. You don't need a 0.8+ proportion. Or get some other also."
-    assert proportion>0.
-    amount_needed = int(proportion * one_shift_by__total_bit_amount)
-    if 0 == amount_needed:
-        amount_needed = 1
-        pass
+
+        print(f"training set:{trainingset_Set.get_readable___check_btw(True)}")
+        print(f"bit0:{a_DatasetField_Set.fields[0].readable_as_tree()}")
+        print(f"bit1:{a_DatasetField_Set.fields[1].readable_as_tree()}")
+        print(f"test set:{testset_Set.get_readable___check_btw(True)}")
+        
+        #print the result
+        print(f"Amount of total possible cases:{1<<(bits_count*2+1)}, training with {trainingset_proportion}({trainingset_Set.data[0]._len()}), ", end="")
+        print(f"(test with {testset_proportion}({testset_Set.data[0].data.__len__()})):")
+        print("from most significant bit to least. Accuracy is shown below.")
+        for i in range(test_correctness_list.__len__()):
+            test_correctness = test_correctness_list[i]
+            print(f"bit{i}:{1-(test_correctness[1]/test_correctness[0])}, ")
+            pass    
     
-    assert amount_needed > 0
-    temp_set = set()
-    while True:
-        a_rand_num = random.randint(0, one_shift_by__total_bit_amount-1)
-        temp_set.add(a_rand_num)
-        if temp_set.__len__() == amount_needed:
-            break
-        pass#while
+    1w  留个悬念，真的有效吗？
+    pass    
+    
     
     
     
