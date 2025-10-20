@@ -72,8 +72,43 @@ if False:
     pass
                     
 
-
-
+def count_ones(input:int)->int:
+    assert input>=0
+    result = 0
+    while input>0:
+        result = result +1
+        #tail
+        input = input >>1
+        pass
+    return result
+if "test" and False:
+    assert count_ones(0b0) == 0
+    assert count_ones(0b1) == 1
+    assert count_ones(0b10) == 2
+    assert count_ones(0b11) == 2
+    assert count_ones(0b100) == 3
+    assert count_ones(0b10000) == 5
+    assert count_ones(0b10010) == 5
+    assert count_ones(0b10110) == 5
+    pass
+    
+def readable_binary(input:int, pad_to_length = 0)->str:
+    raw_str = f"{input:b}"
+    needs_zeros = pad_to_length - raw_str.__len__()
+    if needs_zeros>0:
+        return "0"*needs_zeros+raw_str
+    else:
+        return raw_str
+    pass#end of function
+if "test" and False:
+    assert readable_binary(0b1) == "1"
+    assert readable_binary(0b0) == "0"
+    assert readable_binary(0b10) == "10"
+    assert readable_binary(0b1,3) == "001"
+    assert readable_binary(0b0,3) == "000"
+    assert readable_binary(0b10,3) == "010"
+    assert readable_binary(0b10,5) == "00010"
+    pass
 
 
 
@@ -171,20 +206,24 @@ if "test" and False:
 
 
 class Dataset:
+    max_input_bits:int
     data:list[tuple[int,bool]]
     is_sorted:bool
-    def __init__(self, input:Optional[list[tuple[int,bool]]] = None, is_sorted:bool = False):
+    def __init__(self, max_input_bits:int, input:Optional[list[tuple[int,bool]]] = None, is_sorted:bool = False):
+        self.max_input_bits = max_input_bits
         self.data = input or []
-        if self.data.__len__()<2:
-            self.is_sorted = True
-            pass
-        else:
-            self.is_sorted = is_sorted
-            pass
-        pass
+        # if self.data.__len__()<2: not needed.
+        #     self.is_sorted = True
+        #     pass
+        # else:
+        #     self.is_sorted = is_sorted
+        #     pass
+        # pass
+        self.is_sorted = False
+        self.safety_check___sort_btw()
     
     @staticmethod
-    def rand__sorted(FieldLength:int, p_False:float, p_True:float, seed:Optional[int]=None)->"Dataset":
+    def rand__sorted(FieldLength_of_input:int, p_False:float, p_True:float, seed:Optional[int]=None)->"Dataset":
         '''The result looks like addr:value. The addr is naturally sorted???
         
         For debug purpose.'''
@@ -193,7 +232,7 @@ class Dataset:
             random.seed(seed)
             pass
         p_both = p_True + p_False
-        for i in range(1<<FieldLength):
+        for i in range(1<<FieldLength_of_input):
             r = random.random()
             if r < p_False:
                 dataset.append((i, False))
@@ -203,25 +242,26 @@ class Dataset:
                 # irrelevant items are not in dataset
                 pass
             pass
-        return Dataset(dataset)
+        return Dataset(FieldLength_of_input, dataset)
     
     @staticmethod
-    def from_str(input:str, recommend_length_according_to_only_relevent_items = False)->tuple["Dataset",int]:
+    def from_str(input:str, recommend_length_according_to_only_relevent_items = False, increase_input_bit_count_to = -1)->"Dataset":
         '''return (dataset, min of field length)'''
         if input.__len__() == 0:
-            return (Dataset(), 0)#the same behavior as "_"
+            assert increase_input_bit_count_to>=0
+            return Dataset(increase_input_bit_count_to)
         
         
-        result_dataset:list[tuple[int,bool]] = []
+        raw_list:list[tuple[int,bool]] = []
         addr = 0
         for value in input:
             match value:
                 case "1":
-                    result_dataset.append((addr,True))
+                    raw_list.append((addr,True))
                     addr = addr +1
                     pass
                 case "0":
-                    result_dataset.append((addr,False))
+                    raw_list.append((addr,False))
                     addr = addr +1
                     pass
                 case "_":
@@ -237,24 +277,45 @@ class Dataset:
                     assert False, "unreachable, unknown char in the input. use only 1, 0, _ to represent true, false and irrelevant."
             pass
         
-        if result_dataset.__len__() == 0:
-            return (Dataset(), 0)
-        min_of_field_len = 0
+        if raw_list.__len__() == 0:
+            assert increase_input_bit_count_to>=0
+            return Dataset(increase_input_bit_count_to)
         
+        min_of_field_len = 0
         if recommend_length_according_to_only_relevent_items:
-            _temp_last_addr = result_dataset[-1][0]
-        else:#including irr at tail of the string.
-            _temp_last_addr = input.__len__()-1
-        while _temp_last_addr!=0:
-            min_of_field_len = min_of_field_len +1
-            #tail
-            _temp_last_addr = _temp_last_addr >>1
+            temp_last_addr = raw_list[-1][0]
             pass
+        else:#including irr at tail of the string.
+            temp_last_addr = input.__len__()-1
+            pass
+        min_of_field_len = count_ones(temp_last_addr)
         pass
-        return (Dataset(result_dataset, True), min_of_field_len)
+        result = Dataset(min_of_field_len, raw_list, True)
+        if increase_input_bit_count_to>0:
+            result.increase_input_bit_count(increase_input_bit_count_to)
+            pass
+        return result
 
-    def _len(self)->int:
-        return self.data.__len__()
+    def increase_input_bit_count(self, new_count:int):
+        assert new_count>self.max_input_bits
+        self.max_input_bits = new_count
+        pass
+    
+    def get_input_bits(self)->int:
+        return self.max_input_bits
+    def get_output_bits(self)->int:
+        return 1
+
+    def add_addr(self, input_addr:int, output_bool:bool, safety_check = True):
+        if safety_check:
+            assert count_ones(input_addr)<= self.max_input_bits
+            for _addr_result in self.data:
+                assert _addr_result[0] != input_addr
+                pass
+            pass
+        self.data.append((input_addr, output_bool))
+        self.is_sorted = False
+        pass
     
     def sort(self):
         self.data.sort(key=lambda item:item[0])
@@ -269,7 +330,7 @@ class Dataset:
         #binary search
         found = False
         left = 0
-        right = self._len()-1
+        right = self.data.__len__()-1
         while left<=right:
             mid:int = (left+right)//2
             temp_addr = self.data[mid][0]
@@ -294,7 +355,7 @@ class Dataset:
             self.sort()
             pass
         
-        if self._len() == 0:
+        if self.data.__len__() == 0:
             return (False, [])
         index = 0
         irr_addr:list[int] = []
@@ -355,28 +416,89 @@ class Dataset:
     
     def get_subset(self, bitmask:int, addr:int)->"Dataset":
         assert is_addr_valid(bitmask, addr)
-        new_data:list[tuple[int,bool]] = []
+        assert self.is_sorted
+        new_raw_data:list[tuple[int,bool]] = []
         for item in self.data:
             masked_addr_of_item = item[0]&bitmask
             if masked_addr_of_item == addr:
-                new_data.append(item)
+                new_raw_data.append(item)
                 pass
             pass
-        return Dataset(new_data, True)
+        return Dataset(self.max_input_bits, new_raw_data, True)
     
-if "find addr" and False:
-    a_Dataset = Dataset([(1,True), (3,True), (9,True), ])
+    def safety_check___sort_btw(self):
+        if not self.is_sorted:
+            self.data.sort(key= lambda item:item[0])
+            pass
+        for i in range(self.data.__len__()-1):
+            item_1 = self.data[i]
+            item_2 = self.data[i+1]
+            assert item_1[0] != item_2[0]
+            pass
+        _count_ones = count_ones(self.data[-1][0])
+        assert self.max_input_bits>=_count_ones
+        pass #end of function
+    
+    def readable_str(self, addr_as_binary = True, pad_with_zero = True, add_title = True)->str:
+        pad_to = 0
+        if pad_with_zero:
+            pad_to = self.max_input_bits
+            pass
+        
+        result_list:list[str] =  []
+        for _addr_result in self.data:
+            addr_for_this_iter = readable_binary(_addr_result[0], pad_to)
+            str_for_this_iter = f"{addr_for_this_iter}:{int(_addr_result[1])}"            
+            result_list.append(str_for_this_iter)
+            pass
+        result_str = ", ".join(result_list)
+        if add_title:
+            result_str = "<Dataset>"+result_str
+            pass
+        return result_str
+    
+    pass
+    
+if "add_addr" and True:
+    a_Dataset = Dataset(2, [(2,True),(1,True),(0,True),])
+    #a_Dataset = Dataset(2, [(2,True),(1,True),(2,True),])
+    
+    a_Dataset = Dataset(3, [(0,True),(1,True),(2,True),])
+    a_Dataset.add_addr(4,True)
+    #a_Dataset.add_addr(4,True)
+    a_Dataset.add_addr(4,True,False)
+    #a_Dataset.safety_check___sort_btw()
+    
+    a_Dataset = Dataset(2, [(0,True),(1,True),(2,True),])
+    assert a_Dataset.readable_str(add_title=False) == "00:1, 01:1, 10:1"
+    assert a_Dataset.get_input_bits() == 2
+    assert a_Dataset.get_output_bits() == 1
+    a_Dataset.increase_input_bit_count(3)
+    assert a_Dataset.get_input_bits() == 3
+    assert a_Dataset.get_output_bits() == 1
+    #a_Dataset.increase_input_bit_count(3)
+    
+    assert a_Dataset.find_addr(0) == (True, 0)
+    assert a_Dataset.find_addr(1) == (True, 1)
+    assert a_Dataset.find_addr(3)[0] == False
+    #assert a_Dataset.find_addr(3) == (False, 2)
+    assert a_Dataset.find_addr(33)[0] == False
+    #assert a_Dataset.find_addr(33) == (False, 2)
+    pass
+    
+if "find addr" and True:
+    a_Dataset = Dataset(4, [(1,True), (3,True), (9,True), ])
     assert a_Dataset.find_addr(0)[0] == False
     assert a_Dataset.find_addr(2)[0] == False
     assert a_Dataset.find_addr(5)[0] == False
-    assert a_Dataset.find_addr(1)[0]
-    assert a_Dataset.find_addr(3)[0]
-    assert a_Dataset.find_addr(9)[0]
+    assert a_Dataset.find_addr(1) == (True, 0)
+    assert a_Dataset.find_addr(3) == (True, 1)
+    assert a_Dataset.find_addr(9) == (True, 2)
     _temp_set = a_Dataset.get_addr_as_set()
     assert _temp_set == {1,3,9}
     pass
     
-if "test" and False:
+if "test" and True:
     ds2 = Dataset.rand__sorted(4, 0.1, 0.1, 123)
     print(ds2)
     ds3 = Dataset.rand__sorted(4, 0.1, 0.1, 123)
@@ -385,7 +507,103 @@ if "test" and False:
     print(ds4)
     pass
 
-if "test slow" and False:
+if "test" and True:
+    a_Dataset = Dataset.from_str("1______",True)
+    assert a_Dataset.data           == [(0,True)]
+    assert a_Dataset.max_input_bits == 0
+    
+    a_Dataset_11a = Dataset.from_str("1______",False)
+    assert a_Dataset_11a.data           == [(0,True)]
+    assert a_Dataset_11a.max_input_bits == 3
+    
+    a_Dataset_0 = Dataset.from_str("")
+    a_Dataset_1 = Dataset.from_str("10011")
+    a_Dataset_1a = Dataset.from_str("10 0,,11")
+    assert a_Dataset_1.data == a_Dataset_1a.data
+    assert a_Dataset_1.max_input_bits == a_Dataset_1a.max_input_bits
+    a_Dataset_tuple_2 = Dataset.from_str("1001")
+    a_Dataset_tuple_3 = Dataset.from_str("100")
+    a_Dataset_tuple_4 = Dataset.from_str("101")
+    a_Dataset_tuple_5 = Dataset.from_str("00000")
+    a_Dataset_tuple_6 = Dataset.from_str("_")
+    assert a_Dataset_tuple_6[0].data == []
+    assert a_Dataset_tuple_6[1] == 0
+    a_Dataset_tuple_7 = Dataset.from_str("__")
+    a_Dataset_tuple_8 = Dataset.from_str("1_")
+    a_Dataset_tuple_8b = Dataset.from_str("_1")
+    a_Dataset_tuple_9 = Dataset.from_str("1_01")
+    a_Dataset_tuple_10 = Dataset.from_str("1_01_")
+    a_Dataset_tuple_10a = Dataset.from_str("1_  ,01_")
+    assert a_Dataset_tuple_10[0].data == a_Dataset_tuple_10a[0].data
+    assert a_Dataset_tuple_10[1] == a_Dataset_tuple_10a[1]
+    pass
+
+if "test" and True:
+    a_Dataset, FieldLength = Dataset.from_str("1001")
+    FieldLength = a_Dataset.add_const_bit_into_addr(FieldLength,1,True)
+    assert a_Dataset.data[0b00][0] == 0b010
+    assert a_Dataset.data[0b01][0] == 0b011
+    assert a_Dataset.data[0b10][0] == 0b110
+    assert a_Dataset.data[0b11][0] == 0b111
+    
+    a_Dataset, FieldLength = Dataset.from_str("1001")
+    FieldLength = a_Dataset.add_const_bit_into_addr(FieldLength,1,False)
+    assert a_Dataset.data[0b00][0] == 0b000
+    assert a_Dataset.data[0b01][0] == 0b001
+    assert a_Dataset.data[0b10][0] == 0b100
+    assert a_Dataset.data[0b11][0] == 0b101
+    
+    a_Dataset, FieldLength = Dataset.from_str("101")
+    FieldLength = a_Dataset.add_const_bit_into_addr(FieldLength,1,True)
+    assert a_Dataset.data[0b00][0] == 0b010
+    assert a_Dataset.data[0b01][0] == 0b011
+    assert a_Dataset.data[0b10][0] == 0b110
+
+    a_Dataset, FieldLength = Dataset.from_str("10_1")
+    FieldLength = a_Dataset.add_const_bit_into_addr(FieldLength,1,True)
+    assert a_Dataset.data[0b00][0] == 0b010
+    assert a_Dataset.data[0b01][0] == 0b011
+    assert a_Dataset.data[0b10][0] == 0b111
+    
+    a_Dataset= Dataset([(0,True)])
+    FieldLength = a_Dataset.add_const_bit_into_addr(5,0,True)
+    assert a_Dataset.data[0][0] == 0b1
+    a_Dataset= Dataset([(0,True)])
+    FieldLength = a_Dataset.add_const_bit_into_addr(5,1,True)
+    assert a_Dataset.data[0][0] == 0b10
+    a_Dataset= Dataset([(0,True)])
+    FieldLength = a_Dataset.add_const_bit_into_addr(5,3,True)
+    assert a_Dataset.data[0][0] == 0b1000
+    a_Dataset= Dataset([(0,True)])
+    FieldLength = a_Dataset.add_const_bit_into_addr(5,5,True)
+    #new_dataset = add_const_bit_into_addr(5,6,True, [(0,True)])
+    
+    a_Dataset= Dataset([(0b11111,True)])
+    FieldLength = a_Dataset.add_const_bit_into_addr(5,0,False)
+    assert a_Dataset.data[0][0] == 0b111110
+    a_Dataset= Dataset([(0b11111,True)])
+    FieldLength = a_Dataset.add_const_bit_into_addr(5,3,False)
+    assert a_Dataset.data[0][0] == 0b110111
+    pass
+
+if "test" and True:
+    a_Dataset = Dataset([(0,True),(1,True),(2,True),(3,True),])
+    dataset_2 = a_Dataset.get_subset(bitmask=0b10, addr=0b00)
+    assert dataset_2.data == [(0,True),(1,True),]
+    dataset_2 = a_Dataset.get_subset(bitmask=0b10, addr=0b10)
+    assert dataset_2.data == [(2,True),(3,True),]
+    #dataset_2 = a_Dataset.get_subset(dataset,bitmask=0b10, addr=0b11)
+    dataset_2 = a_Dataset.get_subset(bitmask=0b1, addr=0b0)
+    assert dataset_2.data == [(0,True),(2,True),]
+    dataset_2 = a_Dataset.get_subset(bitmask=0b1, addr=0b1)
+    assert dataset_2.data == [(1,True),(3,True),]
+    dataset_2 = a_Dataset.get_subset(bitmask=0b11, addr=0b01)
+    assert dataset_2.data == [(1,True),]
+    dataset_2 = a_Dataset.get_subset(bitmask=0b11, addr=0b11)
+    assert dataset_2.data == [(3,True),]
+    pass
+
+if "test slow" and True:
     #special cases.
     #empty
     a_dataset = Dataset()
@@ -471,103 +689,6 @@ if "test slow" and False:
             pass
     
     pass
-
-if "test" and False:
-    a_Dataset_tuple_11 = Dataset.from_str("1______",True)
-    assert a_Dataset_tuple_11[0].data == [(0,True)]
-    assert a_Dataset_tuple_11[1] == 0
-    
-    a_Dataset_tuple_11a = Dataset.from_str("1______",False)
-    assert a_Dataset_tuple_11a[0].data == [(0,True)]
-    assert a_Dataset_tuple_11a[1] == 3
-    
-    a_Dataset_tuple_0 = Dataset.from_str("")
-    a_Dataset_tuple_1 = Dataset.from_str("10011")
-    a_Dataset_tuple_1a = Dataset.from_str("10 0,,11")
-    assert a_Dataset_tuple_1[0].data == a_Dataset_tuple_1a[0].data
-    assert a_Dataset_tuple_1[1] == a_Dataset_tuple_1a[1]
-    a_Dataset_tuple_2 = Dataset.from_str("1001")
-    a_Dataset_tuple_3 = Dataset.from_str("100")
-    a_Dataset_tuple_4 = Dataset.from_str("101")
-    a_Dataset_tuple_5 = Dataset.from_str("00000")
-    a_Dataset_tuple_6 = Dataset.from_str("_")
-    assert a_Dataset_tuple_6[0].data == []
-    assert a_Dataset_tuple_6[1] == 0
-    a_Dataset_tuple_7 = Dataset.from_str("__")
-    a_Dataset_tuple_8 = Dataset.from_str("1_")
-    a_Dataset_tuple_8b = Dataset.from_str("_1")
-    a_Dataset_tuple_9 = Dataset.from_str("1_01")
-    a_Dataset_tuple_10 = Dataset.from_str("1_01_")
-    a_Dataset_tuple_10a = Dataset.from_str("1_  ,01_")
-    assert a_Dataset_tuple_10[0].data == a_Dataset_tuple_10a[0].data
-    assert a_Dataset_tuple_10[1] == a_Dataset_tuple_10a[1]
-    pass
-
-if "test" and False:
-    a_Dataset, FieldLength = Dataset.from_str("1001")
-    FieldLength = a_Dataset.add_const_bit_into_addr(FieldLength,1,True)
-    assert a_Dataset.data[0b00][0] == 0b010
-    assert a_Dataset.data[0b01][0] == 0b011
-    assert a_Dataset.data[0b10][0] == 0b110
-    assert a_Dataset.data[0b11][0] == 0b111
-    
-    a_Dataset, FieldLength = Dataset.from_str("1001")
-    FieldLength = a_Dataset.add_const_bit_into_addr(FieldLength,1,False)
-    assert a_Dataset.data[0b00][0] == 0b000
-    assert a_Dataset.data[0b01][0] == 0b001
-    assert a_Dataset.data[0b10][0] == 0b100
-    assert a_Dataset.data[0b11][0] == 0b101
-    
-    a_Dataset, FieldLength = Dataset.from_str("101")
-    FieldLength = a_Dataset.add_const_bit_into_addr(FieldLength,1,True)
-    assert a_Dataset.data[0b00][0] == 0b010
-    assert a_Dataset.data[0b01][0] == 0b011
-    assert a_Dataset.data[0b10][0] == 0b110
-
-    a_Dataset, FieldLength = Dataset.from_str("10_1")
-    FieldLength = a_Dataset.add_const_bit_into_addr(FieldLength,1,True)
-    assert a_Dataset.data[0b00][0] == 0b010
-    assert a_Dataset.data[0b01][0] == 0b011
-    assert a_Dataset.data[0b10][0] == 0b111
-    
-    a_Dataset= Dataset([(0,True)])
-    FieldLength = a_Dataset.add_const_bit_into_addr(5,0,True)
-    assert a_Dataset.data[0][0] == 0b1
-    a_Dataset= Dataset([(0,True)])
-    FieldLength = a_Dataset.add_const_bit_into_addr(5,1,True)
-    assert a_Dataset.data[0][0] == 0b10
-    a_Dataset= Dataset([(0,True)])
-    FieldLength = a_Dataset.add_const_bit_into_addr(5,3,True)
-    assert a_Dataset.data[0][0] == 0b1000
-    a_Dataset= Dataset([(0,True)])
-    FieldLength = a_Dataset.add_const_bit_into_addr(5,5,True)
-    #new_dataset = add_const_bit_into_addr(5,6,True, [(0,True)])
-    
-    a_Dataset= Dataset([(0b11111,True)])
-    FieldLength = a_Dataset.add_const_bit_into_addr(5,0,False)
-    assert a_Dataset.data[0][0] == 0b111110
-    a_Dataset= Dataset([(0b11111,True)])
-    FieldLength = a_Dataset.add_const_bit_into_addr(5,3,False)
-    assert a_Dataset.data[0][0] == 0b110111
-    pass
-
-if "test" and False:
-    a_Dataset = Dataset([(0,True),(1,True),(2,True),(3,True),])
-    dataset_2 = a_Dataset.get_subset(bitmask=0b10, addr=0b00)
-    assert dataset_2.data == [(0,True),(1,True),]
-    dataset_2 = a_Dataset.get_subset(bitmask=0b10, addr=0b10)
-    assert dataset_2.data == [(2,True),(3,True),]
-    #dataset_2 = a_Dataset.get_subset(dataset,bitmask=0b10, addr=0b11)
-    dataset_2 = a_Dataset.get_subset(bitmask=0b1, addr=0b0)
-    assert dataset_2.data == [(0,True),(2,True),]
-    dataset_2 = a_Dataset.get_subset(bitmask=0b1, addr=0b1)
-    assert dataset_2.data == [(1,True),(3,True),]
-    dataset_2 = a_Dataset.get_subset(bitmask=0b11, addr=0b01)
-    assert dataset_2.data == [(1,True),]
-    dataset_2 = a_Dataset.get_subset(bitmask=0b11, addr=0b11)
-    assert dataset_2.data == [(3,True),]
-    pass
-
 
 
 
@@ -770,7 +891,7 @@ class DatasetField:
             pass
         
         # only_irr 1, is dataset empty. If true, it's a leaf node. [return]
-        if dataset._len() == 0:
+        if dataset.data.__len__() == 0:
             self.ready_for_lookup = True
             self.has_1 = False
             self.has_0 = False
@@ -943,7 +1064,7 @@ class DatasetField:
         score_of_xor_list_from_right_side:list[int] = []
         score_of_xor = 0
         assert self.dataset is not None
-        for index_1 in range(0, self.dataset._len(), 2):
+        for index_1 in range(0, self.dataset.data.__len__(), 2):
             '''case 1, last bit.
             0and1, 2and3, ind2-ind1 is 1. step is 1??, chunk is 2.'''
             index_2 = index_1+1
@@ -965,7 +1086,7 @@ class DatasetField:
             score_of_xor = 0
             index_2_minus_index_1 = 1<<i #this is also half chunk size.
             chunk_size = index_2_minus_index_1<<1
-            for chunk_start_addr in range(0, self.dataset._len(), chunk_size):
+            for chunk_start_addr in range(0, self.dataset.data.__len__(), chunk_size):
                 chunk_start_addr_plus_half_chunk_size = chunk_start_addr+index_2_minus_index_1#
                 for index_1 in range(chunk_start_addr, chunk_start_addr_plus_half_chunk_size):
                     index_2 = index_1 + index_2_minus_index_1
@@ -980,7 +1101,7 @@ class DatasetField:
             score_of_xor_list_from_right_side.append(score_of_xor)
             pass#for i
         
-        min_of_score_list____from_right_side = self.dataset._len()# the max of this is len/2, so this is big enough.
+        min_of_score_list____from_right_side = self.dataset.data.__len__()# the max of this is len/2, so this is big enough.
         arg_min_of_score_list____from_right_side = -1
         for i in range(score_of_xor_list_from_right_side.__len__()):
             item = score_of_xor_list_from_right_side[i]
@@ -990,7 +1111,7 @@ class DatasetField:
                 pass
             pass
         
-        if self.dataset._len()/2 == min_of_score_list____from_right_side:
+        if self.dataset.data.__len__()/2 == min_of_score_list____from_right_side:
             '''true xor'''
             '''return(is full xor, needs a not after xor(if is full xor), best bit to split from_right_side(if not a full xor))'''
             needs_not_after_xor = self.dataset.data[0][1]#result of the pure not addr.
@@ -1199,7 +1320,7 @@ class DatasetField:
             and the total possible number is 1<<N.'''
             
         assert self.dataset is not None
-        length = self.dataset._len()
+        length = self.dataset.data.__len__()
         total_possible = 1<<(self.FieldLength-self.bits_already_in_use)
         result = total_possible-length
         return result
@@ -1273,14 +1394,14 @@ class DatasetField:
         
         #这是一幅对联
         true_part = DatasetField(bitmask = new_bitmask, addr=true_addr, FieldLength=self.FieldLength,
-            bits_already_in_use = self.bits_already_in_use+1, dataset = Dataset(true_dataset, True), 
+            bits_already_in_use = self.bits_already_in_use+1, dataset = Dataset(self.FieldLength, true_dataset, True), 
             with_suggest = True, suggest_has_1 = true_has_1, suggest_has_0 = true_has_0, 
             _debug__check_all_safety = __check_all_safety,
             leaf_keep_dataset = leaf_keep_dataset, branch_keep_dataset = branch_keep_dataset,
             )
 
         false_part = DatasetField(bitmask = new_bitmask, addr=false_addr, FieldLength=self.FieldLength,
-            bits_already_in_use = self.bits_already_in_use+1, dataset = Dataset(false_dataset, True), 
+            bits_already_in_use = self.bits_already_in_use+1, dataset = Dataset(self.FieldLength, false_dataset, True), 
             with_suggest = True, suggest_has_1 = false_has_1, suggest_has_0 = false_has_0, 
             _debug__check_all_safety = __check_all_safety,
             leaf_keep_dataset = leaf_keep_dataset, branch_keep_dataset = branch_keep_dataset,
@@ -1511,7 +1632,7 @@ class DatasetField:
         assert total_amount!=0
         
         #if the dataset is empty, the field should also be all irr.
-        if dataset._len() == 0:
+        if dataset.data.__len__() == 0:
             if not self.all_irr: 
                 log_the_error(self.FieldLength, dataset)
                 return (False, 1, 1)
@@ -1521,7 +1642,7 @@ class DatasetField:
         assert _last_addr_in_input < (1<<self.FieldLength)
         
         error_count = 0
-        if total_amount>=dataset._len():
+        if total_amount>=dataset.data.__len__():
             total_amount = -1
             pass
         if -1 == total_amount:#valid all.
@@ -1542,12 +1663,12 @@ class DatasetField:
                     error_count = error_count +1
                     pass
                 pass#for
-            return (True, dataset._len(), error_count)
+            return (True, dataset.data.__len__(), error_count)
             pass#if total_amount
         else:#valid random but only part of them.
             _total_amount = total_amount
             while _total_amount>0:
-                item = dataset.data[random.randint(0, dataset._len()-1)]
+                item = dataset.data[random.randint(0, dataset.data.__len__()-1)]
                 temp_tuple = self.lookup(item[0])
                 #assert not temp_tuple[0]
                 if temp_tuple[0]:
@@ -1570,15 +1691,14 @@ class DatasetField:
             pass#else of if -1 == total_amount
         
         #end of function.
-            
-            
+    
     def valid_irr(self, dataset:Dataset, total_amount_irr = -1, 
                 log_the_error_to_file_and_return_immediately = True)->tuple[bool,int,int]:
         '''return (finished_the_check?, check_count, error_count)'''
         assert total_amount_irr!=0
         
         #if the dataset is empty, the field should also be all irr.
-        if dataset._len() == 0:
+        if dataset.data.__len__() == 0:
             if not self.all_irr: 
                 log_the_error(self.FieldLength, dataset)
                 return(False, 1, 1)
@@ -1589,7 +1709,7 @@ class DatasetField:
         assert _last_addr_in_input < (1<<self.FieldLength)
         
         total_possible_amount = 1<<self.FieldLength
-        total_possible_amount_of_irr = total_possible_amount - dataset._len()
+        total_possible_amount_of_irr = total_possible_amount - dataset.data.__len__()
         if total_amount_irr>=total_possible_amount_of_irr:
             total_amount_irr = -1
             pass
@@ -1666,7 +1786,7 @@ class DatasetField:
                     #guess_addr is the input. key = lambda item:dataset[item][0]
                     found = False
                     left = 0
-                    right = dataset._len()-1
+                    right = dataset.data.__len__()-1
                     #if any bug occurs here, use the dataset.find_addr instead.
                     while left<=right:
                         mid:int = (left+right)//2
@@ -1709,9 +1829,23 @@ class DatasetField:
             pass#if -1 == total_amount_irr:#valid all irr.
         pass# end of function.
             
+    def get_input_length(self)->int:
+        return self.FieldLength
+    def get_output_length(self)->int:
+        return 1
+            
     #end of class
     
-if "some special case" and False:
+if True:
+    assert False
+    '''
+    def get_input_length(self)->int:
+        return self.FieldLength
+    def get_output_length(self)->int:
+        return 1
+    '''
+    
+if "some special case" and True:
     if "2025 oct 14":
         FieldLength = 1
         dataset = Dataset([(0, True)])
@@ -1749,7 +1883,7 @@ if "some special case" and False:
         a_DatasetField.valid(dataset)
     pass
         
-if "valid function" and False:
+if "valid function" and True:
     if "correct dataset" and True:
         FieldLength = 3
         dataset = Dataset()
@@ -1846,7 +1980,7 @@ if "valid function" and False:
         pass
     pass
     
-if "readable addr" and False:
+if "readable addr" and True:
     for addr in range(0b10):
         a_DatasetField = DatasetField(bitmask = 0b1, addr = addr, FieldLength=1, bits_already_in_use=1, \
                         dataset = Dataset(), with_suggest=False,_debug__check_all_safety = True)
@@ -1884,7 +2018,7 @@ if "readable addr" and False:
     
     pass
 
-if "readable tree" and False:
+if "readable tree" and True:
     #111111111111111可以继续
     a_DatasetField = DatasetField(bitmask = 0, addr = 0, FieldLength=1, bits_already_in_use=0, \
                         dataset = Dataset(), with_suggest=False,_debug__check_all_safety = True)
@@ -1946,7 +2080,7 @@ if "readable tree" and False:
     
     pass
 
-if "init and split" and False:
+if "init and split" and True:
     # it's not allowed to have no input. So test starts with 1 input.
     if "1 bit input, 0 free bit" and False:
         if "two wrong addr, they raise" and False:
@@ -2663,7 +2797,7 @@ if "init and split" and False:
         #1w
         pass
 
-if "random dataset test   slow" and False:
+if "random dataset test   slow" and True:
     # empty
     print("empty, line:"+str(_line_()))
     for ____total_iter in range(13):
@@ -2782,22 +2916,24 @@ I'm in China, Earth.
     
     
 class Dataset_Set:
-    data:list[Dataset]
+    FieldLength_for_the_input:int
+    dataset_children:list[Dataset]
     is_data_sorted:bool
-    def __init__(self, length:int):
-        self.data = []
-        for _ in range(length):
-            self.data.append(Dataset())
+    def __init__(self, FieldLength_for_the_input:int, output_bits:int):
+        self.FieldLength_for_the_input = FieldLength_for_the_input
+        self.dataset_children = []
+        for _ in range(output_bits):
+            self.dataset_children.append(Dataset())
             pass
         self.is_data_sorted = True
         pass
     def _check(self):
-        if self._len()>1:
-            for i in range(1, self._len()):
-                self.data[0]._len() == self.data[i]._len()
-                for ii in range(self.data[0]._len()):
-                    _element_0_addr = self.data[0].data[ii][0]
-                    _element_i_addr = self.data[i].data[ii][0]
+        if self.get_output_count___no_check()>1:
+            for i in range(1, self.get_output_count___no_check()):
+                self.dataset_children[0]._len() == self.dataset_children[i]._len()
+                for ii in range(self.dataset_children[0]._len()):
+                    _element_0_addr = self.dataset_children[0].data[ii][0]
+                    _element_i_addr = self.dataset_children[i].data[ii][0]
                     assert _element_0_addr == _element_i_addr
                     pass#ii
                 pass#i
@@ -2812,12 +2948,12 @@ class Dataset_Set:
         assert int(False) == 0
         
         result_list:list[tuple[int,int]] = []
-        for i in range(self.data[0]._len()):
-            addr = self.data[0].data[i][0]
+        for i in range(self.dataset_children[0]._len()):
+            addr = self.dataset_children[0].data[i][0]
             result_for_this_i = 0
-            for ii_left_to_right in range(self._len()):
-                content = int(self.data[ii_left_to_right].data[i][1])
-                ii_right_to_left = (self._len() -1) - ii_left_to_right
+            for ii_left_to_right in range(self.get_output_count___no_check()):
+                content = int(self.dataset_children[ii_left_to_right].data[i][1])
+                ii_right_to_left = (self.get_output_count___no_check() -1) - ii_left_to_right
                 shifted_content = content<<(ii_right_to_left)
                 result_for_this_i += shifted_content
                 pass
@@ -2825,13 +2961,26 @@ class Dataset_Set:
             pass#i
         return result_list
     
-    
-    def get_readable___check_btw(self, addr_also_as_binary = False)->str:
+    def get_readable___check_btw(self, addr_also_as_binary = True, pad_with_zero = True)->str:
+        #@TODO: comma between digits. flex padding.
         _temp_result_list = self.get_as_int___check_btw()
         _temp_str_list:list[str] = []
+        
+        # if addr_also_as_binary:
+        #     if -1 == recommended_FieldLength:
+        #         recommended_FieldLength = self.get_recommended_addr_FieldLength()
+        #         pass
+        #     pass
+            
         for _addr_result in _temp_result_list:
             if addr_also_as_binary:
-                addr_str = f"{_addr_result[0]:b}"
+                addr_str__unpadded = f"{_addr_result[0]:b}"
+                if pad_with_zero:
+                    _needs_zeros = self.FieldLength_for_the_input-addr_str__unpadded.__len__()
+                    addr_str = ("0"*_needs_zeros)+addr_str__unpadded
+                else:
+                    addr_str = addr_str__unpadded
+                    pass
                 pass
             else:
                 addr_str = f"{_addr_result[0]}"
@@ -2839,7 +2988,7 @@ class Dataset_Set:
             
             content = f"{_addr_result[1]:b}"
             _content_len = content.__len__()
-            needs_zeros = self._len()-_content_len
+            needs_zeros = self.get_output_count___no_check()-_content_len
             _temp_str_list.append(f"{addr_str}:{"0"*needs_zeros}{_addr_result[1]:b}")
             pass
         result_str = ", ".join(_temp_str_list)
@@ -2849,34 +2998,51 @@ class Dataset_Set:
         self._check()
         
         result_str = ""
-        for i in range(self.data[0]._len()):
-            addr = self.data[0].data[i][0]
+        for i in range(self.dataset_children[0]._len()):
+            addr = self.dataset_children[0].data[i][0]
             result_str+= f"{addr}:"
             for ii in range(0, self._len()):
-                content = self.data[ii].data[i][1]
+                content = self.dataset_children[ii].data[i][1]
                 result_str+= f"{content:b}"
                 pass
             result_str+= f", "
             pass#i
         return result_str
     
-    def _len(self)->int:
-        return self.data.__len__()
+    def get_mininum_input_count___check_btw(self)->int:
+        #check
+        self._check()
+        
+        _temp_last_addr = self.dataset_children[0].data[-1][0]
+        bit_count = 0
+        while _temp_last_addr>0:
+            bit_count = bit_count +1
+            #tail
+            _temp_last_addr = _temp_last_addr >>1
+            pass
+        return bit_count
+    def get_FieldLength_for_the_input(self)->int:
+        return self.FieldLength_for_the_input
+    def get_output_count___no_check(self)->int:
+        return self.dataset_children.__len__()
+    
     def sort(self):
-        for dataset in self.data:
+        for dataset in self.dataset_children:
             dataset.sort()
             pass
         self.is_data_sorted = True
         pass
     
     def add_binary(self, addr:int, the_bits:int):
+        assert count_ones(addr)<=self.FieldLength_for_the_input
+        
         the_str = f"{the_bits:b}"
-        assert the_str.__len__()<=self._len()
+        assert the_str.__len__()<=self.get_output_count___no_check()
         bool_list = []
-        for _ in range(self._len()):
+        for _ in range(self.get_output_count___no_check()):
             bool_list.append(False)
             pass
-        offset = self._len()-the_str.__len__()
+        offset = self.get_output_count___no_check()-the_str.__len__()
         assert offset >= 0
         for i in range(the_str.__len__()-1,-1,-1):
             char = the_str[i]
@@ -2885,16 +3051,17 @@ class Dataset_Set:
                 pass
             pass
     
-        for i in range(self._len()):
-            self.data[i].data.append((addr, bool_list[i]))
+        for i in range(self.get_output_count___no_check()):
+            self.dataset_children[i].data.append((addr, bool_list[i]))
+            self.dataset_children[i].is_sorted = False
             pass
         
         self.is_data_sorted = False
         pass#end of function
-    def get_recommended_FieldLength(self)->int:
+    def get_recommended_addr_FieldLength(self)->int:
         self._check()
         assert self.is_data_sorted
-        _greatest_addr = self.data[0].data[-1][0]
+        _greatest_addr = self.dataset_children[0].data[-1][0]
         result = 0
         while _greatest_addr>0:
             result = result +1
@@ -2930,7 +3097,7 @@ class Dataset_Set:
         return (number_1, number_2, number_c, sum)
     
     @staticmethod
-    def get_full_adder_testset_partly(input_bit_amount:int, proportion = 0.2):#->list[list[tuple[int,bool]]]:
+    def get_full_adder_testset_partly(input_bit_amount:int, proportion = 0.2, max_amount = 1000000):#->list[list[tuple[int,bool]]]:
         '''return (datasetset, FieldLength)'''
         total_bit_amount = input_bit_amount*2+1
         one_shift_by__total_bit_amount = 1<<total_bit_amount
@@ -2941,6 +3108,9 @@ class Dataset_Set:
             amount_needed = 1
             pass
         assert amount_needed > 0
+        if amount_needed>max_amount:
+            amount_needed = max_amount
+            pass
         
         addr_set = set()
         while True:
@@ -2958,7 +3128,7 @@ class Dataset_Set:
         # mask_c = 1
         
         FieldLength = input_bit_amount*2+1
-        datasetset = Dataset_Set(input_bit_amount+1)
+        datasetset = Dataset_Set(FieldLength, input_bit_amount+1)
         for addr in addr_list:
             # number_1 = (addr&mask_1)>>input_bit_amount+1
             # number_2 = (addr&mask_2)>>1
@@ -2975,12 +3145,16 @@ class Dataset_Set:
     #end of class
     
 if "test" and True:
-    datasetset = Dataset_Set(3)
+    datasetset = Dataset_Set(8, 3)
     datasetset.add_binary(addr=111, the_bits = 0b111)
     datasetset.add_binary(addr=100, the_bits = 0b100)
     datasetset.add_binary(addr=101, the_bits = 0b101)
     datasetset.add_binary(addr=1  , the_bits = 0b001)
     datasetset.sort()
+    assert datasetset.get_mininum_input_count___check_btw() == 7
+    assert datasetset.FieldLength_for_the_input == 8
+    assert datasetset.get_output_count___no_check() == 3
+    
     _int_tuple = datasetset.get_as_int___check_btw()
     assert _int_tuple[0][0] == 1
     assert _int_tuple[0][1] == 1
@@ -2990,14 +3164,15 @@ if "test" and True:
     assert _int_tuple[2][1] == 0b101
     assert _int_tuple[3][0] == 111
     assert _int_tuple[3][1] == 0b111
-    readable_str = datasetset.get_readable___check_btw()
+    readable_str = datasetset.get_readable___check_btw(addr_also_as_binary = False)
     assert readable_str == "1:001, 100:100, 101:101, 111:111"
-    readable_str = datasetset.get_readable___check_btw(addr_also_as_binary = True)
-    assert readable_str == "1:001, 1100100:100, 1100101:101, 1101111:111"
+    #assert readable_str == "0000001:001, 1100100:100, 1100101:101, 1101111:111"
+    readable_str = datasetset.get_readable___check_btw()
+    assert readable_str == "00000001:001, 01100100:100, 01100101:101, 01101111:111"
     # print(datasetset.data[0].data)
     # print(datasetset.data[1].data)
     # print(datasetset.data[2].data)
-    assert datasetset.get_recommended_FieldLength() == 7
+    assert datasetset.get_recommended_addr_FieldLength() == 7
     pass
 
 if "test" and True:
@@ -3014,38 +3189,57 @@ if "test" and True:
     
     a_Dataset_Set, FieldLength = Dataset_Set.get_full_adder_testset_partly(2,0.2)
     #print(a_Dataset_Set.get_readable___check_btw(True))
-    assert a_Dataset_Set._len() == 3
+    assert a_Dataset_Set.get_output_count___no_check() == 3
     assert FieldLength == 5
     pass
-
-
 
 
 
 class DatasetField_Set:
     leaf_keep_dataset:bool
     fields:list[DatasetField]
-    def __init__(self, FieldLength:int, datasetset:Dataset_Set, leaf_keep_dataset:bool = False):
+    def __init__(self, datasetset:Dataset_Set, leaf_keep_dataset:bool = False):
         assert datasetset.is_data_sorted
         
         self.leaf_keep_dataset = leaf_keep_dataset
         self.fields = []
-        for dataset in datasetset.data:
-            _temp_datasetfield = DatasetField._new(FieldLength, dataset, leaf_keep_dataset)
+        for dataset in datasetset.dataset_children:
+            _temp_datasetfield = DatasetField._new(datasetset.FieldLength_for_the_input, dataset, leaf_keep_dataset)
             self.fields.append(_temp_datasetfield)
             pass
         pass
-    def _len(self)->int:
+    def get_input_count(self)->int:
+        return self.fields[0].FieldLength
+    def get_output_count(self)->int:
         return self.fields.__len__()
     
+    # def get_addr_FieldLength(self)->int:
+    #     return self.fields[0].FieldLength
+    
+    def lookup(self, datasetset:Dataset_Set)->tuple[int,int]:
+        '''return (irr_bit_maskin_int, result_in_int)'''
+        assert self.get_output_count() == datasetset.get_output_count___no_check()
+        addr_list_with_something_else = datasetset.get_as_int___check_btw()
+        irr_bit_maskin_int = 0
+        result_in_int = 0
+        for i_from_the_left in range(self.get_output_count()):
+            field = self.fields[i]
+            addr = addr_list_with_something_else[i][0]        
+            field.lookup(addr)
+            i_from_the_right = (self.get_output_count()-1)-i_from_the_left
+            irr_bit_maskin_int = irr_bit_maskin_int|(1<<i_from_the_right)
+            result_in_int = result_in_int|(1<<i_from_the_right)
+            pass
+        return (irr_bit_maskin_int, result_in_int)
+    
     def valid(self, datasetset:Dataset_Set, total_amount: int = -1)->list[tuple[int,int]]:
-        '''return (check_count, error_count)'''
+        '''return list[(check_count, error_count)]'''
         #safety first
-        assert self._len() == datasetset._len()
+        assert self.get_output_count() == datasetset.get_output_count___no_check()
         
         result:list[tuple[int,int]] = []
-        for i in range(self._len()):
-            dataset = datasetset.data[i]
+        for i in range(self.get_output_count()):
+            dataset = datasetset.dataset_children[i]
             datasetfield = self.fields[i]
             _temp_tuple = datasetfield.valid(dataset, total_amount, log_the_error_to_file_and_return_immediately = False)
             assert _temp_tuple[0]
@@ -3056,11 +3250,11 @@ class DatasetField_Set:
     def valid_irr(self, datasetset:Dataset_Set, total_amount_irr: int = -1)->list[tuple[int,int]]:
         '''return (check_count, error_count)'''
         #safety first
-        assert self._len() == datasetset._len()
+        assert self.get_output_count() == datasetset.get_output_count___no_check()
         
         result:list[tuple[int,int]] = []
-        for i in range(self._len()):
-            dataset = datasetset.data[i]
+        for i in range(self.get_output_count()):
+            dataset = datasetset.dataset_children[i]
             datasetfield = self.fields[i]
             _temp_tuple = datasetfield.valid_irr(dataset, total_amount_irr, log_the_error_to_file_and_return_immediately = False)
             assert _temp_tuple[0]
@@ -3071,55 +3265,125 @@ class DatasetField_Set:
     pass#end of class
     
 if "test" and True:
-    a_Dataset_Set = Dataset_Set(3)
+    a_Dataset_Set = Dataset_Set(6, 3)
     a_Dataset_Set.add_binary(11, 0b111)
     a_Dataset_Set.add_binary(15, 0b110)
     a_Dataset_Set.add_binary(21, 0b100)
     a_Dataset_Set.add_binary(25, 0b000)
     a_Dataset_Set.sort()
-    FieldLength = a_Dataset_Set.get_recommended_FieldLength()
-    a_DatasetField_Set = DatasetField_Set(FieldLength, a_Dataset_Set)
-    assert a_DatasetField_Set._len() == 3
+    assert a_Dataset_Set.get_recommended_addr_FieldLength() == 5
+    assert a_Dataset_Set.FieldLength_for_the_input == 6
+    assert a_Dataset_Set.get_output_count___no_check() == 3
+    
+    FieldLength = a_Dataset_Set.get_recommended_addr_FieldLength()
+    a_DatasetField_Set = DatasetField_Set(a_Dataset_Set)
+    
+    assert a_DatasetField_Set.get_input_count() == 6
+    assert a_Dataset_Set.get_output_count___no_check() == a_DatasetField_Set.get_output_count()
+    assert a_Dataset_Set.get_output_count___no_check() == 3
+
     _result_tuple_list = a_DatasetField_Set.valid(a_Dataset_Set)
     assert [(4, 0), (4, 0), (4, 0), ] == _result_tuple_list
     
-    a_Dataset_Set = Dataset_Set(3)
+    
+    a_Dataset_Set = Dataset_Set(6, 3)
     a_Dataset_Set.add_binary(11, 0b111)
     a_Dataset_Set.add_binary(15, 0b110)
     a_Dataset_Set.sort()
+    assert a_Dataset_Set.get_recommended_addr_FieldLength() == 4
+    assert a_Dataset_Set.FieldLength_for_the_input == 6
+    assert a_Dataset_Set.get_output_count___no_check() == 3
+    
     _result_tuple_list = a_DatasetField_Set.valid(a_Dataset_Set)
     assert [(2, 0), (2, 0), (2, 0), ] == _result_tuple_list
     
-    a_Dataset_Set = Dataset_Set(3)
+    
+    a_Dataset_Set = Dataset_Set(6, 3)
     a_Dataset_Set.add_binary(11, 0b111)
     a_Dataset_Set.add_binary(15, 0b110)
     a_Dataset_Set.add_binary(21, 0b100)
     a_Dataset_Set.add_binary(25, 0b000)
     a_Dataset_Set.sort()
-    FieldLength = a_Dataset_Set.get_recommended_FieldLength()
-    a_DatasetField_Set = DatasetField_Set(FieldLength, a_Dataset_Set, leaf_keep_dataset = True)
-    assert a_DatasetField_Set._len() == 3
+    assert a_Dataset_Set.get_recommended_addr_FieldLength() == 5
+    assert a_Dataset_Set.FieldLength_for_the_input == 6
+    assert a_Dataset_Set.get_output_count___no_check() == 3
+    
+    FieldLength = a_Dataset_Set.get_recommended_addr_FieldLength()
+    a_DatasetField_Set = DatasetField_Set(a_Dataset_Set, leaf_keep_dataset = True)
+    assert a_DatasetField_Set.get_output_count() == 3
     _result_tuple_list = a_DatasetField_Set.valid_irr(a_Dataset_Set, 10)
     assert [(10, 0), (10, 0), (10, 0), ] == _result_tuple_list, "this is not stable. Usually, simply retry and the test passes."
     pass
     
+if True:
+    a_Dataset_Set = Dataset_Set(6, 3)
+    a_Dataset_Set.add_binary(11, 0b111)
+    a_Dataset_Set.add_binary(15, 0b110)
+    a_Dataset_Set.add_binary(21, 0b100)
+    a_Dataset_Set.add_binary(25, 0b000)
+    a_Dataset_Set.sort()
+    fdsfds = a_Dataset_Set.get_readable___check_btw()
+    a_DatasetField_Set = DatasetField_Set(a_Dataset_Set, leaf_keep_dataset = True)
+    
+    
+    #lookup111111111111111111111111111111111111
+    
 if "a real extrapolation test. You know, it's exciting." and True:
+    if "a special case" and True:
+        #011:10, 111:11
+        bits_count = 1
+        training_Dataset_Set = Dataset_Set(bits_count*2+1, bits_count+1)
+        addr = 0b011
+        training_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
+        addr = 0b111
+        training_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
+        training_Dataset_Set.sort()
+        _input_str = training_Dataset_Set.get_readable___check_btw()
+        a_DatasetField_Set = DatasetField_Set(training_Dataset_Set)
+        
+        _tree_high = a_DatasetField_Set.fields[0].readable_as_tree()
+        '''1+ir means, this bits only output 1.'''
+        
+        _tree_low = a_DatasetField_Set.fields[1].readable_as_tree()
+        ''' 0__:0+ir, 1__:1+ir means this bit is the same as the first bit in input.'''
+        
+        #000, 011, 100, 111
+        test_Dataset_Set = Dataset_Set(bits_count*2+1, bits_count+1)
+        addr = 0b000
+        test_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
+        addr = 0b011
+        test_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
+        addr = 0b100
+        test_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
+        addr = 0b111
+        test_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
+        test_Dataset_Set.sort()
+        _test_str = test_Dataset_Set.get_readable___check_btw()
+        '''the higher bit of output is 1 in 2 cases and 0 in 2 cases. While the lower bit is always the same as the first bit in input.'''
+        
+        fdsfdsfds = a_DatasetField_Set.valid(test_Dataset_Set)
+        #111111111111111111111w
+        a_DatasetField_Set.lookup
+        pass
+    
+    
     if "small scale validation" and True:
+        #I read this several times. It's prpbably correct. 
         bits_count = 1
         trainingset_proportion = 0.3
         testset_proportion = 0.5
         #preparing the DatasetField object.
         trainingset_Set, FieldLength = Dataset_Set.get_full_adder_testset_partly(bits_count, trainingset_proportion)
-        a_DatasetField_Set = DatasetField_Set(FieldLength, trainingset_Set)
+        a_DatasetField_Set = DatasetField_Set(trainingset_Set)
         training_correctness_list = a_DatasetField_Set.valid(trainingset_Set)
         for training_correctness in training_correctness_list:
-            assert training_correctness[0] == trainingset_Set.data[0].data.__len__()
+            assert training_correctness[0] == trainingset_Set.dataset_children[0].data.__len__()
             assert training_correctness[1] == 0
             pass
         
         #now the real excitement.
         testset_Set, _ = Dataset_Set.get_full_adder_testset_partly(bits_count, testset_proportion)
-        test_correctness_list = a_DatasetField_Set.valid(testset_Set)
+        valid_result_list__total_and_error = a_DatasetField_Set.valid(testset_Set)
 
 
         print(f"training set:{trainingset_Set.get_readable___check_btw(True)}")
@@ -3128,15 +3392,16 @@ if "a real extrapolation test. You know, it's exciting." and True:
         print(f"test set:{testset_Set.get_readable___check_btw(True)}")
         
         #print the result
-        print(f"Amount of total possible cases:{1<<(bits_count*2+1)}, training with {trainingset_proportion}({trainingset_Set.data[0]._len()}), ", end="")
-        print(f"(test with {testset_proportion}({testset_Set.data[0].data.__len__()})):")
+        print(f"Amount of total possible cases:{1<<(bits_count*2+1)}, training with {trainingset_proportion}({trainingset_Set.dataset_children[0]._len()}), ", end="")
+        print(f"(test with {testset_proportion}({testset_Set.dataset_children[0].data.__len__()})):")
         print("from most significant bit to least. Accuracy is shown below.")
-        for i in range(test_correctness_list.__len__()):
-            test_correctness = test_correctness_list[i]
-            print(f"bit{i}:{1-(test_correctness[1]/test_correctness[0])}, ")
+        for i in range(valid_result_list__total_and_error.__len__()):
+            total_and_error = valid_result_list__total_and_error[i]
+            total = total_and_error[0]
+            error = total_and_error[1]
+            print(f"bit{i}:{1.-(error/total)}, ")
             pass    
     
-    1w  留个悬念，真的有效吗？
     pass    
     
     
@@ -3188,11 +3453,7 @@ def _____unchecked___get_adder_testset_full(input_bit_amount, amount_needed=-1)-
 
     
     
-if "test" and True:
-    assert False
-    get_adder_testset_partly()
-    
-    
+
     
 
 assert False , "要不要做一个专门的fake xor检测？？？"
