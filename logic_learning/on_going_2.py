@@ -214,6 +214,12 @@ class Dataset:
     is_sorted:bool
     
     @staticmethod
+    def todo_list()->str:
+        return '''
+    生成复杂xor专用函数。
+    '''
+    
+    @staticmethod
     def new_empty(max_input_bits:int)->'Dataset':
         return Dataset(max_input_bits = max_input_bits)
     
@@ -911,6 +917,13 @@ class DatasetField:
         all_irr:bool
         pass
     @staticmethod
+    def todo_list()->str:
+        return '''  
+        non-full xor field detection.
+        lookup 里面加一个具体的依据来源的地址的返回。
+        '''
+    
+    @staticmethod
     def _new(dataset:Dataset, leaf_keep_dataset:bool = False, _debug__save_sub_dataset_when_xor = False)->'DatasetField':
         '''If you want to keep accurate irrelevant item info, set leaf_keep_dataset=True.
         Otherwise, only irr field is reported as irr. The 1+irr field or 0+irr field is reported 
@@ -935,6 +948,8 @@ class DatasetField:
             if branch_keep_dataset and (not leaf_keep_dataset):
                 raise Exception("I didn't prepare for this combination. Maybe you want to modify the code. Remember to also modify the lookup function.")
             pass#if __debug__:
+            if 0 == bitmask and dataset.data.__len__() == 0:
+                raise Exception("Root node doesn't accept empty dataset.")
         
         #core info. simple copy paste.
         self.bitmask = bitmask
@@ -1015,7 +1030,10 @@ class DatasetField:
             '''
             
             #self.all_xor, self.not_after_xor, self.best_index_to_split_from_right_side = \
-            is_true_xor, irr_bitmask, needs_a_not_after_xor, best_index_to_split_from_right_side = self._init_only__detect_xor_info(_debug__save_sub_dataset_when_xor)
+            is_true_xor, irr_bitmask, needs_a_not_after_xor, best_index_to_split_from_right_side = \
+                self._init_only__detect_xor_info(_debug__save_sub_dataset_when_xor)
+                
+            assert 0 == irr_bitmask&self.bitmask
             '''
             This function return in 3 styles. (- means not related in a given case.) 
             1, (true xor)pure xor/xnor. It's (true, 0, useful, -). 
@@ -1055,7 +1073,7 @@ class DatasetField:
                 if not branch_keep_dataset:
                     self.dataset = None
                     pass
-                assert False, "untested."
+                #assert False, "untested."
                 return
         
         # normal leaf. 5, if the dataset doesn't have 1 or doesn't have 0, it's a leaf node. [return]
@@ -1126,7 +1144,7 @@ class DatasetField:
         于是当有非xor有关位的时候，按其中的最无关位split（未证明最优）。
         也就是说，有 非xor有关位 的时候，是style2，没有就是style1。
         '''
-        
+        assert self.dataset is not None
         if __debug__save_sub_dataset_when_xor:
             self.dataset.log_the_error("xor cases.txt")
             pass
@@ -1173,13 +1191,13 @@ class DatasetField:
             score_of_xor_list_from_right_side.append(score_of_xor)
             pass#end of part 2.
         
-        CONST_score_if_full_xor = self.dataset.data.__len__()/2#11111111111111111下一个版本里面这个要改
-        ######found_the__non_xor_non_irr__bit = False
+        '''score-list into useful info.'''
+        CONST_score_if_full_xor = self.dataset.data.__len__()//2#11111111111111111下一个版本里面这个要改
         irr_bit_as_int__from_right_side__squeezed__before_translate = 0
         # min_of_score_list____from_right_side = self.dataset.data.__len__()# the max of this is len/2, so this is big enough.
         # index_of_min_of_score_list____from_right_side = -1
-        min_of___non_zero___score_list____from_right_side = self.dataset.data.__len__()# the max of this is len/2, so this is big enough.
-        index_of_min_of___non_zero_score___list____from_right_side = -1
+        min_of___non_zero_score___from_right_side = CONST_score_if_full_xor
+        index_of_min_of___non_zero_score___from_right_side = -1
         for i in range(score_of_xor_list_from_right_side.__len__()):
             item = score_of_xor_list_from_right_side[i]
             assert item >=0
@@ -1189,32 +1207,30 @@ class DatasetField:
             case CONST_score_if_full_xor: means 
             case in between: a fake xor.
             '''
-            #if (item!=0) and (item!=CONST_score_if_full_xor):
-                #found_the__non_xor_non_irr__bit = True
-                
             if 0 == item:
                 irr_bit_as_int__from_right_side__squeezed__before_translate = irr_bit_as_int__from_right_side__squeezed__before_translate |(1<<i)
                 pass
             # if item<min_of_score_list____from_right_side:
             #     min_of_score_list____from_right_side = item
             #     index_of_min_of_score_list____from_right_side = i
-            if (item<min_of___non_zero___score_list____from_right_side) and (item!=0):
-                min_of___non_zero___score_list____from_right_side = item
-                index_of_min_of___non_zero_score___list____from_right_side = i
+            if (item<min_of___non_zero_score___from_right_side) and (item!=0):
+                min_of___non_zero_score___from_right_side = item
+                index_of_min_of___non_zero_score___from_right_side = i
                 pass
             pass
         
         '''
-        if index_of_min_of___non_zero___score_list____from_right_side is -1, it's untouched. 
+        if index_of_min_of___non_zero_score___from_right_side is -1, it's untouched. 
         which means no score between 0 and max was found. It's a true xor(may have irr-bit).
         
-        min_of___non_zero___score_list____from_right_side can only be the max or between.
+        min_of___non_zero_score___from_right_side can only be the max or between.
         When it's max, it's a true xor. Otherwise it needs to split.
         
         They give basically the same info.
         '''
         
-        if index_of_min_of___non_zero_score___list____from_right_side != -1:
+        '''now all the useful info are ready. Return respectively.'''
+        if -1 == index_of_min_of___non_zero_score___from_right_side:
             '''true xor.'''
             
             #maybe optimizable. 11111111111111111
@@ -1245,14 +1261,19 @@ class DatasetField:
                     .....1  the_bit
                     .10000  in actual place.    
                     '''
-                    the_bit__before_shift = irr_bit_as_int__from_right_side__squeezed__before_translate&squeezed_bit_count__from_right_side
+                    
+                    one_shift_by___something___ = 1<<squeezed_bit_count__from_right_side
+                    
+                    
+                    #the_bit__before_shift = irr_bit_as_int__from_right_side__squeezed__before_translate&squeezed_bit_count__from_right_side
+                    the_bit__before_shift = irr_bit_as_int__from_right_side__squeezed__before_translate&one_shift_by___something___
                     #the_bit = the_bit__before_shift >>
                     the_bit_in_actual_place = the_bit__before_shift <<(actual_bit_index___from_right_side-squeezed_bit_count__from_right_side)
                     irr_bit_as_int = irr_bit_as_int |the_bit_in_actual_place
                     #tail
                     squeezed_bit_count__from_right_side = squeezed_bit_count__from_right_side +1
                     pass
-                assert False,"the line below."
+                #assert False,"the line below."
                 needs_not_after_xor = self.dataset.data[0][1]#result of the pure not addr.
                 '''2, (true xor)xor/xnor with irr-bits(true, useful, useful, -) copy pasted from the docstring of function.'''
                 return (True, irr_bit_as_int, needs_not_after_xor, -3)
@@ -1265,13 +1286,13 @@ class DatasetField:
         '''translate the index to actual index.'''
         squeezed_index = 0
         for actual_bit_index___from_right_side in range(self.input_bits_count):
-            one_shift_by_i:int = 1<<actual_bit_index___from_right_side
+            one_shift_by_i = 1<<actual_bit_index___from_right_side
             bit_of_bitmask_for_this_i = one_shift_by_i&self.bitmask
             if bit_of_bitmask_for_this_i != 0:
                 #This bit is in bitmask, ignore this i.
                 continue
             #if squeezed_index == index_of_min_of_score_list____from_right_side:#old.
-            if squeezed_index == index_of_min_of___non_zero_score___list____from_right_side:#new. irr-bit excluded here.
+            if squeezed_index == index_of_min_of___non_zero_score___from_right_side:#new. irr-bit excluded here.
                 '''return(is full xor, needs a not after xor(if is full xor), best bit to split from_right_side(if not a full xor))'''
                 '''2, fake xor(false, -1, -, useful.) copy pasted from the docstring of function.'''
                 return(False, -1, False, actual_bit_index___from_right_side)
@@ -1578,7 +1599,7 @@ class DatasetField:
             this_bit_of_addr__with_shift = _temp__mask_of_this_bit&addr
             this_bit_of_addr = this_bit_of_addr__with_shift != 0
             the_child = self._get_child(this_bit_of_addr)
-            return the_child.lookup(addr, lookup_in_leaf_dataset = lookup_in_leaf_dataset)
+            return the_child.lookup_version_1___dont_use(addr, lookup_in_leaf_dataset = lookup_in_leaf_dataset)
         
         # 1, is dataset empty. 
         if self.all_irr:
@@ -1633,13 +1654,6 @@ class DatasetField:
             '''
         pass#end of function.
         # 6, it's the 0th uppon. So, no 6 here.
-        
-        
-        
-    
-    
-    
-    
     
     def lookup(self, addr:int, lookup_in_leaf_dataset = False, as_xor_as_possible = True)->tuple[bool,bool,bool,bool,bool]:#[None,None,bool,bool]:
         #to do :suggest, like allow_irr, better_non_irr, better_irr, true_when_irr, false_when_irr.
@@ -1778,7 +1792,7 @@ class DatasetField:
     
     
     def _lookup_only__all_xor_only(self, addr:int)->bool:
-        assert self.all_xor, "non-all-xor case can not call this function."
+        assert self.all_xor, "不记得昨天写的什么意思了。总之还没测试。non-all-xor case can not call this function."
         #the docs here is copied form the _init_only__get__if_not_after_xor__it_s_already_all_xor and probably wrong.
         #pick anything from self.dataset and detect if all input are Falses(simpler than true), is the output the xor result, or the reversed.
         #actually, the dataset should already be sorted, but the performance is probably similar and trivial?
@@ -1795,7 +1809,6 @@ class DatasetField:
                 continue
             
             '''ignore the irr-bit'''
-            assert False, "untested."
             bit_in_irr_bitmask__for_this_i = one_shift_by_i&self.when_xor__ignore_these_bits
             if bit_in_irr_bitmask__for_this_i != 0:
                 #This bit is in bitmask, ignore this i.
@@ -1845,7 +1858,7 @@ class DatasetField:
         print(temp2)
         pass
     
-    def readable_as_tree(self, depth:int = -1, use_TF = False)->str:
+    def readable_as_tree(self, depth:int = -1, use_TF = False, with_irr_bit_for_xor = True)->str:
         '''Behavior:
         leaf node: addr, result.
         branch node:
@@ -1863,14 +1876,18 @@ class DatasetField:
         addr_str = self.get_readable_addr()+":"
         if self.is_leaf_node:
             if self.all_xor:
+                irr_bit_str = ""
+                if with_irr_bit_for_xor:
+                    irr_bit_str = f"(irr-bits:{self._get_readable_only___irr_bits()})"
+                    pass
                 if self.not_after_xor:
-                    return addr_str+"xnor"
+                    return addr_str+"xnor"+irr_bit_str
                 else:
-                    return addr_str+"xor"
+                    return addr_str+"xor"+irr_bit_str
+                pass#
             elif self.all_irr:
                 return addr_str+"ir"        
             else:
-                
                 if self.has_irr:
                     if self.has_0:#0+irr
                         return addr_str+false_char+"+ir"        
@@ -1922,6 +1939,35 @@ class DatasetField:
         result = "_"*how_many_underscores_needs_in_the_left+temp_str
         return result
     
+    def _get_readable_only___irr_bits(self, char_for_1_in_addr = "1", char_for_0_in_addr = "0", \
+        char_for_irr_in_xor = "i", char_for_normal_in_xor = ".", )->str:
+        str_for_every_bit:list[str] = []
+        for i_from_left_side in range(self.input_bits_count-1,-1,-1):
+            one_shift_by__i = 1<<i_from_left_side
+            bitmask_of_this_i = self.bitmask&one_shift_by__i
+            addr_of_this_i = self.addr&one_shift_by__i
+            irr_bit_for_xor_of_this_i = self.when_xor__ignore_these_bits&one_shift_by__i
+            if bitmask_of_this_i>0:
+                if addr_of_this_i>0:
+                    str_for_every_bit.append(char_for_1_in_addr)
+                    pass
+                else:
+                    str_for_every_bit.append(char_for_0_in_addr)
+                    pass
+                pass
+            else:
+                if irr_bit_for_xor_of_this_i>0:
+                    str_for_every_bit.append(char_for_irr_in_xor)
+                    pass
+                else:
+                    str_for_every_bit.append(char_for_normal_in_xor)
+                    pass
+                pass
+            pass#for
+        final_result_str = "".join(str_for_every_bit)
+        return final_result_str
+        
+    
     def valid(self, dataset:Dataset, total_amount = -1, 
             log_the_error_to_file_and_return_immediately = True)->tuple[bool,int,int]:
         '''return (finished_the_check?, check_count, error_count)'''
@@ -1945,7 +1991,7 @@ class DatasetField:
             pass
         if -1 == total_amount:#valid all.
             for item in dataset.data:
-                temp_tuple:tuple[bool, bool] = self.lookup(item[0])
+                temp_tuple:tuple[bool, bool, bool, bool, bool] = self.lookup(item[0])
                 #assert not temp_tuple[0]
                 if temp_tuple[0]:
                     if log_the_error_to_file_and_return_immediately:
@@ -2137,6 +2183,8 @@ class DatasetField:
     
 if "valid function" and True:
     if "correct dataset" and True:
+        '''
+        old code
         input_bits_count = 3
         dataset = Dataset(input_bits_count)
         a_DatasetField = DatasetField._new(dataset)
@@ -2146,6 +2194,7 @@ if "valid function" and True:
         # empty
         result_tuple = a_DatasetField.valid(dataset)
         assert result_tuple == (True, 1, 0)
+        '''
         
         input_bits_count = 2
         dataset = Dataset(input_bits_count, [(0,True), (1,False), (3,True),])
@@ -2280,12 +2329,15 @@ if "readable addr" and True:
 
 if "readable tree" and True:
     #111111111111111可以继续
+    
+    '''
+    old code
     a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                         dataset = Dataset(1), with_suggest=False,_debug__check_all_safety = True)
     tree_str = a_DatasetField.readable_as_tree()
     assert tree_str == "_:ir"
     tree_str_TF = a_DatasetField.readable_as_tree(use_TF=True)
-    assert tree_str_TF == "_:ir"
+    assert tree_str_TF == "_:ir"'''
     
     def str_to_readable_tree(input:str)->tuple[str, str]:
         dataset = Dataset.from_str(input)
@@ -2324,26 +2376,39 @@ if "readable tree" and True:
         assert tree_str_TF == "__:(0_:T, 1_:(10:T, 11:F))"
         
         tree_str, tree_str_TF = str_to_readable_tree("0110")
-        assert tree_str_TF == "__:xor"
+        assert tree_str_TF == "__:xor(irr-bits:..)"
         
         tree_str, tree_str_TF = str_to_readable_tree("01101001")
-        assert tree_str_TF == "___:xor"
+        assert tree_str_TF == "___:xor(irr-bits:...)"
         
         tree_str, tree_str_TF = str_to_readable_tree("01100110")
-        assert tree_str_TF == "___:(0__:xor, 1__:xor)"
+        assert tree_str_TF == "___:xor(irr-bits:i..)"
+        #old version assert tree_str_TF == "___:(0__:xor, 1__:xor)"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("00111100")
+        assert tree_str_TF == "___:xor(irr-bits:..i)"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("01011010")
+        assert tree_str_TF == "___:xor(irr-bits:.i.)"
         
         tree_str, tree_str_TF = str_to_readable_tree("0110100110010110")
-        assert tree_str_TF == "____:xor"
-    
-    tree_str, tree_str_TF = str_to_readable_tree("0110111111110110")
-    assert tree_str_TF == "____:(___0:(__00:xor, __10:T), ___1:(__01:T, __11:xor))"
+        assert tree_str_TF == "____:xor(irr-bits:....)"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("0110100101101001")
+        assert tree_str_TF == "____:xor(irr-bits:i...)"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("0110111111110110")
+        assert tree_str_TF == "____:(___0:(__00:xor(irr-bits:..00), __10:T), ___1:(__01:T, __11:xor(irr-bits:..11)))"
+        
+        tree_str, tree_str_TF = str_to_readable_tree("0110011011111111")
+        assert tree_str_TF == "____:(0___:xor(irr-bits:0i..), 1___:T)"
     
     pass
 
 if "init and split" and True:
     # it's not allowed to have no input. So test starts with 1 input.
     if "1 bit input, 0 free bit" and True:
-        if "two wrong addr, they raise" and True:
+        if "two wrong addr, they raise" and False and False:
             dataset = Dataset(1, [(0b1,True), ])
             a_DatasetField = DatasetField(bitmask = 1, addr = 0, bits_already_in_use=1, \
                     dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
@@ -2355,64 +2420,72 @@ if "init and split" and True:
         a_DatasetField = DatasetField(bitmask = 1, addr = 0, bits_already_in_use=1, \
                         dataset = Dataset.new_empty(1), with_suggest=False,_debug__check_all_safety = True)
         lookup_result = a_DatasetField.lookup(0)
-        assert lookup_result[0]1w
+        '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset)'''
+        assert lookup_result[0]#result_is_irr
+        assert lookup_result[2]#from_all_irr_field
+        assert lookup_result[3] == False#from_xor_field
         readable_addr = a_DatasetField.get_readable_addr()
         assert readable_addr == "0"
         a_DatasetField = DatasetField(bitmask = 1, addr = 1, bits_already_in_use=1, \
                         dataset = Dataset.new_empty(1), with_suggest=False,_debug__check_all_safety = True)
         lookup_result = a_DatasetField.lookup(0)
-        assert lookup_result[0]1w
+        assert lookup_result[0]#result_is_irr
+        assert lookup_result[2]#from_all_irr_field
+        assert lookup_result[3] == False#from_xor_field
         readable_addr = a_DatasetField.get_readable_addr()
         assert readable_addr == "1"
         
         #relevant.
-        dataset = [(0b0,True), ]
-        a_DatasetField = DatasetField(bitmask = 1, addr = 0, input_bits_count=1, bits_already_in_use=1, \
+        dataset = Dataset(1, [(0b0,True), ])
+        a_DatasetField = DatasetField(bitmask = 1, addr = 0, bits_already_in_use=1, \
                         dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        lookup_result = a_DatasetField.lookup(dataset[0][0])
-        assert lookup_result[1] == dataset[0][1]
+        lookup_result = a_DatasetField.lookup(dataset.data[0][0])
+        '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset)'''
+        assert lookup_result == (False, True, False, False, False)
         readable_addr = a_DatasetField.get_readable_addr()
         assert readable_addr == "0"
         
-        dataset = [(0b0,False), ]
-        a_DatasetField = DatasetField(bitmask = 1, addr = 0, input_bits_count=1, bits_already_in_use=1, \
+        dataset = Dataset(1, [(0b0,False), ])
+        a_DatasetField = DatasetField(bitmask = 1, addr = 0, bits_already_in_use=1, \
                         dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        lookup_result = a_DatasetField.lookup(dataset[0][0])
-        assert lookup_result[1] == dataset[0][1]
+        lookup_result = a_DatasetField.lookup(dataset.data[0][0])
+        '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset)'''
+        assert lookup_result == (False, False, False, False, False)
         readable_addr = a_DatasetField.get_readable_addr()
         assert readable_addr == "0"
         
-        dataset = [(0b1,True), ]
-        a_DatasetField = DatasetField(bitmask = 1, addr = 1, input_bits_count=1, bits_already_in_use=1, \
+        dataset = Dataset(1, [(0b1,True), ])
+        a_DatasetField = DatasetField(bitmask = 1, addr = 1, bits_already_in_use=1, \
                         dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        lookup_result = a_DatasetField.lookup(dataset[0][0])
-        assert lookup_result[1] == dataset[0][1]
+        lookup_result = a_DatasetField.lookup(dataset.data[0][0])
+        '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset)'''
+        assert lookup_result == (False, True, False, False, False)
         readable_addr = a_DatasetField.get_readable_addr()
         assert readable_addr == "1"
         
-        dataset = [(0b1,False), ]
-        a_DatasetField = DatasetField(bitmask = 1, addr = 1, input_bits_count=1, bits_already_in_use=1, \
+        dataset = Dataset(1, [(0b1,False), ])
+        a_DatasetField = DatasetField(bitmask = 1, addr = 1, bits_already_in_use=1, \
                         dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        lookup_result = a_DatasetField.lookup(dataset[0][0])
-        assert lookup_result[1] == dataset[0][1]
+        lookup_result = a_DatasetField.lookup(dataset.data[0][0])
+        assert lookup_result == (False, False, False, False, False)
         readable_addr = a_DatasetField.get_readable_addr()
         assert readable_addr == "1"
         pass
     
     if "1 bit input, 1 free bit" and True:
         if "already checked" and True:
-            dataset = [(0b0,True), (0b1,True), ]
-            a_DatasetField = DatasetField(bitmask = 0, addr = 0, input_bits_count=1, bits_already_in_use=0, \
+            dataset = Dataset(1, [(0b0,True), (0b1,True), ])
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                             dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
             assert not a_DatasetField.all_irr
             assert 0 == a_DatasetField.addr
             assert not a_DatasetField.all_xor
-            assert False, "when_xor__ignore_these_bits"
-            assert -1 == a_DatasetField.best_index_to_split
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
+            assert -1 == a_DatasetField.best_index_to_split_from_right_side
             assert 0 == a_DatasetField.bitmask
             assert 0 == a_DatasetField.bits_already_in_use
             assert a_DatasetField.children is None
-            assert 1 == a_DatasetField.FieldLength
+            assert 1 == a_DatasetField.input_bits_count
             assert a_DatasetField.get_already_const_without_irr()
             assert not a_DatasetField.has_irr
             assert not a_DatasetField.has_0
@@ -2420,31 +2493,35 @@ if "init and split" and True:
             assert a_DatasetField.is_dataset_sorted
             assert a_DatasetField.is_leaf_node
             assert a_DatasetField.ready_for_lookup
-            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
-            assert -1 == best_index_to_split
-            assert 0 == best_abs_of_num_of_same
             #assert not a_DatasetField.not_after_xor not important.
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "_"
             
-            for item in dataset:
+            for item in dataset.data:
                 temp = a_DatasetField.lookup(item[0])
                 assert item[1] == temp[1]
                 pass
+            #manually modify the obj and test.
+            a_DatasetField.dataset = dataset
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            
             
             # a smallese non-leaf.
             # optimizable. it's equalavent to a 1bit xor, and possible to do some optimization. But let's keep it simple.
-            dataset = [(0b0,True), (0b1,False), ]
-            a_DatasetField = DatasetField(bitmask = 0, addr = 0, input_bits_count=1, bits_already_in_use=0, \
+            dataset = Dataset(1, [(0b0,True), (0b1,False), ])
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                             dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
             assert not a_DatasetField.all_irr
             assert 0 == a_DatasetField.addr
             assert not a_DatasetField.all_xor
-            assert 0 == a_DatasetField.best_index_to_split
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
+            assert 0 == a_DatasetField.best_index_to_split_from_right_side
             assert 0 == a_DatasetField.bitmask
             assert 0 == a_DatasetField.bits_already_in_use
             assert a_DatasetField.children is not None
-            assert 1 == a_DatasetField.FieldLength
+            assert 1 == a_DatasetField.input_bits_count
             assert not a_DatasetField.get_already_const_without_irr()
             assert not a_DatasetField.has_irr
             assert a_DatasetField.has_0
@@ -2452,9 +2529,7 @@ if "init and split" and True:
             assert a_DatasetField.is_dataset_sorted
             assert not a_DatasetField.is_leaf_node
             assert a_DatasetField.ready_for_lookup
-            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
-            assert 0 == best_index_to_split
-            assert 2 == best_abs_of_num_of_same
+        
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "_"
             
@@ -2462,11 +2537,12 @@ if "init and split" and True:
             assert not addr_1_child.all_irr
             assert 1 == addr_1_child.addr
             assert not addr_1_child.all_xor
-            assert -1 == addr_1_child.best_index_to_split
+            assert addr_1_child.when_xor__ignore_these_bits == 0
+            assert -1 == addr_1_child.best_index_to_split_from_right_side
             assert 1 == addr_1_child.bitmask
             assert 1 == addr_1_child.bits_already_in_use
             assert addr_1_child.children is None
-            assert 1 == addr_1_child.FieldLength
+            assert 1 == addr_1_child.input_bits_count
             assert addr_1_child.get_already_const_without_irr()
             assert not addr_1_child.has_irr
             assert addr_1_child.has_0
@@ -2474,9 +2550,7 @@ if "init and split" and True:
             assert addr_1_child.is_dataset_sorted
             assert addr_1_child.is_leaf_node
             assert addr_1_child.ready_for_lookup
-            best_index_to_split, best_abs_of_num_of_same = addr_1_child._detect_best_bit_to_split()
-            assert -1 == best_index_to_split
-            assert 0 == best_abs_of_num_of_same
+            
             readable_addr = addr_1_child.get_readable_addr()
             assert readable_addr == "1"
             
@@ -2484,11 +2558,12 @@ if "init and split" and True:
             assert not addr_0_child.all_irr
             assert 0 == addr_0_child.addr
             assert not addr_0_child.all_xor
-            assert -1 == addr_0_child.best_index_to_split
+            assert addr_0_child.when_xor__ignore_these_bits == 0
+            assert -1 == addr_0_child.best_index_to_split_from_right_side
             assert 1 == addr_0_child.bitmask
             assert 1 == addr_0_child.bits_already_in_use
             assert addr_0_child.children is None
-            assert 1 == addr_0_child.FieldLength
+            assert 1 == addr_0_child.input_bits_count
             assert addr_0_child.get_already_const_without_irr()
             assert not addr_0_child.has_irr
             assert not addr_0_child.has_0
@@ -2496,29 +2571,44 @@ if "init and split" and True:
             assert addr_0_child.is_dataset_sorted
             assert addr_0_child.is_leaf_node
             assert addr_0_child.ready_for_lookup
-            best_index_to_split, best_abs_of_num_of_same = addr_0_child._detect_best_bit_to_split()
-            assert -1 == best_index_to_split
-            assert 0 == best_abs_of_num_of_same
+            
             readable_addr = addr_0_child.get_readable_addr()
             assert readable_addr == "0"
             
-            for item in dataset:
+            for item in dataset.data:
                 temp = a_DatasetField.lookup(item[0])
                 assert item[1] == temp[1]
                 pass
             
+            #manually modify the obj and test.
+            a_DatasetField.dataset = dataset
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert 0 == best_index_to_split
+            assert 2 == best_abs_of_num_of_same
             
-            dataset = [(0b0,False), (0b1,False), ]
-            a_DatasetField = DatasetField(bitmask = 0, addr = 0, input_bits_count=1, bits_already_in_use=0, \
+            addr_1_child.dataset = dataset.get_subset(addr_1_child.bitmask, addr_1_child.addr)
+            best_index_to_split, best_abs_of_num_of_same = addr_1_child._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            
+            addr_0_child.dataset = dataset.get_subset(addr_0_child.bitmask, addr_0_child.addr)
+            best_index_to_split, best_abs_of_num_of_same = addr_0_child._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            
+            
+            dataset = Dataset(1, [(0b0,False), (0b1,False), ])
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                             dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
             assert not a_DatasetField.all_irr
             assert 0 == a_DatasetField.addr
             assert not a_DatasetField.all_xor
-            assert -1 == a_DatasetField.best_index_to_split
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
+            assert -1 == a_DatasetField.best_index_to_split_from_right_side
             assert 0 == a_DatasetField.bitmask
             assert 0 == a_DatasetField.bits_already_in_use
             assert a_DatasetField.children is None
-            assert 1 == a_DatasetField.FieldLength
+            assert 1 == a_DatasetField.input_bits_count
             assert a_DatasetField.get_already_const_without_irr()
             assert not a_DatasetField.has_irr
             assert a_DatasetField.has_0
@@ -2526,32 +2616,37 @@ if "init and split" and True:
             assert a_DatasetField.is_dataset_sorted
             assert a_DatasetField.is_leaf_node
             assert a_DatasetField.ready_for_lookup
-            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
-            assert -1 == best_index_to_split
-            assert 0 == best_abs_of_num_of_same
+            
             #assert not a_DatasetField.not_after_xor not important.
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "_"
             
-            for item in dataset:
+            for item in dataset.data:
                 temp = a_DatasetField.lookup(item[0])
                 assert item[1] == temp[1]
                 pass
-        
+            #manually modify the obj and test.
+            a_DatasetField.dataset = dataset
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            
+            
             
             # the other smallese non-leaf.
             # optimizable. it's equalavent to a 1bit xor, and possible to do some optimization. But let's keep it simple.
-            dataset = [(0b0,False), (0b1,True), ]
-            a_DatasetField = DatasetField(bitmask = 0, addr = 0, input_bits_count=1, bits_already_in_use=0, \
+            dataset = Dataset(1, [(0b0,False), (0b1,True), ])
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                             dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
             assert not a_DatasetField.all_irr
             assert 0 == a_DatasetField.addr
             assert not a_DatasetField.all_xor
-            assert 0 == a_DatasetField.best_index_to_split
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
+            assert 0 == a_DatasetField.best_index_to_split_from_right_side
             assert 0 == a_DatasetField.bitmask
             assert 0 == a_DatasetField.bits_already_in_use
             assert a_DatasetField.children is not None
-            assert 1 == a_DatasetField.FieldLength
+            assert 1 == a_DatasetField.input_bits_count
             assert not a_DatasetField.get_already_const_without_irr()
             assert not a_DatasetField.has_irr
             assert a_DatasetField.has_0
@@ -2559,9 +2654,6 @@ if "init and split" and True:
             assert a_DatasetField.is_dataset_sorted
             assert not a_DatasetField.is_leaf_node
             assert a_DatasetField.ready_for_lookup
-            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
-            assert 0 == best_index_to_split
-            assert 2 == best_abs_of_num_of_same
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "_"
             
@@ -2569,11 +2661,12 @@ if "init and split" and True:
             assert not addr_1_child.all_irr
             assert 1 == addr_1_child.addr
             assert not addr_1_child.all_xor
-            assert -1 == addr_1_child.best_index_to_split
+            assert addr_1_child.when_xor__ignore_these_bits == 0
+            assert -1 == addr_1_child.best_index_to_split_from_right_side
             assert 1 == addr_1_child.bitmask
             assert 1 == addr_1_child.bits_already_in_use
             assert addr_1_child.children is None
-            assert 1 == addr_1_child.FieldLength
+            assert 1 == addr_1_child.input_bits_count
             assert addr_1_child.get_already_const_without_irr()
             assert not addr_1_child.has_irr
             assert not addr_1_child.has_0
@@ -2581,9 +2674,6 @@ if "init and split" and True:
             assert addr_1_child.is_dataset_sorted
             assert addr_1_child.is_leaf_node
             assert addr_1_child.ready_for_lookup
-            best_index_to_split, best_abs_of_num_of_same = addr_1_child._detect_best_bit_to_split()
-            assert -1 == best_index_to_split
-            assert 0 == best_abs_of_num_of_same
             readable_addr = addr_1_child.get_readable_addr()
             assert readable_addr == "1"
                 
@@ -2591,11 +2681,12 @@ if "init and split" and True:
             assert not addr_0_child.all_irr
             assert 0 == addr_0_child.addr
             assert not addr_0_child.all_xor
-            assert -1 == addr_0_child.best_index_to_split
+            assert addr_0_child.when_xor__ignore_these_bits == 0
+            assert -1 == addr_0_child.best_index_to_split_from_right_side
             assert 1 == addr_0_child.bitmask
             assert 1 == addr_0_child.bits_already_in_use
             assert addr_0_child.children is None
-            assert 1 == addr_0_child.FieldLength
+            assert 1 == addr_0_child.input_bits_count
             assert addr_0_child.get_already_const_without_irr()
             assert not addr_0_child.has_irr
             assert addr_0_child.has_0
@@ -2603,30 +2694,44 @@ if "init and split" and True:
             assert addr_0_child.is_dataset_sorted
             assert addr_0_child.is_leaf_node
             assert addr_0_child.ready_for_lookup
-            best_index_to_split, best_abs_of_num_of_same = addr_0_child._detect_best_bit_to_split()
-            assert -1 == best_index_to_split
-            assert 0 == best_abs_of_num_of_same
             readable_addr = addr_0_child.get_readable_addr()
             assert readable_addr == "0"
             
-            for item in dataset:
+            for item in dataset.data:
                 temp = a_DatasetField.lookup(item[0])
                 assert item[1] == temp[1]
                 pass
             
+            #manually modify the obj and test.
+            a_DatasetField.dataset = dataset
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert 0 == best_index_to_split
+            assert 2 == best_abs_of_num_of_same
+            
+            addr_1_child.dataset = dataset.get_subset(addr_1_child.bitmask, addr_1_child.addr)
+            best_index_to_split, best_abs_of_num_of_same = addr_1_child._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            
+            addr_0_child.dataset = dataset.get_subset(addr_0_child.bitmask, addr_0_child.addr)
+            best_index_to_split, best_abs_of_num_of_same = addr_0_child._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            
         
             #partly irr
-            dataset = [(0b1,False), ]#both 0b0 and 0b1 pass the test.
-            a_DatasetField = DatasetField(bitmask = 0, addr = 0, input_bits_count=1, bits_already_in_use=0, \
+            dataset = Dataset(1, [(0b1,False), ])#both 0b0 and 0b1 pass the test.
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                             dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
             assert not a_DatasetField.all_irr
             assert 0 == a_DatasetField.addr
             assert not a_DatasetField.all_xor
-            assert -1 == a_DatasetField.best_index_to_split
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
+            assert -1 == a_DatasetField.best_index_to_split_from_right_side
             assert 0 == a_DatasetField.bitmask
             assert 0 == a_DatasetField.bits_already_in_use
             assert a_DatasetField.children is None
-            assert 1 == a_DatasetField.FieldLength
+            assert 1 == a_DatasetField.input_bits_count
             assert not a_DatasetField.get_already_const_without_irr()
             assert a_DatasetField.has_irr
             assert a_DatasetField.has_0
@@ -2634,31 +2739,37 @@ if "init and split" and True:
             assert a_DatasetField.is_dataset_sorted
             assert a_DatasetField.is_leaf_node
             assert a_DatasetField.ready_for_lookup
-            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
-            assert 0 == best_index_to_split
-            assert 1 == best_abs_of_num_of_same
             #assert not a_DatasetField.not_after_xor not important.
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "_"
             
-            for item in dataset:
+            for item in dataset.data:
                 temp = a_DatasetField.lookup(item[0])
                 assert item[1] == temp[1]
                 pass
             temp = a_DatasetField.lookup(0b0)
-            assert temp[0]#irr
-        
-            dataset = [(0b0,True), ]#both 0b0 and 0b1 pass the test.
-            a_DatasetField = DatasetField(bitmask = 0, addr = 0, input_bits_count=1, bits_already_in_use=0, \
+            assert temp[0] == False#irr
+            assert temp == (False,False,False,False,False)
+            
+            #manually modify the obj and test.
+            a_DatasetField.dataset = dataset
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert 0 == best_index_to_split
+            assert 1 == best_abs_of_num_of_same
+            
+
+            dataset = Dataset(1, [(0b0,True), ])#both 0b0 and 0b1 pass the test.
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                             dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
             assert not a_DatasetField.all_irr
             assert 0 == a_DatasetField.addr
             assert not a_DatasetField.all_xor
-            assert -1 == a_DatasetField.best_index_to_split
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
+            assert -1 == a_DatasetField.best_index_to_split_from_right_side
             assert 0 == a_DatasetField.bitmask
             assert 0 == a_DatasetField.bits_already_in_use
             assert a_DatasetField.children is None
-            assert 1 == a_DatasetField.FieldLength
+            assert 1 == a_DatasetField.input_bits_count
             assert not a_DatasetField.get_already_const_without_irr()
             assert a_DatasetField.has_irr
             assert not a_DatasetField.has_0
@@ -2666,32 +2777,38 @@ if "init and split" and True:
             assert a_DatasetField.is_dataset_sorted
             assert a_DatasetField.is_leaf_node
             assert a_DatasetField.ready_for_lookup
-            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
-            assert 0 == best_index_to_split
-            assert 1 == best_abs_of_num_of_same
             #assert not a_DatasetField.not_after_xor not important.
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "_"
             
-            for item in dataset:
+            for item in dataset.data:
                 temp = a_DatasetField.lookup(item[0])
                 assert item[1] == temp[1]
                 pass
             temp = a_DatasetField.lookup(0b1)
-            assert temp[0]#irr
-        
+            assert temp[0] == False#irr
+            assert temp == (False,True,False,False,False)
+
+            #manually modify the obj and test.
+            a_DatasetField.dataset = dataset
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert 0 == best_index_to_split
+            assert 1 == best_abs_of_num_of_same
+            
+            '''old code 
             #all irr
-            dataset = []
-            a_DatasetField = DatasetField(bitmask = 0, addr = 0, input_bits_count=1, bits_already_in_use=0, \
+            dataset = Dataset(1, [])
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                             dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
             assert a_DatasetField.all_irr
             assert 0 == a_DatasetField.addr
             assert not a_DatasetField.all_xor
-            assert -1 == a_DatasetField.best_index_to_split
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
+            assert -1 == a_DatasetField.best_index_to_split_from_right_side
             assert 0 == a_DatasetField.bitmask
             assert 0 == a_DatasetField.bits_already_in_use
             assert a_DatasetField.children is None
-            assert 1 == a_DatasetField.FieldLength
+            assert 1 == a_DatasetField.input_bits_count
             assert not a_DatasetField.get_already_const_without_irr()
             assert a_DatasetField.has_irr
             assert not a_DatasetField.has_0
@@ -2714,32 +2831,29 @@ if "init and split" and True:
                 temp = a_DatasetField.lookup(addr)
                 assert temp[0]
                 pass
-            
-            
+            '''
             pass
         pass
         
     if "2 bits input, has 1,0 and irr" and True:
         if "already tested" and True:
-            dataset = [(0b00,True), (0b01,True), (0b10,False), ]
-            a_DatasetField = DatasetField(bitmask = 0, addr = 0, input_bits_count=2, bits_already_in_use=0, \
+            dataset = Dataset(2, [(0b00,True), (0b01,True), (0b10,False), ])
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                             dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
             assert not a_DatasetField.all_irr
             assert 0 == a_DatasetField.addr
             assert not a_DatasetField.all_xor
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
             assert 1 == a_DatasetField.best_index_to_split_from_right_side
             assert 0 == a_DatasetField.bitmask
             assert 0 == a_DatasetField.bits_already_in_use
             assert a_DatasetField.children is not None
-            assert 2 == a_DatasetField.FieldLength
+            assert 2 == a_DatasetField.input_bits_count
             assert not a_DatasetField.get_already_const_without_irr()
             assert a_DatasetField.has_irr
             assert a_DatasetField.has_0
             assert a_DatasetField.has_1
             assert not a_DatasetField.is_leaf_node
-            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
-            assert 1 == best_index_to_split
-            assert 3 == best_abs_of_num_of_same
             #assert not a_DatasetField.not_after_xor not important.
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "__"
@@ -2757,34 +2871,39 @@ if "init and split" and True:
             assert not addr_0__child.has_irr
             assert addr_0__child.children is None
             
-            for item in dataset:
+            for item in dataset.data:
                 temp = a_DatasetField.lookup(item[0])
                 assert item[1] == temp[1]
                 pass
                 
             temp = a_DatasetField.lookup(0b11)
-            assert temp[0]#irr
-        
+            assert temp[0] == False#irr
+            assert temp == (False,False,False,False,False)
             
-            dataset = [(0b00,True), (0b01,False), (0b10,True), ]
-            a_DatasetField = DatasetField(bitmask = 0, addr = 0, input_bits_count=2, bits_already_in_use=0, \
+            #manually modify the obj and test.
+            a_DatasetField.dataset = dataset
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert 1 == best_index_to_split
+            assert 3 == best_abs_of_num_of_same
+            
+            
+            dataset = Dataset(2, [(0b00,True), (0b01,False), (0b10,True), ])
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                             dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
             assert not a_DatasetField.all_irr
             assert 0 == a_DatasetField.addr
             assert not a_DatasetField.all_xor
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
             assert 0 == a_DatasetField.best_index_to_split_from_right_side
             assert 0 == a_DatasetField.bitmask
             assert 0 == a_DatasetField.bits_already_in_use
             assert a_DatasetField.children is not None
-            assert 2 == a_DatasetField.FieldLength
+            assert 2 == a_DatasetField.input_bits_count
             assert not a_DatasetField.get_already_const_without_irr()
             assert a_DatasetField.has_irr
             assert a_DatasetField.has_0
             assert a_DatasetField.has_1
             assert not a_DatasetField.is_leaf_node
-            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
-            assert 0 == best_index_to_split
-            assert 3 == best_abs_of_num_of_same
             #assert not a_DatasetField.not_after_xor not important.
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "__"
@@ -2802,36 +2921,40 @@ if "init and split" and True:
             assert not addr_0__child.has_irr
             assert addr_0__child.children is None
             
-            for item in dataset:
+            for item in dataset.data:
                 temp = a_DatasetField.lookup(item[0])
                 assert item[1] == temp[1]
                 pass
                 
             temp = a_DatasetField.lookup(0b11)
-            assert temp[0]#irr
+            assert temp[0] == False#irr
+            assert temp == (False,False,False,False,False)
             
+            #manually modify the obj and test.
+            a_DatasetField.dataset = dataset
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert 0 == best_index_to_split
+            assert 3 == best_abs_of_num_of_same
             
             
             #basically a xor, but replaced with 1 irr.
-            dataset = [(0b00,True), (0b01,False), (0b10,False), ]
-            a_DatasetField = DatasetField(bitmask = 0, addr = 0, input_bits_count=2, bits_already_in_use=0, \
+            dataset = Dataset(2, [(0b00,True), (0b01,False), (0b10,False), ])
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                             dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
             assert not a_DatasetField.all_irr
             assert 0 == a_DatasetField.addr
             assert not a_DatasetField.all_xor
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
             assert 1 == a_DatasetField.best_index_to_split_from_right_side
             assert 0 == a_DatasetField.bitmask
             assert 0 == a_DatasetField.bits_already_in_use
             assert a_DatasetField.children is not None
-            assert 2 == a_DatasetField.FieldLength
+            assert 2 == a_DatasetField.input_bits_count
             assert not a_DatasetField.get_already_const_without_irr()
             assert a_DatasetField.has_irr
             assert a_DatasetField.has_0
             assert a_DatasetField.has_1
             assert not a_DatasetField.is_leaf_node
-            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
-            assert 1 == best_index_to_split
-            assert 1 == best_abs_of_num_of_same
             #assert not a_DatasetField.not_after_xor not important.
             
             addr_1__child = a_DatasetField._get_child(true_or_false=True)
@@ -2865,71 +2988,88 @@ if "init and split" and True:
             assert not addr_01_child.has_1
             assert addr_01_child.has_0
             
-            for item in dataset:
+            for item in dataset.data:
                 temp = a_DatasetField.lookup(item[0])
                 assert item[1] == temp[1]
                 pass
                 
             temp = a_DatasetField.lookup(0b11)
-            assert temp[0]#irr
+            assert temp[0] == False#irr
+            assert temp == (False,False,False,False,False)
+            
+            #manually modify the obj and test.
+            a_DatasetField.dataset = dataset
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert 1 == best_index_to_split
+            assert 1 == best_abs_of_num_of_same
+            
+            pass
         
         if "2 bits xor(and xnor)" and True:
             #xor.
-            dataset = [(0b00,True), (0b01,False), (0b10,False), (0b11,True), ]
-            a_DatasetField = DatasetField(bitmask = 0, addr = 0, input_bits_count=2, bits_already_in_use=0, \
+            dataset = Dataset(2, [(0b00,True), (0b01,False), (0b10,False), (0b11,True), ])
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                             dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
             assert not a_DatasetField.all_irr
             assert 0 == a_DatasetField.addr
             assert a_DatasetField.all_xor
-            assert -1 == a_DatasetField.best_index_to_split_from_right_side
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
+            assert a_DatasetField.best_index_to_split_from_right_side <0
             assert 0 == a_DatasetField.bitmask
             assert 0 == a_DatasetField.bits_already_in_use
             assert a_DatasetField.children is None
-            assert 2 == a_DatasetField.FieldLength
+            assert 2 == a_DatasetField.input_bits_count
             assert not a_DatasetField.get_already_const_without_irr()
             assert not a_DatasetField.has_irr
             assert a_DatasetField.has_0
             assert a_DatasetField.has_1
             assert a_DatasetField.is_leaf_node
-            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
-            assert -1 == best_index_to_split
-            assert 0 == best_abs_of_num_of_same
             assert a_DatasetField.not_after_xor
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "__"
-            for item in dataset:
-                    temp = a_DatasetField.lookup(item[0])
-                    assert item[1] == temp[1]
+            for _addr_result in dataset.data:
+                    tis_irr, is_true, _,_,_ = a_DatasetField.lookup(_addr_result[0])
+                    assert _addr_result[1] == is_true
                     pass
+            #manually modify the obj and test.
+            a_DatasetField.dataset = dataset
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
             
             #xnor. But in code it's a not after xor.
-            dataset = [(0b00,False), (0b01,True), (0b10,True), (0b11,False), ]
-            a_DatasetField = DatasetField(bitmask = 0, addr = 0, input_bits_count=2, bits_already_in_use=0, \
+            dataset = Dataset(2, [(0b00,False), (0b01,True), (0b10,True), (0b11,False), ])
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
                             dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
             assert not a_DatasetField.all_irr
             assert 0 == a_DatasetField.addr
             assert a_DatasetField.all_xor
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
             assert -1 == a_DatasetField.best_index_to_split_from_right_side
             assert 0 == a_DatasetField.bitmask
             assert 0 == a_DatasetField.bits_already_in_use
             assert a_DatasetField.children is None
-            assert 2 == a_DatasetField.FieldLength
+            assert 2 == a_DatasetField.input_bits_count
             assert not a_DatasetField.get_already_const_without_irr()
             assert not a_DatasetField.has_irr
             assert a_DatasetField.has_0
             assert a_DatasetField.has_1
             assert a_DatasetField.is_leaf_node
-            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
-            assert -1 == best_index_to_split
-            assert 0 == best_abs_of_num_of_same
             assert not a_DatasetField.not_after_xor
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "__"
-            for item in dataset:
+            for item in dataset.data:
                     temp = a_DatasetField.lookup(item[0])
                     assert item[1] == temp[1]
                     pass
-
+            #manually modify the obj and test.
+            a_DatasetField.dataset = dataset
+            best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
+            assert -1 == best_index_to_split
+            assert 0 == best_abs_of_num_of_same
+            
+            pass
+            
     if "3 bits fake xor" and True:
         '''Generally, xor is a 2 bits structure. The result is either 1001 or 0110. 
         People call the 1001 xnor, but in this tool, they are both xor.
@@ -2948,6 +3088,7 @@ if "init and split" and True:
         assert a_DatasetField.when_xor__ignore_these_bits == 0b100
         assert a_DatasetField.bitmask == 0
         assert a_DatasetField.addr == 0
+        assert a_DatasetField.when_xor__ignore_these_bits == 0
         assert a_DatasetField.input_bits_count == 3
         assert a_DatasetField.bits_already_in_use == 0
         #assert a_DatasetField.dataset:list[tuple[int,bool]]
@@ -2971,6 +3112,7 @@ if "init and split" and True:
             assert a_DatasetField.bitmask == 0
             assert a_DatasetField.addr == 0
             assert a_DatasetField.input_bits_count == 3
+            assert a_DatasetField.when_xor__ignore_these_bits == 0
             assert a_DatasetField.bits_already_in_use == 0
             #assert a_DatasetField.dataset:list[tuple[int,bool]]
             assert a_DatasetField._debug__how_did_I_quit_init_func == How_did_I_quit_init_func.BRANCH
@@ -2991,6 +3133,7 @@ if "init and split" and True:
             assert addr_1_child.bitmask == 0b100
             assert addr_1_child.addr == 0b100
             assert addr_1_child.input_bits_count == 3
+            assert addr_1_child.when_xor__ignore_these_bits == 0
             assert addr_1_child.bits_already_in_use == 1
             #assert addr_1_child.dataset:list[tuple[int,bool]]
             assert addr_1_child._debug__how_did_I_quit_init_func == How_did_I_quit_init_func.XOR
@@ -3011,6 +3154,7 @@ if "init and split" and True:
             assert addr_0_child.bitmask == 0b100
             assert addr_0_child.addr == 0b000
             assert addr_0_child.input_bits_count == 3
+            assert addr_0_child.when_xor__ignore_these_bits == 0
             assert addr_0_child.bits_already_in_use == 1
             #assert addr_1_child.dataset:list[tuple[int,bool]]
             assert addr_0_child._debug__how_did_I_quit_init_func == How_did_I_quit_init_func.XOR
@@ -3569,7 +3713,7 @@ class DatasetField_Set:
         result_in_int = 0
         for i_from_the_left in range(self.get_output_count()):
             field = self.fields[i_from_the_left]
-            temp_result_is_irr, temp_result_is_true = field.lookup(addr)
+            temp_result_is_irr, temp_result_is_true, _,_,_ = field.lookup(addr)
             i_from_the_right = (self.get_output_count()-1)-i_from_the_left#len-1-index_from_left
             irr_bit_maskin_int = irr_bit_maskin_int|(temp_result_is_irr<<i_from_the_right)
             result_in_int = result_in_int|(temp_result_is_true<<i_from_the_right)
