@@ -1,4 +1,8 @@
 '''
+Docs is a bit outdated. If you really need it, tell me on X.com.
+The code is not cleaned. But basically ready.
+This simple version has nothing about any xor.
+
 Author:YagaoDirac (also on X.com)
 
 content
@@ -30,35 +34,6 @@ def _line_()->int:
     return caller_s_line_number#######
 
 
-    
-
-if False:
-    
-    # _T = TypeVar("_T")
-    # def dont_use___untested_yet___binary_search(the_list:list[_T], target:SupportsRichComparison, 
-    #             key: Callable[[_T], SupportsRichComparison] = lambda item:item)->int:
-    #     '''return the index. -1 for not found.'''
-    #     '''type hint is copy pasted from the [].sort(). It needs 
-    #     >>> from typing import TypeVar, Callable 
-    #     >>> from _typeshed import SupportsRichComparison
-    #     '''
-    #     found = False
-    #     left = 0
-    #     right = dataset.__len__()-1
-    #     mid:int = (left+right)//2
-    #     while left<=right:
-    #         if target<key(the_list[mid]):
-    #             right = mid-1# two valid style.
-    #             pass
-    #         if target>key(the_list[mid]):
-    #             left = mid+1# two valid style.
-    #             pass
-    #         if target == key(the_list[mid]):
-    #             return mid
-    #         pass#while of binary search.
-    #     return -1
-    pass
-                    
 
 def count_ones(input:int)->int:
     assert input>=0
@@ -98,9 +73,6 @@ if "test" and False:
     assert readable_binary(0b10,5) == "00010"
     pass
 
-
-
-#still useful, but not used in the class.
 def is_addr_valid(bit_in_use_mask:int, fixed_addr:int)->bool:
     '''Checks if fixed_addr has no 1s outside the bits marked by bit_in_use_mask
     
@@ -120,81 +92,7 @@ if "test" and False:
     #assert is_addr_valid(int("10",2), int("1",2))
     assert is_addr_valid(int("10",2), int("0",2))
     pass
-#not in use. But let's leave it here.
-class OneTimeSetup_Bool:
-    def __init__(self):
-        self.uninit = True
-        self.value = False
-        pass
-    def set(self, set_to = True):
-        if __debug__:
-            assert self.uninit, "already set before."
-            self.uninit = False
-            pass
-        self.value = set_to
-        return
-        #end of function
-    def reset(self):
-        if __debug__:
-            assert self.uninit, "already set before."
-            self.uninit = False
-            return
-        return
-        #end of function
-    def get_inited(self)->bool:
-        return not self.uninit
-    def get_value_safe(self)->bool:
-        if __debug__:
-            assert not self.uninit, "not set yet."
-            pass
-        return self.value
-    def __str__(self):
-        if self.uninit:
-            return "UnInit"
-        else:
-            return str(self.value)
-    #end of class
-if "test" and False:
-    print(OneTimeSetup_Bool())
-    
-    print("---get_value_safe")
-    a_OneTimeSetup_Bool = OneTimeSetup_Bool()
-    #a.get_value_safe()
-    a_OneTimeSetup_Bool.set()
-    print(a_OneTimeSetup_Bool.get_value_safe())
-    
-    print("---test get_inited")
-    a_OneTimeSetup_Bool = OneTimeSetup_Bool()
-    print(a_OneTimeSetup_Bool.get_inited())
-    a_OneTimeSetup_Bool.set()
-    print(a_OneTimeSetup_Bool.get_inited())
-    print("---test set and reset")
-    a_OneTimeSetup_Bool = OneTimeSetup_Bool()
-    a_OneTimeSetup_Bool.set()
-    print(a_OneTimeSetup_Bool)
-    a_OneTimeSetup_Bool = OneTimeSetup_Bool()
-    a_OneTimeSetup_Bool.reset()
-    print(a_OneTimeSetup_Bool)
-    #only set once.
-    a_OneTimeSetup_Bool = OneTimeSetup_Bool()
-    a_OneTimeSetup_Bool.set()
-    #a.set()
-    a_OneTimeSetup_Bool = OneTimeSetup_Bool()
-    a_OneTimeSetup_Bool.set()
-    #a.reset()
-    a_OneTimeSetup_Bool = OneTimeSetup_Bool()
-    a_OneTimeSetup_Bool.reset()
-    #a.set()
-    a_OneTimeSetup_Bool = OneTimeSetup_Bool()
-    a_OneTimeSetup_Bool.reset()
-    #a.reset()
-    pass
 
-
-
-
-class Bitset:
-    pass
 
 
 
@@ -203,101 +101,6 @@ class Dataset:
     max_input_bits:int
     data:list[tuple[int,bool]]
     is_sorted:bool
-    
-    @staticmethod
-    def todo_list()->str:
-        return '''
-    rand_true_xor
-    生成复杂xor专用函数。
-    '''
-    
-    @staticmethod
-    def rand_true_xor(max_input_bits:int, only_full = True, seed:Optional[int]=None)->tuple['Dataset',str]:
-        '''return (result, instruction)'''
-        #safety first
-        
-        assert only_full, "this version only handles this case."
-        
-        if seed:
-            random.seed(time.time())
-            pass
-        
-        assert max_input_bits>=3
-        _free_count = max_input_bits-2
-        count_list:list[int] = []
-        if only_full:
-            irr_bit_count = random.randint(0, _free_count)
-            _free_count = _free_count - irr_bit_count
-            xor_bit_count = _free_count +2
-            one_bit_count = 0
-            zero_bit_count = 0
-            pass
-        else:#full or non-full.
-            for _ in range(3):
-                _rand_int = random.randint(0, _free_count)
-                _free_count = _free_count - _rand_int
-                count_list.append(_rand_int)
-                pass
-            count_list.append(_free_count)
-            
-            for _ in range(3):
-                random.shuffle(count_list)
-                pass
-            xor_bit_count = count_list.pop()+2
-            irr_bit_count = count_list.pop()
-            one_bit_count = count_list.pop()
-            zero_bit_count = count_list.pop()
-            pass#if only_full   else
-        _temp_irr_bits = "." * xor_bit_count + "i" * irr_bit_count + "1" * one_bit_count + "0" * zero_bit_count
-        #irr_bits_list:list[str] = _temp_irr_bits.split(sep="")
-        irr_bits_list:list[str] = list(_temp_irr_bits)
-        random.shuffle(irr_bits_list)
-        irr_bits = "".join(irr_bits_list)
-        
-        _rand_flag = (random.random()<0.5)
-        result = Dataset.inst_2_xor_like_dataset(irr_bits, not_after_xor=_rand_flag)
-        if only_full:#safety
-            assert result.data.__len__() == (1<<max_input_bits)
-            pass
-        
-        return (result, irr_bits)
-    
-    @staticmethod
-    def inst_2_xor_like_dataset(irr_bits:str, not_after_xor = False, )->'Dataset':
-        result = Dataset.from_str("0")
-        if not_after_xor:
-            result = Dataset.from_str("1")
-            pass
-        
-        for i_from_left_side in range(irr_bits.__len__()):
-            i_from_right_side = irr_bits.__len__()-1-i_from_left_side
-            char = irr_bits[i_from_right_side]
-            #one_shift_by_i = 1<<i
-            match char:
-                case "0":#one more input bit, but no more data, it's non full now.
-                    result.add_const_bit_into_addr(i_from_left_side, False)
-                    pass
-                case "1":#one more input bit, but no more data, it's non full now.
-                    result.add_const_bit_into_addr(i_from_left_side, True)
-                    pass
-                case ".":
-                    other = result.clone()
-                    result.add_const_bit_into_addr(i_from_left_side, False)
-                    other.add_const_bit_into_addr(i_from_left_side, True)
-                    other.reverse()#<<<<<<<<<
-                    result.extend(other)
-                    pass
-                case "i":
-                    other = result.clone()
-                    result.add_const_bit_into_addr(i_from_left_side, False)
-                    other.add_const_bit_into_addr(i_from_left_side, True)
-                    #result.reverse()#<<<<<<<<<
-                    result.extend(other)
-                    pass
-                case _:
-                    assert False, "unreachable"
-            pass#for
-        return result
     
     @staticmethod
     def _debug__new_empty(max_input_bits:int)->'Dataset':
@@ -1084,10 +887,10 @@ But let's keep it simple at the moment.
 '''
 class How_did_I_quit_init_func(Enum):
     IRR = 0,
-    XOR = 1,
+    #XOR = 1,
     LEAF = 2,
     BRANCH = 3,
-    BRANCH__FAKE_XOR = 4,
+    #BRANCH__FAKE_XOR = 4,
     pass
 
 class DatasetField:
@@ -1112,19 +915,13 @@ class DatasetField:
         has_irr:bool
         is_dataset_sorted:bool
         is_leaf_node:bool
-        all_xor:bool
+        #all_xor:bool not in this simple version
         #simple flags
-        not_after_xor:bool# self.not_after_xor # if all 0s, and not_after_xor is false, result is false. Every one flips it once.
-        when_xor__ignore_these_bits:int
+        #not_after_xor:bool# self.not_after_xor # if all 0s, and not_after_xor is false, result is false. Every one flips it once. not in this simple version
+        #when_xor__ignore_these_bits:int not in this simple version
         #already_const_without_irr:bool
         all_irr:bool
         pass
-    @staticmethod
-    def todo_list()->str:
-        return '''  
-        non-full xor field detection.
-        lookup 里面加一个具体的依据来源的地址的返回。
-        '''
     
     @staticmethod
     def _new(dataset:Dataset, leaf_keep_dataset:bool = False, _debug__save_sub_dataset_when_xor = False)->'DatasetField':
@@ -1230,64 +1027,8 @@ class DatasetField:
             pass
         self.best_index_to_split_from_right_side, self._it_was_a_temp_var__best_abs_of_num_of_same = self._detect_best_bit_to_split()
         
-        # 4, a special case is ***all xor***. Condition is ((not self.has_irr) and 
-        # 0 == best_abs_of_num_of_same and has_0 and has_1). If true, it's a leaf node. [return]
-        if (0 == self._it_was_a_temp_var__best_abs_of_num_of_same) and (not self.has_irr) and self.has_0 and self.has_1:
-            '''Generally, xor is a 2 bits structure. The result is either 1001 or 0110. 
-            People call the 1001 xnor, but in this tool, they are both xor.
-            In this tool, more than 2 bits can also be treated as xor, to simplify and speed up.
-            When input(a) is true, input(bc) is 1001, when input(a) is false, input(bc) is 0110, 
-            they can combine as a 3 bits xor. But when 2 1001 combine, it's not a xor. 
-            This 3 bits fake xor is to validate this special case.        
-            '''
-            
-            #self.all_xor, self.not_after_xor, self.best_index_to_split_from_right_side = \
-            is_true_xor, irr_bitmask, needs_a_not_after_xor, best_index_to_split_from_right_side = \
-                self._init_only__detect_xor_info(_debug__save_sub_dataset_when_xor)
-                
-            '''
-            This function return in 2 styles. (- means not related in a given case.)
-
-            >>> 1, (true xor)pure xor/xnor, with and without irr-bit. It's (true,  useful, useful, -).
-            >>> 2, fake xor(false, -, -, useful.)
-
-            1 is leaf, while 2 is branch.
-            '''
-            self.ready_for_lookup = True
-            #self.has_1 see uppon
-            #self.has_0 see uppon
-            #self.has_irr see uppon
-            self.all_irr = False
-            #self.is_dataset_sorted = True already set before
-            self.all_xor = is_true_xor#it depends
-            self.not_after_xor = needs_a_not_after_xor
-            self.when_xor__ignore_these_bits = irr_bitmask#for 1. in style 2, it's ignored.
-            #self.already_const_without_irr = False#only to init. not a real result.
-            self.best_index_to_split_from_right_side = best_index_to_split_from_right_side
-            if is_true_xor:#case 1
-                assert 0 == irr_bitmask&self.bitmask
-                
-                '''true xor. both pure/unpure xor(with or without irr-bit). leaf. [return]'''
-                self.is_leaf_node = True
-                self._debug__how_did_I_quit_init_func = How_did_I_quit_init_func.XOR
-                
-                #all_xor doesn't need the dataset.
-                self.dataset = None
-                return 
-            else:#case 2
-                #it's not a true xor. But splitting it trickily can get smaller true xor.
-                self.is_leaf_node = False
-                self._debug__how_did_I_quit_init_func = How_did_I_quit_init_func.BRANCH__FAKE_XOR
-                #now split.
-                _check_all_safety = _debug__check_all_safety
-                self.split(self.best_index_to_split_from_right_side, _debug__check_all_safety_in_split = _check_all_safety,
-                        leaf_keep_dataset = leaf_keep_dataset, branch_keep_dataset = branch_keep_dataset)
-                #
-                if not branch_keep_dataset:
-                    self.dataset = None
-                    pass
-                #assert False, "untested."
-                return
+        # 4, a special case is ***all xor***. 
+        #not in this simple version.
         
         # normal leaf. 5, if the dataset doesn't have 1 or doesn't have 0, it's a leaf node. [return]
         if (not self.has_1) or (not self.has_0):
@@ -1335,186 +1076,6 @@ class DatasetField:
     def has_dataset(self)->bool:
         return self.dataset is not None
     
-    def _init_only__detect_xor_info(self, __debug__save_sub_dataset_when_xor = False)->tuple[bool, int, bool, int]:
-        '''return(is full xor, irr_bitmask, needs a not after xor(if is full xor), best bit to split from_right_side(if not a full xor))
-        
-        This function return in 2 styles. (- means not related in a given case.)
-        >>> 1, (true xor)pure xor/xnor, with and without irr-bit. It's (true,  useful, useful, -).
-        >>> 2, fake xor(false, -, -, useful.)
-        
-        1 is leaf, while 2 is branch.
-        
-        irr_bitmask:when the bits left to detect are only true-xor bits, or irrelevant bits, all the irr-bits 
-        are reported in this bitmask. It's the irr-bit, not the irr-item. irr-item the digital-circuit-concept 
-        and you can find it anywhere. But the irr-bit is a concept introduced here by me.
-        
-        位的优先级。
-        非xor有关位>非xor无关位>xor位。
-        其中，非xor有关位可以形成branch。
-        非xor无关位 和 xor位 共同构成xor leaf。
-
-        在xor检测的时候，非xor有关位的xor分数是大于0，而且小于最大可能分数，非xor无关位的分数为0，xor位的分数是最大可能分数。
-        于是当有非xor有关位的时候，按其中的最无关位split（未证明最优）。
-        也就是说，有 非xor有关位 的时候，是style2，没有就是style1。
-        '''
-        assert self.dataset is not None
-        if __debug__save_sub_dataset_when_xor:
-            self.dataset.log_the_error("xor cases.txt")
-            pass
-        
-        '''this loop is cut into 2 parts. The code is a lil different.'''
-        score_of_xor_list_from_right_side:list[int] = []
-        score_of_xor = 0
-        assert self.dataset is not None
-        #part 1
-        for index_1 in range(0, self.dataset.data.__len__(), 2):
-            '''case 1, last bit.
-            0and1, 2and3, ind2-ind1 is 1. step is 1??, chunk is 2.'''
-            index_2 = index_1+1
-            data_1_tuple:tuple[int, bool] = self.dataset.data[index_1]
-            data_2_tuple:tuple[int, bool] = self.dataset.data[index_2]
-            #wrong assert data_1_tuple[0]^data_2_tuple[0] == 1 #not needed in real case. 
-            if data_1_tuple[1]^data_2_tuple[1]:
-                score_of_xor = score_of_xor +1
-                pass
-            pass#end of part 1
-        score_of_xor_list_from_right_side.append(score_of_xor)
-        #part 2
-        for i in range(1, self.input_bits_count-self.bits_already_in_use):
-            '''
-            case 2, 
-            0and2, 1and3,,, 4and6, 5and7. ind2-ind1 is 2. step is 1, chunk is 4.
-            0-4, 1-5, 2-6, 3-7,,, 8-12, 9-13, 10-14, 11-15. ind2-ind1 is 4. step is 1, chunk is 8.
-            '''
-            score_of_xor = 0
-            index_2_minus_index_1 = 1<<i #this is also half chunk size.
-            chunk_size = index_2_minus_index_1<<1
-            for chunk_start_addr in range(0, self.dataset.data.__len__(), chunk_size):
-                chunk_start_addr_plus_half_chunk_size = chunk_start_addr+index_2_minus_index_1#
-                for index_1 in range(chunk_start_addr, chunk_start_addr_plus_half_chunk_size):
-                    index_2 = index_1 + index_2_minus_index_1
-                    data_1_tuple = self.dataset.data[index_1]
-                    data_2_tuple = self.dataset.data[index_2]
-                    #wrong assert data_1_tuple[0]^data_2_tuple[0] == index_2_minus_index_1 #not needed in real case. 
-                    if data_1_tuple[1]^data_2_tuple[1]:
-                        score_of_xor = score_of_xor +1
-                        pass
-                    pass#for index_1
-                pass#for chunk_start_addr
-            score_of_xor_list_from_right_side.append(score_of_xor)
-            pass#end of part 2.
-        
-        '''score-list into useful info.'''
-        CONST_score_if_full_xor = self.dataset.data.__len__()//2#11111111111111111下一个版本里面这个要改
-        irr_bit_as_int__from_right_side__squeezed__before_translate = 0
-        # min_of_score_list____from_right_side = self.dataset.data.__len__()# the max of this is len/2, so this is big enough.
-        # index_of_min_of_score_list____from_right_side = -1
-        min_of___non_zero_score___from_right_side = CONST_score_if_full_xor
-        index_of_min_of___non_zero_score___from_right_side = -1
-        for i in range(score_of_xor_list_from_right_side.__len__()):
-            item = score_of_xor_list_from_right_side[i]
-            assert item >=0
-            '''
-            match item:
-            case 0: it's a irr-bit.
-            case CONST_score_if_full_xor: means 
-            case in between: a fake xor.
-            '''
-            if 0 == item:
-                irr_bit_as_int__from_right_side__squeezed__before_translate = \
-                    irr_bit_as_int__from_right_side__squeezed__before_translate |(1<<i)
-                pass
-            # if item<min_of_score_list____from_right_side:
-            #     min_of_score_list____from_right_side = item
-            #     index_of_min_of_score_list____from_right_side = i
-            if (item<min_of___non_zero_score___from_right_side) and (item!=0):
-                min_of___non_zero_score___from_right_side = item
-                index_of_min_of___non_zero_score___from_right_side = i
-                pass
-            pass
-        
-        '''
-        if index_of_min_of___non_zero_score___from_right_side is -1, it's untouched. 
-        which means no score between 0 and max was found. It's a true xor(may have irr-bit).
-        
-        min_of___non_zero_score___from_right_side can only be the max or between.
-        When it's max, it's a true xor. Otherwise it needs to split.
-        
-        They give basically the same info.
-        '''
-        
-        '''now all the useful info are ready. Return respectively.'''
-        if -1 == index_of_min_of___non_zero_score___from_right_side:
-            '''true xor.'''
-            
-            #maybe optimizable. 11111111111111111
-            if 0 == irr_bit_as_int__from_right_side__squeezed__before_translate:
-                '''true xor, withOUT irr bits.'''
-                '''return(is full xor, irr_bitmask, needs a not after xor(if is full xor), best bit to split from_right_side(if not a full xor))'''
-                needs_not_after_xor = self.dataset.data[0][1]#result of the pure not addr.
-                '''1, (true xor)pure xor/xnor. It's (true, useful, useful, -). copy pasted from the docstring of function.'''
-                return (True, 0, needs_not_after_xor, -2)
-                '''-------------------------------------------------------'''
-                '''-------------------------------------------------------'''
-            else:
-                '''true xor with "irr bit". '''
-                '''translate the index to actual index.'''
-                irr_bit_as_int = 0
-                squeezed_bit_count__from_right_side = 0
-                for actual_bit_index___from_right_side in range(self.input_bits_count):
-                    one_shift_by_i:int = 1<<actual_bit_index___from_right_side
-                    bit_of_bitmask_for_this_i = one_shift_by_i&self.bitmask
-                    if bit_of_bitmask_for_this_i != 0:
-                        #This bit is in bitmask, ignore this i.
-                        continue
-                    '''
-                    .4      actual index
-                    ._ 2    squeezed index
-                    001100  bitmask of the obj
-                    .1  00  squeezed
-                    .....1  the_bit
-                    .10000  in actual place.    
-                    '''
-                    
-                    one_shift_by___something___ = 1<<squeezed_bit_count__from_right_side
-                    
-                    
-                    #the_bit__before_shift = irr_bit_as_int__from_right_side__squeezed__before_translate&squeezed_bit_count__from_right_side
-                    the_bit__before_shift = irr_bit_as_int__from_right_side__squeezed__before_translate&one_shift_by___something___
-                    #the_bit = the_bit__before_shift >>
-                    the_bit_in_actual_place = the_bit__before_shift <<(actual_bit_index___from_right_side-squeezed_bit_count__from_right_side)
-                    irr_bit_as_int = irr_bit_as_int |the_bit_in_actual_place
-                    #tail
-                    squeezed_bit_count__from_right_side = squeezed_bit_count__from_right_side +1
-                    pass
-                #assert False,"the line below."
-                needs_not_after_xor = self.dataset.data[0][1]#result of the pure not addr.
-                '''2, (true xor)xor/xnor with irr-bits(true, useful, useful, -) copy pasted from the docstring of function.'''
-                return (True, irr_bit_as_int, needs_not_after_xor, -3)
-                '''return(is full xor, irr_bitmask, needs a not after xor(if is full xor), best bit to split from_right_side(if not a full xor))'''
-                pass#if   true xor without irr bit   else   xor with irr bit 
-            pass#if true xor
-        
-        #no need for a else.
-        '''fake xor. Split at the least xor bit.'''
-        '''translate the index to actual index.'''
-        squeezed_index = 0
-        for actual_bit_index___from_right_side in range(self.input_bits_count):
-            one_shift_by_i = 1<<actual_bit_index___from_right_side
-            bit_of_bitmask_for_this_i = one_shift_by_i&self.bitmask
-            if bit_of_bitmask_for_this_i != 0:
-                #This bit is in bitmask, ignore this i.
-                continue
-            #if squeezed_index == index_of_min_of_score_list____from_right_side:#old.
-            if squeezed_index == index_of_min_of___non_zero_score___from_right_side:#new. irr-bit excluded here.
-                '''return(is full xor, irr_bitmask, needs a not after xor(if is full xor), best bit to split from_right_side(if not a full xor))'''
-                '''2, fake xor(false, -1, -, useful.) copy pasted from the docstring of function.'''
-                return(False, -1, False, actual_bit_index___from_right_side)
-            #tail
-            squeezed_index = squeezed_index + 1
-            pass
-        assert False, "unreachable"
-
     if "untested but probably wrong. actually the version 2." and False:
         def _init_only__detect_xor_info(self)->tuple[bool, bool, int]:
             '''return(is full xor, needs a not after xor(if is full xor), best bit to split(if not a full xor))'''
@@ -1797,80 +1358,8 @@ class DatasetField:
             return True
         else:
             return False
-        
-    def lookup_version_1___dont_use(self, addr:int, lookup_in_leaf_dataset = False)->tuple[bool,bool]:#[None,None,bool,bool]:
-        #to do :suggest, like allow_irr, better_non_irr, better_irr, true_when_irr, false_when_irr.
-        
-        #the sequence is the same as __init__, except for all the branch cases are priotized to the top.
-        '''return (result_is_irr, result_is_true)
-        
-        Note. This function never look up in the self.dataset of branch.'''
-        #to do:return (result_is_irr, result_is_true, is_irr_raw, is_true_raw)'''
-        
-        # 0, this is different. I guess a lot calling to this function is not the end, 
-        # so let's detect non leaf node first.
-        if not self.is_leaf_node:
-            _temp__mask_of_this_bit = 1<<self.best_index_to_split_from_right_side
-            this_bit_of_addr__with_shift = _temp__mask_of_this_bit&addr
-            this_bit_of_addr = this_bit_of_addr__with_shift != 0
-            the_child = self._get_child(this_bit_of_addr)
-            return the_child.lookup_version_1___dont_use(addr, lookup_in_leaf_dataset = lookup_in_leaf_dataset)
-        
-        # 1, is dataset empty. 
-        if self.all_irr:
-            '''return (result_is_irr, result_is_true, is_irr_raw, is_true_raw)'''
-            return(True, False)#irr.
-        
-        # 2 and 3 don't return.
-        
-        # 4, only the true xor here. Fake xor results in a branch node and handled at 0th uppon 
-        if self.all_xor:
-            result = self._lookup_only__all_xor_only(addr)
-            return(False, result)
-            
-        # 5, if the dataset doesn't have 1 or doesn't have 0, it's a leaf node. [return]
-        # the dataset is assumed to be sorted.
-        if not lookup_in_leaf_dataset:
-            if self.has_0:
-                return(False, False)
-            else:
-                return(False, True)
-        else:#with the dataset for leaf node, it's 
-            assert self.dataset is not None, "Set leaf_keep_dataset=True when create this object or the root object."
-            found, _ = self.dataset.find_addr(addr)
-            if found:
-                if self.has_0:
-                    return(False, False)
-                else:
-                    return(False, True)
-            else:#not in the dataset, then it's irr.
-                return(True, False)
-            pass#else
-            '''
-            #assert False,"old code below"
-            
-            #a binary search pasted from bing.
-            left = 0
-            right = self.dataset._len() - 1
-            #found = False
-            while left <= right:
-                mid:int = (left + right) // 2
-                addr_here = self.dataset.data[mid][0]
-                if addr_here == addr:
-                    return (False, self.dataset.data[mid][1])  # Target found
-                elif addr_here < addr:
-                    left = mid + 1  # Search in the right half
-                    pass
-                else:
-                    right = mid - 1  # Search in the left half
-                    pass
-                pass
-            return (True, False)#irr
-            '''
-        pass#end of function.
-        # 6, it's the 0th uppon. So, no 6 here.
     
-    def lookup_version_2___dont_use(self, addr:int, lookup_in_leaf_dataset = False, as_xor_as_possible = True)->tuple[bool,bool,bool,bool,bool]:#[None,None,bool,bool]:
+    def lookup(self, addr:int, lookup_in_leaf_dataset = False, as_xor_as_possible = True)->tuple[bool,bool,bool,bool,bool]:#[None,None,bool,bool]:
         #to do :suggest, like allow_irr, better_non_irr, better_irr, true_when_irr, false_when_irr.
         
         #the sequence is the same as __init__, except for all the branch cases are priotized to the top.
@@ -2004,191 +1493,6 @@ class DatasetField:
         # 6, it's the 0th uppon. So, no 6 here.
         pass#end of function.
     
-    
-    
-    @staticmethod
-    def lookup(root:'DatasetField', addr:int, lookup_in_leaf_dataset = False, as_xor_as_possible = True):#->tuple[bool,bool,bool,bool,bool]:#[None,None,bool,bool]:
-        '''this is the 3rd version of this function. It's not a recursive function. I don't like recursive.'''
-        
-        1w 明天继续。
-        
-        
-        
-        
-        #to do :suggest, like allow_irr, better_non_irr, better_irr, true_when_irr, false_when_irr.
-        
-        #the sequence is the same as __init__, except for all the branch cases are priotized to the top.
-        '''For the outside use, only take the first 2 return value. eg.
-        >>> is_irr, is_true, _,_,_ = self.looup(addr)
-        
-        return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset)
-                
-        The last input param lookup_in_leaf_dataset is a __debug__ feature, and only affects the last output bool. 
-        If the input flag is true, and the result is irr according to the dataset(I call it accurate irr), 
-        the last return flag is true.
-        This case only happens when the leaf is 1+ir or 0+ir, and the addr is ir.
-        (maybe in the future, after I implement the non-full-xor-field, maybe this irr also comes from non-full-xor-field.)
-                
-        This function returns in several styles.
-        If this node is a branch, it looks up it's child(according to address.). After get the result from child, 
-        it decides how it returns.
-        Branch-1, it looks up into a normal child(non all-irr, non xor), it returns what the child returns.
-        Branch-2, it's all-irr-field(doesn't apply to accurate irr), it creates a fake address(only one bit different, 
-        and the bit is represented by the node.).
-        It looks up into the other child(with the fake addr just created), in order to get at least some suggestion.
-        The reason is that, this tool first seperate the entire field at the most related non-xor bit in addr. 
-        That is the root node. Then, as it digs deeper, and the nodes are farther from the root node, the related-score decreases.
-        I mean, ***most related->least related->non related->xor***.
-        If the dataset doesn't have any xor-field as any sub field(children), it only has most ***related->least related->non related***
-        If a addr is irrelevant item, then this tool tries to provide a suggestion. It firstly changes the non related bits 
-        and see if there is any useful info. This is the reason I organize the addrs in fields. 
-        A irr in a 1+ir field is suggested as 1, becasuse it's possible to only change the non-related and very little related 
-        bits in addr to see a 1 somewhere. 
-        If this in-field-reference still doesn't do the job(the only case is, it's a all-irr field/node),then it needs to change 
-        a more related bit in addr to see if it can modify the least and least related bits to get any reasonable reference.
-        Anyway, I know it's messy, and I didn't prove it in math. But this tool is designed to do this. Trust my testing skill.
-        Branch-3, the fake addr goes into a xor-field. I don't know if I should reverse the suggestion or not.
-        
-        If this node is a leaf, return according to its info stored.(The simple case. 
-        I can have some fun writing simple code please? This tool is too hard for me.)
-        
-        Note. This function never looks up in the self.dataset of branch. If the lookup_in_leaf_dataset is true, it looks up 
-        in the dataset in leaves if the type keeps the dataset. It only store the info in the last bool of output, and never 
-        changes any other behavior of this function. 
-        '''
-        #to do:return (result_is_irr, result_is_true, is_irr_raw, is_true_raw)'''
-        
-        # 0, this is different. I guess a lot calling to this function is not the end, 
-        # so let's detect non leaf node first.
-        if not self.is_leaf_node:#branch.
-            _temp__mask_of_this_bit = 1<<self.best_index_to_split_from_right_side
-            this_bit_of_addr__with_shift = _temp__mask_of_this_bit&addr
-            this_bit_of_addr = this_bit_of_addr__with_shift != 0
-            the_child = self._get_child(this_bit_of_addr)
-            result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset \
-                = the_child.lookup(addr, lookup_in_leaf_dataset = lookup_in_leaf_dataset)
-            if from_all_irr_field:
-                '''use the other child to get any suggestion.'''
-                
-                '''this line(below) automatically uses the fake addr with only 1 bit different. But the fake addr can get faked again 
-                inside. My idea is, if it can touch only bits ***less related than a certain level***, it's more reasonable. 
-                If you found this hypothesis wrong or you don't like it, maybe you want to modify the code below, or 
-                maybe you need to implement some other algo based on containers, but not recursive.'''
-                the_other_child = self._get_child(not this_bit_of_addr)
-                result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset \
-                    = the_other_child.lookup(addr, lookup_in_leaf_dataset = lookup_in_leaf_dataset)
-                
-                '''Branch-2. If the fake addr is also in all-irr-field, return as a all-irr leaf'''
-                if from_all_irr_field:
-                    return (result_is_irr 1w可能应该是true, result_or_suggest_is_true, True, False, actually_irr_according_to_dataset)
-                
-                '''Branch-3. If the fake addr is a all-xor-field, reverse '''
-                if from_xor_field:
-                    if as_xor_as_possible:
-                        '''0110____ explained as 0110 1001'''
-                        return (False 1w可能应该是true, not result_or_suggest_is_true, False, True, actually_irr_according_to_dataset)
-                    else:
-                        '''0110____ explained as 0110 0110'''
-                        return (False 1w可能应该是true, result_or_suggest_is_true, False, True, actually_irr_according_to_dataset)
-                    pass#
-                
-                '''Branch-1. The normal case, simply returns'''
-                return (result_is_irr 1w可能应该是true, result_or_suggest_is_true, False, False, actually_irr_according_to_dataset)
-            else: #the child is 1/0, 1/0+irr, xor/xnor, or branch. A simple return.
-                '''Branch-1. The normal case, simply returns'''
-                return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, \
-                    actually_irr_according_to_dataset)
-                
-        
-        # 1, is dataset empty. 
-        if self.all_irr:
-            '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, 
-            actually_irr_according_to_dataset)'''
-            return(True, False, True, False, False)#irr.
-        
-        # 2 and 3 don't return.
-        
-        # 4, only the true xor here. Fake xor results in a branch node and handled at 0th uppon 
-        if self.all_xor:
-            result = self._lookup_only__all_xor_only(addr)
-            '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, 
-            actually_irr_according_to_dataset)'''
-            return(False, result, False, True, False)
-            
-        # 5, if the dataset doesn't have 1 or doesn't have 0, it's a leaf node. [return]
-        # the dataset is assumed to be sorted.
-        if not lookup_in_leaf_dataset:
-            '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, 
-            actually_irr_according_to_dataset)'''
-            return (False, self.has_1, False, False, False)
-            '''old style
-                if self.has_0:
-                    return(False, False, False, False)
-                else:
-                    return(False, True, False, False)
-            '''
-        else:#with the dataset for leaf node, it's 
-            assert self.dataset is not None, "Set leaf_keep_dataset=True when create this object or the root object."
-            found, _ = self.dataset.find_addr(addr)
-            '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, 
-            actually_irr_according_to_dataset)'''
-            return (not found, self.has_1, False, False, not found)#new return style.
-            '''the old style
-            if found:
-                if self.has_0:
-                    return(False, False, False, False)
-                else:
-                    return(False, True, False, False)
-            else:#not in the dataset, then it's irr. But this function recommends the field answer, which doesn't exist in version 1.
-                if self.has_0:
-                    return(True, False, False, False)
-                else:
-                    return(True, True, False, False)
-            '''
-        # 6, it's the 0th uppon. So, no 6 here.
-        pass#end of function.
-        
-    
-    
-    
-    
-    
-    
-    
-    def _lookup_only__all_xor_only(self, addr:int)->bool:
-        assert self.all_xor, "不记得昨天写的什么意思了。总之还没测试。non-all-xor case can not call this function."
-        #the docs here is copied form the _init_only__get__if_not_after_xor__it_s_already_all_xor and probably wrong.
-        #pick anything from self.dataset and detect if all input are Falses(simpler than true), is the output the xor result, or the reversed.
-        #actually, the dataset should already be sorted, but the performance is probably similar and trivial?
-        # So, yeah, I don't care, I detect the addr here, instead of check the "sorted" and do the trick.
-        #maybe it's optimizable. But not for now.
-        #addr_of_item = self.dataset[0][0]
-        #result_of_item = self.dataset[0][1]
-        num_of_ones_in_addr = 0
-        for i in range(self.input_bits_count-1,-1,-1):
-            one_shift_by_i:int = 1<<i
-            bit_of_bitmask_for_this_i = one_shift_by_i&self.bitmask
-            if bit_of_bitmask_for_this_i != 0:
-                #This bit is in bitmask, ignore this i.
-                continue
-            
-            '''ignore the irr-bit'''
-            bit_in_irr_bitmask__for_this_i = one_shift_by_i&self.when_xor__ignore_these_bits
-            if bit_in_irr_bitmask__for_this_i != 0:
-                #This bit is in bitmask, ignore this i.
-                continue
-            
-            bit_in_addr_for_this_i = addr & one_shift_by_i
-            if bit_in_addr_for_this_i != 0:
-                num_of_ones_in_addr = num_of_ones_in_addr + 1#optimizable. This way simplifies the debugging.
-                pass
-            pass
-        is_num_of_ones_in_addr_odd = (num_of_ones_in_addr&1) != 0
-        
-        # self.not_after_xor # if all 0s, and not_after_xor is false, result is false. Every one flips it once.
-        result = is_num_of_ones_in_addr_odd^self.not_after_xor
-        return result
-        
     def get_already_const_without_irr(self)->bool:
         has_only_one_side = (self.has_0 ^ self.has_1)
         has_only_one_side_without_irr = has_only_one_side and (not self.has_irr)
@@ -2204,23 +1508,6 @@ class DatasetField:
             else:
                 return self.children[0]  
         #end of function
-    
-    def ____broken____Im_sorry____print_all_info_directly(self):
-        temp = f"<DatasetField> bitmask:{self.bitmask}, addr:{self.addr:b}, input_bits_count{self.input_bits_count}, "
-        temp += f"bits_already_in_use{self.bits_already_in_use}, "
-        temp += f"dataset__len__:{self.dataset.__len__()}, best_index_to_split:{self.best_index_to_split_from_right_side}, "
-        if self.children is None:
-            temp+="children is None, "
-        else:
-            temp+="has children, "
-            pass
-        print(temp)
-        temp2 = f"has_irr:{self.has_irr}, all_irr:{self.all_irr}, has_0:{self.has_0}, has_1:{self.has_1}, all_xor:{self.all_xor}, "
-        temp2 += f"already_const_without_irr:{self.get_already_const_without_irr()}, "
-        temp2 += f"ready_for_lookup:{self.ready_for_lookup}, is_dataset_sorted:{self.is_dataset_sorted}, is_leaf_node:{self.is_leaf_node}, "
-        temp2 += f"not_after_xor:{self.not_after_xor}, "
-        print(temp2)
-        pass
     
     def readable_as_tree(self, depth:int = -1, use_TF = False, with_irr_bit_for_xor = True)->str:
         '''Behavior:
