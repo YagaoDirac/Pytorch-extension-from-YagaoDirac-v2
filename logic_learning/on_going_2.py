@@ -1111,7 +1111,7 @@ class DatasetField:
         has_0:bool
         has_irr:bool
         is_dataset_sorted:bool
-        is_leaf_node:bool
+        #is_leaf_node:bool
         all_xor:bool
         #simple flags
         not_after_xor:bool# self.not_after_xor # if all 0s, and not_after_xor is false, result is false. Every one flips it once.
@@ -1187,7 +1187,7 @@ class DatasetField:
             self.has_irr = True
             self.all_irr = True
             self.is_dataset_sorted = True#only to init. not a real result.
-            self.is_leaf_node = True
+            #self.is_leaf_node = True
             self.all_xor = False
             self.not_after_xor = False#only to init. not a real result.
             self.when_xor__ignore_these_bits = 0
@@ -1268,7 +1268,7 @@ class DatasetField:
                 assert 0 == irr_bitmask&self.bitmask
                 
                 '''true xor. both pure/unpure xor(with or without irr-bit). leaf. [return]'''
-                self.is_leaf_node = True
+                #self.is_leaf_node = True
                 self._debug__how_did_I_quit_init_func = How_did_I_quit_init_func.XOR
                 
                 #all_xor doesn't need the dataset.
@@ -1276,7 +1276,7 @@ class DatasetField:
                 return 
             else:#case 2
                 #it's not a true xor. But splitting it trickily can get smaller true xor.
-                self.is_leaf_node = False
+                #self.is_leaf_node = False
                 self._debug__how_did_I_quit_init_func = How_did_I_quit_init_func.BRANCH__FAKE_XOR
                 #now split.
                 _check_all_safety = _debug__check_all_safety
@@ -1298,7 +1298,7 @@ class DatasetField:
             #self.has_irr see uppon
             self.all_irr = False
             #self.is_dataset_sorted = True already set before
-            self.is_leaf_node = True
+            #self.is_leaf_node = True
             self.all_xor = False
             self.not_after_xor = False#only to init. not a real result.
             self.when_xor__ignore_these_bits = 0
@@ -1317,7 +1317,7 @@ class DatasetField:
         #self.has_irr see uppon
         self.all_irr = False
         #self.is_dataset_sorted = True already set before
-        self.is_leaf_node = False
+        #self.is_leaf_node = False
         self.all_xor = False
         self.not_after_xor = False#only to init. not a real result.
         self.when_xor__ignore_these_bits = 0
@@ -1331,6 +1331,9 @@ class DatasetField:
             self.dataset = None
             pass
         return #end of function
+    
+    def get_is_leaf(self)->bool:
+        return self.children is None
     
     def has_dataset(self)->bool:
         return self.dataset is not None
@@ -1809,7 +1812,7 @@ class DatasetField:
         
         # 0, this is different. I guess a lot calling to this function is not the end, 
         # so let's detect non leaf node first.
-        if not self.is_leaf_node:
+        if not self.get_is_leaf():
             _temp__mask_of_this_bit = 1<<self.best_index_to_split_from_right_side
             this_bit_of_addr__with_shift = _temp__mask_of_this_bit&addr
             this_bit_of_addr = this_bit_of_addr__with_shift != 0
@@ -1870,7 +1873,7 @@ class DatasetField:
         pass#end of function.
         # 6, it's the 0th uppon. So, no 6 here.
     
-    def lookup_version_2___dont_use(self, addr:int, lookup_in_leaf_dataset = False, as_xor_as_possible = True)->tuple[bool,bool,bool,bool,bool]:#[None,None,bool,bool]:
+    def lookup_version_2___dont_use(self, addr:int, lookup_in_leaf_dataset = False, as_xor_as_possible = False)->tuple[bool,bool,bool,bool,bool]:#[None,None,bool,bool]:
         #to do :suggest, like allow_irr, better_non_irr, better_irr, true_when_irr, false_when_irr.
         
         #the sequence is the same as __init__, except for all the branch cases are priotized to the top.
@@ -1916,7 +1919,7 @@ class DatasetField:
         
         # 0, this is different. I guess a lot calling to this function is not the end, 
         # so let's detect non leaf node first.
-        if not self.is_leaf_node:#branch.
+        if not self.get_is_leaf():#branch.
             _temp__mask_of_this_bit = 1<<self.best_index_to_split_from_right_side
             this_bit_of_addr__with_shift = _temp__mask_of_this_bit&addr
             this_bit_of_addr = this_bit_of_addr__with_shift != 0
@@ -1936,22 +1939,27 @@ class DatasetField:
                 
                 '''Branch-2. If the fake addr is also in all-irr-field, return as a all-irr leaf'''
                 if from_all_irr_field:
-                    return (result_is_irr 1w可能应该是true, result_or_suggest_is_true, True, False, actually_irr_according_to_dataset)
+                    assert False, "unfinished."
+                    #return (result_is_irr 1w可能应该是true, result_or_suggest_is_true, True, False, actually_irr_according_to_dataset)
                 
                 '''Branch-3. If the fake addr is a all-xor-field, reverse '''
                 if from_xor_field:
                     if as_xor_as_possible:
                         '''0110____ explained as 0110 1001'''
-                        return (False 1w可能应该是true, not result_or_suggest_is_true, False, True, actually_irr_according_to_dataset)
+                        assert False, "unfinished."
+                        #return (False 1w可能应该是true, not result_or_suggest_is_true, False, True, actually_irr_according_to_dataset)
                     else:
                         '''0110____ explained as 0110 0110'''
-                        return (False 1w可能应该是true, result_or_suggest_is_true, False, True, actually_irr_according_to_dataset)
+                        assert False, "unfinished."
+                        #return (False 1w可能应该是true, result_or_suggest_is_true, False, True, actually_irr_according_to_dataset)
                     pass#
                 
                 '''Branch-1. The normal case, simply returns'''
-                return (result_is_irr 1w可能应该是true, result_or_suggest_is_true, False, False, actually_irr_according_to_dataset)
+                assert False, "unfinished."
+                #return (result_is_irr 1w可能应该是true, result_or_suggest_is_true, False, False, actually_irr_according_to_dataset)
             else: #the child is 1/0, 1/0+irr, xor/xnor, or branch. A simple return.
                 '''Branch-1. The normal case, simply returns'''
+                assert False,"unfinished....... Probably not gonna come back. "
                 return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, \
                     actually_irr_according_to_dataset)
                 
@@ -2005,27 +2013,45 @@ class DatasetField:
         pass#end of function.
     
     
+    def _get_critial_bit(self)->int:
+        one_shift = 1<<self.best_index_to_split_from_right_side
+        return one_shift
     
-    @staticmethod
-    def lookup(root:'DatasetField', addr:int, lookup_in_leaf_dataset = False, as_xor_as_possible = True):#->tuple[bool,bool,bool,bool,bool]:#[None,None,bool,bool]:
-        '''this is the 3rd version of this function. It's not a recursive function. I don't like recursive.'''
+    
+    def lookup(self, addr:int, lookup_in_leaf_dataset = False, \
+                as_xor_as_possible = False)->tuple[bool,bool,bool,int,'DatasetField']:
+        '''
+        this is the 3rd version of this function. It's not a recursive function. I don't like recursive.
+        docs here maybe outdated.
         
-        1w 明天继续。
+        return(for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node)
+        
+        >>> for_sure_it_is_irr: If it's true, it's irr. Otherwise, NOT SURE!!!.
+        >>> for_sure_it_is_NOT_irr: If it's true, it's NOT irr. Otherwise, NOT SURE!!!.
+        
+        >>> result_or_suggest: If is_original_irr, then this is suggestion. Otherwise this is result.
+        If you only care about if this is irrelevant addr, ignore this value.
+        
+        >>> found_in_addr: If the original addr is a all-irr, then the addr is modified to find some suggestion.
+        This found_in_addr value indicates the source of suggestion. Basically debug purpose.
+        >>> found_in_node: Similar to found_in_addr, but the node info.
+        
+        If you only want to check out if an addr is irrelevant, Im planning another function.
+        
+        input:
+        
+        >>> addr: Looks up in this addr.
+        >>> lookup_in_leaf_dataset: Mostly __debug__ feature. If the addr is in a 1+ir/0+ir node, 
+        it looks up in the dataset to see if it's a real irrelevant item.
+        If it doesn't have dataset, it raise exception. 
+        >>> as_xor_as_possible: A hyperparameter. Have fun.
+        
+        Docs here maybe outdated below
+        >>> Docs here maybe outdated below
+        >>> Docs here maybe outdated below
+        >>> Docs here maybe outdated below
         
         
-        
-        
-        #to do :suggest, like allow_irr, better_non_irr, better_irr, true_when_irr, false_when_irr.
-        
-        #the sequence is the same as __init__, except for all the branch cases are priotized to the top.
-        '''For the outside use, only take the first 2 return value. eg.
-        >>> is_irr, is_true, _,_,_ = self.looup(addr)
-        
-        return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset)
-                
-        The last input param lookup_in_leaf_dataset is a __debug__ feature, and only affects the last output bool. 
-        If the input flag is true, and the result is irr according to the dataset(I call it accurate irr), 
-        the last return flag is true.
         This case only happens when the leaf is 1+ir or 0+ir, and the addr is ir.
         (maybe in the future, after I implement the non-full-xor-field, maybe this irr also comes from non-full-xor-field.)
                 
@@ -2056,103 +2082,149 @@ class DatasetField:
         in the dataset in leaves if the type keeps the dataset. It only store the info in the last bool of output, and never 
         changes any other behavior of this function. 
         '''
-        #to do:return (result_is_irr, result_is_true, is_irr_raw, is_true_raw)'''
+        
+        root = self
+        assert root.bitmask == 0
+        
+        class LookupLog:
+            child:'DatasetField'
+            bitmask:int
+            child_addr:int
+            is_leaf:bool
+            target_addr:int
+            fake_addr_into:int
+            info:str
+            def __init__(self, child:'DatasetField', bitmask:int ,child_addr:int, is_leaf:bool, \
+                        target_addr:int, fake_addr_into:int, info:str):
+                self.child = child
+                self.bitmask = bitmask
+                self.child_addr = child_addr
+                self.is_leaf = is_leaf
+                self.target_addr = target_addr
+                self.fake_addr_into = fake_addr_into
+                self.info = info
+                pass
+            pass
+        log:list[LookupLog] = []
+        log_simple:list[str] = []
+        node:'DatasetField' = root
+        
+        #return(for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node)
+        for_sure_it_is_irr = False
+        for_sure_it_is_NOT_irr = False
+        target_addr = addr
+        path:list['DatasetField'] = [root]
+        _path_in_bool:list[bool] = []
+        
+        '''
+        return(is_original_irr, result_or_suggest, is_accurate_irr, found_in_addr, found_in_node)
+        and, they are actually:
+        original_an_irr:bool
+        result:bool
+        original_an_accurate_irr:bool
+        target_addr:int
+        node:'DatasetField'
+        '''
+        #the sequence is the same as __init__, except for all the branch cases are priotized to the top.
         
         # 0, this is different. I guess a lot calling to this function is not the end, 
         # so let's detect non leaf node first.
-        if not self.is_leaf_node:#branch.
-            _temp__mask_of_this_bit = 1<<self.best_index_to_split_from_right_side
-            this_bit_of_addr__with_shift = _temp__mask_of_this_bit&addr
-            this_bit_of_addr = this_bit_of_addr__with_shift != 0
-            the_child = self._get_child(this_bit_of_addr)
-            result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset \
-                = the_child.lookup(addr, lookup_in_leaf_dataset = lookup_in_leaf_dataset)
-            if from_all_irr_field:
-                '''use the other child to get any suggestion.'''
-                
-                '''this line(below) automatically uses the fake addr with only 1 bit different. But the fake addr can get faked again 
-                inside. My idea is, if it can touch only bits ***less related than a certain level***, it's more reasonable. 
-                If you found this hypothesis wrong or you don't like it, maybe you want to modify the code below, or 
-                maybe you need to implement some other algo based on containers, but not recursive.'''
-                the_other_child = self._get_child(not this_bit_of_addr)
-                result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset \
-                    = the_other_child.lookup(addr, lookup_in_leaf_dataset = lookup_in_leaf_dataset)
-                
-                '''Branch-2. If the fake addr is also in all-irr-field, return as a all-irr leaf'''
-                if from_all_irr_field:
-                    return (result_is_irr 1w可能应该是true, result_or_suggest_is_true, True, False, actually_irr_according_to_dataset)
-                
-                '''Branch-3. If the fake addr is a all-xor-field, reverse '''
-                if from_xor_field:
-                    if as_xor_as_possible:
-                        '''0110____ explained as 0110 1001'''
-                        return (False 1w可能应该是true, not result_or_suggest_is_true, False, True, actually_irr_according_to_dataset)
-                    else:
-                        '''0110____ explained as 0110 0110'''
-                        return (False 1w可能应该是true, result_or_suggest_is_true, False, True, actually_irr_according_to_dataset)
-                    pass#
-                
-                '''Branch-1. The normal case, simply returns'''
-                return (result_is_irr 1w可能应该是true, result_or_suggest_is_true, False, False, actually_irr_according_to_dataset)
-            else: #the child is 1/0, 1/0+irr, xor/xnor, or branch. A simple return.
-                '''Branch-1. The normal case, simply returns'''
-                return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, \
-                    actually_irr_according_to_dataset)
-                
         
-        # 1, is dataset empty. 
-        if self.all_irr:
-            '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, 
-            actually_irr_according_to_dataset)'''
-            return(True, False, True, False, False)#irr.
         
-        # 2 and 3 don't return.
-        
-        # 4, only the true xor here. Fake xor results in a branch node and handled at 0th uppon 
-        if self.all_xor:
-            result = self._lookup_only__all_xor_only(addr)
-            '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, 
-            actually_irr_according_to_dataset)'''
-            return(False, result, False, True, False)
+        while True:#a while here?
+            node = path[-1]#does this look like the call stack?
+            is_node_leaf = node.get_is_leaf()
+            if not is_node_leaf:#branch.
+                #a. some work
+                _temp__mask_of_this_bit = 1<<node.best_index_to_split_from_right_side
+                this_bit_of_addr__with_shift = _temp__mask_of_this_bit&target_addr
+                this_bit_of_addr = this_bit_of_addr__with_shift != 0
+                #b. move (or return)
+                _path_in_bool.append(this_bit_of_addr)
+                the_child = node._get_child(this_bit_of_addr)
+                path.append(the_child)
+                #c. log:
+                _log_str = f"into child branch, new depth:{path.__len__()}"
+                _log_obj = LookupLog(node, node.bitmask, node.addr, is_node_leaf, target_addr, -1, _log_str)
+                log.append(_log_obj)
+                log_simple.append(_log_str)
+                continue            
             
-        # 5, if the dataset doesn't have 1 or doesn't have 0, it's a leaf node. [return]
-        # the dataset is assumed to be sorted.
-        if not lookup_in_leaf_dataset:
-            '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, 
-            actually_irr_according_to_dataset)'''
-            return (False, self.has_1, False, False, False)
-            '''old style
-                if self.has_0:
-                    return(False, False, False, False)
-                else:
-                    return(False, True, False, False)
-            '''
-        else:#with the dataset for leaf node, it's 
-            assert self.dataset is not None, "Set leaf_keep_dataset=True when create this object or the root object."
-            found, _ = self.dataset.find_addr(addr)
-            '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, 
-            actually_irr_according_to_dataset)'''
-            return (not found, self.has_1, False, False, not found)#new return style.
-            '''the old style
-            if found:
-                if self.has_0:
-                    return(False, False, False, False)
-                else:
-                    return(False, True, False, False)
-            else:#not in the dataset, then it's irr. But this function recommends the field answer, which doesn't exist in version 1.
-                if self.has_0:
-                    return(True, False, False, False)
-                else:
-                    return(True, True, False, False)
-            '''
-        # 6, it's the 0th uppon. So, no 6 here.
+            #leaf:
+            # 1, is dataset empty. 
+            if node.all_irr:#fake a new addr.
+                #a. some work
+                old_target_addr = target_addr#for log
+                
+                # two results.
+                '''It's either the first time into an all-irr field(set the flag), 
+                or from some all-irr field(flag already set and should not get modified).'''
+                for_sure_it_is_irr = True
+                
+                #b. move (or return)
+                #fake the addr to get suggestion.
+                parent = path[-2]
+                the_critical_bit = parent._get_critial_bit()
+                target_addr = target_addr ^ the_critical_bit
+                path.pop()
+                
+                #log:
+                _log_str = f"all irr leaf, faked addr into {readable_binary(target_addr, node.input_bits_count)}"
+                _log_obj = LookupLog(node, node.bitmask, node.addr, is_node_leaf, old_target_addr, target_addr, _log_str)
+                log.append(_log_obj)
+                log_simple.append(_log_str)
+                continue
+            # 2 and 3 don't return.
+            # 4, only the true xor here. Fake xor results in a branch node and handled at 0th uppon 
+            if node.all_xor:
+                #a. some work
+                result_or_suggest = node._lookup_only__all_xor_only(target_addr)
+                
+                if not for_sure_it_is_irr:#make sure it's not "fake addr" from a all-irr node.
+                    if lookup_in_leaf_dataset:
+                        #In this version, all xor is a full relevant field.
+                        for_sure_it_is_irr = False
+                        for_sure_it_is_NOT_irr = True
+                        pass
+                    pass
+                #b. (move or) return (see below)
+                #c. log:
+                _log_str = f"all xor leaf, [return:{result_or_suggest}]"
+                _log_obj = LookupLog(node, node.bitmask, node.addr, is_node_leaf, target_addr, -1, _log_str)
+                log.append(_log_obj)
+                log_simple.append(_log_str)
+                #return
+                '''return(for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node)'''
+                return(for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, target_addr, node)
+
+            # 5, if the dataset doesn't have 1 or doesn't have 0, it's a leaf node. [return]
+            # the dataset is assumed to be sorted.
+
+            # a normal leaf, return the result.
+            #a. some work
+            if not for_sure_it_is_irr:#make sure it's not "fake addr" from a all-irr node.
+                if lookup_in_leaf_dataset:
+                    assert node.dataset is not None
+                    found, _ = node.dataset.find_addr(target_addr)
+                    #accurate result.
+                    for_sure_it_is_irr = not found
+                    for_sure_it_is_NOT_irr = found
+                    pass
+                pass
+            
+            result_or_suggest = node.has_1
+            for_sure_it_is_NOT_irr = not node.has_irr#a field without irr, then the addr is for sure not irr.
+            #b. (move or) return (see below)
+            #c. log:
+            _log_str = f"simple leaf, [return:{result_or_suggest}]"
+            _log_obj = LookupLog(node, node.bitmask, node.addr, is_node_leaf, target_addr, -1, _log_str)
+            log.append(_log_obj)
+            log_simple.append(_log_str)
+            #return
+            '''return(for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node)'''
+            return(for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, target_addr, node)
+            # 6, it's the 0th uppon. So, no 6 here.
         pass#end of function.
-        
-    
-    
-    
-    
-    
     
     
     def _lookup_only__all_xor_only(self, addr:int)->bool:
@@ -2217,7 +2289,7 @@ class DatasetField:
         print(temp)
         temp2 = f"has_irr:{self.has_irr}, all_irr:{self.all_irr}, has_0:{self.has_0}, has_1:{self.has_1}, all_xor:{self.all_xor}, "
         temp2 += f"already_const_without_irr:{self.get_already_const_without_irr()}, "
-        temp2 += f"ready_for_lookup:{self.ready_for_lookup}, is_dataset_sorted:{self.is_dataset_sorted}, is_leaf_node:{self.is_leaf_node}, "
+        temp2 += f"ready_for_lookup:{self.ready_for_lookup}, is_dataset_sorted:{self.is_dataset_sorted}, is_leaf_node:{self.get_is_leaf()}, "
         temp2 += f"not_after_xor:{self.not_after_xor}, "
         print(temp2)
         pass
@@ -2238,7 +2310,7 @@ class DatasetField:
             pass
             
         addr_str = self.get_readable_addr()+":"
-        if self.is_leaf_node:
+        if self.get_is_leaf():
             if self.all_xor:
                 irr_bit_str = ""
                 if with_irr_bit_for_xor:
@@ -2355,16 +2427,16 @@ class DatasetField:
             pass
         if -1 == total_amount:#valid all.
             for item in dataset.data:
-                temp_tuple:tuple[bool, bool, bool, bool, bool] = self.lookup(item[0])
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = self.lookup(item[0])
                 #assert not temp_tuple[0]
-                if temp_tuple[0]:
+                if for_sure_it_is_irr or (not for_sure_it_is_NOT_irr):
                     if log_the_error_to_file_and_return_immediately:
                         dataset.log_the_error()
                         return (False, -1, 1)
                     error_count = error_count +1
                     pass
                 #assert item[1] == temp_tuple[1]
-                if  item[1] != temp_tuple[1]:
+                if item[1] != result_or_suggest:
                     if log_the_error_to_file_and_return_immediately:
                         dataset.log_the_error()
                         return (False, -1, 1)
@@ -2377,16 +2449,16 @@ class DatasetField:
             _total_amount = total_amount
             while _total_amount>0:
                 item = dataset.data[random.randint(0, dataset.data.__len__()-1)]
-                temp_tuple = self.lookup(item[0])
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = self.lookup(item[0])
                 #assert not temp_tuple[0]
-                if temp_tuple[0]:
+                if for_sure_it_is_irr or (not for_sure_it_is_NOT_irr):
                     if log_the_error_to_file_and_return_immediately:
                         dataset.log_the_error()
                         return (False, -1, 1)
                     error_count = error_count +1
                     pass
                 #assert item[1] == temp_tuple[1]
-                if  item[1] != temp_tuple[1]:
+                if item[1] != result_or_suggest:
                     if log_the_error_to_file_and_return_immediately:
                         dataset.log_the_error()
                         return (False, -1, 1)
@@ -2430,9 +2502,8 @@ class DatasetField:
             _, irr_addr_list = dataset.get_irr_addr___sorts_self()
             #dataset already non-empty.
             for irr_addr in irr_addr_list:
-                temp_tuple = self.lookup(irr_addr, lookup_in_leaf_dataset=True)
-                #assert item[0]
-                if not temp_tuple[0]:
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = self.lookup(irr_addr, lookup_in_leaf_dataset=True)
+                if (not for_sure_it_is_irr) or for_sure_it_is_NOT_irr:
                     if log_the_error_to_file_and_return_immediately:
                         dataset.log_the_error()
                         return (False, -1, 1)
@@ -2452,9 +2523,8 @@ class DatasetField:
                 _total_amount_irr = total_amount_irr
                 while _total_amount_irr>0:
                     rand_addr:int = irr_addr_list[random.randint(0, irr_addr_list.__len__()-1)]
-                    temp_tuple = self.lookup(rand_addr, lookup_in_leaf_dataset=True)
-                    #assert temp_tuple[0]#irr
-                    if not temp_tuple[0]:
+                    for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = self.lookup(irr_addr, lookup_in_leaf_dataset=True)
+                    if (not for_sure_it_is_irr) or for_sure_it_is_NOT_irr:
                         if log_the_error_to_file_and_return_immediately:
                             dataset.log_the_error()
                             return (False, -1, 1)
@@ -2516,10 +2586,8 @@ class DatasetField:
                         continue
                     
                     #now the guess_addr is a irr according to dataset.
-                    temp_tuple = self.lookup(guess_addr, lookup_in_leaf_dataset=True)
-                    
-                    #assert temp_tuple[0]#irr
-                    if not temp_tuple[0]:
+                    for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = self.lookup(irr_addr, lookup_in_leaf_dataset=True)
+                    if (not for_sure_it_is_irr) or for_sure_it_is_NOT_irr:
                         if log_the_error_to_file_and_return_immediately:
                             dataset.log_the_error()
                             return (False, -1, 1)
@@ -2560,7 +2628,7 @@ if True:
     #     if child_1.all_irr:
     #         a_DatasetField = a_DatasetField._get_child(False)
     #         continue
-    #     if child_1.is_leaf_node == False:
+    #     if child_1.get_is_leaf() == False:
     #         a_DatasetField = child_1
     #         continue
     #     assert False, "unreachable"
@@ -2830,35 +2898,48 @@ if "init and split" and True:
         dataset = Dataset(1, [(0b0,True), ])
         a_DatasetField = DatasetField(bitmask = 1, addr = 0, bits_already_in_use=1, \
                         dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        lookup_result = a_DatasetField.lookup(dataset.data[0][0])
-        '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset)'''
-        assert lookup_result == (False, True, False, False, False)
+        for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node = a_DatasetField.lookup(dataset.data[0][0])
+        assert for_sure_it_is_irr == False
+        assert for_sure_it_is_NOT_irr
+        assert result_or_suggest == dataset.data[0][1]
+        assert found_in_addr == dataset.data[0][0]
+        assert found_in_node == a_DatasetField
         readable_addr = a_DatasetField.get_readable_addr()
         assert readable_addr == "0"
         
         dataset = Dataset(1, [(0b0,False), ])
         a_DatasetField = DatasetField(bitmask = 1, addr = 0, bits_already_in_use=1, \
                         dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        lookup_result = a_DatasetField.lookup(dataset.data[0][0])
-        '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset)'''
-        assert lookup_result == (False, False, False, False, False)
+        for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node = a_DatasetField.lookup(dataset.data[0][0])
+        assert for_sure_it_is_irr == False
+        assert for_sure_it_is_NOT_irr
+        assert result_or_suggest == dataset.data[0][1]
+        assert found_in_addr == dataset.data[0][0]
+        assert found_in_node == a_DatasetField
         readable_addr = a_DatasetField.get_readable_addr()
         assert readable_addr == "0"
         
         dataset = Dataset(1, [(0b1,True), ])
         a_DatasetField = DatasetField(bitmask = 1, addr = 1, bits_already_in_use=1, \
                         dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        lookup_result = a_DatasetField.lookup(dataset.data[0][0])
-        '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset)'''
-        assert lookup_result == (False, True, False, False, False)
+        for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node = a_DatasetField.lookup(dataset.data[0][0])
+        assert for_sure_it_is_irr == False
+        assert for_sure_it_is_NOT_irr
+        assert result_or_suggest == dataset.data[0][1]
+        assert found_in_addr == dataset.data[0][0]
+        assert found_in_node == a_DatasetField
         readable_addr = a_DatasetField.get_readable_addr()
         assert readable_addr == "1"
         
         dataset = Dataset(1, [(0b1,False), ])
         a_DatasetField = DatasetField(bitmask = 1, addr = 1, bits_already_in_use=1, \
                         dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        lookup_result = a_DatasetField.lookup(dataset.data[0][0])
-        assert lookup_result == (False, False, False, False, False)
+        for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node = a_DatasetField.lookup(dataset.data[0][0])
+        assert for_sure_it_is_irr == False
+        assert for_sure_it_is_NOT_irr
+        assert result_or_suggest == dataset.data[0][1]
+        assert found_in_addr == dataset.data[0][0]
+        assert found_in_node == a_DatasetField
         readable_addr = a_DatasetField.get_readable_addr()
         assert readable_addr == "1"
         pass
@@ -2882,15 +2963,18 @@ if "init and split" and True:
             assert not a_DatasetField.has_0
             assert a_DatasetField.has_1
             assert a_DatasetField.is_dataset_sorted
-            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.get_is_leaf()
             assert a_DatasetField.ready_for_lookup
             #assert not a_DatasetField.not_after_xor not important.
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "_"
             
             for item in dataset.data:
-                temp = a_DatasetField.lookup(item[0])
-                assert item[1] == temp[1]
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                assert for_sure_it_is_irr == False
+                assert for_sure_it_is_NOT_irr
+                assert result_or_suggest == dataset.data[0][1]
+                assert found_in_addr == dataset.data[0][0]
                 pass
             #manually modify the obj and test.
             a_DatasetField.dataset = dataset
@@ -2918,7 +3002,7 @@ if "init and split" and True:
             assert a_DatasetField.has_0
             assert a_DatasetField.has_1
             assert a_DatasetField.is_dataset_sorted
-            assert not a_DatasetField.is_leaf_node
+            assert not a_DatasetField.get_is_leaf()
             assert a_DatasetField.ready_for_lookup
         
             readable_addr = a_DatasetField.get_readable_addr()
@@ -2939,7 +3023,7 @@ if "init and split" and True:
             assert addr_1_child.has_0
             assert not addr_1_child.has_1
             assert addr_1_child.is_dataset_sorted
-            assert addr_1_child.is_leaf_node
+            assert addr_1_child.get_is_leaf()
             assert addr_1_child.ready_for_lookup
             
             readable_addr = addr_1_child.get_readable_addr()
@@ -2960,15 +3044,19 @@ if "init and split" and True:
             assert not addr_0_child.has_0
             assert addr_0_child.has_1
             assert addr_0_child.is_dataset_sorted
-            assert addr_0_child.is_leaf_node
+            assert addr_0_child.get_is_leaf()
             assert addr_0_child.ready_for_lookup
             
             readable_addr = addr_0_child.get_readable_addr()
             assert readable_addr == "0"
             
             for item in dataset.data:
-                temp = a_DatasetField.lookup(item[0])
-                assert item[1] == temp[1]
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                assert for_sure_it_is_irr == False
+                assert for_sure_it_is_NOT_irr
+                assert result_or_suggest == dataset.data[0][1]
+                assert found_in_addr == dataset.data[0][0]
+                pass
                 pass
             
             #manually modify the obj and test.
@@ -3005,7 +3093,7 @@ if "init and split" and True:
             assert a_DatasetField.has_0
             assert not a_DatasetField.has_1
             assert a_DatasetField.is_dataset_sorted
-            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.get_is_leaf()
             assert a_DatasetField.ready_for_lookup
             
             #assert not a_DatasetField.not_after_xor not important.
@@ -3013,8 +3101,12 @@ if "init and split" and True:
             assert readable_addr == "_"
             
             for item in dataset.data:
-                temp = a_DatasetField.lookup(item[0])
-                assert item[1] == temp[1]
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                assert for_sure_it_is_irr == False
+                assert for_sure_it_is_NOT_irr
+                assert result_or_suggest == dataset.data[0][1]
+                assert found_in_addr == dataset.data[0][0]
+                pass
                 pass
             #manually modify the obj and test.
             a_DatasetField.dataset = dataset
@@ -3043,7 +3135,7 @@ if "init and split" and True:
             assert a_DatasetField.has_0
             assert a_DatasetField.has_1
             assert a_DatasetField.is_dataset_sorted
-            assert not a_DatasetField.is_leaf_node
+            assert not a_DatasetField.get_is_leaf()
             assert a_DatasetField.ready_for_lookup
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "_"
@@ -3063,7 +3155,7 @@ if "init and split" and True:
             assert not addr_1_child.has_0
             assert addr_1_child.has_1
             assert addr_1_child.is_dataset_sorted
-            assert addr_1_child.is_leaf_node
+            assert addr_1_child.get_is_leaf()
             assert addr_1_child.ready_for_lookup
             readable_addr = addr_1_child.get_readable_addr()
             assert readable_addr == "1"
@@ -3083,14 +3175,18 @@ if "init and split" and True:
             assert addr_0_child.has_0
             assert not addr_0_child.has_1
             assert addr_0_child.is_dataset_sorted
-            assert addr_0_child.is_leaf_node
+            assert addr_0_child.get_is_leaf()
             assert addr_0_child.ready_for_lookup
             readable_addr = addr_0_child.get_readable_addr()
             assert readable_addr == "0"
             
             for item in dataset.data:
-                temp = a_DatasetField.lookup(item[0])
-                assert item[1] == temp[1]
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                assert for_sure_it_is_irr == False
+                assert for_sure_it_is_NOT_irr
+                assert result_or_suggest == dataset.data[0][1]
+                assert found_in_addr == dataset.data[0][0]
+                pass
                 pass
             
             #manually modify the obj and test.
@@ -3128,17 +3224,22 @@ if "init and split" and True:
             assert a_DatasetField.has_0
             assert not a_DatasetField.has_1
             assert a_DatasetField.is_dataset_sorted
-            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.get_is_leaf()
             assert a_DatasetField.ready_for_lookup
             #assert not a_DatasetField.not_after_xor not important.
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "_"
             
             for item in dataset.data:
-                temp = a_DatasetField.lookup(item[0])
-                assert item[1] == temp[1]
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                assert for_sure_it_is_irr == False
+                assert for_sure_it_is_NOT_irr
+                assert result_or_suggest == dataset.data[0][1]
+                assert found_in_addr == dataset.data[0][0]
+                pass
                 pass
             temp = a_DatasetField.lookup(0b0)
+            1w
             assert temp[0] == False#irr
             assert temp == (False,False,False,False,False)
             
@@ -3166,17 +3267,21 @@ if "init and split" and True:
             assert not a_DatasetField.has_0
             assert a_DatasetField.has_1
             assert a_DatasetField.is_dataset_sorted
-            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.get_is_leaf()
             assert a_DatasetField.ready_for_lookup
             #assert not a_DatasetField.not_after_xor not important.
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "_"
             
             for item in dataset.data:
-                temp = a_DatasetField.lookup(item[0])
-                assert item[1] == temp[1]
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                assert for_sure_it_is_irr == False
+                assert for_sure_it_is_NOT_irr
+                assert result_or_suggest == dataset.data[0][1]
+                assert found_in_addr == dataset.data[0][0]
                 pass
-            temp = a_DatasetField.lookup(0b1)
+                pass
+            temp = a_DatasetField.lookup(0b1)1w
             assert temp[0] == False#irr
             assert temp == (False,True,False,False,False)
 
@@ -3205,7 +3310,7 @@ if "init and split" and True:
             assert not a_DatasetField.has_0
             assert not a_DatasetField.has_1
             assert a_DatasetField.is_dataset_sorted
-            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.get_is_leaf()
             assert a_DatasetField.ready_for_lookup
             best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
             assert -1 == best_index_to_split
@@ -3244,7 +3349,7 @@ if "init and split" and True:
             assert a_DatasetField.has_irr
             assert a_DatasetField.has_0
             assert a_DatasetField.has_1
-            assert not a_DatasetField.is_leaf_node
+            assert not a_DatasetField.get_is_leaf()
             #assert not a_DatasetField.not_after_xor not important.
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "__"
@@ -3263,11 +3368,15 @@ if "init and split" and True:
             assert addr_0__child.children is None
             
             for item in dataset.data:
-                temp = a_DatasetField.lookup(item[0])
-                assert item[1] == temp[1]
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                assert for_sure_it_is_irr == False
+                assert for_sure_it_is_NOT_irr
+                assert result_or_suggest == dataset.data[0][1]
+                assert found_in_addr == dataset.data[0][0]
+                pass
                 pass
                 
-            temp = a_DatasetField.lookup(0b11)
+            temp = a_DatasetField.lookup(0b11)1w
             assert temp[0] == False#irr
             assert temp == (False,False,False,False,False)
             
@@ -3294,7 +3403,7 @@ if "init and split" and True:
             assert a_DatasetField.has_irr
             assert a_DatasetField.has_0
             assert a_DatasetField.has_1
-            assert not a_DatasetField.is_leaf_node
+            assert not a_DatasetField.get_is_leaf()
             #assert not a_DatasetField.not_after_xor not important.
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "__"
@@ -3319,11 +3428,15 @@ if "init and split" and True:
             assert addr_0__child.readable_as_tree() == "_0:1"
             
             for item in dataset.data:
-                temp = a_DatasetField.lookup(item[0])
-                assert item[1] == temp[1]
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                assert for_sure_it_is_irr == False
+                assert for_sure_it_is_NOT_irr
+                assert result_or_suggest == dataset.data[0][1]
+                assert found_in_addr == dataset.data[0][0]
+                pass
                 pass
                 
-            temp = a_DatasetField.lookup(0b11)
+            temp = a_DatasetField.lookup(0b11)1w
             assert temp[0] == False#irr
             assert temp == (False,False,False,False,False)
             
@@ -3351,7 +3464,7 @@ if "init and split" and True:
             assert a_DatasetField.has_irr
             assert a_DatasetField.has_0
             assert a_DatasetField.has_1
-            assert not a_DatasetField.is_leaf_node
+            assert not a_DatasetField.get_is_leaf()
             assert a_DatasetField.get_readable_addr() == "__"
             readable_as_tree = a_DatasetField.readable_as_tree() 
             assert a_DatasetField.readable_as_tree() == "__:(0_:(00:1, 01:0), 1_:0+ir)"
@@ -3361,7 +3474,7 @@ if "init and split" and True:
             addr_1__child = a_DatasetField._get_child(true_or_false=True)
             readable_addr = addr_1__child.get_readable_addr()
             assert readable_addr == "1_"
-            assert addr_1__child.is_leaf_node
+            assert addr_1__child.get_is_leaf()
             assert addr_1__child.has_0
             assert addr_1__child.has_irr
             readable_as_tree = addr_1__child.readable_as_tree() 
@@ -3370,7 +3483,7 @@ if "init and split" and True:
             addr_0__child = a_DatasetField._get_child(true_or_false=False)
             readable_addr = addr_0__child.get_readable_addr()
             assert readable_addr == "0_"
-            assert not addr_0__child.is_leaf_node
+            assert not addr_0__child.get_is_leaf()
             assert addr_0__child.has_1
             assert addr_0__child.has_0
             assert not addr_0__child.has_irr
@@ -3381,7 +3494,7 @@ if "init and split" and True:
             addr_00_child = addr_0__child._get_child(true_or_false=False)
             readable_addr = addr_00_child.get_readable_addr()
             assert readable_addr == "00"
-            assert addr_00_child.is_leaf_node
+            assert addr_00_child.get_is_leaf()
             assert addr_00_child.has_1
             assert not addr_00_child.has_0
             assert not addr_00_child.has_irr
@@ -3391,18 +3504,22 @@ if "init and split" and True:
             addr_01_child = addr_0__child._get_child(true_or_false=True)
             readable_addr = addr_01_child.get_readable_addr()
             assert readable_addr == "01"
-            assert addr_01_child.is_leaf_node
+            assert addr_01_child.get_is_leaf()
             assert not addr_01_child.has_1
             assert addr_01_child.has_0
             readable_as_tree = addr_01_child.readable_as_tree() 
             assert addr_01_child.readable_as_tree() == "01:0"
             
             for item in dataset.data:
-                temp = a_DatasetField.lookup(item[0])
-                assert item[1] == temp[1]
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                assert for_sure_it_is_irr == False
+                assert for_sure_it_is_NOT_irr
+                assert result_or_suggest == dataset.data[0][1]
+                assert found_in_addr == dataset.data[0][0]
+                pass
                 pass
                 
-            temp = a_DatasetField.lookup(0b11)
+            temp = a_DatasetField.lookup(0b11)1w
             assert temp[0] == False#irr
             assert temp == (False,False,False,False,False)
             
@@ -3432,14 +3549,29 @@ if "init and split" and True:
             assert not a_DatasetField.has_irr
             assert a_DatasetField.has_0
             assert a_DatasetField.has_1
-            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.get_is_leaf()
             assert a_DatasetField.not_after_xor
             assert a_DatasetField.get_readable_addr() == "__"
             assert a_DatasetField.readable_as_tree() == "__:xnor(irr-bits:..)"
             
             for _addr_result in dataset.data:
+                    assert False, "the next line............."
                     tis_irr, is_true, _,_,_ = a_DatasetField.lookup(_addr_result[0])
                     assert _addr_result[1] == is_true
+                    
+                    ???
+                    for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                assert for_sure_it_is_irr == False
+                assert for_sure_it_is_NOT_irr
+                assert result_or_suggest == dataset.data[0][1]
+                assert found_in_addr == dataset.data[0][0]
+                pass
+                    
+                    
+                    
+                    
+                    
+                    
                     pass
             #manually modify the obj and test.
             a_DatasetField.dataset = dataset
@@ -3464,14 +3596,18 @@ if "init and split" and True:
             assert not a_DatasetField.has_irr
             assert a_DatasetField.has_0
             assert a_DatasetField.has_1
-            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.get_is_leaf()
             assert not a_DatasetField.not_after_xor
             assert a_DatasetField.get_readable_addr() == "__"
             assert a_DatasetField.readable_as_tree() == "__:xor(irr-bits:..)"
             for item in dataset.data:
-                    temp = a_DatasetField.lookup(item[0])
-                    assert item[1] == temp[1]
-                    pass
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                assert for_sure_it_is_irr == False
+                assert for_sure_it_is_NOT_irr
+                assert result_or_suggest == dataset.data[0][1]
+                assert found_in_addr == dataset.data[0][0]
+                pass
+                pass
             #manually modify the obj and test.
             a_DatasetField.dataset = dataset
             best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
@@ -3511,7 +3647,7 @@ if "init and split" and True:
         assert a_DatasetField.has_0
         assert a_DatasetField.has_irr == False
         #assert a_DatasetField.is_dataset_sorted 
-        assert a_DatasetField.is_leaf_node
+        assert a_DatasetField.get_is_leaf()
         assert a_DatasetField.all_xor
         assert a_DatasetField.not_after_xor == False
         assert a_DatasetField.all_irr ==False
@@ -3536,7 +3672,7 @@ if "init and split" and True:
             assert a_DatasetField.has_0
             assert a_DatasetField.has_irr == False
             assert a_DatasetField.is_dataset_sorted
-            assert a_DatasetField.is_leaf_node == False
+            assert a_DatasetField.get_is_leaf() == False
             assert a_DatasetField.all_xor == False
             assert a_DatasetField.not_after_xor == False
             assert a_DatasetField.all_irr ==False
@@ -3557,7 +3693,7 @@ if "init and split" and True:
             assert addr_1_child.has_0
             assert addr_1_child.has_irr == False
             assert addr_1_child.is_dataset_sorted
-            assert addr_1_child.is_leaf_node #== False
+            assert addr_1_child.get_is_leaf() #== False
             assert addr_1_child.all_xor #== False
             assert addr_1_child.not_after_xor == False
             assert addr_1_child.all_irr ==False
@@ -3578,16 +3714,19 @@ if "init and split" and True:
             assert addr_0_child.has_0
             assert addr_0_child.has_irr == False
             assert addr_0_child.is_dataset_sorted
-            assert addr_0_child.is_leaf_node #== False
+            assert addr_0_child.get_is_leaf() #== False
             assert addr_0_child.all_xor #== False
             assert addr_0_child.not_after_xor == False
             assert addr_0_child.all_irr ==False
             pass
         
         for item in dataset.data:
-            temp_tuple = a_DatasetField.lookup(item[0])
-            assert not temp_tuple[0]
-            assert item[1] == temp_tuple[1]
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+            assert for_sure_it_is_irr == False
+            assert for_sure_it_is_NOT_irr
+            assert result_or_suggest == dataset.data[0][1]
+            assert found_in_addr == dataset.data[0][0]
+            pass
             pass
         irr_addr_list_tuple = dataset.get_irr_addr___sorts_self()
         assert irr_addr_list_tuple[0]
@@ -3606,9 +3745,12 @@ if "init and split" and True:
                 (9, True), (10, True), (11, True), (12, False), (13, True), (14, True), (15, False)])
         a_DatasetField = DatasetField._new__and_valid(dataset)
         for item in dataset.data:
-            temp_tuple = a_DatasetField.lookup(item[0])
-            assert not temp_tuple[0]
-            assert item[1] == temp_tuple[1]
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+            assert for_sure_it_is_irr == False
+            assert for_sure_it_is_NOT_irr
+            assert result_or_suggest == dataset.data[0][1]
+            assert found_in_addr == dataset.data[0][0]
+            pass
             pass
         irr_addr_list_tuple = dataset.get_irr_addr___sorts_self()
         assert irr_addr_list_tuple[0]
@@ -3616,7 +3758,7 @@ if "init and split" and True:
         
         if irr_addr_list_tuple[1].__len__() != 0:
             for irr_addr in irr_addr_list_tuple[1]:
-                temp = a_DatasetField.lookup(irr_addr)
+                temp = a_DatasetField.lookup(irr_addr)1w
                 assert item[0]
                 pass
             pass
@@ -3681,8 +3823,19 @@ if "special cases" and True:
     a_DatasetField = DatasetField._new__and_valid(dataset)
     a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
     fdsfds = a_DatasetField.readable_as_tree()
+    assert False, "the next line............."
     fdsfds = a_DatasetField.lookup(4)
-    1w 就是这个lookup。
+    
+    1w
+    for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                assert for_sure_it_is_irr == False
+                assert for_sure_it_is_NOT_irr
+                assert result_or_suggest == dataset.data[0][1]
+                assert found_in_addr == dataset.data[0][0]
+                pass
+    
+    
+    
     a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
     
     
@@ -3725,7 +3878,7 @@ if "special cases" and True:
     
     
     fds = a_DatasetField.readable_as_tree()
-    fds1 = a_DatasetField.lookup(904)
+    fds1 = a_DatasetField.lookup(904)1w
     fds2 = a_DatasetField.lookup(904,True)
     a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
     
@@ -3755,7 +3908,7 @@ if "random dataset test   slow" and True:
             a_DatasetField = DatasetField._new__and_valid(dataset)
             
             assert a_DatasetField.all_irr
-            assert a_DatasetField.is_leaf_node
+            assert a_DatasetField.get_is_leaf()
             assert a_DatasetField.children is None
             pass#for input_bits_count in range(1, 12):
         pass#for ____total_iter
@@ -4199,8 +4352,9 @@ class DatasetField_Set:
         result_in_int = 0
         for i_from_the_left in range(self.get_output_count()):
             field = self.fields[i_from_the_left]
-            temp_result_is_irr, temp_result_is_true, _,_,_ = field.lookup(addr)
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = field.lookup(addr)
             i_from_the_right = (self.get_output_count()-1)-i_from_the_left#len-1-index_from_left
+            1w
             irr_bit_maskin_int = irr_bit_maskin_int|(temp_result_is_irr<<i_from_the_right)
             result_in_int = result_in_int|(temp_result_is_true<<i_from_the_right)
             pass
@@ -4323,11 +4477,11 @@ if "lookup" and True:
     assert a_DatasetField_Set.get_input_count() == 6
     assert a_DatasetField_Set.get_output_count() == 3
     
-    irr_bit_maskin_int, result_in_int = a_DatasetField_Set.lookup(11)
+    irr_bit_maskin_int, result_in_int = a_DatasetField_Set.lookup(11)1w
     assert irr_bit_maskin_int == 0
     assert result_in_int == 0b111
     
-    irr_bit_maskin_int, result_in_int = a_DatasetField_Set.lookup(25)
+    irr_bit_maskin_int, result_in_int = a_DatasetField_Set.lookup(25)1w
     assert irr_bit_maskin_int == 0
     assert result_in_int == 0b000
     pass
