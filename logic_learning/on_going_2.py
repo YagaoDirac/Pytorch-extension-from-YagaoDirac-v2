@@ -608,7 +608,7 @@ class Dataset:
     dataset = Dataset(input_bits_count, {str(dataset.data)})
     a_DatasetField = DatasetField._new__and_valid(dataset)
     a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
-    a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
+    #a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
     ''')
             pass
         pass
@@ -1091,6 +1091,14 @@ class How_did_I_quit_init_func(Enum):
     pass
 
 class DatasetField:
+    '''Some details:
+    
+    Set leaf_keep_dataset to true, in order to get accurate irrelevant lookup at all cases. Otherwise, 
+    only all-irr field provides accurate irrelevant lookup.
+    And, all the result from 1+ir or 0+ir field are not for-sure-relevant. 
+    This might not be a problem, since this tool is only designed to provide suggestion.
+    '''
+        
     if "class var" and True:
         #core info
         bitmask:int
@@ -1131,7 +1139,8 @@ class DatasetField:
         '''If you want to keep accurate irrelevant item info, set leaf_keep_dataset=True.
         Otherwise, only irr field is reported as irr. The 1+irr field or 0+irr field is reported 
         as 1 and 0 respectively.'''
-        result = DatasetField(0,0,0,dataset, leaf_keep_dataset = leaf_keep_dataset, _debug__save_sub_dataset_when_xor = _debug__save_sub_dataset_when_xor)
+        result = DatasetField(0,0,0,dataset, leaf_keep_dataset = leaf_keep_dataset, \
+            _debug__save_sub_dataset_when_xor = _debug__save_sub_dataset_when_xor)
         return result
     
     @staticmethod
@@ -1139,8 +1148,15 @@ class DatasetField:
         '''If you want to keep accurate irrelevant item info, set leaf_keep_dataset=True.
         Otherwise, only irr field is reported as irr. The 1+irr field or 0+irr field is reported 
         as 1 and 0 respectively.'''
-        result = DatasetField(0,0,0,dataset, leaf_keep_dataset = leaf_keep_dataset, _debug__save_sub_dataset_when_xor = _debug__save_sub_dataset_when_xor)
-        result.valid(dataset)
+        result = DatasetField(0,0,0,dataset, leaf_keep_dataset = leaf_keep_dataset, \
+            _debug__save_sub_dataset_when_xor = _debug__save_sub_dataset_when_xor)
+        if leaf_keep_dataset:
+            result.valid(dataset, accurate_lookup = True)
+            result.valid_irr(dataset, total_amount_irr = 100)
+            pass
+        else:
+            result.valid(dataset, accurate_lookup = False)
+            pass
         return result
     
     def __init__(self, bitmask:int, addr:int, #input_bits_count:int, 
@@ -1414,8 +1430,9 @@ class DatasetField:
         # index_of_min_of_score_list____from_right_side = -1
         min_of___non_zero_score___from_right_side = CONST_score_if_full_xor
         index_of_min_of___non_zero_score___from_right_side = -1
-        for i in range(score_of_xor_list_from_right_side.__len__()):
-            item = score_of_xor_list_from_right_side[i]
+        #for i in range(score_of_xor_list_from_right_side.__len__()):
+        for i_from_right_side in range(score_of_xor_list_from_right_side.__len__()-1,-1,-1):
+            item = score_of_xor_list_from_right_side[i_from_right_side]
             assert item >=0
             '''
             match item:
@@ -1425,14 +1442,14 @@ class DatasetField:
             '''
             if 0 == item:
                 irr_bit_as_int__from_right_side__squeezed__before_translate = \
-                    irr_bit_as_int__from_right_side__squeezed__before_translate |(1<<i)
+                    irr_bit_as_int__from_right_side__squeezed__before_translate |(1<<i_from_right_side)
                 pass
             # if item<min_of_score_list____from_right_side:
             #     min_of_score_list____from_right_side = item
             #     index_of_min_of_score_list____from_right_side = i
             if (item<min_of___non_zero_score___from_right_side) and (item!=0):
                 min_of___non_zero_score___from_right_side = item
-                index_of_min_of___non_zero_score___from_right_side = i
+                index_of_min_of___non_zero_score___from_right_side = i_from_right_side
                 pass
             pass
         
@@ -2019,7 +2036,9 @@ class DatasetField:
     
     
     def lookup(self, addr:int, lookup_in_leaf_dataset = False, \
-                as_xor_as_possible = False)->tuple[bool,bool,bool,int,'DatasetField']:
+                as_xor_as_possible = False, \
+                dont_fake_addr_from_all_irr_field__and__no_useful_suggestion_is_returned = False\
+                    )->tuple[bool,bool,bool,int,'DatasetField']:
         '''
         this is the 3rd version of this function. It's not a recursive function. I don't like recursive.
         docs here maybe outdated.
@@ -2027,13 +2046,18 @@ class DatasetField:
         return(for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node)
         
         >>> for_sure_it_is_irr: If it's true, it's irr. Otherwise, NOT SURE!!!.
-        >>> for_sure_it_is_NOT_irr: If it's true, it's NOT irr. Otherwise, NOT SURE!!!.
+        >>> for_sure_it_is_NOT_irr: If it's true, it's NOT irr. Otherwise, NOT SURE!!!. Notice: I'm not 
+        sure if I should change this. Only 1,0,xor field set this flag to true, 1+ir and 0+ir doesn't. Thus, 
+        it's impossible to distinguish (1+ir/0+ir) from all-irr.
         
         >>> result_or_suggest: If is_original_irr, then this is suggestion. Otherwise this is result.
         If you only care about if this is irrelevant addr, ignore this value.
         
-        >>> found_in_addr: If the original addr is a all-irr, then the addr is modified to find some suggestion.
+        >>> found_in_addr: If the original addr is a all-irr field, then the addr is modified to find some suggestion. 
         This found_in_addr value indicates the source of suggestion. Basically debug purpose.
+        (If the last test in this function is in a 1+ir or 0+ir field, the addr is not modified. So this value is always in 
+        a leaf but doesn't guarantee to be relevant. In future version, the xor field may get modified, so the behavior of 
+        this function may also change.)
         >>> found_in_node: Similar to found_in_addr, but the node info.
         
         If you only want to check out if an addr is irrelevant, Im planning another function.
@@ -2084,7 +2108,9 @@ class DatasetField:
         '''
         
         root = self
-        assert root.bitmask == 0
+        if not dont_fake_addr_from_all_irr_field__and__no_useful_suggestion_is_returned:
+            assert root.bitmask == 0
+            pass
         
         class LookupLog:
             child:'DatasetField'
@@ -2131,6 +2157,9 @@ class DatasetField:
         # so let's detect non leaf node first.
         
         
+        # if addr == 3:
+        #     fdsfds = 432
+        
         while True:#a while here?
             node = path[-1]#does this look like the call stack?
             is_node_leaf = node.get_is_leaf()
@@ -2153,6 +2182,11 @@ class DatasetField:
             #leaf:
             # 1, is dataset empty. 
             if node.all_irr:#fake a new addr.
+                
+                if dont_fake_addr_from_all_irr_field__and__no_useful_suggestion_is_returned:
+                    '''return(for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node)'''
+                    return(True, False, False, target_addr, node)
+                
                 #a. some work
                 old_target_addr = target_addr#for log
                 
@@ -2181,11 +2215,11 @@ class DatasetField:
                 result_or_suggest = node._lookup_only__all_xor_only(target_addr)
                 
                 if not for_sure_it_is_irr:#make sure it's not "fake addr" from a all-irr node.
-                    if lookup_in_leaf_dataset:
+                    #if lookup_in_leaf_dataset:
                         #In this version, all xor is a full relevant field.
-                        for_sure_it_is_irr = False
-                        for_sure_it_is_NOT_irr = True
-                        pass
+                    #no need to modify it again. for_sure_it_is_irr = False
+                    for_sure_it_is_NOT_irr = True
+                    #    pass
                     pass
                 #b. (move or) return (see below)
                 #c. log:
@@ -2210,10 +2244,17 @@ class DatasetField:
                     for_sure_it_is_irr = not found
                     for_sure_it_is_NOT_irr = found
                     pass
+                else:#not a accurate lookup
+                    if not node.has_irr:#but it's a 1 or 0 field. Still very sure it's not irr.
+                        #no needed. for_sure_it_is_irr = False 
+                        for_sure_it_is_NOT_irr = True
+                        pass
+                    pass
+                #else not needed. If it's not accurate lookup, don't touch the 2 bools.
                 pass
             
             result_or_suggest = node.has_1
-            for_sure_it_is_NOT_irr = not node.has_irr#a field without irr, then the addr is for sure not irr.
+            #old code for_sure_it_is_NOT_irr = not node.has_irr#a field without irr, then the addr is for sure not irr.
             #b. (move or) return (see below)
             #c. log:
             _log_str = f"simple leaf, [return:{result_or_suggest}]"
@@ -2269,7 +2310,7 @@ class DatasetField:
     def _get_child(self, true_or_false:bool)->'DatasetField':
         # self.children = (true_part, false_part)
         if self.children is None:
-            raise Exception("should be a tuple.")
+            raise Exception("Is this a leaf node?")
         else:
             if true_or_false:
                 return self.children[1]
@@ -2404,15 +2445,26 @@ class DatasetField:
         return final_result_str
         
     
-    def valid(self, dataset:Dataset, total_amount = -1, 
+    def valid(self, dataset:Dataset, total_amount = -1, accurate_lookup = False, \
             log_the_error_to_file_and_return_immediately = True)->tuple[bool,int,int]:
-        '''return (finished_the_check?, check_count, error_count)'''
+        '''return (finished_the_check?, check_count, error_count)
         
+        >>> finished_the_check: all the reasonable amount of check finishes?
+        >>> check_count: actual check amount. For a finished case, it's still possible to be less than the givin number.
+        >>> error_count:[literally]
+        
+        The real check amount is calculated. If meaningful amount is less than the givin number, 
+        this function only checks the reasonable amount.
+        
+        You can call this function directly on a non-root node, but the lookup function may raise some exception.
+        '''
         assert total_amount!=0
         assert self.input_bits_count == dataset.max_input_bits
         
         #if the dataset is empty, the field should also be all irr.
         if dataset.data.__len__() == 0:
+            assert self.bitmask != 0, "empty dataset + root node is wired."
+            #otherwise, this is a debug only case.
             if not self.all_irr: 
                 dataset.log_the_error()
                 return (False, 1, 1)
@@ -2427,16 +2479,24 @@ class DatasetField:
             pass
         if -1 == total_amount:#valid all.
             for item in dataset.data:
-                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = self.lookup(item[0])
-                #assert not temp_tuple[0]
-                if for_sure_it_is_irr or (not for_sure_it_is_NOT_irr):
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = self.lookup(item[0], \
+                    lookup_in_leaf_dataset=accurate_lookup)
+                if for_sure_it_is_irr:
                     if log_the_error_to_file_and_return_immediately:
                         dataset.log_the_error()
                         return (False, -1, 1)
                     error_count = error_count +1
                     pass
-                #assert item[1] == temp_tuple[1]
-                if item[1] != result_or_suggest:
+                if accurate_lookup:
+                    assert for_sure_it_is_irr^for_sure_it_is_NOT_irr
+                    if not for_sure_it_is_NOT_irr:
+                        if log_the_error_to_file_and_return_immediately:
+                            dataset.log_the_error()
+                            return (False, -1, 1)
+                        error_count = error_count +1
+                        pass
+                    pass
+                if item[1] != result_or_suggest:#the result.
                     if log_the_error_to_file_and_return_immediately:
                         dataset.log_the_error()
                         return (False, -1, 1)
@@ -2449,15 +2509,23 @@ class DatasetField:
             _total_amount = total_amount
             while _total_amount>0:
                 item = dataset.data[random.randint(0, dataset.data.__len__()-1)]
-                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = self.lookup(item[0])
-                #assert not temp_tuple[0]
-                if for_sure_it_is_irr or (not for_sure_it_is_NOT_irr):
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = self.lookup(item[0], \
+                    lookup_in_leaf_dataset=accurate_lookup)
+                if for_sure_it_is_irr:
                     if log_the_error_to_file_and_return_immediately:
                         dataset.log_the_error()
                         return (False, -1, 1)
                     error_count = error_count +1
                     pass
-                #assert item[1] == temp_tuple[1]
+                if accurate_lookup:
+                    assert for_sure_it_is_irr^for_sure_it_is_NOT_irr
+                    if not for_sure_it_is_NOT_irr:
+                        if log_the_error_to_file_and_return_immediately:
+                            dataset.log_the_error()
+                            return (False, -1, 1)
+                        error_count = error_count +1
+                        pass
+                    pass
                 if item[1] != result_or_suggest:
                     if log_the_error_to_file_and_return_immediately:
                         dataset.log_the_error()
@@ -2474,16 +2542,28 @@ class DatasetField:
     
     def valid_irr(self, dataset:Dataset, total_amount_irr = -1, 
                 log_the_error_to_file_and_return_immediately = True)->tuple[bool,int,int]:
-        '''return (finished_the_check?, check_count, error_count)'''
+        '''return (finished_the_check?, check_count, error_count)
+        
+        >>> finished_the_check: all the reasonable amount of check finishes?
+        >>> check_count: actual check amount. For a finished case, it's still possible to be less than the givin number.
+        >>> error_count:[literally]
+        
+        The real check amount is calculated. If meaningful amount is less than the givin number, 
+        this function only checks the reasonable amount.
+        
+        You can call this function directly on a non-root node, but the lookup function may raise some exception.
+        '''
         assert total_amount_irr!=0
         assert self.input_bits_count == dataset.max_input_bits
         
         #if the dataset is empty, the field should also be all irr.
         if dataset.data.__len__() == 0:
+            assert self.bitmask != 0, "empty dataset + root node is wired."
+            #otherwise, this is a debug only case.
             if not self.all_irr: 
                 dataset.log_the_error()
-                return(False, 1, 1)
-            return(True, 1, 0)
+                return(False, 0, 1)
+            return(True, 0, 0)
         #safety first.
         assert dataset.is_sorted
         _last_addr_in_input = dataset.data[-1][0]
@@ -2522,8 +2602,8 @@ class DatasetField:
                 #dataset already non-empty.
                 _total_amount_irr = total_amount_irr
                 while _total_amount_irr>0:
-                    rand_addr:int = irr_addr_list[random.randint(0, irr_addr_list.__len__()-1)]
-                    for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = self.lookup(irr_addr, lookup_in_leaf_dataset=True)
+                    rand_irr_addr:int = irr_addr_list[random.randint(0, irr_addr_list.__len__()-1)]
+                    for_sure_it_is_irr, for_sure_it_is_NOT_irr,_,_,_ = self.lookup(rand_irr_addr, lookup_in_leaf_dataset=True)
                     if (not for_sure_it_is_irr) or for_sure_it_is_NOT_irr:
                         if log_the_error_to_file_and_return_immediately:
                             dataset.log_the_error()
@@ -2548,17 +2628,17 @@ class DatasetField:
                 #one_shift_field_len = 1<<self.input_bits_count
                 #_not_important_incr = 0
                 while _total_trial_amount>0 and _total_amount_irr>0:
-                    guess_addr = random.randint(0, one_shift__input_bits_count__minus_one)
+                    guess_irr_addr = random.randint(0, one_shift__input_bits_count__minus_one)
                     #_not_important_incr = _not_important_incr + int(one_shift_field_len*61/337)
                     #_not_important_incr = _not_important_incr % one_shift_field_len
                     #guess_addr = (guess_addr+_not_important_incr) %one_shift_field_len
                     
-                    if guess_addr in already_guessed:
+                    if guess_irr_addr in already_guessed:
                         #tail
                         _total_trial_amount = _total_trial_amount -1
                         continue
                     else:
-                        already_guessed.add(guess_addr)
+                        already_guessed.add(guess_irr_addr)
                         pass
                     #find the item in dataset. But if it finds, it's bad guess. 
                     #binary search # two valid style.
@@ -2570,10 +2650,10 @@ class DatasetField:
                     while left<=right:
                         mid:int = (left+right)//2
                         temp_addr = dataset.data[mid][0]
-                        if guess_addr<temp_addr:
+                        if guess_irr_addr<temp_addr:
                             right = mid-1# two valid style.
                             continue
-                        elif guess_addr>temp_addr:
+                        elif guess_irr_addr>temp_addr:
                             left = mid+1# two valid style.
                             continue
                         else:#guess_addr == dataset[mid][0]:
@@ -2586,7 +2666,7 @@ class DatasetField:
                         continue
                     
                     #now the guess_addr is a irr according to dataset.
-                    for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = self.lookup(irr_addr, lookup_in_leaf_dataset=True)
+                    for_sure_it_is_irr, for_sure_it_is_NOT_irr,_,_,_ = self.lookup(guess_irr_addr, lookup_in_leaf_dataset=True)
                     if (not for_sure_it_is_irr) or for_sure_it_is_NOT_irr:
                         if log_the_error_to_file_and_return_immediately:
                             dataset.log_the_error()
@@ -2613,30 +2693,19 @@ class DatasetField:
             
     #end of class
     
+    
+    
+    
+    
+    
+    
+    
 if True:
-    bit_count = 5
-    dataset, instruction = Dataset.rand_true_xor(bit_count)
-    a_DatasetField = DatasetField._new__and_valid(dataset)
-    assert a_DatasetField.all_xor == True
-    
-    # bit_count = 5
-    # dataset, instruction = Dataset.rand_true_xor(bit_count, False)
-    # a_DatasetField = DatasetField._new__and_valid(dataset)
-    # _temp = a_DatasetField.readable_as_tree()
-    # while a_DatasetField.all_xor == False:
-    #     child_1 = a_DatasetField._get_child(True)
-    #     if child_1.all_irr:
-    #         a_DatasetField = a_DatasetField._get_child(False)
-    #         continue
-    #     if child_1.get_is_leaf() == False:
-    #         a_DatasetField = child_1
-    #         continue
-    #     assert False, "unreachable"
-    #     pass#while
-            
-    # assert a_DatasetField.all_xor == True
-
-    
+    max_input_bits = 4
+    dataset = Dataset.from_str('''0110 1111 1111 0110''')
+    assert dataset.data == [(0, False), (1, True), (2, True), (3, False), (4, True), (5, True), (6, True), (7, True), (8, True), 
+            (9, True), (10, True), (11, True), (12, False), (13, True), (14, True), (15, False)]
+    a_DatasetField:DatasetField = DatasetField._new__and_valid(dataset)
     pass
     
 if "valid function" and True:
@@ -2857,7 +2926,8 @@ if "readable tree" and True:
         assert tree_str_TF == "____:xor(irr-bits:i...)"
         
         tree_str, tree_str_TF = str_to_readable_tree("0110111111110110")
-        assert tree_str_TF == "____:(___0:(__00:xor(irr-bits:..00), __10:T), ___1:(__01:T, __11:xor(irr-bits:..11)))"
+        #assert tree_str_TF == "____:(___0:(__00:xor(irr-bits:..00), __10:T), ___1:(__01:T, __11:xor(irr-bits:..11)))"
+        assert tree_str_TF == "____:(0___:(00__:xor(irr-bits:00..), 01__:T), 1___:(10__:T, 11__:xor(irr-bits:11..)))"
         
         tree_str, tree_str_TF = str_to_readable_tree("0110011011111111")
         assert tree_str_TF == "____:(0___:xor(irr-bits:0i..), 1___:T)"
@@ -2878,27 +2948,35 @@ if "init and split" and True:
         #irr 
         a_DatasetField = DatasetField(bitmask = 1, addr = 0, bits_already_in_use=1, \
                         dataset = Dataset._debug__new_empty(1), with_suggest=False,_debug__check_all_safety = True)
-        lookup_result = a_DatasetField.lookup(0)
-        '''return (result_is_irr, result_or_suggest_is_true, from_all_irr_field, from_xor_field, actually_irr_according_to_dataset)'''
-        assert lookup_result[0]#result_is_irr
-        assert lookup_result[2]#from_all_irr_field
-        assert lookup_result[3] == False#from_xor_field
+        irr_addr = 0b0
+        found_in_addr:int
+        for_sure_it_is_irr, for_sure_it_is_NOT_irr, _, found_in_addr, found_in_node = \
+            a_DatasetField.lookup(irr_addr, dont_fake_addr_from_all_irr_field__and__no_useful_suggestion_is_returned=True)
+        assert for_sure_it_is_irr
+        assert for_sure_it_is_NOT_irr == False
+        assert found_in_addr == irr_addr
+        assert found_in_node == a_DatasetField
         readable_addr = a_DatasetField.get_readable_addr()
         assert readable_addr == "0"
+        
         a_DatasetField = DatasetField(bitmask = 1, addr = 1, bits_already_in_use=1, \
                         dataset = Dataset._debug__new_empty(1), with_suggest=False,_debug__check_all_safety = True)
-        lookup_result = a_DatasetField.lookup(0)
-        assert lookup_result[0]#result_is_irr
-        assert lookup_result[2]#from_all_irr_field
-        assert lookup_result[3] == False#from_xor_field
+        irr_addr = 0b1
+        for_sure_it_is_irr, for_sure_it_is_NOT_irr, _, found_in_addr, found_in_node = \
+            a_DatasetField.lookup(irr_addr, dont_fake_addr_from_all_irr_field__and__no_useful_suggestion_is_returned=True)
+        assert for_sure_it_is_irr
+        assert for_sure_it_is_NOT_irr == False
+        assert found_in_addr == irr_addr
+        assert found_in_node == a_DatasetField
         readable_addr = a_DatasetField.get_readable_addr()
         assert readable_addr == "1"
         
         #relevant.
         dataset = Dataset(1, [(0b0,True), ])
         a_DatasetField = DatasetField(bitmask = 1, addr = 0, bits_already_in_use=1, \
-                        dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node = a_DatasetField.lookup(dataset.data[0][0])
+                        dataset = dataset, with_suggest=False,_debug__check_all_safety = True)#, leaf_keep_dataset=True)
+        for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node = \
+            a_DatasetField.lookup(dataset.data[0][0], dont_fake_addr_from_all_irr_field__and__no_useful_suggestion_is_returned=True)
         assert for_sure_it_is_irr == False
         assert for_sure_it_is_NOT_irr
         assert result_or_suggest == dataset.data[0][1]
@@ -2910,7 +2988,8 @@ if "init and split" and True:
         dataset = Dataset(1, [(0b0,False), ])
         a_DatasetField = DatasetField(bitmask = 1, addr = 0, bits_already_in_use=1, \
                         dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node = a_DatasetField.lookup(dataset.data[0][0])
+        for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node = \
+            a_DatasetField.lookup(dataset.data[0][0], dont_fake_addr_from_all_irr_field__and__no_useful_suggestion_is_returned=True)
         assert for_sure_it_is_irr == False
         assert for_sure_it_is_NOT_irr
         assert result_or_suggest == dataset.data[0][1]
@@ -2922,7 +3001,8 @@ if "init and split" and True:
         dataset = Dataset(1, [(0b1,True), ])
         a_DatasetField = DatasetField(bitmask = 1, addr = 1, bits_already_in_use=1, \
                         dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node = a_DatasetField.lookup(dataset.data[0][0])
+        for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node = \
+            a_DatasetField.lookup(dataset.data[0][0], dont_fake_addr_from_all_irr_field__and__no_useful_suggestion_is_returned=True)
         assert for_sure_it_is_irr == False
         assert for_sure_it_is_NOT_irr
         assert result_or_suggest == dataset.data[0][1]
@@ -2934,7 +3014,8 @@ if "init and split" and True:
         dataset = Dataset(1, [(0b1,False), ])
         a_DatasetField = DatasetField(bitmask = 1, addr = 1, bits_already_in_use=1, \
                         dataset = dataset, with_suggest=False,_debug__check_all_safety = True)
-        for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node = a_DatasetField.lookup(dataset.data[0][0])
+        for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node = \
+            a_DatasetField.lookup(dataset.data[0][0], dont_fake_addr_from_all_irr_field__and__no_useful_suggestion_is_returned=True)
         assert for_sure_it_is_irr == False
         assert for_sure_it_is_NOT_irr
         assert result_or_suggest == dataset.data[0][1]
@@ -2970,11 +3051,16 @@ if "init and split" and True:
             assert readable_addr == "_"
             
             for item in dataset.data:
-                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                _temp_tuple_bbbio = a_DatasetField.lookup(item[0])
+                for_sure_it_is_irr = _temp_tuple_bbbio[0]
+                for_sure_it_is_NOT_irr = _temp_tuple_bbbio[1]
+                result_or_suggest = _temp_tuple_bbbio[2]
+                found_in_addr = _temp_tuple_bbbio[3]
+                #for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,_ = a_DatasetField.lookup(item[0])
                 assert for_sure_it_is_irr == False
                 assert for_sure_it_is_NOT_irr
-                assert result_or_suggest == dataset.data[0][1]
-                assert found_in_addr == dataset.data[0][0]
+                assert result_or_suggest == item[1]
+                assert found_in_addr == item[0]
                 pass
             #manually modify the obj and test.
             a_DatasetField.dataset = dataset
@@ -3051,11 +3137,15 @@ if "init and split" and True:
             assert readable_addr == "0"
             
             for item in dataset.data:
-                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                _temp_tuple_bbbio = a_DatasetField.lookup(item[0])
+                for_sure_it_is_irr = _temp_tuple_bbbio[0]
+                for_sure_it_is_NOT_irr = _temp_tuple_bbbio[1]
+                result_or_suggest = _temp_tuple_bbbio[2]
+                found_in_addr = _temp_tuple_bbbio[3]
                 assert for_sure_it_is_irr == False
                 assert for_sure_it_is_NOT_irr
-                assert result_or_suggest == dataset.data[0][1]
-                assert found_in_addr == dataset.data[0][0]
+                assert result_or_suggest == item[1]
+                assert found_in_addr == item[0]
                 pass
                 pass
             
@@ -3101,11 +3191,16 @@ if "init and split" and True:
             assert readable_addr == "_"
             
             for item in dataset.data:
-                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                _temp_tuple_bbbio = a_DatasetField.lookup(item[0])
+                for_sure_it_is_irr = _temp_tuple_bbbio[0]
+                for_sure_it_is_NOT_irr = _temp_tuple_bbbio[1]
+                result_or_suggest = _temp_tuple_bbbio[2]
+                found_in_addr = _temp_tuple_bbbio[3]
+                #for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,_ = a_DatasetField.lookup(item[0])
                 assert for_sure_it_is_irr == False
                 assert for_sure_it_is_NOT_irr
-                assert result_or_suggest == dataset.data[0][1]
-                assert found_in_addr == dataset.data[0][0]
+                assert result_or_suggest == item[1]
+                assert found_in_addr == item[0]
                 pass
                 pass
             #manually modify the obj and test.
@@ -3181,11 +3276,16 @@ if "init and split" and True:
             assert readable_addr == "0"
             
             for item in dataset.data:
-                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                _temp_tuple_bbbio = a_DatasetField.lookup(item[0])
+                for_sure_it_is_irr = _temp_tuple_bbbio[0]
+                for_sure_it_is_NOT_irr = _temp_tuple_bbbio[1]
+                result_or_suggest = _temp_tuple_bbbio[2]
+                found_in_addr = _temp_tuple_bbbio[3]
+                #for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,_ = a_DatasetField.lookup(item[0])
                 assert for_sure_it_is_irr == False
                 assert for_sure_it_is_NOT_irr
-                assert result_or_suggest == dataset.data[0][1]
-                assert found_in_addr == dataset.data[0][0]
+                assert result_or_suggest == item[1]
+                assert found_in_addr == item[0]
                 pass
                 pass
             
@@ -3229,19 +3329,36 @@ if "init and split" and True:
             #assert not a_DatasetField.not_after_xor not important.
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "_"
-            
+            #relevant items.
             for item in dataset.data:
-                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,found_in_node \
+                    = a_DatasetField.lookup(item[0])
                 assert for_sure_it_is_irr == False
-                assert for_sure_it_is_NOT_irr
-                assert result_or_suggest == dataset.data[0][1]
-                assert found_in_addr == dataset.data[0][0]
+                assert for_sure_it_is_NOT_irr == False
+                assert result_or_suggest == item[1]
+                assert found_in_addr == item[0]
+                assert found_in_node == a_DatasetField
                 pass
-                pass
-            temp = a_DatasetField.lookup(0b0)
-            1w
-            assert temp[0] == False#irr
-            assert temp == (False,False,False,False,False)
+            #plain irr
+            _irr_addr = 0b0
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(_irr_addr)
+            assert for_sure_it_is_irr == False
+            assert for_sure_it_is_NOT_irr == False
+            assert found_in_addr == _irr_addr
+            assert found_in_node == a_DatasetField
+            
+            #accurate irr
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
+                            dataset = dataset, with_suggest=False,_debug__check_all_safety = True, \
+                            leaf_keep_dataset=True)
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(_irr_addr, lookup_in_leaf_dataset=True)
+            assert for_sure_it_is_irr == True
+            assert for_sure_it_is_NOT_irr == False
+            assert found_in_addr == _irr_addr
+            assert found_in_node == a_DatasetField
+            
             
             #manually modify the obj and test.
             a_DatasetField.dataset = dataset
@@ -3273,17 +3390,35 @@ if "init and split" and True:
             readable_addr = a_DatasetField.get_readable_addr()
             assert readable_addr == "_"
             
+            #relevant items.
             for item in dataset.data:
-                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,found_in_node \
+                    = a_DatasetField.lookup(item[0])
                 assert for_sure_it_is_irr == False
-                assert for_sure_it_is_NOT_irr
-                assert result_or_suggest == dataset.data[0][1]
-                assert found_in_addr == dataset.data[0][0]
+                assert for_sure_it_is_NOT_irr == False
+                assert result_or_suggest == item[1]
+                assert found_in_addr == item[0]
+                assert found_in_node == a_DatasetField
                 pass
-                pass
-            temp = a_DatasetField.lookup(0b1)1w
-            assert temp[0] == False#irr
-            assert temp == (False,True,False,False,False)
+            
+            #plain irr
+            _irr_addr = 0b1
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(_irr_addr)
+            assert for_sure_it_is_irr == False
+            assert for_sure_it_is_NOT_irr == False
+            assert found_in_addr == _irr_addr
+            assert found_in_node == a_DatasetField
+            #accurate irr
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
+                            dataset = dataset, with_suggest=False,_debug__check_all_safety = True, \
+                            leaf_keep_dataset=True)
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(_irr_addr, lookup_in_leaf_dataset=True)
+            assert for_sure_it_is_irr == True
+            assert for_sure_it_is_NOT_irr == False
+            assert found_in_addr == _irr_addr
+            assert found_in_node == a_DatasetField
 
             #manually modify the obj and test.
             a_DatasetField.dataset = dataset
@@ -3367,24 +3502,38 @@ if "init and split" and True:
             assert not addr_0__child.has_irr
             assert addr_0__child.children is None
             
+            #relevant items.
             for item in dataset.data:
-                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,found_in_node \
+                    = a_DatasetField.lookup(item[0])
                 assert for_sure_it_is_irr == False
-                assert for_sure_it_is_NOT_irr
-                assert result_or_suggest == dataset.data[0][1]
-                assert found_in_addr == dataset.data[0][0]
-                pass
+                assert result_or_suggest == item[1]
+                assert found_in_addr == item[0]
                 pass
                 
-            temp = a_DatasetField.lookup(0b11)1w
-            assert temp[0] == False#irr
-            assert temp == (False,False,False,False,False)
+            #plain irr
+            _irr_addr = 0b11
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(_irr_addr)
+            assert for_sure_it_is_irr == False
+            assert for_sure_it_is_NOT_irr == False
+                
+            #accurate irr
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
+                            dataset = dataset, with_suggest=False,_debug__check_all_safety = True, \
+                            leaf_keep_dataset=True)
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(_irr_addr, lookup_in_leaf_dataset=True)
+            assert for_sure_it_is_irr == True
+            assert for_sure_it_is_NOT_irr == False
+            assert found_in_addr == _irr_addr
             
             #manually modify the obj and test.
             a_DatasetField.dataset = dataset
             best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
             assert 1 == best_index_to_split
             assert 3 == best_abs_of_num_of_same
+            
             
             
             dataset = Dataset(2, [(0b00,True), (0b01,False), (0b10,True), ])
@@ -3427,24 +3576,38 @@ if "init and split" and True:
             readable_as_tree = addr_0__child.readable_as_tree() 
             assert addr_0__child.readable_as_tree() == "_0:1"
             
+            #relevant items.
             for item in dataset.data:
-                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,found_in_node \
+                    = a_DatasetField.lookup(item[0])
                 assert for_sure_it_is_irr == False
-                assert for_sure_it_is_NOT_irr
-                assert result_or_suggest == dataset.data[0][1]
-                assert found_in_addr == dataset.data[0][0]
-                pass
+                assert result_or_suggest == item[1]
+                assert found_in_addr == item[0]
                 pass
                 
-            temp = a_DatasetField.lookup(0b11)1w
-            assert temp[0] == False#irr
-            assert temp == (False,False,False,False,False)
+            #plain irr
+            _irr_addr = 0b11
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(_irr_addr)
+            assert for_sure_it_is_irr == False
+            assert for_sure_it_is_NOT_irr == False
+                
+            #accurate irr
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
+                            dataset = dataset, with_suggest=False,_debug__check_all_safety = True, \
+                            leaf_keep_dataset=True)
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(_irr_addr, lookup_in_leaf_dataset=True)
+            assert for_sure_it_is_irr == True
+            assert for_sure_it_is_NOT_irr == False
+            assert found_in_addr == _irr_addr
             
             #manually modify the obj and test.
             a_DatasetField.dataset = dataset
             best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
             assert 0 == best_index_to_split
             assert 3 == best_abs_of_num_of_same
+            
             
             
             #basically a xor, but replaced with 1 irr.
@@ -3510,18 +3673,31 @@ if "init and split" and True:
             readable_as_tree = addr_01_child.readable_as_tree() 
             assert addr_01_child.readable_as_tree() == "01:0"
             
+            #relevant items.
             for item in dataset.data:
-                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,found_in_node \
+                    = a_DatasetField.lookup(item[0])
                 assert for_sure_it_is_irr == False
-                assert for_sure_it_is_NOT_irr
-                assert result_or_suggest == dataset.data[0][1]
-                assert found_in_addr == dataset.data[0][0]
-                pass
+                assert result_or_suggest == item[1]
+                assert found_in_addr == item[0]
                 pass
                 
-            temp = a_DatasetField.lookup(0b11)1w
-            assert temp[0] == False#irr
-            assert temp == (False,False,False,False,False)
+            #plain irr
+            _irr_addr = 0b11
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(_irr_addr)
+            assert for_sure_it_is_irr == False
+            assert for_sure_it_is_NOT_irr == False
+                
+            #accurate irr
+            a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
+                            dataset = dataset, with_suggest=False,_debug__check_all_safety = True, \
+                            leaf_keep_dataset=True)
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(_irr_addr, lookup_in_leaf_dataset=True)
+            assert for_sure_it_is_irr == True
+            assert for_sure_it_is_NOT_irr == False
+            assert found_in_addr == _irr_addr
             
             #manually modify the obj and test.
             a_DatasetField.dataset = dataset
@@ -3554,30 +3730,23 @@ if "init and split" and True:
             assert a_DatasetField.get_readable_addr() == "__"
             assert a_DatasetField.readable_as_tree() == "__:xnor(irr-bits:..)"
             
-            for _addr_result in dataset.data:
-                    assert False, "the next line............."
-                    tis_irr, is_true, _,_,_ = a_DatasetField.lookup(_addr_result[0])
-                    assert _addr_result[1] == is_true
-                    
-                    ???
-                    for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+            #relevant items.
+            for item in dataset.data:
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,found_in_node \
+                    = a_DatasetField.lookup(item[0])
                 assert for_sure_it_is_irr == False
                 assert for_sure_it_is_NOT_irr
-                assert result_or_suggest == dataset.data[0][1]
-                assert found_in_addr == dataset.data[0][0]
+                assert result_or_suggest == item[1]
+                assert found_in_addr == item[0]
+                assert found_in_node == a_DatasetField
                 pass
-                    
-                    
-                    
-                    
-                    
-                    
-                    pass
             #manually modify the obj and test.
             a_DatasetField.dataset = dataset
             best_index_to_split, best_abs_of_num_of_same = a_DatasetField._detect_best_bit_to_split()
             assert -1 == best_index_to_split
             assert 0 == best_abs_of_num_of_same
+            
+            
             
             #xnor. But in code it's a not after xor.
             dataset = Dataset(2, [(0b00,False), (0b01,True), (0b10,True), (0b11,False), ])
@@ -3600,13 +3769,15 @@ if "init and split" and True:
             assert not a_DatasetField.not_after_xor
             assert a_DatasetField.get_readable_addr() == "__"
             assert a_DatasetField.readable_as_tree() == "__:xor(irr-bits:..)"
+            #relevant items.
             for item in dataset.data:
-                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+                for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,found_in_node \
+                    = a_DatasetField.lookup(item[0])
                 assert for_sure_it_is_irr == False
                 assert for_sure_it_is_NOT_irr
-                assert result_or_suggest == dataset.data[0][1]
-                assert found_in_addr == dataset.data[0][0]
-                pass
+                assert result_or_suggest == item[1]
+                assert found_in_addr == item[0]
+                assert found_in_node == a_DatasetField
                 pass
             #manually modify the obj and test.
             a_DatasetField.dataset = dataset
@@ -3653,30 +3824,41 @@ if "init and split" and True:
         assert a_DatasetField.all_irr ==False
         assert a_DatasetField.readable_as_tree() == "___:xor(irr-bits:i..)"
         
+        #relevant items.
+        for item in dataset.data:
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,found_in_node \
+                = a_DatasetField.lookup(item[0])
+            assert for_sure_it_is_irr == False
+            assert for_sure_it_is_NOT_irr
+            assert result_or_suggest == item[1]
+            assert found_in_addr == item[0]
+            assert found_in_node == a_DatasetField
+            pass
+        
         pass
         
         
-        if "old" and False:
+        if "old" and True:
             assert a_DatasetField.bitmask == 0
             assert a_DatasetField.addr == 0
             assert a_DatasetField.input_bits_count == 3
-            assert a_DatasetField.when_xor__ignore_these_bits == 0
+            assert a_DatasetField.when_xor__ignore_these_bits == 0b100
             assert a_DatasetField.bits_already_in_use == 0
             #assert a_DatasetField.dataset:list[tuple[int,bool]]
-            assert a_DatasetField._debug__how_did_I_quit_init_func == How_did_I_quit_init_func.BRANCH
-            assert a_DatasetField.best_index_to_split_from_right_side == 2
+            assert a_DatasetField._debug__how_did_I_quit_init_func == How_did_I_quit_init_func.XOR
+            assert a_DatasetField.best_index_to_split_from_right_side <0
             assert a_DatasetField._it_was_a_temp_var__best_abs_of_num_of_same == 0
-            assert a_DatasetField.children is not None
+            assert a_DatasetField.children is None
             assert a_DatasetField.ready_for_lookup
             assert a_DatasetField.has_1
             assert a_DatasetField.has_0
             assert a_DatasetField.has_irr == False
             assert a_DatasetField.is_dataset_sorted
-            assert a_DatasetField.get_is_leaf() == False
-            assert a_DatasetField.all_xor == False
+            assert a_DatasetField.get_is_leaf()# == False
+            assert a_DatasetField.all_xor# == False
             assert a_DatasetField.not_after_xor == False
             assert a_DatasetField.all_irr ==False
-            
+            '''old code
             addr_1_child = a_DatasetField._get_child(true_or_false=True)
             assert addr_1_child.bitmask == 0b100
             assert addr_1_child.addr == 0b100
@@ -3718,16 +3900,10 @@ if "init and split" and True:
             assert addr_0_child.all_xor #== False
             assert addr_0_child.not_after_xor == False
             assert addr_0_child.all_irr ==False
+            '''
+            
             pass
         
-        for item in dataset.data:
-            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
-            assert for_sure_it_is_irr == False
-            assert for_sure_it_is_NOT_irr
-            assert result_or_suggest == dataset.data[0][1]
-            assert found_in_addr == dataset.data[0][0]
-            pass
-            pass
         irr_addr_list_tuple = dataset.get_irr_addr___sorts_self()
         assert irr_addr_list_tuple[0]
         assert irr_addr_list_tuple[1].__len__() == 0
@@ -3741,28 +3917,32 @@ if "init and split" and True:
     if "a 4 bits fake xor case" and True:
         '''0110 1111 1111 0110'''
         max_input_bits = 4
-        dataset = Dataset(max_input_bits, [(0, False), (1, True), (2, True), (3, False), (4, True), (5, True), (6, True), (7, True), (8, True), 
-                (9, True), (10, True), (11, True), (12, False), (13, True), (14, True), (15, False)])
+        dataset = Dataset.from_str('''0110 1111 1111 0110''')
+        assert dataset.data == [(0, False), (1, True), (2, True), (3, False), (4, True), (5, True), (6, True), (7, True), (8, True), 
+                (9, True), (10, True), (11, True), (12, False), (13, True), (14, True), (15, False)]
         a_DatasetField = DatasetField._new__and_valid(dataset)
+        tree_str_TF = a_DatasetField.readable_as_tree(use_TF = True)
+        assert tree_str_TF == "____:(0___:(00__:xor(irr-bits:00..), 01__:T), 1___:(10__:T, 11__:xor(irr-bits:11..)))"
+        
+        #relevant items.
         for item in dataset.data:
-            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
+            
+            
+            _temp_tuple_bbbio = a_DatasetField.lookup(item[0])
+            for_sure_it_is_irr = _temp_tuple_bbbio[0]
+            for_sure_it_is_NOT_irr = _temp_tuple_bbbio[1]
+            result_or_suggest = _temp_tuple_bbbio[2]
+            found_in_addr = _temp_tuple_bbbio[3]
+            
             assert for_sure_it_is_irr == False
             assert for_sure_it_is_NOT_irr
-            assert result_or_suggest == dataset.data[0][1]
-            assert found_in_addr == dataset.data[0][0]
+            assert result_or_suggest == item[1]
+            assert found_in_addr == item[0]
             pass
-            pass
+        #full.
         irr_addr_list_tuple = dataset.get_irr_addr___sorts_self()
         assert irr_addr_list_tuple[0]
         assert irr_addr_list_tuple[1].__len__() == 0
-        
-        if irr_addr_list_tuple[1].__len__() != 0:
-            for irr_addr in irr_addr_list_tuple[1]:
-                temp = a_DatasetField.lookup(irr_addr)1w
-                assert item[0]
-                pass
-            pass
-        
         pass
     
     if "insert bits to addr and check" and True:
@@ -3771,83 +3951,188 @@ if "init and split" and True:
         assert dataset.max_input_bits == 5
         a_DatasetField = DatasetField._new__and_valid(dataset)
         tree_str_TF = a_DatasetField.readable_as_tree(use_TF=True)
-        #111111111111可以继续。
-        #1w
-        pass
-
-if "some special case" and True:
-    if "2025 oct 22":
-        max_input_bits = 2        
-        dataset = Dataset(max_input_bits, [(2, False)])
-        a_DatasetField = DatasetField._new__and_valid(dataset)
-        a_DatasetField.valid(dataset, total_amount = 100)
-        a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
-        a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
-        pass
-    
-    if "2025 oct 14":
-        dataset = Dataset(1, [(0, True)])
-        a_DatasetField = DatasetField._new__and_valid(dataset)
-        a_DatasetField.valid(dataset)
-        pass
-    
-    if "1" and True:
-        input_bits_count = 7
-        addr = 114
-        bitmask = 114
-        bits_already_in_use = 4
-        dataset_big = Dataset(input_bits_count, [(0, False), (2, True), (4, False), (9, True), (13, False), (17, True), (25, True), (26, False), (28, True), (29, False), (30, False), (31, True), (35, True), (37, True), (38, True), (39, False), (41, True), (42, False), (44, True), (46, False), (48, True), (50, True), (52, True), (53, True), (58, True), (60, True), (61, True), (62, True), (63, True), (64, False), (68, True), (71, False), (72, True), (74, True), (77, True), (78, True), (79, True), (83, True), (85, True), (87, True), (88, False), (92, True), (93, True), (95, True), (97, True), (99, True), (100, True), (103, True), (107, True), (110, True), (113, True), (117, True), (119, True), (121, True), (123, True), (124, True), (126, True), (127, False)])
-        dataset = dataset_big.get_subset(bitmask, addr)
-        '''
-        print(f"{addr:b}") #1110010
-        for item in dataset:
-            print(f"{item[0]:b}")
+        assert tree_str_TF == "_____:(__0__:ir, __1__:(0_1__:(001__:xnor(irr-bits:001..), 011__:F), 1_1__:(101__:F, 111__:xnor(irr-bits:111..))))"
+        #relevant items.
+        for item in dataset.data:
+            _temp_tuple_bbbio = a_DatasetField.lookup(item[0])
+            for_sure_it_is_irr = _temp_tuple_bbbio[0]
+            for_sure_it_is_NOT_irr = _temp_tuple_bbbio[1]
+            result_or_suggest = _temp_tuple_bbbio[2]
+            found_in_addr = _temp_tuple_bbbio[3]
+            # for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,_ \
+            #     = a_DatasetField.lookup(item[0])
+            assert for_sure_it_is_irr == False
+            assert for_sure_it_is_NOT_irr
+            assert result_or_suggest == item[1]
+            assert found_in_addr&0b11011 == item[0]&0b11011
+            assert found_in_addr == item[0]|0b00100
             pass
-        1110111
-        1111011
-        1111110
-        1111111
-        '''
-        a_DatasetField = DatasetField(bitmask, addr, bits_already_in_use, dataset)
-        a_DatasetField.valid(dataset)
+        
+        #plain irr
+        _, irr_dataset = dataset.get_irr_addr___sorts_self()
+        for irr_addr in irr_dataset:
+            _temp_tuple_bbbio = a_DatasetField.lookup(irr_addr)
+            for_sure_it_is_irr = _temp_tuple_bbbio[0]
+            for_sure_it_is_NOT_irr = _temp_tuple_bbbio[1]
+            result_or_suggest = _temp_tuple_bbbio[2]
+            found_in_addr = _temp_tuple_bbbio[3]
+            
+            # for_sure_it_is_irr, for_sure_it_is_NOT_irr, _, found_in_addr, _ \
+            #     = a_DatasetField.lookup(_irr_addr)
+            assert for_sure_it_is_irr #this case is very clear.
+            assert for_sure_it_is_NOT_irr == False#a clear case.
+            assert found_in_addr&0b11011 == irr_addr&0b11011
+            assert found_in_addr == irr_addr|0b00100
+            pass
+        
+        #accurate irr
+        a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
+                        dataset = dataset, with_suggest=False,_debug__check_all_safety = True, \
+                        leaf_keep_dataset=True)
+        for irr_addr in irr_dataset:
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, _, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(irr_addr)
+            assert for_sure_it_is_irr#from the all-irr field
+            assert for_sure_it_is_NOT_irr == False
+            assert found_in_addr&0b11011 == irr_addr&0b11011
+            assert found_in_addr == irr_addr|0b00100
+            pass
         pass
     
-    if "10_1_1__ case" and True:
+    if "0110____" and True:
+        dataset = Dataset.from_str("0110____")
+        a_DatasetField = DatasetField._new__and_valid(dataset)
+        tree_str_TF = a_DatasetField.readable_as_tree(use_TF=True)
+        assert tree_str_TF == "___:(0__:xor(irr-bits:0..), 1__:ir)"
+        #relevant items.
+        for item in dataset.data:
+            
+            _temp_tuple_bbbio = a_DatasetField.lookup(item[0])
+            for_sure_it_is_irr = _temp_tuple_bbbio[0]
+            for_sure_it_is_NOT_irr = _temp_tuple_bbbio[1]
+            result_or_suggest = _temp_tuple_bbbio[2]
+            found_in_addr = _temp_tuple_bbbio[3]
+            
+            assert for_sure_it_is_irr == False
+            assert for_sure_it_is_NOT_irr
+            assert result_or_suggest == item[1]
+            assert found_in_addr&0b011 == item[0]&0b011
+            pass
+        
+        #plain irr
+        _,irr_dataset = dataset.get_irr_addr___sorts_self()
+        for irr_addr in irr_dataset:
+            
+            _temp_tuple_bbbio = a_DatasetField.lookup(irr_addr)
+            for_sure_it_is_irr = _temp_tuple_bbbio[0]
+            for_sure_it_is_NOT_irr = _temp_tuple_bbbio[1]
+            
+            found_in_addr = _temp_tuple_bbbio[3]
+            
+            assert for_sure_it_is_irr #this case is very clear.
+            assert for_sure_it_is_NOT_irr == False
+            assert found_in_addr&0b011 == irr_addr&0b011
+            pass
+        
+        #accurate irr
+        a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
+                        dataset = dataset, with_suggest=False,_debug__check_all_safety = True, \
+                        leaf_keep_dataset=True)
+        for irr_addr in irr_dataset:
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, _, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(irr_addr)
+            assert for_sure_it_is_irr
+            assert for_sure_it_is_NOT_irr == False
+            assert found_in_addr&0b011 == irr_addr&0b011
+            pass
+        pass
+    
+    if "10_1_1__" and True:
         dataset = Dataset.from_str("10_1_1__")
         a_DatasetField = DatasetField._new__and_valid(dataset)
-        a_DatasetField.valid(dataset)
+        tree_str_TF = a_DatasetField.readable_as_tree(use_TF=True)
+        assert tree_str_TF == "___:(0__:(00_:(000:T, 001:F), 01_:T+ir), 1__:T+ir)"
+        #relevant items.
+        for item in dataset.data:
+            
+            _temp_tuple_bbbio = a_DatasetField.lookup(item[0])
+            for_sure_it_is_irr = _temp_tuple_bbbio[0]
+            for_sure_it_is_NOT_irr = _temp_tuple_bbbio[1]
+            result_or_suggest = _temp_tuple_bbbio[2]
+            found_in_addr = _temp_tuple_bbbio[3]
+            
+            
+            assert for_sure_it_is_irr == False
+            #assert for_sure_it_is_NOT_irr this is not the only pure1 or pure0 case.
+            assert result_or_suggest == item[1]
+            assert found_in_addr == item[0]
+            pass
+        #accurate
+        a_DatasetField = DatasetField(bitmask = 0, addr = 0, bits_already_in_use=0, \
+                        dataset = dataset, with_suggest=False,_debug__check_all_safety = True, \
+                        leaf_keep_dataset=True)
+        #accurate relevant items.
+        for item in dataset.data:
+            
+            
+            _temp_tuple_bbbio = a_DatasetField.lookup(item[0])
+            for_sure_it_is_irr = _temp_tuple_bbbio[0]
+            for_sure_it_is_NOT_irr = _temp_tuple_bbbio[1]
+            result_or_suggest = _temp_tuple_bbbio[2]
+            found_in_addr = _temp_tuple_bbbio[3]
+            
+            
+            assert for_sure_it_is_irr == False
+            assert for_sure_it_is_NOT_irr
+            assert result_or_suggest == item[1]
+            assert found_in_addr == item[0]
+            pass
+        #accurate irr
+        _, irr_dataset = dataset.get_irr_addr___sorts_self()
+        for irr_addr in irr_dataset:
+            for_sure_it_is_irr, for_sure_it_is_NOT_irr, _, found_in_addr, found_in_node \
+                = a_DatasetField.lookup(irr_addr, lookup_in_leaf_dataset=True)
+            assert for_sure_it_is_irr
+            assert for_sure_it_is_NOT_irr == False
+            assert found_in_addr == irr_addr
+            pass
+        pass
+    
+if "some special case" and True:
+    input_bits_count = 7
+    addr = 114
+    bitmask = 114
+    bits_already_in_use = 4
+    #dataset_big = Dataset(input_bits_count, [(0, False), (2, True), (4, False), (9, True), (13, False), (17, True), (25, True), (26, False), (28, True), (29, False), (30, False), (31, True), (35, True), (37, True), (38, True), (39, False), (41, True), (42, False), (44, True), (46, False), (48, True), (50, True), (52, True), (53, True), (58, True), (60, True), (61, True), (62, True), (63, True), (64, False), (68, True), (71, False), (72, True), (74, True), (77, True), (78, True), (79, True), (83, True), (85, True), (87, True), (88, False), (92, True), (93, True), (95, True), (97, True), (99, True), (100, True), (103, True), (107, True), (110, True), (113, True), (117, True), (119, True), (121, True), (123, True), (124, True), (126, True), (127, False)])
+    dataset = Dataset(input_bits_count, [(0, False), (2, True), (4, False), (9, True), (13, False), (17, True), (25, True), (26, False), (28, True), (29, False), (30, False), (31, True), (35, True), (37, True), (38, True), (39, False), (41, True), (42, False), (44, True), (46, False), (48, True), (50, True), (52, True), (53, True), (58, True), (60, True), (61, True), (62, True), (63, True), (64, False), (68, True), (71, False), (72, True), (74, True), (77, True), (78, True), (79, True), (83, True), (85, True), (87, True), (88, False), (92, True), (93, True), (95, True), (97, True), (99, True), (100, True), (103, True), (107, True), (110, True), (113, True), (117, True), (119, True), (121, True), (123, True), (124, True), (126, True), (127, False)])
+    '''
+    print(f"{addr:b}") #1110010
+    for item in dataset:
+        print(f"{item[0]:b}")
+        pass
+    1110111
+    1111011
+    1111110
+    1111111
+    '''
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+    
     pass
 
 if "special cases" and True:
-    dataset = Dataset.from_str("0110____")
-    a_DatasetField = DatasetField._new__and_valid(dataset)
-    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
-    fdsfds = a_DatasetField.readable_as_tree()
-    assert False, "the next line............."
-    fdsfds = a_DatasetField.lookup(4)
-    
-    1w
-    for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = a_DatasetField.lookup(item[0])
-                assert for_sure_it_is_irr == False
-                assert for_sure_it_is_NOT_irr
-                assert result_or_suggest == dataset.data[0][1]
-                assert found_in_addr == dataset.data[0][0]
-                pass
-    
-    
-    
-    a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
-    
-    
-    
-    # (line:2373 or 3603)
     input_bits_count = 10
     dataset = Dataset(input_bits_count, [(2, True), (3, True), (4, True), (5, False), (7, False), (8, True), (9, True), (13, False), (15, True), (18, False), (19, True), (20, False), (22, False), (23, False), (24, False), (25, True), (26, True), (27, True), (29, True), (30, False), (31, False), (32, False), (33, False), (35, True), (36, False), (39, False), (40, True), (41, True), (42, False), (44, False), (46, True), (47, False), (48, False), (49, False), (50, True), (51, True), (54, True), (55, True), (59, True), (60, False), (61, True), (62, True), (63, False), (64, False), (65, True), (67, False), (69, True), (71, False), (74, False), (75, True), (80, False), (83, False), (85, False), (86, False), (88, False), (89, False), (90, False), (91, True), (94, False), (95, False), (97, False), (101, False), (102, False), (103, False), (104, True), (105, False), (107, False), (108, True), (109, True), (110, False), (111, True), (113, False), (115, True), (117, False), (118, False), (120, True), (121, True), (122, False), (123, True), (124, False), (125, True), (127, True), (128, False), (129, True), (131, True), (133, False), (134, True), (137, False), (138, True), (139, False), (141, False), (144, True), (145, False), (146, False), (147, True), (148, False), (149, False), (152, False), (154, False), (158, False), (159, True), (160, True), (163, False), (166, False), (167, False), (170, True), (171, True), (172, True), (174, False), (175, False), (183, True), (185, False), (188, True), (189, True), (190, False), (191, False), (193, False), (194, True), (195, True), (196, False), (197, True), (198, False), (199, False), (200, True), (201, True), (202, False), (203, True), (204, False), (205, False), (206, True), (207, True), (209, False), (211, False), (212, True), (213, False), (214, False), (216, True), (217, True), (218, False), (220, True), (221, True), (222, True), (223, True), (228, False), (229, False), (230, False), (231, False), (232, True), (233, False), (234, True), (235, False), (236, False), (240, True), (242, False), (243, False), (244, True), (245, True), (247, False), (255, True), (256, False), (258, True), (259, True), (260, False), (261, True), (263, False), (265, True), (267, False), (269, False), (271, True), (272, False), (274, True), (276, True), (279, False), (280, True), (281, True), (283, True), (284, True), (286, True), (287, True), (288, False), (289, True), (291, True), (292, True), (293, True), (294, False), (295, True), (296, True), (297, False), (300, False), (301, True), (303, False), (304, True), (306, False), (307, False), (308, True), (309, True), (310, True), (311, True), (313, False), (314, False), (316, True), (317, False), (318, True), (319, False), (322, True), (326, True), (327, True), (328, True), (329, False), (330, False), (331, False), (332, False), (333, False), (335, True), (337, False), (338, True), (341, True), (344, True), (346, False), (351, True), (355, False), (356, False), (358, False), (359, False), (360, True), (361, True), (362, False), (364, True), (365, True), (367, False), (369, True), (373, True), (374, False), (377, False), (378, False), (379, False), (380, True), (381, False), (382, True), (384, False), (385, True), (386, False), (387, False), (389, False), (390, True), (392, False), (393, True), (394, True), (395, True), (398, True), (400, True), (403, False), (404, True), (410, False), (412, False), (414, False), (415, True), (417, True), (418, False), (419, False), (421, False), (426, False), (427, False), (428, False), (432, False), (434, True), (436, False), (437, True), (440, False), (441, True), (442, True), (444, True), (446, False), (447, False), (449, True), (450, True), (451, True), (452, False), (453, True), (456, True), (457, False), (458, False), (459, False), (460, True), (462, True), (463, False), (468, False), (469, False), (470, True), (471, False), (472, True), (473, False), (474, False), (477, False), (479, False), (482, True), (483, False), (484, True), (485, False), (488, True), (489, False), (491, False), (493, True), (494, False), (495, True), (497, True), (498, True), (499, True), (501, False), (504, False), (509, False), (510, False), (511, True), (512, True), (513, False), (514, False), (515, True), (518, False), (519, False), (520, False), (521, False), (523, True), (524, False), (527, True), (529, True), (530, False), (532, True), (535, True), (536, True), (537, False), (539, True), (540, False), (543, True), (546, False), (548, False), (550, False), (551, False), (556, True), (557, False), (559, True), (560, False), (561, False), (563, False), (568, True), (569, False), (571, False), (572, True), (574, False), (575, False), (576, False), (577, True), (578, True), (581, True), (582, True), (586, True), (587, True), (588, True), (591, True), (592, True), (593, True), (594, True), (595, True), (596, True), (598, False), (599, True), (601, True), (602, False), (605, False), (606, False), (607, True), (608, True), (609, False), (610, True), (611, False), (615, False), (616, False), (618, False), (619, True), (621, True), (622, True), (623, True), (626, False), (628, False), (629, False), (631, False), (632, False), (636, True), (638, True), (641, True), (642, False), (643, True), (644, False), (645, True), (646, False), (647, False), (648, False), (649, False), (650, True), (652, True), (653, True), (654, False), (657, True), (663, True), (664, True), (665, True), (668, False), (670, True), (672, True), (673, False), (676, True), (678, True), (680, True), (681, True), (692, False), (693, False), (698, True), (699, True), (702, True), (703, True), (705, False), (714, False), (718, False), (721, False), (722, True), (724, False), (726, False), (727, True), (729, True), (730, True), (731, False), (732, True), (733, False), (734, True), (735, True), (739, True), (740, False), (741, False), (743, True), (744, True), (746, False), (747, True), (748, True), (751, False), (752, False), (754, False), (756, True), (757, True), (758, True), (759, False), (760, False), (762, True), (763, False), (765, False), (767, False), (768, False), (769, False), (772, False), (774, False), (775, True), (776, False), (777, True), (780, True), (781, False), (784, True), (786, True), (787, True), (789, False), (792, False), (793, True), (795, True), (796, False), (797, True), (798, True), (799, False), (800, False), (803, False), (804, False), (805, False), (806, True), (810, True), (812, True), (815, False), (816, False), (817, False), (819, True), (822, True), (825, False), (827, True), (829, False), (831, True), (835, True), (836, False), (837, False), (838, True), (839, False), (840, True), (841, True), (842, True), (843, True), (845, False), (848, False), (849, True), (850, True), (851, True), (852, False), (854, True), (855, False), (856, False), (861, True), (862, True), (863, False), (865, False), (869, False), (870, False), (871, True), (873, True), (874, False), (875, True), (879, False), (880, False), (881, True), (884, True), (889, True), (890, True), (896, True), (897, False), (898, True), (901, True), (902, True), (907, False), (916, False), (917, True), (919, True), (920, True), (923, False), (925, True), (926, False), (928, True), (930, True), (933, False), (936, True), (937, False), (939, False), (940, False), (941, True), (942, True), (945, True), (946, True), (949, False), (951, True), (956, True), (957, True), (960, False), (963, True), (967, False), (970, True), (977, True), (978, False), (979, False), (980, False), (981, True), (982, True), (983, False), (985, True), (988, False), (989, False), (994, False), (995, False), (996, False), (997, True), (998, False), (999, False), (1001, False), (1007, True), (1008, True), (1009, False), (1010, False), (1013, True), (1014, False), (1016, False), (1019, False), (1020, True), (1021, False), (1023, False)])
     a_small_set1 = dataset.get_subset(bitmask =1018, addr = 904)
     a_small_set2 = dataset.get_subset(bitmask =986, addr = 904)
-    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new(dataset)
+    result_of_904 = a_DatasetField.lookup(904)#1111111111111111111w
+    found, index = dataset.find_addr(936)
+    assert found
+    assert result_of_904[3] == 936
+    assert result_of_904[2] == dataset.data[index][1]
     a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
-    
+    '''
     fffff = readable_binary(1018)
     ffff = readable_binary(986)
     fff = readable_binary(904)
@@ -3874,26 +4159,99 @@ if "special cases" and True:
     split_here.append(child.best_index_to_split_from_right_side)
     child = child._get_child(False)
     children.append(child)
+    '''
     
     
-    
-    fds = a_DatasetField.readable_as_tree()
-    fds1 = a_DatasetField.lookup(904)1w
-    fds2 = a_DatasetField.lookup(904,True)
-    a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
-    
-    
+    input_bits_count = 4
+    dataset = Dataset(input_bits_count, [(4, False), (5, True), (6, True), (7, False), (8, False), (9, False), (10, False), (11, False)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+        
+    input_bits_count = 11
+    dataset = Dataset(input_bits_count, [(0, True), (5, True), (9, True), (10, False), (14, True), (18, False), (23, False), (26, False), (29, False), (35, False), (37, True), (38, False), (39, True), (46, True), (48, False), (53, False), (67, True), (80, False), (81, True), (82, False), (84, True), (93, True), (94, True), (96, True), (102, True), (107, True), (110, True), (115, True), (119, False), (123, True), (125, False), (129, True), (132, True), (134, True), (135, True), (146, False), (150, False), (151, True), (152, True), (153, True), (155, True), (163, False), (164, False), (167, True), (171, False), (172, False), (173, True), (177, False), (178, True), (192, True), (193, True), (199, True), (202, False), (204, False), (206, False), (215, False), (216, True), (221, False), (226, True), (228, True), (229, True), (232, True), (235, True), (239, False), (242, True), (249, True), (255, True), (261, False), (262, False), (266, True), (267, True), (268, True), (270, False), (271, True), (274, True), (276, False), (277, True), (289, True), (292, False), (296, True), (297, True), (304, True), (305, True), (306, False), (307, True), (308, True), (310, True), (314, True), (315, False), (334, True), (337, False), (338, True), (341, True), (342, True), (346, False), (352, True), (353, True), (356, True), (357, False), (365, True), (369, True), (370, True), (371, False), (383, True), (384, False), (385, True), (389, False), (393, False), (402, True), (404, False), (420, False), (430, False), (437, True), (445, False), (452, True), (455, True), (457, True), (458, False), (459, False), (464, False), (465, True), (466, True), (468, False), (469, True), (473, True), (475, True), (476, True), (487, False), (488, True), (489, True), (493, True), (494, True), (499, True), (500, True), (501, True), (504, False), (505, True), (510, True), (513, True), (517, True), (519, True), (520, False), (524, True), (526, False), (529, True), (530, True), (534, False), (536, True), (538, False), (544, False), (550, True), (554, True), (557, False), (560, True), (561, True), (563, True), (564, False), (565, False), (567, True), (571, False), (576, True), (578, True), (579, True), (581, False), (588, True), (589, False), (593, True), (595, False), (599, True), (600, True), (601, False), (603, False), (606, True), (609, False), (611, True), (612, True), (617, True), (630, True), (632, False), (641, True), (646, True), (647, True), (648, True), (654, True), (656, False), (660, False), (661, True), (666, True), (674, True), (678, True), (682, True), (687, False), (690, True), (696, False), (697, True), (698, True), (699, True), (701, True), (702, False), (704, True), (706, True), (707, True), (708, True), (709, True), (711, False), (715, True), (717, False), (722, True), (725, True), (734, False), (738, False), (744, True), (745, True), (746, False), (750, True), (753, True), (759, False), (760, False), (762, True), (766, False), (770, False), (773, False), (779, False), (782, True), (787, False), (790, False), (796, False), (807, False), (809, True), (810, True), (813, True), (815, True), (818, True), (822, True), (823, True), (827, False), (830, True), (831, False), (835, False), (837, True), (838, False), (851, False), (854, False), (855, True), (857, False), (861, True), (862, True), (863, True), (869, True), (874, False), (875, True), (876, False), (879, True), (880, True), (885, False), (886, True), (888, True), (891, True), (892, True), (895, True), (896, True), (898, False), (899, True), (903, False), (906, False), (907, False), (909, True), (910, False), (918, True), (922, True), (927, True), (932, True), (933, True), (936, False), (937, True), (938, True), (942, True), (943, True), (949, False), (953, True), (955, True), (957, True), (967, True), (969, False), (974, True), (990, True), (995, False), (1004, True), (1005, False), (1006, True), (1015, False), (1018, False), (1020, True), (1027, True), (1034, False), (1035, True), (1043, False), (1047, True), (1051, True), (1052, False), (1056, False), (1060, False), (1062, True), (1063, True), (1065, True), (1067, True), (1070, False), (1074, False), (1081, False), (1083, True), (1087, False), (1090, False), (1091, True), (1094, True), (1095, False), (1097, True), (1099, True), (1100, True), (1103, True), (1106, True), (1111, False), (1112, False), (1120, False), (1122, True), (1126, True), (1129, False), (1132, True), (1135, True), (1140, True), (1147, False), (1148, True), (1149, False), (1156, False), (1157, False), (1158, True), (1159, True), (1160, False), (1161, True), (1168, True), (1174, True), (1176, True), (1177, False), (1178, False), (1180, True), (1191, False), (1198, False), (1203, False), (1206, True), (1207, True), (1208, True), (1210, False), (1211, True), (1212, True), (1216, True), (1221, True), (1224, True), (1225, True), (1226, True), (1230, True), (1231, True), (1239, False), (1243, False), (1244, True), (1247, True), (1251, False), (1255, True), (1256, True), (1267, False), (1268, True), (1273, True), (1283, True), (1285, True), (1286, False), (1291, False), (1293, True), (1296, True), (1301, True), (1302, True), (1303, True), (1309, False), (1312, True), (1319, True), (1321, False), (1324, False), (1331, True), (1332, True), (1341, True), (1343, True), (1347, True), (1350, True), (1351, False), (1353, False), (1360, False), (1361, False), (1364, True), (1365, False), (1370, True), (1372, True), (1373, True), (1374, True), (1378, True), (1382, True), (1385, False), (1389, False), (1391, True), (1392, True), (1396, True), (1401, True), (1402, False), (1404, True), (1405, True), (1409, False), (1424, True), (1430, False), (1431, True), (1445, True), (1448, True), (1459, True), (1460, False), (1463, False), (1464, True), (1465, True), (1467, True), (1468, True), (1472, True), (1475, True), (1476, True), (1483, True), (1486, True), (1489, False), (1494, True), (1496, False), (1498, True), (1499, True), (1501, True), (1503, True), (1506, True), (1509, False), (1512, True), (1517, True), (1518, False), (1521, True), (1523, True), (1534, True), (1553, True), (1554, True), (1555, True), (1558, True), (1561, True), (1565, False), (1567, True), (1572, False), (1574, True), (1581, False), (1582, False), (1585, True), (1587, False), (1589, True), (1590, True), (1596, True), (1597, True), (1604, True), (1605, False), (1613, False), (1618, True), (1619, False), (1621, True), (1622, True), (1627, True), (1630, False), (1631, False), (1632, True), (1633, False), (1634, False), (1636, True), (1639, True), (1643, False), (1644, True), (1645, False), (1649, False), (1650, False), (1652, True), (1661, True), (1666, False), (1667, True), (1669, False), (1671, True), (1673, True), (1679, True), (1681, True), (1686, True), (1687, True), (1690, True), (1696, False), (1699, True), (1704, True), (1707, False), (1714, False), (1715, False), (1720, True), (1724, True), (1728, True), (1729, True), (1732, False), (1738, False), (1742, True), (1746, True), (1747, True), (1754, False), (1756, True), (1761, True), (1762, True), (1766, True), (1767, True), (1768, False), (1772, False), (1781, False), (1782, False), (1783, False), (1785, False), (1786, False), (1791, False), (1794, False), (1797, True), (1800, True), (1802, False), (1808, True), (1809, True), (1820, True), (1821, True), (1833, False), (1839, False), (1840, True), (1843, True), (1844, False), (1848, True), (1853, False), (1855, True), (1856, True), (1858, True), (1860, True), (1863, True), (1864, True), (1867, True), (1872, True), (1873, True), (1879, False), (1886, True), (1895, True), (1909, True), (1910, True), (1913, True), (1914, True), (1926, True), (1928, True), (1929, False), (1930, True), (1931, True), (1932, True), (1934, True), (1941, False), (1950, False), (1951, True), (1952, True), (1963, True), (1976, True), (1981, True), (1982, False), (1985, True), (1989, True), (1999, True), (2002, True), (2006, False), (2015, True), (2016, False), (2020, False), (2022, True), (2024, True), (2029, True), (2031, False), (2032, True), (2035, False), (2037, True), (2040, False), (2042, True), (2047, False)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+    input_bits_count = 9
+    dataset = Dataset(input_bits_count, [(0, True), (1, False), (2, False), (3, False), (4, False), (5, True), (6, True), (7, False), (10, False), (11, False), (12, False), (13, False), (14, True), (16, False), (17, False), (19, False), (20, False), (22, False), (23, True), (24, False), (26, False), (27, False), (28, False), (30, True), (31, False), (32, True), (33, False), (34, True), (35, True), (36, False), (37, True), (39, True), (41, False), (43, True), (45, True), (47, False), (48, False), (51, False), (52, True), (54, False), (55, False), (56, False), (57, False), (60, True), (61, False), (62, True), (64, True), (68, True), (69, True), (70, False), (74, False), (75, False), (76, False), (77, False), (80, False), (81, True), (82, False), (83, False), (84, True), (85, False), (86, True), (89, False), (90, False), (92, False), (93, False), (94, False), (95, False), (96, False), (97, True), (103, False), (104, False), (106, False), (107, False), (108, True), (109, False), (110, False), (112, False), (114, True), (116, False), (117, False), (118, False), (119, True), (120, False), (121, True), (122, False), (123, True), (125, False), (126, False), (127, False), (132, False), (133, False), (134, False), (136, False), (138, False), (140, False), (141, False), (142, True), (143, False), (144, False), (146, True), (147, False), (150, False), (151, True), (153, False), (155, False), (156, True), (157, True), (158, False), (159, True), (160, False), (161, False), (162, False), (163, True), (164, True), (165, False), (166, False), (167, False), (168, False), (170, True), (173, True), (174, False), (175, False), (176, False), (177, False), (179, False), (180, False), (182, False), (183, True), (184, False), (185, True), (189, True), (193, False), (194, True), (195, True), (197, False), (198, False), (199, False), (200, False), (202, True), (203, True), (205, False), (206, False), (207, False), (208, False), (209, True), (211, False), (213, False), (215, True), (216, False), (218, False), (221, True), (224, False), (225, True), (226, False), (228, False), (229, False), (231, True), (232, True), (233, False), (235, True), (236, False), (237, False), (238, False), (239, False), (240, False), (242, True), (243, False), (244, False), (245, True), (247, False), (248, False), (249, False), (250, False), (253, True), (255, False), (256, True), (257, True), (259, True), (260, True), (263, False), (266, False), (267, True), (270, False), (273, True), (274, False), (275, False), (276, True), (278, True), (279, True), (280, False), (283, False), (284, False), (285, False), (288, False), (292, True), (294, True), (295, False), (296, True), (297, False), (298, False), (299, True), (300, False), (301, False), (302, False), (304, True), (305, False), (306, False), (308, True), (309, True), (311, False), (312, False), (313, True), (314, True), (315, False), (316, True), (317, True), (320, False), (324, False), (325, True), (327, False), (328, True), (329, True), (330, False), (331, True), (332, True), (333, True), (334, True), (335, False), (337, True), (339, False), (340, False), (341, False), (345, False), (347, False), (348, False), (349, False), (350, True), (351, False), (352, False), (353, False), (354, False), (355, False), (356, True), (357, True), (358, False), (360, True), (362, False), (363, True), (364, False), (365, False), (366, True), (367, True), (369, True), (371, False), (373, False), (378, True), (379, False), (380, False), (382, False), (383, False), (384, False), (385, False), (387, False), (388, False), (389, True), (391, False), (392, False), (393, True), (394, False), (397, False), (398, False), (400, False), (401, True), (404, True), (405, True), (406, False), (409, False), (410, False), (411, False), (413, False), (415, False), (416, True), (418, True), (419, False), (420, False), (422, False), (423, False), (425, False), (426, True), (428, True), (429, False), (431, False), (432, True), (433, False), (435, False), (438, True), (440, True), (442, True), (444, False), (445, False), (448, False), (450, False), (451, False), (453, False), (454, True), (456, False), (458, True), (459, False), (460, False), (462, True), (464, False), (465, False), (466, True), (467, False), (468, True), (469, False), (470, False), (472, True), (473, False), (474, True), (475, False), (478, False), (480, False), (483, False), (484, True), (485, True), (486, True), (487, False), (488, False), (489, False), (490, True), (491, False), (492, True), (493, False), (494, False), (495, False), (496, False), (498, False), (501, False), (502, False), (503, True), (504, False), (507, False), (508, True), (509, True), (510, True), (511, False)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 11
+    dataset = Dataset(input_bits_count, [(0, False), (1, True), (2, True), (4, True), (5, True), (7, False), (8, False), (9, True), (11, True), (12, False), (13, False), (15, False), (16, False), (18, False), (19, True), (21, True), (26, False), (27, True), (29, True), (31, True), (32, True), (33, False), (34, False), (36, False), (37, False), (38, False), (39, True), (40, True), (41, False), (42, False), (43, False), (44, True), (46, True), (48, True), (51, True), (53, True), (55, False), (57, False), (59, True), (60, True), (61, True), (62, True), (63, False), (64, False), (66, False), (67, False), (68, False), (69, False), (70, False), (72, False), (75, False), (76, True), (78, True), (79, False), (81, False), (82, True), (84, True), (85, False), (86, False), (87, False), (89, False), (90, False), (91, False), (92, True), (93, False), (94, True), (96, True), (97, False), (100, False), (104, True), (105, False), (107, True), (110, True), (111, True), (113, False), (114, False), (115, True), (116, True), (117, False), (119, False), (120, True), (121, False), (122, True), (126, False), (127, True), (130, True), (131, False), (132, True), (133, False), (134, False), (136, True), (137, True), (138, False), (139, False), (140, True), (141, False), (144, True), (149, False), (152, True), (153, True), (155, False), (157, True), (159, False), (161, True), (162, False), (163, False), (164, False), (165, False), (167, False), (168, False), (169, False), (170, False), (171, False), (172, True), (173, False), (175, False), (176, True), (177, True), (179, True), (180, False), (184, False), (185, False), (188, True), (189, False), (191, False), (192, True), (193, False), (194, False), (195, True), (196, False), (197, True), (198, False), (199, False), (200, True), (201, False), (202, False), (203, True), (204, False), (205, True), (206, False), (208, True), (209, False), (210, False), (214, True), (215, True), (217, True), (218, True), (219, True), (222, False), (223, False), (225, True), (227, True), (228, False), (229, True), (230, False), (232, True), (233, False), (235, True), (236, False), (237, True), (238, True), (239, False), (240, True), (241, True), (243, False), (244, True), (245, False), (247, True), (248, True), (250, False), (251, True), (252, True), (253, True), (254, True), (255, False), (256, False), (257, True), (258, True), (260, True), (261, False), (262, False), (263, True), (264, False), (265, False), (266, False), (267, True), (268, False), (270, True), (271, True), (272, False), (273, True), (276, True), (279, True), (281, True), (282, True), (283, False), (285, False), (286, False), (287, False), (289, False), (291, True), (293, False), (294, False), (295, False), (297, True), (300, False), (301, False), (302, False), (304, False), (305, False), (306, True), (307, True), (308, False), (309, False), (310, True), (311, False), (313, False), (314, True), (315, False), (316, True), (317, True), (318, False), (319, True), (320, False), (321, False), (322, True), (324, True), (325, True), (327, True), (329, True), (330, False), (331, True), (332, False), (333, True), (334, True), (339, True), (340, False), (341, True), (342, True), (343, True), (345, True), (347, True), (349, False), (351, True), (352, False), (353, False), (355, False), (356, True), (358, False), (360, True), (361, True), (362, True), (364, False), (366, True), (367, True), (369, True), (370, True), (371, False), (372, False), (373, True), (374, False), (376, True), (378, False), (381, True), (382, True), (384, True), (385, False), (386, True), (387, False), (389, True), (390, False), (391, False), (392, True), (393, True), (394, True), (395, False), (396, False), (397, False), (399, False), (400, True), (401, True), (402, True), (403, False), (404, True), (405, False), (406, True), (407, True), (408, True), (409, False), (413, False), (415, True), (416, True), (417, False), (418, True), (419, True), (422, False), (424, True), (425, False), (431, True), (432, True), (434, True), (435, True), (436, False), (437, True), (438, False), (439, False), (442, False), (443, True), (444, True), (448, False), (449, True), (450, True), (452, False), (453, False), (455, True), (457, False), (458, False), (459, False), (460, True), (462, True), (463, True), (466, False), (467, False), (471, False), (472, True), (473, False), (474, False), (475, False), (477, False), (478, False), (479, True), (480, False), (482, True), (484, True), (485, False), (486, False), (488, True), (489, True), (490, True), (493, True), (494, False), (495, False), (497, True), (498, True), (500, False), (502, True), (504, True), (507, True), (508, False), (509, False), (510, False), (512, True), (513, False), (517, True), (519, True), (520, True), (521, False), (522, False), (523, True), (524, False), (525, False), (528, True), (530, False), (531, False), (532, True), (533, False), (535, True), (536, True), (537, True), (538, True), (539, True), (540, False), (543, False), (548, False), (549, True), (550, True), (552, False), (553, True), (556, True), (561, True), (562, False), (563, False), (564, True), (565, False), (568, False), (569, False), (571, False), (573, False), (574, False), (575, True), (577, False), (578, True), (580, True), (581, True), (583, False), (585, True), (586, False), (587, False), (588, False), (591, False), (592, False), (593, False), (594, False), (596, True), (599, True), (600, True), (601, False), (602, False), (603, True), (604, False), (605, True), (606, True), (608, True), (610, False), (612, True), (615, True), (616, False), (617, False), (618, True), (619, True), (620, False), (621, False), (623, False), (624, False), (625, True), (627, True), (629, True), (630, False), (633, True), (634, False), (635, False), (636, True), (638, True), (641, False), (643, False), (644, True), (645, True), (646, True), (647, True), (649, True), (650, True), (651, True), (652, False), (653, False), (655, False), (658, False), (659, False), (660, True), (661, False), (662, True), (663, True), (665, False), (666, False), (667, False), (668, True), (669, False), (671, False), (675, False), (676, False), (677, False), (679, True), (680, False), (681, False), (682, True), (683, False), (684, True), (687, True), (688, True), (689, False), (691, True), (693, True), (695, True), (697, False), (698, False), (699, False), (700, True), (701, True), (702, False), (707, True), (708, True), (709, False), (710, False), (712, False), (713, False), (716, True), (717, False), (719, False), (720, False), (723, True), (724, True), (725, False), (726, False), (728, True), (730, True), (731, False), (732, True), (733, False), (735, True), (736, True), (737, True), (738, True), (740, True), (741, True), (743, False), (744, False), (746, True), (749, False), (752, False), (755, True), (756, False), (757, True), (758, False), (759, True), (760, True), (761, True), (762, True), (764, False), (765, False), (766, False), (767, False), (769, False), (770, True), (772, True), (773, False), (774, True), (775, True), (777, False), (778, True), (780, False), (781, False), (782, False), (783, True), (784, False), (786, True), (788, False), (789, True), (790, False), (791, True), (792, False), (793, True), (795, False), (796, True), (797, True), (799, False), (800, True), (801, False), (802, True), (804, False), (805, False), (806, True), (807, False), (808, True), (810, False), (812, True), (814, False), (815, False), (817, True), (820, False), (824, False), (825, False), (826, False), (827, False), (829, False), (830, False), (831, True), (832, False), (833, True), (834, False), (835, False), (837, False), (839, True), (840, True), (841, False), (842, False), (843, True), (845, True), (846, True), (847, True), (850, False), (851, False), (852, True), (853, True), (854, False), (855, True), (856, False), (857, True), (860, True), (861, False), (862, True), (866, False), (867, False), (869, False), (871, True), (873, True), (874, True), (875, False), (876, False), (877, False), (880, True), (881, True), (883, False), (884, False), (886, False), (891, True), (892, False), (893, True), (894, True), (897, False), (898, True), (899, True), (901, False), (903, True), (905, True), (906, True), (908, False), (909, False), (910, False), (912, True), (913, False), (916, False), (917, True), (918, True), (920, True), (921, False), (927, True), (930, False), (931, True), (933, True), (934, True), (940, True), (941, True), (944, False), (947, False), (948, False), (949, False), (952, False), (954, False), (955, True), (956, True), (957, False), (958, True), (960, False), (962, True), (963, False), (964, True), (965, True), (966, False), (967, True), (968, True), (969, True), (970, False), (972, False), (973, False), (974, True), (975, True), (976, True), (978, False), (980, False), (981, False), (983, False), (985, True), (986, True), (991, True), (993, False), (996, True), (997, False), (999, True), (1000, True), (1001, True), (1002, False), (1003, True), (1004, False), (1006, False), (1007, True), (1009, False), (1011, True), (1012, False), (1013, False), (1015, True), (1017, False), (1018, True), (1020, True), (1022, True), (1023, False), (1024, True), (1025, False), (1027, True), (1028, True), (1029, True), (1030, True), (1031, True), (1033, False), (1034, True), (1035, True), (1036, False), (1038, True), (1039, True), (1041, False), (1042, False), (1043, False), (1044, True), (1045, True), (1047, True), (1049, False), (1050, False), (1052, False), (1053, True), (1054, True), (1055, True), (1056, True), (1057, True), (1058, True), (1060, False), (1061, False), (1062, True), (1063, True), (1064, False), (1065, True), (1066, True), (1067, False), (1070, True), (1071, True), (1072, False), (1073, False), (1074, True), (1075, True), (1077, False), (1078, False), (1080, False), (1082, False), (1083, False), (1085, False), (1086, False), (1087, True), (1088, True), (1089, False), (1093, True), (1094, True), (1095, False), (1096, True), (1097, True), (1100, False), (1101, False), (1103, True), (1104, False), (1107, True), (1108, False), (1110, True), (1111, True), (1112, True), (1113, False), (1114, True), (1115, True), (1120, False), (1121, False), (1125, False), (1128, True), (1129, False), (1130, True), (1132, True), (1133, False), (1137, True), (1138, False), (1139, True), (1140, True), (1142, True), (1143, True), (1144, True), (1146, True), (1148, True), (1149, False), (1150, True), (1151, False), (1152, False), (1153, False), (1154, False), (1155, True), (1157, True), (1158, True), (1160, False), (1161, False), (1162, False), (1163, True), (1165, True), (1166, False), (1168, False), (1169, True), (1170, True), (1171, True), (1172, True), (1173, True), (1174, True), (1175, False), (1176, True), (1177, True), (1178, False), (1180, False), (1181, True), (1183, True), (1184, False), (1185, False), (1186, True), (1187, True), (1188, True), (1190, True), (1191, False), (1193, False), (1194, True), (1196, False), (1197, True), (1198, False), (1199, False), (1200, False), (1201, True), (1202, True), (1204, True), (1205, False), (1206, False), (1209, True), (1210, True), (1213, False), (1215, True), (1216, False), (1218, True), (1219, False), (1220, True), (1222, True), (1223, False), (1224, True), (1226, True), (1227, False), (1228, True), (1229, False), (1230, True), (1232, False), (1233, False), (1234, True), (1237, False), (1238, True), (1240, False), (1242, False), (1246, False), (1247, True), (1249, True), (1250, False), (1252, False), (1254, True), (1257, True), (1261, False), (1262, False), (1266, True), (1268, True), (1269, False), (1270, False), (1271, True), (1272, False), (1275, True), (1276, True), (1277, True), (1278, True), (1279, True), (1281, False), (1282, True), (1283, True), (1285, True), (1286, False), (1287, False), (1288, True), (1289, False), (1290, False), (1291, True), (1292, True), (1294, False), (1297, False), (1299, True), (1300, False), (1302, False), (1303, False), (1304, False), (1305, True), (1307, True), (1308, True), (1309, True), (1310, True), (1311, False), (1312, True), (1313, True), (1314, False), (1316, False), (1317, True), (1320, False), (1321, False), (1322, False), (1323, False), (1324, True), (1325, False), (1326, False), (1327, True), (1328, True), (1330, False), (1331, False), (1332, False), (1337, True), (1341, True), (1342, True), (1344, False), (1345, False), (1347, False), (1349, True), (1353, True), (1354, False), (1355, True), (1356, True), (1360, False), (1361, False), (1362, True), (1363, True), (1364, True), (1366, True), (1368, True), (1369, False), (1371, True), (1373, True), (1374, True), (1375, True), (1376, True), (1378, True), (1380, False), (1381, False), (1383, False), (1384, False), (1385, True), (1387, False), (1391, True), (1394, True), (1395, False), (1396, True), (1397, True), (1400, True), (1401, False), (1403, True), (1405, True), (1406, True), (1408, False), (1409, False), (1410, False), (1413, True), (1415, False), (1416, False), (1417, False), (1418, True), (1419, False), (1420, False), (1423, False), (1424, False), (1425, True), (1426, False), (1429, True), (1430, False), (1432, False), (1434, True), (1435, True), (1436, True), (1437, True), (1438, False), (1439, False), (1440, True), (1441, True), (1445, True), (1447, False), (1448, False), (1449, False), (1450, False), (1451, False), (1452, False), (1455, True), (1457, True), (1458, True), (1459, True), (1460, False), (1461, False), (1463, False), (1464, False), (1465, False), (1467, False), (1468, True), (1470, False), (1471, False), (1475, True), (1476, False), (1477, True), (1478, False), (1480, True), (1481, False), (1482, False), (1488, False), (1489, False), (1490, True), (1491, False), (1496, False), (1497, False), (1498, True), (1499, False), (1500, True), (1501, False), (1505, False), (1506, False), (1507, True), (1508, False), (1509, True), (1510, True), (1511, False), (1512, True), (1513, False), (1514, False), (1517, True), (1518, True), (1519, False), (1520, True), (1521, False), (1522, True), (1523, True), (1524, True), (1525, True), (1527, False), (1529, False), (1530, False), (1532, False), (1533, True), (1535, True), (1537, False), (1539, True), (1540, True), (1541, True), (1546, True), (1547, False), (1550, True), (1552, True), (1555, False), (1556, True), (1557, False), (1560, False), (1561, True), (1564, False), (1565, False), (1566, True), (1567, False), (1568, True), (1570, False), (1571, True), (1572, True), (1573, True), (1576, False), (1578, False), (1579, False), (1580, True), (1581, True), (1583, True), (1584, True), (1585, False), (1586, True), (1589, True), (1590, True), (1591, True), (1593, False), (1595, True), (1596, False), (1597, False), (1598, False), (1602, True), (1603, True), (1604, True), (1605, False), (1606, False), (1607, True), (1608, False), (1609, True), (1610, True), (1611, False), (1612, True), (1614, False), (1615, False), (1617, False), (1618, True), (1619, False), (1620, False), (1622, False), (1623, True), (1624, False), (1626, True), (1627, True), (1628, False), (1629, False), (1634, False), (1635, True), (1638, True), (1639, False), (1640, False), (1644, True), (1645, True), (1648, True), (1649, True), (1650, True), (1651, True), (1652, True), (1656, True), (1658, True), (1659, False), (1660, False), (1663, True), (1664, True), (1665, True), (1666, False), (1667, False), (1668, True), (1669, False), (1670, True), (1671, True), (1674, True), (1676, False), (1679, True), (1680, False), (1682, True), (1683, True), (1684, False), (1685, False), (1686, True), (1687, True), (1689, True), (1690, False), (1691, True), (1694, False), (1695, True), (1696, False), (1697, False), (1698, False), (1700, False), (1701, True), (1702, True), (1703, True), (1706, False), (1707, False), (1709, False), (1711, True), (1712, True), (1715, False), (1716, True), (1717, False), (1718, True), (1719, False), (1720, True), (1721, True), (1723, False), (1724, False), (1728, False), (1729, False), (1730, False), (1732, False), (1734, False), (1735, True), (1736, False), (1737, True), (1738, False), (1739, False), (1741, True), (1742, True), (1745, True), (1746, True), (1747, True), (1748, False), (1750, True), (1755, False), (1757, False), (1758, True), (1759, False), (1760, False), (1761, False), (1764, False), (1765, True), (1766, False), (1767, False), (1768, False), (1769, True), (1772, False), (1773, False), (1774, False), (1776, True), (1777, False), (1778, True), (1780, True), (1781, False), (1782, False), (1783, False), (1785, False), (1786, True), (1787, False), (1788, True), (1789, False), (1793, True), (1795, True), (1796, True), (1799, False), (1800, True), (1802, False), (1804, False), (1805, False), (1806, True), (1807, True), (1808, False), (1810, False), (1811, True), (1814, False), (1815, True), (1816, False), (1818, True), (1819, True), (1821, True), (1822, True), (1823, False), (1824, True), (1826, True), (1827, False), (1828, False), (1829, False), (1831, False), (1833, False), (1835, True), (1836, True), (1837, True), (1838, True), (1839, False), (1840, False), (1841, True), (1842, False), (1846, True), (1847, False), (1848, True), (1849, False), (1850, False), (1851, True), (1852, False), (1853, False), (1857, False), (1859, True), (1864, False), (1866, True), (1867, True), (1868, False), (1869, True), (1870, True), (1872, False), (1873, True), (1874, False), (1875, True), (1876, True), (1879, True), (1880, False), (1881, True), (1884, True), (1886, False), (1887, True), (1891, True), (1894, True), (1895, True), (1898, False), (1899, False), (1900, False), (1902, True), (1903, True), (1904, True), (1906, True), (1909, True), (1910, True), (1911, False), (1912, False), (1913, False), (1914, False), (1915, True), (1916, True), (1917, False), (1918, False), (1921, True), (1923, True), (1924, False), (1925, True), (1929, True), (1930, True), (1933, True), (1934, False), (1935, False), (1937, True), (1938, True), (1940, False), (1941, False), (1942, True), (1943, True), (1945, True), (1946, False), (1947, True), (1948, True), (1950, True), (1951, True), (1953, True), (1954, False), (1955, False), (1957, True), (1960, True), (1961, False), (1963, False), (1964, True), (1965, False), (1966, True), (1968, False), (1969, False), (1970, False), (1971, True), (1972, False), (1973, True), (1975, True), (1976, True), (1978, False), (1979, True), (1980, False), (1981, True), (1982, True), (1985, False), (1986, True), (1987, True), (1988, False), (1989, False), (1990, True), (1991, False), (1993, True), (1994, True), (1995, True), (1996, False), (1997, False), (1998, True), (2000, True), (2001, True), (2002, False), (2006, False), (2007, False), (2008, True), (2010, True), (2011, False), (2012, True), (2013, False), (2014, False), (2015, False), (2018, False), (2019, True), (2020, False), (2023, False), (2026, True), (2027, False), (2028, False), (2030, False), (2032, True), (2033, True), (2034, True), (2036, True), (2037, False), (2043, True), (2045, True), (2047, True)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 10
+    dataset = Dataset(input_bits_count, [(3, True), (7, True), (8, True), (9, True), (10, True), (12, True), (17, True), (31, False), (32, True), (42, True), (47, True), (50, True), (53, False), (56, True), (59, False), (60, True), (65, True), (67, True), (76, True), (82, True), (86, True), (92, True), (101, True), (111, True), (113, False), (116, True), (118, True), (119, True), (123, True), (135, True), (137, False), (139, True), (141, False), (142, False), (147, True), (157, False), (161, True), (167, True), (170, False), (173, True), (176, False), (178, True), (183, True), (184, True), (190, True), (197, False), (198, True), (203, False), (204, True), (205, True), (209, True), (213, True), (218, True), (221, True), (223, False), (232, True), (242, True), (247, True), (248, True), (249, True), (253, True), (256, True), (262, False), (264, True), (267, False), (272, False), (275, False), (277, True), (288, True), (295, True), (297, True), (304, False), (306, True), (309, False), (313, False), (317, True), (323, True), (329, False), (334, False), (338, True), (346, True), (350, True), (358, True), (367, True), (371, True), (374, True), (380, True), (389, True), (390, True), (393, True), (395, True), (400, True), (406, True), (408, True), (410, True), (412, True), (416, False), (419, True), (421, True), (424, True), (425, False), (430, False), (434, False), (436, False), (439, False), (441, False), (443, True), (449, True), (452, True), (454, False), (456, True), (457, True), (460, False), (474, False), (478, False), (482, True), (485, True), (486, True), (497, True), (498, False), (500, False), (501, False), (511, True), (512, True), (515, True), (520, False), (527, False), (530, True), (531, True), (532, True), (535, False), (536, True), (541, True), (543, True), (546, True), (551, True), (553, False), (561, True), (567, True), (570, True), (576, True), (578, True), (581, False), (583, True), (585, True), (586, True), (590, True), (591, True), (604, True), (607, False), (620, True), (621, False), (622, False), (623, True), (626, False), (632, True), (636, True), (639, False), (640, True), (643, True), (647, True), (648, True), (649, True), (652, True), (658, True), (661, True), (663, True), (665, True), (670, True), (671, True), (682, True), (683, False), (696, False), (698, True), (700, False), (703, True), (705, False), (715, False), (716, True), (727, True), (728, True), (732, True), (739, True), (742, False), (743, True), (744, False), (752, True), (753, True), (755, True), (762, True), (765, False), (766, True), (767, True), (771, True), (773, True), (774, False), (779, True), (781, True), (786, True), (796, True), (797, False), (799, True), (802, False), (804, True), (806, True), (812, True), (813, True), (820, False), (825, True), (830, True), (831, True), (835, True), (841, True), (845, True), (846, True), (848, True), (850, True), (860, False), (868, True), (869, False), (872, True), (877, True), (885, True), (886, False), (890, True), (896, False), (898, True), (899, True), (900, False), (901, True), (904, True), (908, True), (910, False), (919, True), (921, True), (926, True), (928, True), (930, True), (936, True), (937, True), (944, True), (948, False), (949, False), (952, False), (957, False), (962, True), (966, False), (968, True), (969, False), (972, False), (973, True), (979, True), (984, True), (985, True), (986, False), (995, False), (999, True), (1006, True), (1013, True), (1016, True), (1017, True), (1018, True), (1019, False), (1021, True)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 4
+    dataset = Dataset(input_bits_count, [(4, False), (5, True), (6, True), (7, False), (8, False), (9, False), (10, False), (11, False)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 10
+    dataset = Dataset(input_bits_count, [(0, False), (1, False), (2, True), (3, True), (4, True), (5, False), (7, True), (8, True), (10, False), (12, True), (14, True), (17, True), (18, False), (19, False), (21, True), (22, True), (25, False), (26, False), (28, True), (29, False), (30, False), (31, True), (32, True), (33, True), (35, False), (36, True), (37, True), (39, False), (40, True), (45, False), (49, True), (50, True), (53, False), (54, True), (55, True), (57, False), (58, False), (59, True), (60, True), (62, True), (63, True), (64, True), (65, True), (66, True), (67, False), (68, True), (70, True), (74, True), (75, True), (78, False), (80, True), (81, False), (82, True), (83, True), (84, True), (86, False), (87, True), (88, True), (89, False), (90, True), (91, True), (92, False), (93, True), (94, True), (96, False), (97, False), (98, True), (99, True), (101, True), (102, False), (103, False), (104, True), (107, True), (109, False), (111, False), (113, True), (114, False), (115, False), (116, True), (117, True), (119, False), (121, False), (122, False), (124, False), (125, True), (126, False), (127, False), (128, False), (129, True), (130, False), (132, False), (133, True), (135, True), (136, False), (137, True), (139, False), (140, True), (141, False), (142, True), (145, False), (146, True), (147, True), (148, True), (150, True), (155, False), (156, True), (157, False), (159, True), (163, True), (167, True), (169, False), (170, False), (171, False), (172, False), (173, False), (175, False), (178, False), (179, True), (180, False), (181, True), (183, True), (184, False), (185, False), (188, True), (190, True), (192, False), (193, True), (194, False), (195, True), (196, True), (197, False), (199, False), (200, True), (202, False), (203, False), (204, False), (205, True), (206, False), (208, True), (209, True), (210, True), (211, False), (212, True), (213, True), (215, True), (216, False), (217, True), (218, True), (219, True), (220, True), (221, True), (222, False), (223, True), (225, False), (226, False), (228, False), (229, True), (230, False), (232, False), (233, True), (234, True), (235, False), (236, False), (238, True), (239, True), (240, False), (241, True), (242, False), (246, False), (247, True), (248, False), (250, True), (251, True), (252, True), (254, True), (255, True), (256, True), (257, True), (258, True), (259, False), (260, False), (261, True), (263, False), (265, True), (266, True), (267, True), (268, False), (269, False), (270, False), (272, False), (273, False), (274, True), (275, True), (276, False), (277, True), (279, False), (280, True), (281, True), (282, True), (283, False), (284, True), (285, False), (287, True), (288, True), (289, False), (290, True), (291, True), (292, False), (293, True), (294, False), (295, True), (296, True), (298, False), (299, False), (301, False), (302, True), (303, False), (304, True), (305, True), (307, True), (308, False), (312, True), (313, False), (314, False), (315, True), (317, False), (318, True), (320, True), (321, False), (322, True), (323, True), (325, True), (326, True), (327, True), (328, True), (329, True), (331, True), (332, False), (334, True), (335, False), (336, False), (337, True), (338, True), (339, True), (341, True), (342, True), (343, False), (344, True), (345, False), (346, True), (347, True), (348, True), (349, False), (350, False), (351, True), (352, False), (353, True), (354, True), (355, True), (356, False), (358, True), (359, False), (361, False), (362, True), (366, True), (367, True), (368, False), (369, True), (370, False), (371, True), (373, False), (374, False), (375, False), (376, True), (377, False), (378, True), (379, False), (380, False), (382, True), (383, True), (384, False), (385, False), (386, False), (387, False), (388, True), (391, True), (393, False), (394, False), (396, True), (397, False), (400, False), (401, True), (403, True), (404, False), (406, False), (407, True), (408, True), (410, True), (411, False), (412, True), (413, True), (414, True), (415, True), (416, False), (417, True), (418, False), (419, False), (422, True), (423, False), (424, True), (425, False), (427, False), (428, False), (430, True), (431, False), (432, False), (433, False), (434, True), (435, True), (436, False), (437, True), (439, False), (440, True), (441, False), (442, False), (444, False), (445, True), (446, True), (447, True), (448, True), (449, True), (450, True), (451, False), (452, False), (453, True), (454, True), (455, True), (456, False), (457, False), (458, False), (459, True), (461, False), (463, True), (464, False), (466, True), (468, False), (470, False), (471, True), (472, True), (473, True), (474, False), (475, False), (476, True), (477, True), (478, True), (479, False), (480, True), (481, True), (483, True), (484, True), (485, True), (487, False), (488, True), (490, True), (491, False), (492, True), (493, False), (494, True), (495, False), (496, False), (497, False), (499, False), (500, False), (501, True), (503, True), (506, False), (507, True), (510, False), (511, False), (512, False), (514, True), (515, True), (516, True), (518, True), (519, True), (520, True), (521, False), (522, False), (523, False), (525, True), (528, True), (529, True), (530, False), (531, True), (532, True), (533, False), (534, False), (535, False), (536, False), (537, True), (538, False), (540, True), (541, True), (542, True), (543, True), (545, False), (546, True), (547, True), (548, True), (549, True), (550, True), (551, True), (553, True), (556, False), (557, True), (558, False), (559, False), (560, True), (561, False), (562, False), (564, False), (566, True), (567, True), (568, False), (569, True), (572, True), (573, False), (574, False), (577, True), (579, False), (580, False), (581, True), (583, False), (584, False), (586, True), (588, True), (589, False), (590, True), (591, False), (592, False), (593, False), (594, True), (596, True), (597, False), (598, True), (599, False), (600, True), (601, False), (602, False), (603, False), (605, True), (607, True), (608, True), (611, True), (612, False), (613, False), (614, False), (616, True), (617, False), (619, True), (620, True), (622, False), (624, False), (625, True), (626, False), (628, True), (630, False), (633, False), (634, False), (635, False), (637, True), (639, True), (640, True), (642, True), (643, True), (645, False), (646, True), (647, False), (649, False), (650, False), (651, False), (652, False), (653, True), (654, False), (655, False), (656, True), (657, True), (659, True), (660, False), (662, True), (664, True), (665, True), (666, False), (667, True), (668, False), (669, True), (670, True), (671, True), (672, True), (673, False), (674, False), (675, True), (676, False), (677, False), (678, True), (679, False), (680, True), (682, False), (683, True), (684, True), (685, False), (686, True), (687, False), (688, False), (689, True), (691, True), (693, False), (695, True), (696, True), (697, False), (698, True), (699, False), (700, True), (701, False), (702, True), (703, False), (704, False), (705, True), (706, True), (707, False), (708, True), (709, True), (710, True), (711, True), (712, True), (713, True), (714, True), (715, False), (716, False), (717, False), (718, False), (720, True), (721, True), (722, True), (724, False), (725, False), (726, False), (727, False), (728, False), (729, False), (730, False), (733, False), (735, True), (736, True), (737, True), (738, False), (740, True), (741, True), (742, True), (743, True), (744, True), (745, True), (746, False), (747, False), (748, True), (751, False), (752, True), (753, False), (754, False), (755, True), (756, False), (757, True), (758, True), (759, False), (760, False), (761, True), (762, True), (764, False), (766, False), (767, True), (768, False), (769, False), (771, True), (772, True), (773, True), (776, True), (778, True), (779, True), (780, False), (781, False), (782, False), (783, True), (784, False), (786, False), (787, True), (789, True), (790, True), (791, True), (792, True), (793, False), (794, True), (797, False), (798, False), (799, True), (800, True), (802, True), (804, False), (805, True), (806, False), (807, True), (808, True), (809, False), (810, False), (811, False), (812, True), (813, True), (816, True), (817, False), (818, False), (819, False), (821, False), (822, False), (823, False), (824, False), (825, False), (828, False), (829, False), (830, True), (831, True), (832, True), (833, True), (834, False), (835, True), (836, True), (837, False), (838, False), (839, True), (840, False), (841, True), (842, False), (844, True), (845, True), (846, False), (847, True), (848, True), (850, False), (851, False), (852, False), (854, True), (855, True), (856, True), (857, False), (858, True), (859, True), (860, True), (861, False), (863, True), (864, True), (866, True), (868, True), (870, False), (871, False), (872, True), (873, True), (874, True), (875, False), (876, False), (877, True), (878, True), (880, True), (882, False), (883, False), (884, False), (885, False), (886, True), (887, True), (888, True), (889, False), (890, False), (891, False), (892, True), (893, True), (894, True), (895, False), (896, True), (897, True), (898, False), (900, True), (901, True), (902, True), (903, True), (904, False), (905, False), (906, False), (907, True), (908, False), (909, True), (910, False), (912, True), (914, True), (915, True), (919, False), (921, True), (923, False), (924, True), (925, False), (926, False), (927, False), (928, True), (929, False), (930, True), (931, False), (933, True), (934, True), (935, False), (936, True), (937, False), (938, True), (940, True), (941, False), (942, False), (944, False), (946, False), (947, False), (948, True), (949, False), (950, False), (953, False), (955, False), (957, True), (958, False), (959, True), (960, True), (961, False), (962, True), (964, True), (966, False), (967, False), (969, False), (972, False), (974, False), (975, False), (976, False), (977, False), (978, False), (979, False), (981, False), (983, True), (984, False), (985, True), (986, True), (987, True), (988, True), (989, True), (990, False), (991, True), (992, True), (993, False), (994, False), (996, True), (997, False), (998, True), (1001, False), (1002, False), (1003, True), (1004, False), (1006, False), (1007, True), (1008, False), (1016, False), (1017, True), (1019, True), (1021, True), (1023, False)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 11
+    dataset = Dataset(input_bits_count, [(1, True), (2, True), (3, True), (4, True), (5, True), (6, True), (7, True), (8, False), (9, True), (10, True), (11, True), (12, True), (13, True), (14, True), (15, True), (17, True), (18, False), (20, True), (21, True), (22, True), (23, True), (24, False), (25, True), (26, False), (27, True), (29, True), (30, False), (31, True), (35, True), (36, True), (38, False), (39, True), (40, True), (41, True), (46, True), (47, True), (48, True), (50, False), (51, True), (52, False), (54, False), (55, True), (56, True), (57, True), (58, True), (59, True), (60, True), (61, True), (62, True), (63, True), (67, True), (68, True), (69, True), (70, True), (71, True), (72, True), (73, True), (76, True), (77, True), (78, True), (79, True), (80, True), (81, True), (83, True), (84, True), (85, True), (86, True), (87, True), (88, True), (89, True), (91, True), (92, True), (94, True), (95, False), (96, True), (97, False), (98, True), (101, True), (102, True), (103, True), (104, True), (106, True), (107, True), (108, True), (109, True), (110, True), (112, True), (113, True), (114, True), (115, True), (116, True), (117, True), (118, False), (119, True), (121, True), (122, True), (123, True), (125, True), (126, True), (127, True), (129, True), (130, True), (131, True), (132, True), (135, True), (136, False), (138, True), (140, True), (141, True), (142, False), (143, True), (144, True), (145, False), (146, True), (150, True), (151, False), (153, True), (154, False), (156, False), (160, False), (161, True), (162, True), (164, False), (165, True), (166, True), (167, True), (168, True), (169, True), (170, True), (171, True), (172, True), (173, True), (174, True), (175, False), (176, False), (178, True), (179, True), (180, True), (181, True), (183, True), (185, True), (187, True), (188, True), (189, True), (192, True), (194, False), (195, True), (196, False), (199, True), (200, True), (201, True), (203, True), (204, True), (205, True), (207, True), (208, True), (209, True), (211, False), (212, True), (213, False), (216, True), (217, True), (219, True), (220, True), (221, True), (223, False), (226, True), (227, True), (228, True), (229, False), (230, True), (232, True), (233, True), (234, False), (235, True), (236, False), (237, True), (238, True), (241, True), (243, True), (244, True), (246, True), (247, True), (248, True), (249, True), (251, True), (252, True), (255, True), (257, True), (258, False), (262, True), (263, True), (264, True), (265, True), (267, False), (268, True), (269, True), (271, False), (272, True), (273, True), (274, False), (275, False), (276, True), (277, True), (278, True), (282, True), (283, False), (284, False), (286, True), (287, False), (289, True), (290, True), (291, True), (294, True), (295, False), (296, False), (297, True), (298, True), (299, True), (301, True), (302, True), (303, True), (304, True), (305, True), (306, True), (308, True), (309, False), (310, True), (311, True), (312, True), (313, True), (314, True), (315, False), (316, True), (317, True), (318, True), (320, True), (322, True), (323, True), (325, True), (326, False), (327, True), (329, True), (330, True), (331, True), (332, False), (334, True), (335, True), (337, False), (338, True), (339, True), (341, True), (344, True), (346, True), (347, True), (348, True), (350, True), (351, True), (352, True), (353, True), (354, True), (355, True), (356, False), (357, True), (358, True), (359, True), (360, False), (362, False), (364, True), (365, True), (366, False), (367, False), (368, True), (369, True), (370, True), (371, True), (374, True), (375, True), (376, False), (378, True), (379, True), (381, True), (382, False), (383, True), (384, True), (386, True), (387, False), (388, True), (389, True), (390, True), (391, True), (392, True), (393, True), (394, True), (395, False), (396, True), (399, True), (400, False), (401, True), (402, True), (403, False), (404, True), (405, True), (406, True), (407, True), (408, True), (409, True), (410, True), (411, False), (412, False), (413, True), (414, True), (415, True), (416, True), (418, True), (419, True), (420, True), (421, True), (423, True), (424, True), (425, True), (427, False), (428, True), (429, True), (430, True), (432, True), (433, True), (436, True), (437, False), (438, True), (439, True), (440, True), (441, True), (442, True), (444, True), (446, False), (447, False), (448, True), (449, True), (450, True), (451, True), (452, True), (455, False), (456, True), (457, True), (458, False), (459, True), (460, True), (461, True), (463, True), (465, True), (466, True), (468, True), (470, True), (471, True), (474, True), (475, True), (477, False), (479, True), (480, True), (482, True), (483, True), (484, True), (485, True), (487, True), (488, True), (489, True), (490, True), (491, True), (494, True), (495, True), (497, True), (499, True), (500, True), (501, True), (502, True), (503, True), (504, True), (505, False), (506, True), (507, False), (509, True), (510, True), (511, False), (512, True), (513, True), (515, False), (516, False), (518, True), (519, True), (521, True), (522, True), (525, True), (526, False), (527, True), (528, False), (529, True), (531, True), (532, True), (533, True), (534, True), (535, True), (536, True), (537, True), (538, True), (539, True), (541, True), (542, False), (543, True), (544, True), (545, True), (546, False), (547, True), (549, True), (550, True), (551, False), (552, True), (553, True), (554, True), (555, False), (557, False), (558, True), (559, True), (560, True), (562, True), (564, True), (565, True), (566, True), (567, True), (568, True), (570, True), (571, True), (572, True), (573, True), (574, True), (575, True), (576, False), (577, True), (578, True), (579, False), (581, True), (582, True), (583, False), (584, True), (585, True), (586, True), (587, True), (588, False), (590, True), (591, True), (594, True), (596, True), (598, True), (599, True), (601, True), (602, True), (603, True), (604, False), (605, False), (606, True), (608, True), (609, True), (610, True), (612, False), (613, True), (614, True), (615, True), (616, False), (617, True), (620, False), (621, True), (622, True), (624, True), (626, False), (627, True), (630, True), (631, True), (632, True), (636, False), (639, True), (640, True), (641, True), (642, True), (644, True), (645, False), (646, False), (648, False), (652, True), (653, True), (655, False), (656, True), (657, True), (658, True), (659, True), (662, True), (663, True), (664, True), (665, True), (666, False), (668, True), (669, False), (670, True), (674, True), (675, True), (680, True), (682, True), (684, True), (685, True), (687, False), (689, True), (692, True), (693, True), (694, True), (695, True), (696, True), (697, True), (698, True), (701, True), (702, False), (703, True), (704, True), (705, True), (707, True), (708, True), (709, True), (710, True), (711, True), (712, True), (713, False), (714, True), (716, True), (717, True), (718, True), (719, True), (721, True), (723, True), (724, True), (726, True), (727, True), (728, True), (729, True), (730, True), (731, True), (733, True), (734, True), (735, True), (737, False), (738, False), (739, True), (740, True), (741, True), (742, True), (743, True), (744, True), (745, True), (748, False), (749, True), (751, True), (752, True), (753, False), (755, True), (756, True), (758, False), (759, True), (762, True), (764, True), (765, True), (766, False), (768, True), (769, True), (770, True), (775, False), (776, True), (778, True), (780, True), (781, False), (782, False), (783, False), (784, True), (785, True), (786, True), (787, True), (788, True), (791, True), (793, True), (794, True), (795, False), (796, True), (797, True), (798, True), (800, True), (802, False), (803, True), (804, True), (805, True), (807, True), (808, True), (809, False), (811, True), (812, True), (813, True), (814, True), (815, True), (816, True), (819, True), (820, True), (821, False), (823, False), (824, True), (828, True), (830, True), (832, True), (833, True), (834, True), (836, True), (837, True), (838, False), (839, True), (841, False), (842, True), (843, True), (844, True), (845, True), (846, False), (847, True), (849, True), (850, True), (851, True), (854, True), (855, True), (856, True), (857, True), (858, False), (860, False), (861, False), (863, True), (864, False), (867, True), (868, False), (869, True), (870, False), (873, False), (874, True), (875, True), (876, True), (879, True), (880, True), (882, True), (883, True), (884, True), (885, True), (886, True), (888, True), (890, False), (891, True), (892, True), (893, True), (894, True), (897, True), (898, True), (899, True), (900, False), (901, False), (903, True), (904, True), (905, True), (906, False), (907, True), (908, True), (909, True), (910, True), (912, True), (913, True), (914, False), (915, True), (917, False), (918, False), (919, True), (920, False), (921, True), (922, True), (924, True), (925, False), (926, True), (927, True), (928, True), (929, False), (933, True), (935, True), (938, True), (939, True), (940, True), (942, False), (943, False), (944, True), (945, True), (946, False), (947, False), (948, True), (949, False), (950, False), (951, False), (952, True), (953, True), (954, True), (955, True), (957, True), (959, True), (960, True), (962, True), (963, True), (964, False), (967, True), (969, True), (970, True), (971, False), (972, True), (973, True), (974, True), (975, False), (977, True), (978, False), (981, True), (982, True), (985, True), (986, True), (987, True), (989, True), (990, True), (992, False), (995, True), (996, True), (997, False), (998, True), (999, True), (1000, True), (1002, True), (1003, True), (1005, True), (1006, False), (1007, True), (1008, True), (1009, True), (1010, True), (1011, True), (1012, True), (1014, True), (1015, True), (1016, False), (1017, True), (1018, False), (1019, False), (1023, True), (1024, True), (1025, True), (1027, True), (1028, False), (1029, True), (1030, True), (1031, False), (1032, False), (1033, True), (1035, True), (1036, True), (1037, True), (1038, True), (1039, True), (1041, True), (1042, False), (1043, False), (1044, False), (1047, True), (1048, True), (1050, True), (1051, True), (1052, True), (1053, True), (1055, True), (1056, True), (1057, True), (1058, True), (1059, True), (1062, True), (1063, True), (1064, True), (1065, False), (1066, True), (1067, True), (1069, False), (1070, True), (1071, False), (1072, True), (1073, True), (1074, False), (1075, True), (1076, False), (1077, True), (1080, False), (1081, True), (1082, True), (1083, True), (1084, True), (1086, True), (1087, False), (1088, False), (1089, False), (1090, True), (1092, True), (1093, True), (1094, True), (1096, True), (1097, True), (1098, True), (1099, False), (1100, True), (1101, True), (1102, True), (1104, True), (1106, False), (1107, True), (1108, True), (1109, True), (1110, True), (1111, False), (1112, True), (1113, True), (1114, True), (1115, True), (1120, True), (1121, True), (1122, True), (1123, False), (1124, True), (1125, True), (1129, True), (1133, True), (1136, True), (1137, True), (1138, True), (1139, False), (1140, True), (1141, True), (1142, False), (1144, False), (1145, True), (1146, True), (1147, True), (1148, True), (1149, True), (1150, False), (1151, False), (1153, True), (1155, True), (1156, True), (1157, False), (1158, True), (1159, True), (1160, False), (1161, True), (1163, False), (1164, True), (1165, True), (1167, False), (1168, True), (1169, True), (1170, True), (1171, False), (1172, True), (1174, False), (1177, True), (1178, True), (1179, True), (1182, True), (1184, True), (1185, True), (1189, True), (1190, True), (1191, True), (1192, True), (1193, True), (1194, True), (1195, True), (1197, True), (1198, True), (1199, True), (1200, False), (1201, False), (1204, False), (1205, True), (1206, False), (1207, True), (1208, True), (1209, False), (1210, False), (1211, True), (1212, True), (1213, True), (1215, True), (1216, False), (1217, False), (1220, True), (1222, True), (1223, True), (1224, False), (1227, True), (1229, True), (1231, True), (1232, True), (1233, True), (1234, True), (1237, True), (1239, False), (1240, True), (1241, True), (1242, True), (1243, True), (1244, True), (1245, True), (1246, True), (1247, True), (1248, True), (1249, True), (1250, True), (1251, True), (1252, True), (1253, True), (1254, True), (1255, False), (1256, True), (1258, True), (1259, False), (1261, True), (1262, False), (1264, True), (1265, True), (1267, False), (1268, True), (1269, False), (1270, True), (1271, True), (1272, True), (1274, True), (1275, True), (1279, True), (1281, True), (1282, True), (1283, False), (1284, True), (1285, True), (1286, True), (1287, True), (1288, False), (1290, True), (1291, True), (1292, True), (1293, True), (1294, True), (1295, True), (1297, True), (1298, True), (1299, True), (1301, True), (1302, True), (1304, True), (1305, True), (1306, True), (1307, True), (1309, True), (1310, True), (1311, True), (1312, True), (1313, True), (1315, True), (1317, True), (1318, False), (1322, False), (1323, True), (1324, True), (1325, True), (1326, True), (1327, True), (1328, True), (1330, True), (1331, False), (1332, True), (1333, True), (1334, True), (1337, True), (1338, True), (1339, False), (1340, True), (1341, True), (1342, True), (1343, True), (1344, True), (1345, True), (1346, True), (1347, True), (1348, True), (1349, False), (1351, True), (1353, True), (1354, True), (1355, True), (1356, True), (1357, True), (1358, True), (1359, True), (1360, True), (1362, True), (1364, True), (1365, True), (1366, False), (1367, True), (1368, True), (1369, True), (1370, True), (1371, True), (1372, True), (1373, True), (1375, True), (1377, True), (1378, False), (1379, False), (1380, False), (1381, True), (1382, True), (1383, True), (1385, True), (1386, True), (1387, True), (1388, True), (1389, True), (1390, True), (1391, True), (1392, False), (1393, True), (1394, True), (1395, False), (1396, False), (1398, True), (1401, True), (1402, True), (1404, True), (1405, False), (1406, False), (1407, False), (1409, True), (1410, True), (1411, True), (1412, True), (1413, True), (1414, True), (1415, False), (1417, True), (1419, True), (1421, True), (1422, True), (1423, False), (1424, True), (1425, True), (1426, True), (1427, True), (1430, True), (1431, True), (1432, True), (1433, True), (1434, False), (1435, True), (1437, False), (1438, True), (1439, True), (1440, True), (1441, True), (1442, True), (1443, True), (1444, True), (1445, False), (1446, True), (1448, True), (1449, True), (1450, False), (1452, True), (1455, True), (1456, True), (1457, True), (1458, True), (1459, True), (1460, True), (1461, True), (1462, True), (1463, True), (1464, False), (1465, True), (1466, True), (1467, True), (1470, False), (1471, False), (1472, True), (1473, True), (1474, False), (1475, True), (1476, False), (1480, True), (1481, True), (1482, True), (1483, True), (1484, False), (1485, False), (1486, True), (1488, True), (1489, False), (1490, True), (1491, True), (1492, False), (1496, False), (1497, False), (1498, True), (1499, True), (1500, True), (1501, True), (1503, True), (1504, True), (1505, False), (1506, True), (1507, True), (1509, False), (1511, True), (1512, True), (1513, True), (1514, False), (1515, True), (1517, False), (1518, True), (1519, True), (1521, False), (1522, False), (1523, False), (1524, True), (1525, False), (1527, True), (1528, False), (1529, True), (1530, True), (1532, True), (1533, True), (1534, True), (1535, True), (1536, False), (1538, True), (1539, True), (1540, True), (1541, True), (1545, True), (1547, True), (1548, True), (1549, False), (1550, True), (1551, False), (1553, True), (1555, True), (1556, True), (1557, True), (1558, False), (1559, True), (1560, True), (1561, True), (1562, True), (1563, True), (1564, True), (1565, False), (1566, True), (1568, False), (1569, True), (1571, False), (1572, True), (1574, True), (1576, True), (1577, False), (1579, False), (1580, False), (1582, True), (1583, True), (1585, False), (1586, False), (1588, True), (1590, True), (1591, True), (1593, True), (1595, False), (1596, True), (1597, True), (1598, True), (1599, True), (1600, False), (1601, True), (1603, True), (1605, True), (1606, True), (1607, True), (1609, True), (1610, True), (1611, True), (1613, True), (1614, True), (1616, True), (1617, True), (1620, True), (1623, True), (1626, True), (1627, True), (1629, False), (1630, True), (1631, True), (1632, False), (1633, False), (1634, True), (1637, True), (1638, False), (1639, True), (1640, True), (1641, True), (1642, True), (1643, True), (1644, False), (1645, True), (1646, False), (1647, True), (1648, True), (1649, True), (1650, False), (1656, False), (1657, True), (1658, True), (1659, True), (1660, True), (1662, False), (1663, True), (1664, True), (1665, True), (1667, False), (1668, False), (1669, True), (1670, True), (1671, True), (1672, True), (1676, True), (1677, True), (1680, True), (1681, True), (1682, True), (1684, True), (1685, True), (1686, False), (1687, False), (1688, True), (1689, False), (1690, False), (1691, True), (1692, True), (1693, True), (1694, False), (1699, False), (1701, True), (1702, False), (1703, True), (1704, True), (1706, True), (1707, True), (1708, True), (1709, False), (1710, True), (1711, True), (1712, False), (1713, True), (1714, True), (1715, False), (1716, True), (1717, True), (1718, True), (1719, True), (1720, True), (1721, True), (1722, True), (1723, True), (1724, False), (1725, False), (1727, False), (1728, True), (1729, True), (1730, True), (1731, True), (1733, False), (1734, True), (1735, True), (1736, True), (1737, True), (1739, False), (1740, False), (1741, True), (1742, False), (1743, True), (1744, True), (1745, True), (1747, True), (1750, False), (1751, False), (1752, True), (1753, True), (1754, True), (1755, False), (1756, True), (1757, False), (1758, True), (1759, True), (1760, True), (1762, False), (1763, True), (1764, False), (1768, True), (1770, False), (1772, False), (1773, False), (1774, True), (1775, False), (1776, True), (1778, True), (1779, False), (1780, True), (1781, True), (1782, False), (1783, True), (1785, True), (1786, True), (1787, False), (1788, True), (1789, True), (1790, True), (1791, True), (1792, True), (1793, False), (1794, True), (1795, True), (1796, True), (1797, True), (1802, True), (1803, True), (1804, True), (1805, True), (1807, True), (1808, False), (1809, True), (1810, False), (1811, True), (1812, True), (1813, True), (1814, True), (1815, True), (1816, True), (1818, True), (1819, False), (1820, True), (1821, False), (1822, False), (1823, True), (1824, True), (1825, False), (1826, True), (1827, True), (1828, True), (1829, True), (1830, True), (1831, True), (1832, True), (1833, True), (1835, True), (1836, False), (1837, True), (1838, False), (1839, True), (1840, True), (1841, True), (1843, True), (1844, True), (1845, True), (1846, False), (1848, True), (1849, True), (1850, False), (1851, True), (1853, False), (1854, True), (1857, False), (1859, True), (1861, False), (1862, True), (1863, False), (1864, False), (1865, True), (1866, True), (1867, True), (1868, True), (1871, True), (1872, True), (1873, False), (1874, True), (1875, True), (1876, True), (1877, False), (1878, True), (1879, True), (1880, True), (1882, True), (1885, True), (1886, True), (1887, True), (1890, True), (1891, True), (1894, True), (1895, True), (1898, True), (1899, False), (1904, True), (1905, True), (1906, True), (1907, False), (1909, False), (1911, True), (1913, True), (1914, True), (1915, True), (1916, True), (1917, False), (1918, True), (1919, False), (1921, True), (1922, False), (1924, True), (1925, True), (1926, True), (1927, False), (1928, True), (1930, True), (1931, True), (1933, True), (1934, True), (1935, True), (1937, True), (1938, True), (1939, True), (1940, True), (1941, False), (1942, True), (1944, True), (1945, True), (1948, True), (1949, True), (1950, True), (1951, True), (1952, True), (1953, True), (1954, False), (1955, False), (1956, True), (1958, True), (1959, True), (1960, False), (1962, False), (1963, True), (1965, True), (1966, False), (1967, True), (1969, True), (1971, True), (1973, True), (1974, True), (1975, True), (1976, False), (1977, True), (1978, True), (1979, True), (1980, True), (1981, False), (1982, True), (1984, True), (1986, True), (1987, True), (1988, True), (1989, True), (1991, False), (1993, True), (1995, True), (1996, True), (1997, True), (1999, True), (2001, True), (2002, True), (2003, True), (2005, True), (2006, True), (2007, True), (2008, False), (2011, True), (2013, True), (2014, True), (2015, True), (2016, True), (2017, True), (2018, True), (2020, True), (2021, True), (2022, True), (2023, False), (2025, False), (2026, True), (2027, True), (2028, True), (2029, True), (2030, False), (2031, True), (2032, True), (2033, True), (2035, True), (2037, True), (2040, True), (2041, True), (2042, True), (2043, False), (2044, True), (2046, True), (2047, False)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 10
+    dataset = Dataset(input_bits_count, [(0, False), (1, True), (2, True), (3, False), (4, False), (9, False), (11, True), (12, False), (14, False), (18, False), (20, False), (22, False), (23, False), (24, False), (26, True), (27, True), (28, False), (29, False), (30, False), (32, False), (33, False), (35, False), (37, True), (38, False), (40, True), (41, False), (42, False), (44, False), (46, True), (48, False), (49, False), (50, False), (53, False), (55, True), (56, False), (58, False), (59, False), (60, False), (61, False), (65, False), (66, True), (67, True), (68, False), (71, False), (72, True), (73, False), (74, False), (75, False), (78, True), (79, False), (80, False), (81, False), (82, True), (83, False), (84, True), (89, True), (90, False), (92, False), (95, False), (97, False), (100, False), (102, False), (103, True), (104, True), (105, False), (106, False), (107, False), (108, False), (109, False), (110, True), (112, False), (113, True), (116, False), (117, False), (119, False), (122, False), (123, False), (126, False), (127, False), (128, True), (129, False), (130, True), (131, False), (133, False), (135, False), (136, False), (137, False), (142, False), (143, False), (144, False), (146, False), (147, False), (148, False), (149, False), (151, True), (153, True), (154, True), (155, False), (156, False), (160, False), (165, False), (167, False), (170, True), (172, False), (175, True), (177, False), (178, True), (183, False), (184, False), (186, True), (187, False), (188, False), (189, False), (190, False), (192, True), (193, False), (197, False), (198, True), (199, False), (202, False), (203, True), (204, False), (206, True), (207, False), (210, False), (211, False), (212, False), (214, True), (218, False), (219, False), (221, False), (222, False), (226, True), (227, True), (228, False), (229, False), (231, False), (232, False), (234, False), (236, False), (239, True), (240, False), (241, True), (245, False), (246, False), (247, False), (248, True), (250, True), (252, False), (254, False), (255, False), (256, False), (258, False), (259, False), (260, False), (261, False), (262, False), (263, False), (265, False), (269, False), (270, True), (271, False), (273, True), (275, True), (277, False), (279, False), (280, True), (281, True), (282, False), (286, False), (287, False), (289, False), (290, False), (291, True), (293, False), (294, True), (295, False), (296, False), (298, False), (299, False), (306, False), (307, False), (309, True), (310, True), (312, False), (313, False), (315, False), (317, False), (318, False), (320, False), (321, False), (322, False), (325, False), (328, False), (330, False), (331, False), (333, False), (335, False), (336, True), (341, False), (342, False), (343, False), (344, True), (346, False), (347, False), (348, False), (349, False), (350, False), (351, False), (352, False), (353, True), (357, False), (358, True), (360, False), (363, True), (364, False), (366, True), (367, False), (369, False), (371, True), (372, False), (373, False), (374, True), (376, False), (378, False), (379, False), (381, False), (382, True), (383, False), (384, True), (385, False), (387, False), (393, False), (395, False), (396, False), (398, False), (399, False), (401, True), (402, True), (405, False), (407, True), (408, False), (409, True), (411, False), (412, False), (413, False), (414, True), (417, False), (420, True), (423, True), (424, False), (425, True), (426, True), (427, False), (428, False), (429, False), (430, True), (431, False), (432, False), (434, False), (437, False), (438, True), (440, False), (441, False), (443, True), (445, False), (448, False), (449, True), (451, False), (452, True), (453, True), (454, False), (456, False), (458, False), (460, False), (462, False), (463, False), (464, True), (465, True), (466, True), (467, False), (468, False), (470, False), (471, False), (477, False), (478, True), (479, False), (480, False), (481, True), (482, False), (483, False), (484, True), (485, False), (486, False), (487, False), (488, True), (489, True), (490, False), (491, True), (492, False), (494, False), (495, True), (498, False), (499, True), (500, True), (501, True), (502, True), (503, True), (504, False), (506, False), (508, False), (510, True), (511, False), (512, False), (514, False), (515, True), (519, False), (522, False), (523, False), (524, False), (526, True), (528, False), (530, False), (531, False), (532, False), (534, False), (535, False), (536, True), (537, False), (538, False), (539, False), (542, False), (543, False), (544, False), (545, True), (547, True), (549, False), (551, False), (553, False), (555, False), (556, True), (557, False), (558, False), (559, False), (561, False), (565, True), (566, False), (567, False), (568, False), (570, True), (571, False), (572, False), (573, False), (574, False), (575, False), (576, True), (580, False), (581, False), (582, True), (583, False), (584, True), (585, False), (589, False), (590, False), (591, False), (595, False), (596, False), (597, False), (599, False), (602, False), (604, True), (605, False), (607, False), (611, False), (613, False), (614, True), (615, True), (617, False), (618, True), (621, True), (623, False), (624, True), (625, False), (626, False), (629, True), (633, False), (635, False), (636, False), (638, False), (639, False), (641, False), (642, False), (644, False), (645, False), (647, False), (648, True), (649, False), (652, False), (653, False), (654, False), (657, False), (658, False), (659, False), (660, True), (661, False), (662, False), (663, True), (664, True), (665, True), (668, True), (669, False), (670, True), (672, False), (673, False), (679, False), (680, False), (683, False), (684, False), (685, True), (686, False), (687, False), (688, True), (690, True), (691, True), (692, False), (695, False), (696, True), (697, False), (698, False), (700, True), (701, False), (702, True), (703, True), (704, False), (706, True), (707, False), (708, False), (709, True), (710, True), (711, False), (712, False), (713, False), (715, False), (716, True), (717, True), (719, True), (721, False), (722, True), (726, True), (729, True), (730, True), (731, False), (732, False), (733, False), (734, False), (736, False), (737, False), (739, False), (740, True), (744, False), (745, False), (746, True), (748, False), (754, False), (758, False), (759, False), (761, False), (762, False), (763, False), (769, False), (770, False), (771, True), (772, False), (773, False), (774, False), (776, False), (778, True), (779, False), (787, False), (789, False), (795, False), (796, False), (798, False), (799, False), (801, False), (802, False), (803, False), (804, False), (805, False), (806, False), (807, False), (808, True), (810, False), (811, False), (812, False), (815, False), (816, False), (817, False), (818, True), (819, False), (821, True), (825, False), (826, False), (830, False), (832, False), (833, True), (836, False), (838, False), (840, True), (841, True), (844, True), (847, False), (848, True), (849, False), (850, False), (851, False), (853, False), (855, False), (856, False), (858, False), (860, False), (861, False), (863, False), (866, False), (868, False), (870, True), (874, False), (875, False), (876, False), (877, False), (878, False), (880, True), (881, True), (883, True), (884, False), (885, True), (886, False), (890, False), (891, False), (892, False), (893, False), (894, True), (896, True), (897, False), (898, True), (899, True), (903, True), (906, False), (907, False), (908, False), (910, False), (912, False), (913, True), (914, True), (916, False), (918, False), (919, False), (921, False), (924, False), (925, False), (927, True), (929, True), (931, False), (932, True), (933, False), (935, False), (936, False), (938, True), (939, False), (940, False), (941, False), (944, False), (945, False), (946, True), (947, False), (949, False), (950, True), (951, False), (953, False), (954, True), (957, False), (958, False), (959, True), (962, False), (963, True), (965, False), (967, False), (969, True), (970, False), (977, False), (979, True), (981, False), (984, False), (986, True), (987, False), (988, False), (995, True), (996, False), (997, False), (998, False), (999, False), (1000, False), (1001, False), (1002, False), (1003, False), (1004, False), (1005, False), (1006, True), (1007, False), (1008, False), (1012, False), (1014, False), (1016, False), (1018, False), (1021, False), (1022, False), (1023, False)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 10
+    dataset = Dataset(input_bits_count, [(0, True), (1, False), (5, False), (6, True), (7, True), (8, False), (9, False), (10, False), (11, True), (12, False), (13, False), (17, False), (19, False), (20, True), (25, True), (26, True), (27, True), (28, False), (29, True), (30, False), (31, False), (33, False), (37, False), (39, True), (41, False), (42, False), (43, False), (45, True), (46, True), (48, True), (51, False), (53, True), (56, True), (58, True), (59, False), (60, True), (62, True), (63, True), (64, False), (66, False), (67, True), (68, False), (69, True), (70, True), (71, True), (72, True), (73, False), (74, False), (76, False), (78, False), (79, False), (81, False), (82, True), (84, True), (85, True), (86, True), (88, False), (89, True), (90, True), (91, True), (92, False), (95, False), (98, False), (99, True), (100, True), (101, True), (102, False), (105, False), (106, True), (107, True), (109, True), (110, True), (111, True), (112, True), (113, True), (114, True), (115, False), (116, True), (117, True), (118, True), (119, False), (120, False), (122, True), (123, False), (124, False), (128, False), (129, False), (130, True), (131, False), (132, False), (134, True), (139, True), (140, True), (142, True), (143, True), (145, False), (147, True), (149, False), (150, True), (151, True), (153, True), (154, False), (156, False), (157, True), (158, True), (162, True), (163, True), (164, False), (165, False), (166, True), (167, True), (168, False), (169, False), (170, True), (172, True), (173, True), (174, False), (175, False), (176, False), (179, True), (181, False), (184, True), (185, True), (186, True), (187, True), (189, False), (190, True), (191, True), (192, False), (194, False), (195, True), (196, False), (197, True), (200, True), (201, True), (202, True), (204, True), (205, True), (206, True), (207, False), (210, True), (211, False), (214, True), (216, False), (218, True), (219, True), (220, False), (221, False), (223, True), (226, False), (227, True), (229, True), (230, True), (231, False), (232, True), (233, False), (234, True), (235, True), (237, False), (238, True), (239, False), (240, False), (242, True), (246, True), (249, True), (251, True), (252, True), (253, False), (254, False), (255, False), (258, True), (259, True), (260, True), (263, False), (264, True), (265, False), (266, True), (267, True), (268, True), (269, False), (270, True), (271, False), (272, False), (273, True), (275, False), (276, True), (278, True), (279, True), (281, True), (282, False), (285, True), (287, True), (288, True), (289, False), (290, False), (292, False), (293, True), (295, False), (297, True), (298, False), (299, True), (300, True), (301, True), (302, True), (303, True), (306, True), (307, True), (308, True), (310, False), (311, True), (312, False), (314, True), (315, True), (316, True), (317, True), (318, False), (319, True), (320, True), (321, False), (322, True), (323, False), (325, True), (326, False), (328, True), (329, False), (330, True), (333, True), (334, False), (335, False), (336, False), (338, True), (339, False), (342, False), (344, True), (345, False), (347, True), (349, False), (352, False), (353, True), (354, False), (355, True), (356, True), (357, False), (358, False), (359, True), (360, True), (363, True), (364, True), (365, False), (366, False), (367, True), (368, True), (369, True), (370, False), (371, False), (372, False), (373, True), (374, True), (375, True), (377, False), (379, False), (380, True), (382, True), (383, True), (384, False), (385, True), (387, True), (388, False), (390, False), (391, True), (392, True), (397, False), (400, False), (401, False), (403, False), (405, True), (406, True), (407, False), (411, True), (412, True), (413, True), (416, False), (419, True), (420, False), (421, True), (422, True), (423, False), (426, True), (427, False), (428, True), (430, False), (431, True), (434, True), (435, True), (436, True), (437, False), (438, False), (439, True), (441, False), (442, False), (445, True), (446, False), (448, True), (450, True), (453, True), (454, False), (455, True), (456, False), (457, True), (458, True), (460, False), (461, True), (463, False), (464, True), (467, True), (469, True), (471, True), (472, True), (473, True), (475, False), (476, True), (477, True), (479, True), (480, True), (481, True), (482, False), (484, False), (485, True), (486, True), (489, True), (490, False), (492, False), (494, False), (495, True), (496, False), (497, True), (498, False), (499, True), (502, False), (503, True), (504, False), (506, True), (507, True), (508, False), (510, True), (513, True), (514, True), (515, True), (516, True), (517, True), (518, False), (519, False), (520, False), (521, True), (523, True), (524, True), (525, False), (526, True), (527, True), (528, False), (530, True), (533, False), (534, True), (535, False), (536, True), (537, False), (538, False), (540, True), (541, True), (542, True), (543, False), (545, True), (550, True), (552, False), (553, True), (554, True), (555, True), (556, False), (557, False), (559, False), (560, True), (562, False), (563, True), (565, False), (566, False), (567, False), (569, True), (570, True), (572, True), (574, True), (575, False), (576, True), (577, True), (579, True), (580, False), (581, True), (582, False), (585, False), (586, True), (587, True), (588, False), (589, False), (591, False), (592, True), (593, True), (594, False), (597, False), (598, False), (599, True), (601, True), (602, True), (603, False), (608, False), (609, False), (610, True), (611, True), (615, False), (616, False), (618, False), (619, True), (620, False), (622, True), (623, True), (624, True), (626, False), (628, False), (629, False), (630, True), (631, False), (632, False), (633, False), (635, False), (636, True), (637, True), (638, True), (642, True), (643, True), (644, True), (645, False), (647, True), (649, True), (650, True), (651, True), (653, False), (655, False), (656, False), (657, True), (659, True), (660, True), (661, False), (663, True), (664, True), (665, False), (667, True), (668, False), (669, True), (671, True), (673, False), (674, True), (675, False), (676, False), (677, True), (678, True), (679, True), (680, False), (682, False), (683, True), (684, False), (686, True), (688, True), (689, True), (690, True), (692, False), (694, True), (695, True), (696, True), (697, True), (699, True), (701, False), (706, False), (707, True), (708, False), (709, False), (710, False), (711, False), (712, True), (713, True), (714, True), (716, False), (717, True), (719, False), (720, True), (721, True), (723, True), (724, True), (725, False), (726, True), (729, True), (730, False), (731, True), (732, True), (734, True), (735, False), (737, True), (738, True), (739, False), (740, True), (741, False), (743, False), (744, True), (745, False), (747, False), (748, False), (749, True), (750, False), (751, True), (752, False), (753, True), (755, True), (756, True), (757, False), (760, False), (762, True), (763, True), (764, False), (765, True), (766, True), (768, True), (770, False), (772, False), (773, True), (774, True), (776, True), (777, True), (779, True), (780, True), (781, True), (782, True), (784, True), (786, False), (787, False), (789, False), (792, True), (793, False), (794, False), (795, True), (796, True), (798, False), (799, False), (800, True), (801, True), (803, True), (805, False), (806, True), (809, True), (810, True), (811, True), (812, True), (813, True), (814, True), (815, True), (816, True), (817, False), (818, False), (819, True), (820, False), (823, False), (824, True), (825, False), (826, True), (828, True), (829, True), (830, True), (834, True), (836, True), (837, True), (839, False), (840, True), (841, False), (842, False), (843, True), (845, True), (846, False), (847, True), (848, True), (850, False), (851, False), (852, False), (853, True), (856, False), (857, True), (858, False), (859, True), (862, False), (864, True), (865, False), (866, False), (868, False), (869, True), (870, True), (872, True), (873, True), (875, False), (876, True), (877, True), (878, False), (879, False), (880, False), (881, False), (882, True), (883, True), (884, False), (886, False), (888, True), (889, True), (890, False), (891, False), (892, True), (897, False), (899, False), (900, True), (903, False), (905, False), (906, False), (907, True), (911, True), (912, True), (914, True), (916, True), (917, True), (919, False), (920, False), (921, True), (923, False), (924, True), (926, True), (929, True), (931, False), (932, True), (935, True), (937, True), (938, True), (939, True), (940, True), (941, True), (942, False), (944, True), (945, False), (946, True), (947, False), (949, True), (950, False), (951, False), (952, True), (953, True), (954, False), (955, False), (956, False), (957, True), (962, False), (963, True), (964, False), (966, True), (967, False), (968, False), (969, True), (970, False), (971, True), (972, True), (973, False), (974, True), (975, True), (978, True), (979, True), (981, False), (985, False), (986, True), (987, True), (989, True), (991, True), (992, True), (994, True), (995, True), (996, True), (997, True), (998, True), (999, False), (1000, True), (1001, False), (1002, False), (1003, False), (1004, True), (1005, True), (1007, False), (1008, True), (1009, True), (1010, True), (1012, True), (1013, True), (1014, False), (1016, True), (1019, True), (1021, True), (1022, True), (1023, True)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 11
+    dataset = Dataset(input_bits_count, [(3, False), (9, True), (10, False), (11, False), (12, False), (13, False), (14, False), (15, False), (16, False), (18, False), (19, False), (20, False), (26, False), (27, False), (29, False), (34, False), (35, False), (36, False), (38, True), (40, False), (42, True), (43, True), (44, False), (47, False), (49, True), (50, False), (51, False), (53, False), (55, False), (56, True), (57, False), (58, False), (59, True), (61, True), (63, True), (64, False), (69, False), (71, True), (72, False), (77, False), (79, True), (81, True), (82, False), (83, False), (87, True), (88, False), (89, False), (90, True), (91, False), (93, False), (95, False), (96, False), (97, False), (98, True), (99, True), (100, False), (101, True), (102, True), (103, True), (104, False), (105, False), (107, True), (109, False), (111, False), (112, True), (113, False), (115, True), (116, True), (118, True), (119, False), (120, False), (121, False), (122, True), (125, True), (127, True), (129, False), (130, False), (131, False), (132, False), (133, False), (134, False), (138, True), (139, False), (140, False), (144, False), (145, False), (146, True), (148, True), (149, False), (151, False), (152, False), (153, False), (155, False), (158, False), (160, False), (161, True), (162, False), (164, False), (165, False), (166, True), (167, False), (168, False), (169, False), (170, False), (175, False), (176, False), (177, False), (178, False), (179, False), (183, False), (184, False), (191, True), (192, False), (193, False), (194, False), (195, False), (197, True), (199, True), (203, True), (204, False), (206, False), (207, False), (208, False), (212, True), (217, False), (219, False), (220, False), (221, False), (222, False), (228, False), (231, False), (233, False), (235, False), (236, True), (240, False), (241, True), (243, False), (244, False), (248, True), (251, True), (252, False), (253, True), (258, False), (259, False), (264, True), (267, False), (268, False), (269, False), (271, True), (272, False), (273, False), (274, False), (275, True), (276, False), (277, True), (280, False), (281, False), (283, False), (286, True), (287, False), (288, False), (289, False), (290, False), (292, False), (293, False), (296, True), (297, False), (299, True), (300, False), (301, False), (302, True), (303, False), (305, False), (306, False), (307, True), (310, True), (311, True), (312, False), (313, False), (314, True), (316, True), (318, True), (320, True), (321, False), (322, False), (324, True), (325, False), (326, False), (327, True), (328, False), (329, True), (331, False), (332, False), (333, False), (334, False), (335, False), (336, True), (337, True), (338, False), (342, True), (343, False), (345, False), (346, True), (350, False), (351, False), (352, True), (353, True), (355, False), (358, False), (361, False), (363, True), (369, False), (370, False), (372, False), (373, False), (375, False), (378, True), (381, False), (382, False), (385, False), (386, True), (387, True), (388, False), (389, False), (391, False), (392, False), (395, True), (396, False), (400, True), (401, True), (402, False), (403, False), (404, False), (405, False), (406, False), (407, True), (408, False), (409, True), (410, False), (412, False), (413, False), (414, False), (415, False), (416, True), (418, False), (422, True), (423, False), (424, False), (425, False), (426, True), (427, False), (428, False), (429, False), (432, True), (434, False), (435, True), (437, False), (439, False), (442, False), (443, False), (444, False), (447, True), (448, True), (449, True), (450, False), (451, False), (452, False), (453, False), (455, False), (456, False), (457, True), (458, False), (459, True), (460, False), (462, False), (464, False), (465, False), (466, False), (467, False), (468, True), (470, True), (471, True), (472, False), (473, False), (475, True), (476, True), (478, False), (481, True), (482, False), (484, False), (485, True), (486, True), (487, False), (490, False), (496, False), (497, False), (498, False), (500, True), (502, False), (503, True), (504, False), (505, False), (507, False), (510, True), (511, True), (515, False), (516, True), (517, False), (518, True), (519, False), (520, False), (521, False), (522, False), (523, False), (525, True), (526, False), (528, False), (531, False), (532, True), (533, False), (538, False), (539, False), (541, False), (542, False), (545, False), (549, False), (550, True), (553, True), (555, False), (556, False), (557, True), (559, False), (565, True), (566, True), (567, False), (568, False), (569, True), (571, False), (572, False), (575, False), (576, False), (577, True), (579, True), (583, False), (584, True), (585, True), (586, False), (587, False), (590, True), (591, True), (595, True), (596, False), (597, True), (598, False), (600, False), (601, True), (602, False), (603, False), (606, True), (607, False), (610, False), (614, True), (615, False), (619, False), (620, False), (622, True), (623, False), (624, True), (625, False), (627, False), (629, True), (630, False), (631, False), (632, False), (633, True), (634, True), (635, False), (636, False), (639, False), (643, True), (645, False), (646, False), (647, False), (649, False), (650, True), (652, False), (653, False), (656, True), (657, True), (658, False), (659, False), (661, False), (662, True), (663, False), (666, True), (668, False), (669, False), (670, True), (671, False), (672, False), (674, False), (675, False), (676, False), (678, False), (679, False), (683, True), (684, False), (685, False), (686, True), (687, False), (689, False), (690, False), (691, True), (692, False), (693, False), (694, False), (696, True), (697, False), (698, True), (699, False), (700, False), (702, False), (703, False), (704, False), (706, False), (708, False), (709, False), (710, True), (712, True), (714, True), (716, True), (717, True), (718, True), (719, False), (722, False), (723, False), (725, True), (726, False), (727, True), (730, False), (731, False), (733, False), (736, False), (737, False), (739, True), (740, False), (741, False), (746, False), (748, True), (750, False), (752, False), (754, False), (755, True), (759, False), (762, True), (763, False), (764, False), (766, True), (767, False), (768, False), (769, True), (770, True), (771, False), (773, False), (774, True), (775, True), (776, False), (779, True), (780, False), (782, False), (784, False), (785, False), (786, False), (787, False), (788, False), (790, False), (792, True), (794, False), (795, True), (796, True), (798, False), (799, True), (807, False), (809, True), (810, False), (811, False), (813, False), (817, False), (818, False), (819, False), (820, True), (824, False), (825, True), (827, False), (828, False), (829, False), (830, False), (831, True), (833, False), (834, False), (835, False), (838, False), (839, False), (841, False), (842, True), (844, True), (846, False), (848, False), (849, False), (850, True), (851, False), (852, True), (853, True), (855, True), (859, False), (860, False), (861, False), (865, True), (866, False), (868, True), (869, False), (870, True), (871, False), (872, False), (877, False), (878, True), (879, True), (882, False), (883, True), (888, False), (889, False), (890, False), (891, False), (892, False), (893, False), (897, False), (899, False), (901, True), (902, False), (903, False), (904, False), (906, False), (909, False), (913, False), (914, False), (915, False), (916, True), (917, True), (919, False), (920, True), (921, False), (923, False), (926, False), (927, False), (928, True), (930, True), (931, False), (932, False), (933, False), (934, False), (937, True), (938, True), (940, True), (941, False), (942, False), (943, False), (945, False), (946, True), (947, False), (948, False), (949, True), (953, False), (956, False), (957, False), (959, False), (960, True), (962, False), (964, False), (966, True), (967, True), (968, False), (969, True), (970, False), (971, True), (972, True), (973, False), (975, True), (977, False), (978, False), (981, False), (983, False), (985, False), (987, False), (990, False), (993, False), (994, False), (995, False), (997, False), (999, False), (1003, True), (1005, False), (1007, True), (1008, False), (1011, False), (1012, False), (1013, True), (1014, True), (1015, False), (1016, False), (1017, False), (1018, False), (1019, False), (1020, True), (1021, False), (1022, False), (1023, False), (1025, False), (1027, False), (1028, True), (1029, False), (1030, True), (1031, False), (1034, False), (1035, True), (1036, False), (1040, True), (1042, False), (1043, True), (1044, False), (1045, False), (1046, False), (1049, True), (1052, False), (1056, False), (1057, False), (1058, True), (1059, False), (1060, False), (1061, True), (1063, False), (1064, False), (1065, False), (1066, False), (1071, False), (1074, False), (1075, True), (1079, True), (1080, False), (1081, True), (1082, True), (1084, False), (1085, False), (1086, True), (1089, False), (1092, False), (1093, False), (1094, False), (1095, False), (1096, False), (1097, False), (1098, False), (1100, False), (1102, False), (1106, False), (1107, True), (1108, False), (1109, False), (1110, False), (1111, False), (1113, True), (1114, False), (1115, True), (1116, False), (1117, True), (1119, False), (1120, False), (1121, False), (1122, True), (1123, False), (1124, True), (1125, False), (1126, False), (1129, False), (1130, False), (1132, True), (1134, False), (1135, False), (1136, False), (1137, False), (1140, False), (1142, False), (1144, False), (1145, True), (1146, False), (1147, False), (1148, False), (1151, False), (1152, False), (1154, False), (1155, False), (1156, False), (1157, False), (1161, True), (1162, False), (1166, True), (1167, False), (1169, True), (1170, False), (1171, False), (1179, True), (1183, False), (1184, False), (1185, False), (1186, True), (1187, True), (1188, False), (1191, False), (1192, False), (1194, False), (1198, False), (1200, False), (1201, False), (1202, True), (1203, False), (1204, True), (1205, False), (1206, False), (1207, True), (1209, False), (1210, False), (1211, True), (1212, True), (1213, False), (1214, False), (1217, False), (1219, False), (1220, True), (1222, True), (1223, False), (1224, True), (1227, False), (1229, False), (1232, False), (1234, False), (1237, True), (1238, False), (1239, False), (1240, False), (1241, True), (1242, False), (1244, True), (1247, False), (1248, False), (1253, False), (1254, False), (1255, False), (1256, True), (1257, False), (1260, True), (1263, True), (1267, False), (1269, True), (1270, False), (1271, True), (1272, False), (1273, False), (1275, False), (1276, False), (1278, False), (1279, False), (1281, False), (1282, True), (1285, False), (1286, True), (1287, False), (1288, False), (1291, True), (1292, False), (1295, True), (1296, True), (1297, False), (1298, False), (1299, False), (1300, False), (1301, False), (1303, True), (1304, False), (1305, False), (1307, True), (1310, True), (1312, False), (1313, False), (1314, False), (1315, True), (1317, False), (1318, True), (1319, False), (1320, False), (1323, True), (1325, False), (1326, False), (1329, False), (1330, False), (1332, False), (1334, False), (1335, True), (1336, True), (1337, False), (1342, True), (1343, False), (1346, False), (1347, True), (1348, True), (1351, False), (1353, False), (1356, False), (1357, True), (1358, False), (1359, False), (1360, False), (1361, True), (1363, False), (1364, True), (1365, False), (1366, False), (1369, False), (1370, False), (1371, False), (1373, False), (1374, True), (1375, True), (1376, False), (1378, False), (1379, False), (1381, False), (1382, True), (1385, False), (1387, False), (1388, False), (1389, True), (1390, False), (1391, False), (1395, False), (1396, False), (1397, True), (1398, False), (1399, True), (1400, True), (1401, False), (1402, False), (1403, True), (1404, False), (1405, False), (1408, True), (1409, False), (1410, True), (1411, False), (1412, False), (1413, False), (1414, True), (1415, False), (1417, True), (1418, False), (1421, False), (1423, True), (1425, True), (1429, True), (1432, False), (1434, False), (1436, True), (1438, False), (1440, True), (1442, False), (1443, False), (1446, True), (1448, False), (1450, False), (1451, False), (1452, False), (1453, False), (1456, False), (1457, False), (1461, True), (1462, True), (1464, False), (1466, False), (1467, False), (1469, False), (1470, False), (1471, True), (1472, False), (1473, False), (1474, False), (1476, False), (1477, False), (1478, True), (1481, False), (1483, False), (1484, False), (1488, False), (1489, False), (1490, False), (1491, True), (1493, False), (1494, True), (1495, True), (1496, False), (1498, True), (1500, False), (1501, False), (1503, False), (1504, False), (1505, False), (1506, True), (1509, False), (1511, True), (1513, True), (1514, True), (1515, True), (1517, False), (1518, False), (1520, False), (1521, False), (1523, True), (1525, False), (1526, False), (1527, False), (1528, True), (1529, False), (1530, True), (1531, False), (1532, False), (1533, False), (1534, False), (1535, False), (1536, False), (1537, False), (1538, True), (1539, False), (1540, True), (1541, False), (1542, True), (1544, True), (1545, False), (1547, False), (1548, False), (1549, False), (1550, False), (1551, False), (1552, False), (1557, False), (1560, True), (1561, True), (1562, True), (1563, False), (1564, True), (1565, False), (1567, True), (1569, False), (1570, False), (1571, False), (1574, False), (1575, True), (1577, False), (1578, True), (1581, False), (1583, False), (1584, False), (1585, False), (1586, True), (1587, False), (1589, False), (1592, True), (1595, False), (1596, False), (1597, False), (1598, False), (1600, True), (1606, False), (1607, False), (1608, False), (1613, False), (1616, True), (1617, False), (1618, False), (1620, False), (1621, False), (1622, True), (1623, False), (1624, False), (1625, False), (1627, False), (1628, False), (1629, False), (1631, False), (1633, False), (1636, True), (1637, True), (1639, False), (1641, True), (1643, False), (1644, False), (1645, False), (1646, True), (1647, False), (1648, True), (1649, False), (1651, False), (1653, True), (1654, True), (1655, False), (1656, True), (1658, False), (1659, True), (1660, True), (1661, False), (1663, False), (1666, False), (1667, False), (1670, False), (1671, True), (1672, False), (1673, True), (1675, False), (1677, True), (1679, False), (1680, False), (1681, False), (1682, False), (1684, False), (1685, False), (1686, False), (1687, False), (1688, False), (1690, True), (1691, False), (1693, False), (1694, False), (1697, False), (1698, True), (1702, False), (1705, False), (1707, True), (1708, True), (1710, False), (1712, True), (1716, False), (1717, False), (1718, False), (1719, True), (1721, False), (1722, False), (1723, True), (1724, False), (1725, False), (1726, False), (1729, False), (1731, False), (1734, True), (1735, False), (1736, False), (1737, False), (1738, True), (1739, False), (1740, False), (1742, False), (1743, True), (1746, True), (1747, False), (1749, True), (1752, False), (1753, False), (1754, False), (1755, True), (1758, False), (1759, False), (1761, False), (1762, False), (1764, True), (1767, False), (1768, False), (1769, False), (1772, False), (1773, False), (1776, False), (1777, False), (1779, False), (1781, False), (1782, True), (1783, False), (1784, False), (1786, True), (1788, True), (1793, True), (1794, False), (1796, False), (1797, False), (1798, False), (1799, False), (1801, False), (1802, True), (1804, False), (1811, True), (1812, False), (1813, False), (1816, False), (1817, False), (1818, False), (1820, False), (1821, False), (1823, True), (1826, False), (1828, True), (1830, True), (1831, False), (1832, True), (1836, True), (1837, False), (1840, False), (1841, False), (1842, False), (1843, False), (1844, False), (1845, False), (1846, False), (1847, False), (1849, False), (1850, False), (1852, False), (1853, False), (1855, False), (1857, False), (1858, False), (1860, False), (1862, True), (1868, True), (1870, True), (1871, False), (1872, True), (1873, False), (1879, False), (1880, True), (1881, True), (1882, False), (1886, False), (1887, False), (1890, False), (1891, True), (1892, False), (1893, True), (1894, False), (1895, True), (1898, False), (1899, False), (1903, False), (1904, False), (1905, True), (1908, True), (1909, False), (1910, False), (1911, False), (1912, True), (1913, False), (1914, False), (1915, False), (1920, True), (1921, False), (1922, False), (1923, False), (1924, True), (1925, True), (1926, True), (1928, True), (1930, True), (1931, False), (1933, False), (1934, False), (1935, False), (1938, False), (1939, True), (1943, True), (1946, False), (1947, True), (1948, False), (1951, False), (1953, True), (1954, False), (1955, False), (1956, False), (1957, False), (1959, False), (1960, False), (1961, True), (1962, False), (1963, True), (1966, False), (1968, False), (1969, False), (1971, False), (1974, True), (1977, True), (1979, False), (1981, False), (1984, True), (1985, False), (1986, False), (1987, False), (1988, True), (1989, False), (1990, True), (1991, False), (1996, True), (1997, False), (1998, False), (2000, True), (2001, False), (2002, False), (2003, False), (2004, False), (2005, False), (2007, False), (2009, True), (2010, False), (2012, True), (2013, True), (2017, False), (2018, False), (2020, True), (2021, True), (2025, False), (2026, True), (2027, False), (2029, True), (2030, False), (2031, False), (2032, True), (2033, True), (2034, False), (2038, True), (2039, False), (2043, False), (2044, False), (2045, False), (2046, True), (2047, False)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 8
+    dataset = Dataset(input_bits_count, [(1, True), (3, False), (6, True), (7, True), (10, True), (13, True), (16, True), (18, True), (19, False), (20, True), (23, True), (25, True), (31, False), (32, False), (33, True), (34, True), (35, True), (38, True), (39, True), (41, True), (43, True), (46, True), (49, True), (51, False), (55, False), (56, True), (57, False), (60, True), (61, True), (65, True), (66, False), (67, True), (72, True), (73, True), (76, True), (77, True), (78, False), (79, True), (83, False), (86, False), (89, True), (90, True), (92, False), (93, False), (95, True), (96, True), (97, True), (99, True), (101, True), (102, True), (104, False), (105, False), (107, True), (108, True), (110, True), (111, True), (112, True), (113, True), (114, True), (116, False), (121, True), (122, False), (123, True), (125, True), (126, False), (130, True), (131, True), (132, True), (135, True), (136, False), (141, True), (142, True), (143, True), (149, True), (150, False), (151, True), (155, False), (156, True), (157, True), (158, False), (163, True), (167, True), (168, True), (169, True), (170, True), (171, True), (176, False), (177, True), (180, False), (182, False), (187, True), (190, True), (191, False), (193, True), (196, True), (197, True), (198, False), (201, False), (202, True), (208, False), (209, True), (210, False), (211, False), (212, True), (213, False), (217, False), (218, True), (224, False), (225, False), (227, True), (228, False), (229, True), (231, False), (234, True), (235, True), (236, False), (238, False), (240, True), (241, True), (242, True), (243, True), (244, True), (247, True), (250, True), (252, True), (254, True), (255, True)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 11
+    dataset = Dataset(input_bits_count, [(1, True), (3, True), (4, True), (5, False), (7, False), (8, False), (10, True), (11, False), (13, False), (15, False), (17, False), (19, True), (22, True), (23, True), (24, False), (25, True), (30, False), (31, True), (32, True), (33, True), (34, True), (35, False), (36, True), (37, True), (39, False), (40, False), (42, True), (44, False), (46, False), (49, False), (50, False), (51, False), (53, False), (54, False), (58, False), (59, False), (60, False), (62, False), (64, True), (65, False), (67, True), (68, True), (70, False), (71, False), (73, True), (74, True), (76, False), (78, False), (79, False), (80, True), (81, False), (82, False), (84, False), (86, True), (87, False), (88, False), (89, False), (90, False), (91, False), (93, False), (95, True), (96, True), (98, True), (99, False), (100, True), (101, False), (102, False), (105, True), (106, True), (107, True), (110, True), (111, True), (116, False), (118, False), (119, True), (120, False), (121, False), (124, False), (126, False), (127, False), (128, False), (130, True), (135, False), (136, True), (138, True), (140, False), (141, True), (143, False), (144, True), (146, False), (147, True), (148, True), (149, False), (150, True), (151, False), (152, False), (154, False), (155, True), (156, True), (157, True), (158, True), (159, False), (161, False), (163, True), (165, True), (167, False), (170, False), (174, False), (177, False), (178, False), (180, True), (181, False), (182, False), (183, True), (184, False), (185, False), (186, False), (187, False), (192, False), (196, False), (202, False), (203, False), (205, True), (206, True), (207, True), (208, False), (211, False), (212, True), (213, False), (214, True), (215, False), (216, False), (218, False), (219, False), (220, False), (221, False), (226, True), (227, False), (228, False), (229, False), (230, False), (231, False), (232, False), (233, True), (234, True), (235, True), (236, True), (237, False), (240, False), (243, False), (245, False), (246, True), (247, False), (248, False), (249, False), (250, False), (251, True), (252, False), (254, False), (256, True), (257, False), (260, False), (261, False), (262, False), (263, False), (264, False), (266, True), (269, False), (270, False), (271, False), (272, True), (273, False), (274, False), (276, False), (277, True), (279, False), (280, False), (281, False), (282, True), (283, True), (284, False), (285, True), (286, True), (288, True), (289, False), (290, False), (291, True), (292, True), (293, False), (295, True), (296, False), (299, True), (301, False), (302, True), (304, True), (305, True), (307, False), (308, False), (310, False), (311, False), (313, False), (315, False), (316, True), (317, True), (318, False), (321, True), (322, False), (323, True), (324, False), (326, True), (328, False), (331, False), (332, False), (333, False), (334, True), (335, False), (338, False), (340, False), (341, True), (342, False), (343, True), (346, False), (350, False), (352, False), (353, True), (354, True), (355, True), (357, False), (358, True), (360, False), (361, False), (365, True), (366, False), (367, False), (368, False), (370, False), (372, False), (373, False), (375, False), (378, True), (379, False), (380, False), (382, True), (386, True), (391, False), (393, False), (394, True), (395, True), (396, True), (397, False), (399, True), (400, False), (401, False), (402, False), (405, False), (406, True), (408, True), (410, False), (411, False), (412, False), (413, False), (416, False), (417, False), (418, True), (419, True), (422, False), (424, False), (425, True), (426, True), (428, False), (429, True), (430, True), (431, True), (432, False), (434, False), (436, False), (438, True), (441, False), (442, True), (443, False), (445, False), (446, False), (448, True), (450, False), (452, True), (455, True), (456, False), (459, False), (461, False), (462, False), (465, True), (466, False), (467, False), (470, False), (472, True), (473, True), (474, True), (475, False), (476, False), (477, False), (479, True), (480, True), (481, True), (482, True), (483, False), (484, False), (485, True), (486, True), (487, True), (488, False), (489, False), (490, False), (491, True), (492, False), (493, True), (496, False), (497, False), (499, False), (500, False), (501, False), (503, True), (505, True), (506, False), (507, False), (508, False), (510, False), (512, False), (513, True), (516, False), (517, False), (519, False), (520, True), (522, True), (523, False), (525, False), (526, True), (527, False), (528, True), (530, False), (531, True), (532, True), (533, False), (534, True), (535, False), (536, False), (537, False), (538, False), (542, False), (545, False), (547, False), (551, True), (554, False), (555, False), (556, False), (557, False), (559, True), (560, False), (561, True), (562, False), (565, False), (566, False), (567, True), (568, False), (569, False), (570, False), (575, False), (576, True), (577, False), (578, False), (579, True), (580, False), (581, True), (582, True), (583, True), (587, False), (588, True), (593, False), (594, True), (595, True), (596, True), (601, False), (603, True), (604, True), (606, True), (607, False), (608, False), (610, False), (613, False), (614, False), (618, True), (622, True), (625, True), (626, True), (627, False), (628, True), (629, True), (632, False), (633, True), (634, False), (635, False), (637, False), (638, False), (641, False), (643, True), (645, False), (647, False), (650, False), (651, False), (656, True), (659, True), (662, True), (665, False), (666, False), (668, False), (671, False), (672, False), (674, False), (676, False), (677, True), (679, False), (680, True), (682, False), (683, True), (684, True), (685, True), (686, False), (687, False), (688, False), (689, True), (691, True), (693, True), (694, False), (696, False), (697, False), (698, True), (700, False), (702, False), (703, False), (705, False), (708, True), (710, False), (711, True), (712, False), (713, False), (715, True), (716, True), (719, True), (720, False), (722, True), (723, False), (724, False), (725, False), (728, False), (729, False), (731, False), (732, True), (733, False), (734, False), (736, False), (737, False), (738, False), (740, False), (741, False), (743, False), (747, True), (748, True), (751, False), (752, True), (754, False), (755, False), (756, False), (757, False), (758, True), (760, True), (761, False), (762, False), (763, False), (765, True), (769, True), (771, True), (772, False), (774, True), (777, False), (782, True), (784, True), (785, True), (790, True), (791, False), (797, False), (799, True), (800, True), (802, False), (803, False), (805, True), (806, True), (808, False), (809, False), (810, True), (811, True), (812, False), (814, False), (816, False), (817, False), (819, True), (820, True), (822, False), (823, False), (824, False), (826, True), (827, True), (828, False), (829, True), (830, False), (831, False), (832, False), (833, True), (835, False), (837, True), (838, True), (839, True), (841, True), (842, False), (843, False), (846, True), (849, False), (850, False), (851, True), (854, False), (855, False), (856, False), (859, False), (860, True), (861, False), (862, True), (863, True), (864, True), (865, True), (866, True), (868, False), (871, False), (872, True), (873, False), (878, False), (879, False), (880, True), (881, False), (883, True), (886, False), (887, True), (890, False), (891, False), (892, False), (893, True), (894, False), (895, True), (896, True), (898, False), (899, False), (900, False), (903, False), (904, False), (905, False), (906, False), (907, True), (910, True), (911, True), (914, True), (915, False), (916, False), (917, False), (918, False), (919, True), (922, False), (923, False), (926, True), (927, True), (929, False), (931, False), (932, False), (933, False), (934, False), (935, False), (936, False), (938, False), (939, False), (940, False), (942, True), (944, True), (946, False), (947, False), (948, False), (949, True), (950, False), (951, False), (953, True), (954, True), (956, True), (958, False), (960, False), (962, False), (963, True), (964, True), (965, True), (967, False), (968, False), (969, False), (970, False), (972, False), (974, True), (975, True), (976, False), (977, True), (979, True), (980, True), (981, True), (982, False), (983, False), (984, True), (985, True), (986, True), (987, False), (988, False), (990, True), (991, True), (992, False), (993, True), (994, True), (995, False), (997, False), (998, False), (1002, False), (1003, False), (1004, False), (1006, True), (1009, False), (1011, False), (1012, False), (1013, True), (1016, False), (1019, False), (1020, True), (1023, True), (1024, False), (1025, False), (1026, True), (1027, False), (1028, True), (1030, True), (1031, False), (1032, True), (1033, True), (1036, True), (1037, False), (1038, True), (1040, False), (1042, False), (1043, True), (1044, False), (1046, True), (1047, True), (1048, False), (1050, False), (1052, True), (1054, False), (1056, False), (1057, False), (1059, True), (1060, False), (1061, False), (1062, False), (1065, False), (1067, False), (1068, True), (1070, True), (1072, True), (1073, False), (1077, False), (1078, False), (1079, False), (1081, False), (1083, False), (1084, False), (1085, True), (1086, False), (1087, False), (1088, False), (1090, False), (1091, True), (1092, True), (1093, True), (1094, False), (1095, False), (1097, False), (1098, True), (1099, True), (1103, True), (1104, False), (1105, False), (1106, False), (1107, False), (1108, False), (1109, False), (1111, False), (1112, False), (1114, False), (1115, False), (1116, False), (1117, True), (1119, False), (1120, False), (1121, False), (1122, True), (1123, True), (1124, True), (1125, True), (1126, False), (1129, False), (1130, True), (1131, False), (1132, False), (1133, False), (1134, False), (1135, True), (1136, False), (1137, False), (1138, True), (1139, True), (1140, False), (1141, False), (1143, False), (1144, True), (1146, True), (1147, False), (1149, False), (1150, False), (1153, True), (1154, False), (1155, False), (1156, False), (1157, False), (1159, True), (1160, False), (1162, False), (1163, False), (1164, False), (1165, True), (1166, False), (1167, True), (1168, False), (1171, False), (1173, True), (1174, False), (1175, True), (1176, True), (1178, True), (1179, False), (1180, True), (1182, True), (1183, False), (1184, False), (1185, True), (1187, False), (1189, True), (1191, True), (1192, False), (1193, False), (1194, False), (1195, False), (1197, False), (1198, False), (1199, False), (1200, False), (1202, False), (1204, False), (1205, True), (1206, False), (1207, False), (1208, False), (1209, False), (1210, False), (1211, True), (1212, True), (1214, True), (1215, True), (1216, True), (1218, True), (1221, True), (1222, False), (1223, False), (1225, False), (1226, False), (1227, False), (1228, True), (1229, False), (1232, False), (1233, False), (1234, False), (1235, False), (1236, True), (1239, False), (1240, True), (1241, False), (1245, False), (1247, False), (1249, True), (1250, True), (1254, True), (1255, False), (1260, False), (1263, False), (1264, False), (1266, False), (1267, False), (1269, False), (1271, False), (1272, False), (1277, False), (1278, False), (1279, False), (1280, False), (1282, False), (1283, False), (1284, False), (1285, True), (1286, True), (1287, False), (1288, True), (1289, False), (1290, False), (1291, True), (1292, False), (1294, False), (1296, True), (1297, True), (1299, False), (1301, False), (1302, True), (1303, False), (1304, True), (1306, True), (1308, True), (1309, False), (1310, False), (1311, False), (1313, False), (1315, True), (1317, False), (1318, True), (1320, False), (1322, False), (1323, True), (1325, False), (1326, False), (1327, True), (1328, False), (1329, True), (1331, False), (1332, True), (1334, False), (1335, False), (1336, False), (1337, False), (1339, False), (1340, False), (1341, False), (1342, False), (1343, False), (1344, True), (1346, False), (1347, True), (1348, True), (1350, False), (1351, True), (1352, False), (1353, True), (1354, False), (1355, False), (1356, True), (1358, False), (1359, False), (1360, False), (1361, True), (1362, True), (1363, True), (1365, False), (1371, True), (1372, False), (1373, True), (1375, False), (1377, False), (1379, False), (1380, False), (1383, False), (1386, False), (1388, False), (1391, True), (1394, True), (1395, False), (1396, False), (1398, True), (1399, False), (1400, False), (1401, False), (1404, False), (1405, False), (1406, False), (1408, True), (1409, True), (1411, False), (1414, True), (1415, False), (1416, True), (1417, False), (1418, True), (1420, False), (1421, True), (1422, False), (1424, False), (1426, False), (1429, True), (1430, False), (1432, False), (1433, False), (1437, False), (1440, True), (1442, True), (1443, False), (1444, False), (1445, False), (1446, False), (1447, False), (1448, False), (1449, False), (1451, False), (1452, True), (1453, True), (1454, True), (1455, False), (1456, True), (1457, False), (1458, True), (1461, False), (1462, True), (1463, True), (1464, True), (1465, True), (1466, False), (1468, True), (1469, False), (1470, True), (1471, False), (1472, False), (1473, True), (1475, False), (1478, False), (1480, False), (1483, False), (1484, False), (1486, True), (1489, False), (1491, False), (1492, False), (1494, False), (1496, False), (1497, False), (1500, True), (1502, False), (1503, False), (1504, False), (1506, False), (1507, True), (1508, True), (1510, True), (1512, False), (1517, True), (1518, False), (1521, True), (1523, True), (1524, False), (1525, False), (1526, False), (1527, False), (1528, False), (1529, True), (1530, False), (1531, False), (1532, False), (1535, True), (1537, False), (1539, False), (1540, True), (1541, False), (1544, True), (1549, True), (1550, False), (1551, True), (1556, True), (1557, False), (1558, False), (1561, False), (1565, True), (1566, True), (1567, False), (1569, False), (1570, False), (1572, True), (1574, False), (1575, True), (1576, False), (1577, True), (1578, True), (1581, False), (1583, False), (1584, True), (1586, True), (1589, False), (1590, False), (1591, False), (1592, False), (1593, False), (1594, False), (1595, True), (1597, False), (1600, False), (1601, False), (1602, False), (1603, False), (1605, False), (1606, True), (1608, False), (1609, True), (1611, False), (1612, False), (1613, False), (1614, True), (1615, False), (1620, True), (1621, False), (1622, False), (1623, False), (1624, False), (1629, False), (1630, False), (1633, False), (1634, False), (1636, True), (1637, False), (1639, True), (1640, False), (1642, False), (1643, False), (1646, False), (1648, False), (1650, False), (1653, False), (1654, True), (1655, True), (1656, False), (1657, False), (1660, True), (1665, False), (1667, True), (1668, False), (1670, False), (1672, True), (1673, False), (1674, False), (1675, False), (1676, False), (1681, True), (1682, False), (1683, False), (1684, True), (1685, False), (1689, False), (1690, False), (1691, False), (1692, True), (1693, False), (1695, True), (1696, True), (1697, False), (1698, False), (1701, True), (1702, False), (1704, True), (1706, True), (1707, True), (1708, True), (1709, False), (1711, False), (1712, False), (1713, False), (1714, False), (1717, False), (1718, False), (1719, False), (1722, False), (1724, False), (1727, False), (1728, False), (1729, False), (1730, False), (1733, True), (1734, False), (1735, True), (1739, True), (1740, False), (1743, False), (1744, False), (1746, False), (1747, True), (1749, False), (1751, True), (1756, True), (1757, True), (1758, False), (1764, True), (1765, False), (1766, False), (1768, False), (1769, False), (1770, False), (1772, False), (1774, True), (1775, False), (1776, False), (1779, False), (1781, False), (1785, True), (1788, True), (1790, True), (1795, True), (1796, False), (1797, False), (1798, True), (1799, False), (1801, True), (1802, True), (1804, True), (1805, True), (1807, False), (1808, True), (1809, False), (1810, True), (1811, False), (1812, True), (1813, False), (1814, False), (1815, True), (1816, True), (1817, False), (1818, True), (1819, False), (1821, True), (1823, False), (1824, False), (1825, False), (1827, True), (1828, True), (1829, False), (1833, False), (1834, True), (1835, True), (1836, False), (1838, False), (1839, True), (1841, False), (1844, False), (1845, True), (1846, True), (1848, False), (1849, False), (1851, False), (1852, False), (1854, True), (1856, False), (1857, False), (1858, False), (1859, True), (1861, True), (1863, False), (1864, True), (1865, False), (1867, True), (1868, False), (1870, True), (1871, True), (1872, False), (1874, True), (1875, True), (1876, False), (1877, False), (1878, True), (1881, True), (1883, True), (1884, False), (1885, False), (1886, True), (1888, True), (1890, True), (1891, True), (1892, False), (1893, False), (1894, True), (1895, False), (1897, False), (1899, False), (1901, False), (1902, False), (1903, False), (1904, False), (1905, False), (1909, False), (1911, False), (1912, True), (1914, False), (1915, True), (1916, False), (1917, True), (1919, False), (1920, True), (1921, True), (1924, True), (1926, False), (1929, False), (1930, True), (1931, False), (1932, True), (1937, True), (1938, False), (1941, False), (1942, False), (1944, False), (1945, False), (1948, False), (1949, False), (1950, True), (1953, True), (1955, False), (1958, False), (1959, True), (1960, True), (1961, False), (1962, False), (1963, False), (1965, False), (1967, False), (1968, False), (1969, True), (1971, False), (1972, False), (1973, True), (1974, False), (1975, True), (1976, True), (1977, True), (1978, True), (1982, True), (1983, True), (1984, True), (1985, False), (1988, True), (1990, True), (1992, True), (1993, True), (1995, True), (1997, True), (1998, False), (1999, False), (2000, False), (2001, True), (2004, True), (2006, True), (2007, False), (2008, False), (2009, True), (2010, False), (2011, True), (2012, False), (2013, False), (2014, False), (2016, False), (2019, True), (2021, True), (2022, True), (2023, False), (2025, False), (2026, False), (2027, True), (2029, True), (2032, True), (2033, True), (2034, True), (2037, False), (2038, False), (2040, False), (2043, False), (2044, False), (2047, False)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 11
+    dataset = Dataset(input_bits_count, [(5, True), (6, True), (7, False), (8, True), (9, True), (11, True), (12, False), (16, True), (19, True), (20, True), (22, True), (24, True), (25, False), (28, True), (29, True), (32, True), (33, False), (34, True), (36, True), (37, False), (40, True), (41, True), (43, False), (46, True), (48, False), (49, True), (50, True), (51, False), (53, True), (56, False), (57, True), (59, True), (60, False), (63, True), (65, True), (67, False), (68, False), (69, True), (70, False), (73, True), (76, False), (77, True), (78, True), (80, True), (81, True), (83, True), (85, False), (87, True), (88, True), (89, False), (90, False), (93, False), (94, True), (95, False), (96, True), (98, False), (101, True), (104, True), (105, False), (107, True), (108, True), (109, True), (110, False), (112, False), (113, True), (115, False), (117, True), (119, True), (120, True), (121, False), (122, True), (123, False), (125, False), (126, False), (127, False), (129, True), (130, True), (131, True), (134, True), (136, False), (137, True), (140, True), (141, True), (145, False), (146, True), (147, True), (148, False), (149, True), (151, True), (152, True), (153, True), (154, True), (155, True), (157, True), (158, False), (160, True), (164, True), (165, True), (167, True), (169, True), (172, False), (173, False), (174, True), (175, False), (176, False), (178, True), (182, False), (185, True), (186, True), (187, False), (188, True), (189, True), (191, True), (192, True), (193, True), (194, True), (197, True), (198, True), (200, True), (202, True), (203, False), (204, False), (205, False), (206, True), (207, False), (209, True), (211, False), (214, False), (218, True), (219, False), (220, False), (221, True), (222, False), (223, False), (224, True), (227, False), (228, True), (229, True), (231, False), (232, False), (235, True), (236, True), (237, True), (238, True), (239, True), (241, True), (244, True), (248, True), (249, True), (250, False), (251, True), (253, True), (255, True), (256, True), (257, True), (260, True), (261, True), (262, True), (264, True), (265, True), (267, False), (268, True), (269, True), (271, True), (272, False), (273, True), (274, False), (275, False), (276, True), (277, False), (279, True), (281, True), (282, False), (284, True), (285, True), (291, True), (295, False), (297, True), (300, True), (304, False), (307, True), (309, False), (310, True), (311, True), (314, False), (318, True), (319, True), (320, True), (321, True), (322, True), (324, True), (325, True), (328, True), (329, True), (331, False), (332, False), (336, True), (337, True), (338, True), (340, True), (341, True), (342, False), (344, True), (345, True), (346, True), (347, True), (348, False), (350, False), (353, True), (356, True), (361, True), (363, True), (364, False), (365, True), (369, True), (370, True), (374, False), (376, True), (378, True), (380, True), (381, True), (383, True), (384, True), (385, True), (387, False), (388, True), (391, True), (392, True), (393, True), (396, False), (399, False), (400, True), (403, True), (404, True), (407, True), (408, True), (409, True), (414, True), (416, False), (417, True), (419, True), (420, True), (427, False), (428, False), (431, True), (432, False), (433, True), (437, True), (438, True), (439, True), (440, True), (441, False), (442, False), (443, True), (446, True), (449, False), (450, True), (451, False), (452, False), (453, True), (454, True), (455, True), (456, True), (457, True), (458, False), (459, True), (461, True), (463, True), (464, True), (466, True), (468, False), (469, False), (470, True), (471, True), (475, False), (476, True), (477, True), (480, True), (481, False), (483, True), (484, True), (486, False), (487, True), (489, False), (492, False), (494, True), (496, False), (498, True), (499, True), (500, False), (501, False), (502, True), (506, True), (507, False), (508, False), (509, True), (511, True), (512, True), (513, True), (516, False), (518, False), (519, True), (521, False), (522, False), (525, True), (526, False), (528, False), (529, False), (530, True), (531, True), (536, True), (538, True), (540, True), (541, True), (542, False), (543, True), (545, True), (547, False), (548, True), (549, False), (550, False), (551, True), (552, False), (554, False), (556, True), (558, True), (563, True), (564, False), (565, True), (568, True), (569, True), (570, True), (573, False), (576, True), (578, False), (579, True), (580, False), (581, True), (582, True), (583, True), (584, False), (585, True), (586, False), (589, True), (590, True), (591, False), (592, True), (594, False), (596, True), (597, True), (599, False), (602, True), (611, True), (612, True), (613, True), (614, False), (615, True), (617, True), (619, False), (621, False), (623, True), (625, True), (626, True), (627, True), (628, False), (629, False), (630, False), (631, True), (632, True), (633, True), (634, True), (635, True), (636, True), (638, True), (639, True), (641, True), (643, True), (645, False), (648, True), (649, False), (651, True), (653, True), (654, True), (656, True), (657, False), (658, True), (659, True), (660, True), (661, False), (662, True), (663, True), (665, False), (666, True), (668, True), (670, False), (671, True), (673, True), (675, False), (676, True), (681, True), (683, True), (684, False), (686, True), (687, False), (688, False), (689, True), (692, False), (693, False), (695, False), (696, False), (697, False), (698, False), (700, False), (702, True), (704, False), (705, False), (706, True), (707, True), (708, False), (710, True), (711, True), (717, True), (718, True), (719, False), (720, True), (721, False), (722, True), (723, True), (724, True), (726, True), (729, True), (732, False), (733, True), (734, True), (735, True), (736, True), (738, False), (739, True), (740, True), (742, True), (743, True), (749, True), (750, True), (751, False), (752, False), (753, False), (755, False), (756, True), (759, False), (760, True), (761, False), (763, False), (765, True), (770, False), (771, True), (773, False), (775, True), (776, False), (777, True), (778, True), (780, False), (783, True), (787, True), (790, True), (791, True), (792, True), (793, False), (798, True), (799, True), (800, False), (802, True), (803, True), (806, True), (810, False), (811, True), (812, True), (813, False), (814, True), (815, True), (817, True), (818, True), (819, True), (821, True), (822, False), (823, True), (824, False), (825, False), (826, True), (827, True), (831, True), (832, True), (833, True), (835, False), (836, False), (838, True), (843, True), (845, True), (849, True), (850, False), (852, True), (854, True), (855, True), (856, True), (857, False), (858, True), (859, False), (860, True), (862, True), (863, True), (864, False), (867, False), (868, False), (869, False), (870, True), (876, True), (877, False), (878, True), (884, True), (885, False), (886, False), (887, True), (888, True), (889, True), (891, False), (892, True), (897, True), (898, True), (899, True), (904, False), (911, False), (913, False), (914, False), (915, True), (916, True), (919, True), (921, True), (922, True), (925, False), (927, True), (929, True), (930, False), (932, True), (934, True), (936, True), (937, False), (940, False), (941, True), (943, False), (944, False), (945, False), (947, False), (948, True), (949, True), (951, True), (952, True), (954, False), (956, True), (958, False), (960, False), (968, True), (969, True), (970, True), (973, True), (974, True), (975, False), (977, True), (978, False), (979, True), (980, True), (981, False), (982, False), (983, True), (985, False), (986, True), (987, True), (988, True), (989, False), (992, True), (994, False), (1000, True), (1001, False), (1003, True), (1005, False), (1006, True), (1007, False), (1008, True), (1009, False), (1010, True), (1011, False), (1012, True), (1014, True), (1015, False), (1019, True), (1020, True), (1022, False), (1023, True), (1024, False), (1030, True), (1031, False), (1032, True), (1035, True), (1036, True), (1037, True), (1038, True), (1039, True), (1040, False), (1041, True), (1042, True), (1044, True), (1046, False), (1047, True), (1049, True), (1051, True), (1052, True), (1053, True), (1054, False), (1056, True), (1057, False), (1058, False), (1059, True), (1060, True), (1064, True), (1065, True), (1066, True), (1068, False), (1070, False), (1071, True), (1072, False), (1073, True), (1074, True), (1080, False), (1081, False), (1082, True), (1083, False), (1085, False), (1090, True), (1091, True), (1092, True), (1095, True), (1096, False), (1099, True), (1100, False), (1101, True), (1102, True), (1103, True), (1105, True), (1106, True), (1107, True), (1108, False), (1111, False), (1112, True), (1113, True), (1114, True), (1116, True), (1117, True), (1119, True), (1122, True), (1123, False), (1124, True), (1126, True), (1127, True), (1128, True), (1129, False), (1131, True), (1133, False), (1136, False), (1138, False), (1139, False), (1140, True), (1141, True), (1142, False), (1143, True), (1144, False), (1145, False), (1147, False), (1148, True), (1152, True), (1153, False), (1155, False), (1158, True), (1159, True), (1160, True), (1162, False), (1164, False), (1165, True), (1166, False), (1169, True), (1171, True), (1172, True), (1176, False), (1178, True), (1179, False), (1182, True), (1183, True), (1184, True), (1185, True), (1187, False), (1188, False), (1189, True), (1190, True), (1191, True), (1192, True), (1196, False), (1197, False), (1198, False), (1200, True), (1201, True), (1203, True), (1204, True), (1206, True), (1209, True), (1210, False), (1211, True), (1215, True), (1216, True), (1217, True), (1219, True), (1221, True), (1222, True), (1223, False), (1227, True), (1228, True), (1231, True), (1236, True), (1237, True), (1238, False), (1241, True), (1242, True), (1246, False), (1250, True), (1251, True), (1252, True), (1253, True), (1256, True), (1257, True), (1258, True), (1259, False), (1262, True), (1264, True), (1265, True), (1267, True), (1271, False), (1274, True), (1276, True), (1278, False), (1280, True), (1281, True), (1282, True), (1283, True), (1285, False), (1286, True), (1288, True), (1289, False), (1290, True), (1291, True), (1293, False), (1294, True), (1296, True), (1300, True), (1302, True), (1303, False), (1304, True), (1308, False), (1309, True), (1311, True), (1312, False), (1313, True), (1315, True), (1316, True), (1317, False), (1319, True), (1320, True), (1323, True), (1325, True), (1327, False), (1328, True), (1329, False), (1333, False), (1334, True), (1335, True), (1336, False), (1337, True), (1339, True), (1340, True), (1341, False), (1342, False), (1345, False), (1346, False), (1347, True), (1348, True), (1349, False), (1350, False), (1352, True), (1354, True), (1356, True), (1357, True), (1358, True), (1359, True), (1361, True), (1362, True), (1363, True), (1364, True), (1366, True), (1368, True), (1369, False), (1370, True), (1372, True), (1373, False), (1375, False), (1376, True), (1377, False), (1378, True), (1379, False), (1381, True), (1382, False), (1383, True), (1385, True), (1386, True), (1387, False), (1388, False), (1389, True), (1390, True), (1392, True), (1394, True), (1396, False), (1399, True), (1400, True), (1403, True), (1404, True), (1406, False), (1408, True), (1409, False), (1410, True), (1411, True), (1413, False), (1416, False), (1417, True), (1420, False), (1421, True), (1422, False), (1426, False), (1427, True), (1428, False), (1430, True), (1432, False), (1436, False), (1439, True), (1442, True), (1444, True), (1445, False), (1446, False), (1447, True), (1448, True), (1451, False), (1452, True), (1453, True), (1454, False), (1455, False), (1456, False), (1457, False), (1459, False), (1460, True), (1462, False), (1465, True), (1467, True), (1468, True), (1470, True), (1475, True), (1478, False), (1479, True), (1481, True), (1482, True), (1483, False), (1484, True), (1488, True), (1489, True), (1491, False), (1492, False), (1493, False), (1495, True), (1496, False), (1497, False), (1502, True), (1505, True), (1508, True), (1509, True), (1510, False), (1513, True), (1515, True), (1516, True), (1519, True), (1523, False), (1527, False), (1529, True), (1533, True), (1535, True), (1537, True), (1538, True), (1539, True), (1543, True), (1544, False), (1545, True), (1549, True), (1550, True), (1554, True), (1555, True), (1556, False), (1558, True), (1559, True), (1561, False), (1562, True), (1563, False), (1564, True), (1567, True), (1568, True), (1569, True), (1573, True), (1574, True), (1577, True), (1578, True), (1580, True), (1581, True), (1582, True), (1583, True), (1584, True), (1585, True), (1587, True), (1588, False), (1590, False), (1594, False), (1595, False), (1596, True), (1597, True), (1598, False), (1599, False), (1601, False), (1607, True), (1608, False), (1609, True), (1610, True), (1611, True), (1612, True), (1613, False), (1614, False), (1615, False), (1620, False), (1623, True), (1624, False), (1625, False), (1626, False), (1627, True), (1628, True), (1629, True), (1631, True), (1635, True), (1636, False), (1637, True), (1641, True), (1642, False), (1643, True), (1644, False), (1646, True), (1648, True), (1649, True), (1652, False), (1653, False), (1654, True), (1656, True), (1657, True), (1658, True), (1659, True), (1661, True), (1662, False), (1663, False), (1665, False), (1668, True), (1669, False), (1671, False), (1672, True), (1674, False), (1677, False), (1680, True), (1682, False), (1684, True), (1686, False), (1689, True), (1690, True), (1691, True), (1693, False), (1694, True), (1696, True), (1697, False), (1699, False), (1701, True), (1702, True), (1706, True), (1708, True), (1709, False), (1710, True), (1711, True), (1713, False), (1715, False), (1717, True), (1718, True), (1719, True), (1720, True), (1723, True), (1724, True), (1725, False), (1727, False), (1728, False), (1729, False), (1730, True), (1731, False), (1732, True), (1733, False), (1735, True), (1736, True), (1737, False), (1739, True), (1740, True), (1742, True), (1744, True), (1745, True), (1746, False), (1747, True), (1748, False), (1749, True), (1752, True), (1753, True), (1755, True), (1756, True), (1758, True), (1760, True), (1761, False), (1763, False), (1764, False), (1765, False), (1767, False), (1769, False), (1770, True), (1771, False), (1772, False), (1773, False), (1774, True), (1776, False), (1777, True), (1778, True), (1779, True), (1780, False), (1781, False), (1784, True), (1785, True), (1786, True), (1787, False), (1788, False), (1789, False), (1791, True), (1792, False), (1793, False), (1796, False), (1797, True), (1798, True), (1799, False), (1800, False), (1801, True), (1802, True), (1803, True), (1807, True), (1811, True), (1814, True), (1815, True), (1816, True), (1819, True), (1820, False), (1822, True), (1823, True), (1827, False), (1828, True), (1829, True), (1831, True), (1832, True), (1833, True), (1835, True), (1836, True), (1837, True), (1839, False), (1840, True), (1841, True), (1843, True), (1845, True), (1846, True), (1847, False), (1848, False), (1851, True), (1852, True), (1854, True), (1855, True), (1856, True), (1859, True), (1860, False), (1861, False), (1862, True), (1868, True), (1870, False), (1872, True), (1874, False), (1877, False), (1878, False), (1880, True), (1881, True), (1883, False), (1885, True), (1886, False), (1888, False), (1889, False), (1891, True), (1892, False), (1893, False), (1894, True), (1898, True), (1901, True), (1903, True), (1906, True), (1907, False), (1909, True), (1910, True), (1911, True), (1912, True), (1913, True), (1914, True), (1915, True), (1916, False), (1918, True), (1919, True), (1920, True), (1921, True), (1923, True), (1924, False), (1925, True), (1927, True), (1928, True), (1931, True), (1933, True), (1934, True), (1935, True), (1937, False), (1943, True), (1944, True), (1945, False), (1947, True), (1950, False), (1951, True), (1952, False), (1953, False), (1955, False), (1957, True), (1959, False), (1961, True), (1963, True), (1965, True), (1966, True), (1968, False), (1970, True), (1971, True), (1973, True), (1974, True), (1975, False), (1976, True), (1978, True), (1979, True), (1981, True), (1983, True), (1985, True), (1986, False), (1990, True), (1991, False), (1996, True), (1998, True), (2000, True), (2002, True), (2004, True), (2005, True), (2010, False), (2011, False), (2013, False), (2017, False), (2019, False), (2022, True), (2023, False), (2025, True), (2029, False), (2030, True), (2032, False), (2034, False), (2036, True), (2039, True), (2041, False), (2042, True), (2046, False)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 11
+    dataset = Dataset(input_bits_count, [(0, False), (1, True), (2, True), (4, True), (5, True), (6, False), (7, True), (11, True), (12, False), (13, True), (15, True), (18, True), (19, True), (21, False), (23, True), (24, False), (25, True), (27, True), (28, True), (31, False), (33, True), (34, True), (36, False), (37, False), (39, False), (40, True), (43, False), (44, True), (45, True), (46, False), (47, False), (48, True), (49, False), (51, True), (52, True), (54, False), (57, True), (58, False), (59, False), (60, True), (61, True), (63, True), (64, True), (66, True), (68, False), (70, True), (73, False), (74, True), (75, False), (76, True), (78, False), (79, True), (80, True), (82, True), (85, False), (86, False), (87, False), (88, False), (89, True), (90, False), (91, False), (94, False), (97, True), (98, False), (100, False), (101, False), (102, False), (103, True), (107, True), (111, True), (112, True), (113, False), (114, True), (116, True), (118, True), (119, False), (120, True), (123, True), (124, False), (126, False), (130, False), (131, True), (132, False), (134, True), (135, False), (136, True), (138, True), (139, True), (142, True), (143, False), (146, False), (149, False), (152, False), (155, True), (157, False), (158, False), (159, True), (160, True), (164, True), (169, True), (170, True), (171, False), (173, False), (174, False), (178, True), (181, False), (182, True), (183, False), (184, True), (185, True), (187, True), (188, True), (191, False), (192, True), (195, False), (197, True), (199, False), (200, True), (201, False), (203, False), (204, False), (207, True), (208, False), (212, False), (213, True), (216, False), (218, False), (219, True), (220, False), (222, True), (223, False), (224, False), (227, False), (228, True), (230, False), (232, True), (233, True), (235, True), (236, True), (237, True), (238, False), (239, True), (240, True), (241, True), (243, False), (244, False), (245, False), (246, True), (247, False), (248, True), (249, True), (250, True), (251, False), (252, False), (255, True), (257, False), (263, True), (266, True), (268, False), (270, True), (273, False), (274, True), (279, False), (280, True), (281, False), (282, True), (284, False), (286, False), (287, True), (288, False), (291, False), (294, False), (297, True), (299, False), (300, False), (301, True), (302, False), (303, True), (305, True), (306, False), (307, False), (309, False), (313, True), (314, True), (315, True), (316, False), (317, False), (318, True), (319, False), (322, True), (323, True), (325, True), (326, False), (328, True), (329, True), (331, True), (332, False), (333, False), (334, True), (336, False), (337, False), (338, False), (339, True), (341, False), (345, False), (346, True), (347, True), (350, False), (353, True), (355, True), (356, True), (357, True), (358, True), (359, False), (361, True), (363, False), (364, True), (367, False), (368, False), (369, True), (370, False), (371, True), (372, False), (376, True), (377, True), (381, True), (382, False), (384, False), (386, True), (387, False), (388, False), (392, False), (394, True), (396, True), (397, True), (399, False), (400, False), (401, False), (402, True), (404, True), (405, True), (408, True), (409, False), (413, True), (419, True), (423, False), (425, False), (426, False), (429, True), (431, True), (433, True), (434, False), (437, True), (438, False), (441, True), (442, False), (443, True), (445, True), (451, False), (452, True), (455, False), (456, True), (461, False), (466, True), (468, False), (469, False), (471, False), (473, True), (475, True), (476, False), (477, False), (479, True), (481, True), (482, True), (483, False), (486, False), (488, True), (489, False), (491, True), (492, True), (493, True), (496, False), (498, True), (499, False), (501, False), (504, True), (505, True), (506, False), (510, False), (511, True), (516, False), (517, True), (519, True), (520, False), (521, False), (522, True), (523, True), (524, True), (525, True), (526, False), (527, True), (528, True), (529, True), (532, True), (533, True), (535, False), (536, False), (538, True), (539, False), (540, True), (544, True), (545, True), (546, True), (547, True), (548, True), (551, True), (552, False), (553, False), (557, True), (558, False), (559, True), (560, True), (564, True), (566, True), (567, False), (568, False), (569, True), (570, True), (572, False), (573, True), (574, True), (575, True), (577, True), (579, True), (582, False), (583, False), (585, True), (587, False), (588, True), (589, True), (590, True), (591, False), (593, True), (594, True), (596, False), (598, False), (599, False), (600, True), (602, True), (603, True), (604, False), (606, False), (611, True), (612, True), (617, False), (619, False), (621, False), (622, True), (624, False), (625, False), (628, False), (629, True), (631, True), (634, False), (635, False), (636, True), (639, True), (640, True), (641, True), (642, False), (643, False), (644, True), (647, False), (649, True), (652, False), (653, False), (655, True), (657, False), (658, True), (659, True), (660, True), (662, False), (663, False), (665, False), (667, False), (668, True), (669, True), (673, False), (675, True), (677, False), (680, True), (682, False), (689, False), (690, True), (691, False), (693, False), (694, True), (695, True), (697, False), (699, False), (700, True), (701, True), (702, True), (703, False), (704, False), (705, False), (706, False), (707, True), (708, True), (709, True), (710, True), (714, False), (718, True), (719, False), (720, True), (721, False), (722, True), (723, True), (724, True), (725, False), (730, False), (731, True), (732, False), (733, False), (736, True), (737, True), (738, True), (740, False), (742, False), (743, True), (744, True), (747, True), (748, True), (749, True), (750, True), (753, True), (754, True), (755, True), (756, True), (757, True), (758, False), (761, True), (763, True), (764, False), (765, False), (767, True), (770, False), (771, True), (773, False), (774, True), (775, True), (777, False), (778, True), (780, True), (784, True), (786, False), (789, True), (792, True), (793, True), (794, False), (795, False), (796, True), (797, False), (800, False), (801, True), (802, True), (803, True), (807, True), (808, True), (809, True), (810, True), (811, False), (814, False), (816, False), (818, False), (819, True), (820, False), (821, True), (822, True), (823, True), (824, True), (825, False), (827, True), (829, False), (830, True), (832, True), (833, False), (836, True), (837, True), (838, False), (842, True), (843, True), (844, True), (846, False), (847, False), (848, True), (849, True), (850, True), (851, False), (853, True), (856, True), (857, True), (858, False), (859, False), (862, False), (864, True), (866, False), (867, True), (869, True), (870, True), (872, False), (874, True), (875, True), (878, True), (880, True), (881, True), (882, True), (883, False), (887, True), (888, True), (889, False), (893, False), (894, True), (899, True), (902, True), (904, True), (905, True), (906, True), (908, False), (909, True), (911, True), (912, True), (913, True), (915, True), (916, True), (917, False), (919, True), (922, True), (923, True), (927, True), (931, True), (932, True), (933, False), (935, True), (936, False), (937, False), (938, True), (941, True), (942, True), (945, False), (946, True), (947, False), (948, False), (949, False), (950, True), (952, True), (958, False), (959, False), (963, False), (964, True), (965, False), (967, True), (968, False), (969, False), (971, True), (973, False), (975, False), (976, False), (977, False), (978, False), (979, False), (980, True), (981, False), (982, False), (987, True), (989, False), (992, True), (993, False), (996, True), (998, False), (1000, True), (1002, True), (1003, True), (1004, False), (1008, True), (1009, True), (1010, False), (1011, False), (1012, True), (1013, False), (1015, False), (1016, True), (1019, True), (1020, True), (1021, True), (1022, True), (1023, True), (1025, True), (1027, False), (1031, True), (1032, True), (1034, True), (1037, True), (1038, True), (1039, False), (1042, False), (1046, True), (1049, False), (1051, False), (1052, False), (1053, True), (1054, True), (1056, False), (1057, True), (1058, False), (1059, True), (1062, False), (1063, True), (1069, True), (1071, False), (1072, False), (1073, True), (1075, False), (1076, True), (1079, False), (1083, True), (1084, True), (1085, False), (1087, True), (1088, False), (1089, True), (1090, True), (1091, True), (1092, True), (1093, False), (1097, True), (1098, True), (1099, True), (1100, False), (1101, False), (1102, False), (1105, True), (1106, False), (1108, True), (1109, False), (1110, True), (1111, False), (1112, False), (1116, False), (1118, False), (1121, False), (1123, True), (1124, False), (1125, True), (1126, False), (1127, True), (1128, True), (1130, False), (1131, False), (1132, True), (1133, False), (1135, False), (1138, True), (1139, True), (1141, False), (1142, True), (1144, True), (1145, False), (1147, True), (1148, True), (1149, False), (1150, False), (1151, True), (1153, False), (1155, True), (1156, True), (1157, False), (1159, True), (1161, False), (1163, False), (1166, False), (1167, False), (1168, True), (1169, False), (1170, False), (1171, False), (1172, False), (1173, False), (1175, True), (1177, True), (1178, True), (1182, True), (1183, True), (1187, True), (1188, False), (1191, True), (1193, True), (1194, True), (1195, False), (1196, True), (1198, False), (1199, True), (1200, True), (1203, True), (1206, False), (1207, True), (1210, True), (1213, False), (1216, False), (1218, False), (1219, False), (1220, False), (1222, True), (1224, False), (1225, False), (1226, True), (1227, False), (1231, True), (1232, True), (1235, False), (1236, False), (1237, False), (1238, True), (1241, True), (1243, True), (1244, False), (1246, True), (1248, True), (1250, False), (1251, False), (1253, True), (1254, False), (1256, True), (1262, True), (1263, False), (1264, False), (1265, False), (1268, False), (1272, False), (1273, False), (1274, True), (1275, True), (1276, True), (1277, False), (1278, False), (1279, True), (1283, True), (1285, False), (1286, False), (1288, False), (1289, True), (1290, True), (1295, True), (1296, False), (1297, False), (1300, False), (1303, True), (1306, False), (1310, True), (1312, True), (1313, True), (1316, True), (1318, True), (1319, False), (1320, True), (1321, False), (1322, False), (1323, True), (1324, False), (1325, False), (1326, True), (1328, True), (1330, False), (1331, True), (1333, False), (1334, False), (1335, False), (1338, True), (1341, True), (1342, False), (1343, True), (1344, True), (1345, True), (1346, False), (1349, False), (1350, True), (1351, True), (1352, False), (1356, False), (1357, False), (1360, False), (1361, True), (1362, True), (1363, True), (1364, True), (1368, False), (1369, True), (1372, True), (1373, False), (1375, True), (1379, True), (1380, False), (1385, True), (1386, True), (1387, True), (1388, False), (1389, True), (1390, False), (1394, True), (1395, False), (1396, True), (1397, True), (1402, False), (1404, True), (1406, True), (1407, False), (1408, False), (1411, True), (1412, True), (1414, True), (1415, False), (1417, False), (1419, False), (1421, False), (1422, True), (1423, False), (1424, True), (1425, False), (1428, True), (1429, True), (1431, True), (1434, True), (1436, False), (1437, False), (1440, False), (1444, True), (1445, False), (1449, True), (1452, True), (1455, False), (1457, False), (1459, True), (1462, False), (1465, True), (1466, False), (1471, False), (1474, False), (1475, False), (1478, True), (1481, True), (1482, True), (1483, True), (1484, False), (1485, True), (1489, True), (1492, True), (1494, True), (1495, True), (1496, False), (1497, False), (1498, True), (1500, False), (1502, True), (1503, False), (1504, True), (1506, True), (1507, False), (1511, False), (1512, True), (1514, False), (1516, True), (1517, True), (1519, False), (1521, False), (1522, False), (1523, False), (1524, False), (1527, True), (1528, True), (1531, False), (1532, False), (1535, True), (1538, True), (1541, True), (1546, True), (1547, True), (1548, True), (1549, True), (1550, True), (1551, True), (1552, False), (1553, False), (1554, False), (1556, False), (1557, True), (1558, True), (1559, False), (1560, True), (1562, True), (1567, False), (1568, False), (1569, False), (1572, True), (1573, False), (1574, True), (1576, False), (1577, True), (1580, False), (1581, True), (1582, False), (1583, False), (1584, False), (1586, False), (1589, True), (1590, True), (1591, True), (1592, False), (1594, True), (1598, True), (1599, True), (1602, False), (1605, False), (1607, True), (1608, True), (1609, True), (1610, False), (1611, False), (1613, True), (1614, False), (1616, False), (1617, False), (1618, True), (1619, True), (1620, True), (1621, True), (1623, True), (1625, False), (1626, True), (1627, False), (1630, True), (1631, False), (1632, True), (1636, False), (1639, True), (1640, True), (1643, False), (1644, True), (1647, False), (1648, False), (1650, True), (1654, True), (1655, True), (1657, True), (1660, True), (1662, True), (1663, False), (1664, True), (1666, True), (1667, False), (1669, False), (1670, False), (1672, False), (1673, True), (1675, True), (1676, False), (1677, False), (1678, True), (1679, True), (1681, True), (1682, False), (1685, False), (1686, False), (1687, True), (1688, True), (1689, False), (1690, True), (1691, True), (1692, False), (1693, True), (1697, True), (1698, True), (1699, False), (1700, True), (1702, True), (1703, False), (1705, True), (1706, True), (1709, True), (1711, True), (1712, False), (1713, False), (1715, True), (1716, False), (1717, False), (1720, False), (1722, False), (1723, False), (1726, True), (1729, True), (1730, False), (1731, True), (1732, True), (1733, False), (1735, False), (1736, True), (1737, True), (1739, True), (1740, True), (1741, False), (1744, True), (1745, False), (1747, False), (1748, False), (1749, False), (1750, False), (1751, True), (1752, False), (1754, False), (1756, False), (1757, True), (1758, True), (1759, False), (1761, True), (1762, False), (1765, False), (1769, False), (1776, False), (1777, False), (1779, True), (1780, False), (1782, False), (1783, False), (1784, True), (1786, False), (1787, False), (1789, False), (1791, True), (1792, False), (1794, True), (1795, False), (1797, True), (1798, True), (1799, False), (1801, False), (1802, False), (1806, False), (1807, False), (1809, False), (1811, False), (1812, False), (1814, True), (1815, False), (1816, False), (1818, True), (1821, False), (1822, False), (1823, False), (1824, False), (1825, True), (1829, True), (1830, False), (1832, False), (1833, True), (1836, True), (1837, False), (1838, False), (1840, True), (1841, False), (1842, True), (1843, True), (1845, False), (1849, True), (1850, True), (1852, True), (1859, False), (1860, True), (1861, True), (1862, True), (1868, False), (1870, True), (1871, False), (1873, True), (1875, True), (1877, False), (1878, True), (1879, True), (1880, True), (1881, False), (1884, False), (1886, False), (1887, False), (1888, False), (1891, True), (1895, False), (1896, True), (1897, False), (1898, False), (1899, True), (1902, False), (1904, True), (1906, True), (1907, True), (1909, False), (1910, True), (1912, True), (1913, True), (1914, True), (1917, False), (1918, True), (1919, False), (1920, True), (1921, True), (1922, False), (1923, True), (1924, False), (1927, False), (1928, False), (1930, False), (1931, True), (1933, False), (1934, False), (1936, False), (1939, False), (1941, False), (1942, False), (1943, True), (1944, True), (1946, False), (1947, True), (1949, False), (1950, True), (1952, False), (1953, True), (1954, False), (1955, True), (1957, True), (1958, True), (1959, False), (1960, False), (1961, True), (1962, True), (1963, True), (1966, True), (1967, False), (1971, False), (1972, True), (1973, True), (1974, True), (1975, True), (1978, False), (1979, True), (1981, True), (1982, False), (1983, False), (1984, True), (1985, True), (1986, True), (1989, False), (1990, True), (1991, False), (1993, False), (1995, True), (1998, True), (2002, False), (2003, False), (2005, False), (2006, False), (2008, False), (2009, True), (2015, True), (2019, True), (2022, True), (2024, True), (2026, True), (2027, True), (2031, True), (2032, False), (2033, True), (2035, True), (2037, True), (2038, True), (2040, True), (2041, False), (2044, True), (2045, True), (2047, True)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 8
+    dataset = Dataset(input_bits_count, [(0, True), (1, True), (2, False), (3, False), (5, False), (6, True), (9, False), (10, False), (11, False), (14, False), (15, True), (16, True), (17, False), (18, False), (20, False), (22, False), (23, True), (24, False), (25, True), (26, True), (27, False), (28, True), (29, True), (30, True), (31, False), (32, True), (33, True), (34, False), (35, True), (36, False), (37, True), (38, False), (40, False), (41, False), (42, False), (43, False), (44, False), (45, False), (47, False), (48, False), (49, False), (50, False), (51, False), (52, True), (53, True), (54, True), (55, True), (56, False), (57, False), (58, True), (59, True), (60, False), (62, True), (63, False), (64, True), (65, False), (66, True), (67, True), (68, False), (69, False), (71, False), (73, True), (75, False), (76, True), (77, False), (79, False), (80, False), (81, False), (82, True), (83, True), (84, True), (85, True), (86, False), (89, True), (91, False), (92, True), (93, False), (94, True), (95, False), (96, True), (99, True), (100, True), (101, False), (102, True), (103, False), (105, True), (106, False), (107, True), (109, True), (112, True), (113, False), (114, True), (115, True), (116, False), (117, True), (118, True), (119, False), (120, True), (121, False), (122, True), (123, False), (126, False), (127, False), (129, True), (133, False), (135, False), (136, False), (137, False), (138, True), (139, False), (140, True), (141, True), (142, False), (143, True), (145, False), (146, True), (147, True), (148, False), (149, False), (151, False), (152, True), (153, False), (154, True), (155, True), (156, False), (157, False), (158, False), (159, False), (160, True), (161, True), (164, True), (166, False), (167, True), (168, True), (170, False), (171, False), (173, False), (174, True), (175, True), (177, True), (178, False), (179, True), (180, False), (181, True), (182, True), (183, False), (184, False), (185, True), (188, False), (190, False), (192, False), (193, False), (195, False), (196, False), (199, False), (200, False), (201, True), (202, False), (203, True), (204, False), (206, False), (207, True), (208, True), (209, False), (210, False), (211, False), (212, True), (213, True), (214, True), (215, False), (217, False), (218, False), (219, True), (220, True), (221, True), (222, True), (223, False), (224, False), (225, False), (226, False), (227, False), (229, True), (230, True), (231, True), (232, True), (233, True), (234, False), (235, False), (237, True), (238, True), (239, True), (240, True), (241, False), (242, True), (243, True), (244, True), (245, False), (246, True), (247, False), (248, True), (249, False), (251, False), (252, True), (254, True), (255, True)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+
+    input_bits_count = 8
+    dataset = Dataset(input_bits_count, [(0, True), (4, False), (5, True), (7, False), (8, False), (9, False), (10, False), (12, False), (14, True), (15, True), (18, False), (19, False), (21, False), (22, True), (26, True), (27, False), (28, False), (29, False), (32, False), (33, True), (35, False), (37, False), (39, True), (40, True), (41, True), (42, False), (43, False), (46, True), (47, True), (50, False), (51, False), (52, False), (53, False), (55, True), (56, False), (57, True), (58, False), (59, True), (60, False), (61, False), (63, False), (66, False), (67, True), (69, False), (72, True), (73, True), (74, False), (75, False), (79, False), (80, False), (81, True), (82, True), (83, False), (84, False), (87, False), (89, True), (90, True), (91, False), (92, False), (93, True), (95, False), (96, True), (100, False), (101, False), (109, True), (111, False), (113, True), (116, False), (118, False), (123, False), (126, True), (129, False), (130, False), (132, True), (133, True), (134, False), (135, False), (136, False), (137, True), (139, False), (141, True), (142, False), (143, True), (147, False), (151, False), (155, False), (156, True), (157, False), (159, False), (160, False), (162, True), (163, False), (164, False), (165, False), (166, True), (167, False), (168, True), (169, False), (170, False), (171, True), (172, False), (173, False), (174, False), (175, False), (179, False), (180, False), (181, True), (186, False), (187, True), (188, True), (192, True), (193, False), (194, True), (196, True), (198, False), (200, False), (201, False), (202, False), (203, False), (205, True), (206, False), (207, False), (209, False), (211, False), (212, True), (214, False), (216, True), (217, False), (218, False), (219, False), (220, False), (221, False), (223, False), (228, True), (229, False), (230, True), (231, True), (232, False), (233, False), (234, False), (235, False), (236, False), (237, False), (239, False), (242, False), (243, True), (244, False), (245, True), (246, False), (248, False), (249, True), (251, False), (252, False)])
+    a_DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
     
     pass
 
 
 
-
-
-
-
 if "random dataset test   slow" and True:
-    iter_multiplier = 1
+    iter_multiplier = 100
     #11111111111111111111w 加上保存xor的flag，然后跑一下。
     '''
     old code
@@ -3933,7 +4291,7 @@ if "random dataset test   slow" and True:
                 # if dataset.data.__len__() == 0:
                 #     continue
                 a_DatasetField = DatasetField._new__and_valid(dataset)
-                a_DatasetField.valid(dataset, total_amount = 100)
+                #a_DatasetField.valid(dataset, total_amount = 100)
                 a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
                 pass#for input_bits_count
             pass#for ____total_iter
@@ -3951,8 +4309,8 @@ if "random dataset test   slow" and True:
                 if dataset.data.__len__() == 0:
                     continue
                 a_DatasetField = DatasetField._new__and_valid(dataset)
-                a_DatasetField.valid(dataset, total_amount = 100)
-                a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+                #a_DatasetField.valid(dataset, total_amount = 100)
+                a_DatasetField = DatasetField._new(dataset, leaf_keep_dataset=True)
                 a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
                 pass#for input_bits_count
             pass#for ____total_iter
@@ -3970,8 +4328,8 @@ if "random dataset test   slow" and True:
                 if dataset.data.__len__() == 0:
                     continue
                 a_DatasetField = DatasetField._new__and_valid(dataset)
-                a_DatasetField.valid(dataset, total_amount = 100)
-                a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+                #a_DatasetField.valid(dataset, total_amount = 100)
+                a_DatasetField = DatasetField._new(dataset, leaf_keep_dataset=True)
                 a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
                 pass#for input_bits_count
             pass#for ____total_iter
@@ -3993,8 +4351,8 @@ if "random dataset test   slow" and True:
                 if dataset.data.__len__() == 0:
                     continue
                 a_DatasetField = DatasetField._new__and_valid(dataset)
-                a_DatasetField.valid(dataset, total_amount = 100)
-                a_DatasetField = DatasetField._new__and_valid(dataset, leaf_keep_dataset=True)
+                #a_DatasetField.valid(dataset, total_amount = 100)
+                a_DatasetField = DatasetField._new(dataset, leaf_keep_dataset=True)
                 a_DatasetField.valid_irr(dataset, total_amount_irr = 100)
                 assert a_DatasetField.children is None
                 pass#for input_bits_count
@@ -4033,7 +4391,7 @@ class Dataset_Set:
         self.max_input_bits = max_input_bits
         self.dataset_children = []
         for _ in range(output_bits):
-            self.dataset_children.append(Dataset(max_input_bits))
+            self.dataset_children.append(Dataset._debug__new_empty(max_input_bits))#meant to use this function.
             pass
         self.is_data_sorted = True
         pass
@@ -4328,13 +4686,20 @@ class DatasetField_Set:
         self.leaf_keep_dataset = leaf_keep_dataset
         self.fields = []
         for dataset in datasetset.dataset_children:
-            _temp_datasetfield = DatasetField._new__and_valid(dataset, leaf_keep_dataset)
+            _temp_datasetfield = DatasetField._new(dataset, leaf_keep_dataset)
+            
+            #maybe redundent since subfield doesn't init when dataset is empty
+            assert not _temp_datasetfield.all_irr
+            
             self.fields.append(_temp_datasetfield)
             pass
-        
-        assert False, "加一个，所有的根节点都不能是all irr."
-        
         pass
+    def _check___maybe_redundent(self):
+        for field in self.fields:
+            assert not field.all_irr
+            pass
+        pass
+    
     def get_input_count(self)->int:
         return self.fields[0].input_bits_count
     def get_output_count(self)->int:
@@ -4343,8 +4708,8 @@ class DatasetField_Set:
     # def get_addr_FieldLength(self)->int:
     #     return self.fields[0].FieldLength
     
-    def lookup(self, addr:int)->tuple[int,int]:
-        '''return (irr_bit_maskin_int, result_in_int)'''
+    def lookup(self, addr:int)->int:
+        '''return result_in_int'''
         _count_ones = count_ones(addr)
         assert self.get_input_count()>=_count_ones
         
@@ -4352,13 +4717,17 @@ class DatasetField_Set:
         result_in_int = 0
         for i_from_the_left in range(self.get_output_count()):
             field = self.fields[i_from_the_left]
-            for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,_,_ = field.lookup(addr)
+            
+            _temp_tuple_bbbio = a_DatasetField.lookup(addr)
+            result_or_suggest = _temp_tuple_bbbio[2]
+            #mypy doesn't like this line. for_sure_it_is_irr, for_sure_it_is_NOT_irr, result_or_suggest,found_in_addr,_ = field.lookup(addr)
+            
             i_from_the_right = (self.get_output_count()-1)-i_from_the_left#len-1-index_from_left
-            1w
-            irr_bit_maskin_int = irr_bit_maskin_int|(temp_result_is_irr<<i_from_the_right)
-            result_in_int = result_in_int|(temp_result_is_true<<i_from_the_right)
+            #1111111111111111111w
+            #irr_bit_maskin_int = irr_bit_maskin_int|(temp_result_is_irr<<i_from_the_right)
+            result_in_int = result_in_int|(result_or_suggest<<i_from_the_right)
             pass
-        return (irr_bit_maskin_int, result_in_int)
+        return result_in_int
     
     if "old and probably wrong. The dimention is probably wrong. lookup function." and False:
         def lookup(self, datasetset:Dataset_Set)->tuple[int,int]:
@@ -4387,9 +4756,14 @@ class DatasetField_Set:
         for i in range(self.get_output_count()):
             dataset = datasetset.dataset_children[i]
             datasetfield = self.fields[i]
+            
             _temp_tuple = datasetfield.valid(dataset, total_amount, log_the_error_to_file_and_return_immediately = False)
-            assert _temp_tuple[0]
-            result.append((_temp_tuple[1], _temp_tuple[2]))
+            finished_the_check = _temp_tuple[0]
+            check_count = _temp_tuple[1]
+            error_count = _temp_tuple[2]
+            
+            assert finished_the_check
+            result.append((check_count, error_count))
             pass
         return result
     
@@ -4402,9 +4776,16 @@ class DatasetField_Set:
         for i in range(self.get_output_count()):
             dataset = datasetset.dataset_children[i]
             datasetfield = self.fields[i]
+            
             _temp_tuple = datasetfield.valid_irr(dataset, total_amount_irr, log_the_error_to_file_and_return_immediately = False)
-            assert _temp_tuple[0]
-            result.append((_temp_tuple[1], _temp_tuple[2]))
+            finished_the_check = _temp_tuple[0]
+            check_count = _temp_tuple[1]
+            error_count = _temp_tuple[2]
+            
+            1w 没检查完怎么办？？？
+            
+            assert finished_the_check
+            result.append((check_count, error_count))
             pass
         return result
     
@@ -4477,11 +4858,11 @@ if "lookup" and True:
     assert a_DatasetField_Set.get_input_count() == 6
     assert a_DatasetField_Set.get_output_count() == 3
     
-    irr_bit_maskin_int, result_in_int = a_DatasetField_Set.lookup(11)1w
+    irr_bit_maskin_int, result_in_int = a_DatasetField_Set.lookup(11)#1111111111111111111w
     assert irr_bit_maskin_int == 0
     assert result_in_int == 0b111
     
-    irr_bit_maskin_int, result_in_int = a_DatasetField_Set.lookup(25)1w
+    irr_bit_maskin_int, result_in_int = a_DatasetField_Set.lookup(25)#1111111111111111111w
     assert irr_bit_maskin_int == 0
     assert result_in_int == 0b000
     pass
