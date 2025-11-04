@@ -4747,51 +4747,78 @@ class DatasetField_Set:
             return (irr_bit_maskin_int, result_in_int)
         pass
     
-    def valid(self, datasetset:Dataset_Set, total_amount: int = -1)->list[tuple[int,int]]:
-        '''return list[(check_count, error_count)]'''
+    def valid(self, datasetset:Dataset_Set, total_amount: int = -1)->tuple[int,int,list[tuple[int,int]]]:
+        '''return flags_of_sub_check_finishes, flags_of_sub_check_finishes___reversed, list_of_total_and_error
+        
+        >>> flags_of_sub_check_finishes: if all the check finishes, this is all 1s.
+        >>> flags_of_sub_check_finishes___reversed: but this one is more convenient. If all finishes, this is all 0s, 
+        and you can check this against int(0).
+        >>> list_of_total_and_error: a list of tuples. In the tuple, it's total check count and error count.'''
+        
         #safety first
         assert self.get_output_count() == datasetset.get_output_count()
         
-        result:list[tuple[int,int]] = []
-        for i in range(self.get_output_count()):
-            dataset = datasetset.dataset_children[i]
-            datasetfield = self.fields[i]
+        list_of_total_and_error:list[tuple[int,int]] = []
+        flags_of_sub_check_finishes = 0
+        flags_of_sub_check_finishes___reversed = (1<<datasetset.get_output_count()) -1
+        for i_from_left in range(self.get_output_count()):
+            dataset = datasetset.dataset_children[i_from_left]
+            datasetfield = self.fields[i_from_left]
             
             _temp_tuple = datasetfield.valid(dataset, total_amount, log_the_error_to_file_and_return_immediately = False)
             finished_the_check = _temp_tuple[0]
             check_count = _temp_tuple[1]
             error_count = _temp_tuple[2]
             
-            assert finished_the_check
-            result.append((check_count, error_count))
+            if finished_the_check:
+                i_from_right = self.get_output_count()-1-i_from_left
+                flags_of_sub_check_finishes ^= 1<<i_from_right
+                flags_of_sub_check_finishes___reversed ^= 1<<i_from_right
+                pass
+            
+            list_of_total_and_error.append((check_count, error_count))
             pass
-        return result
+        return flags_of_sub_check_finishes, flags_of_sub_check_finishes___reversed, list_of_total_and_error
     
-    def valid_irr(self, datasetset:Dataset_Set, total_amount_irr: int = -1)->list[tuple[int,int]]:
-        '''return (check_count, error_count)'''
+    def valid_irr(self, datasetset:Dataset_Set, total_amount_irr: int = -1)->tuple[int,int,list[tuple[int,int]]]:
+        '''return flags_of_sub_check_finishes, flags_of_sub_check_finishes___reversed, list_of_total_and_error
+        
+        >>> flags_of_sub_check_finishes: if all the check finishes, this is all 1s.
+        >>> flags_of_sub_check_finishes___reversed: but this one is more convenient. If all finishes, this is all 0s, 
+        and you can check this against int(0).
+        >>> list_of_total_and_error: a list of tuples. In the tuple, it's total check count and error count.'''
+        
         #safety first
         assert self.get_output_count() == datasetset.get_output_count()
         
-        result:list[tuple[int,int]] = []
-        for i in range(self.get_output_count()):
-            dataset = datasetset.dataset_children[i]
-            datasetfield = self.fields[i]
+        list_of_total_and_error:list[tuple[int,int]] = []
+        flags_of_sub_check_finishes = 0
+        flags_of_sub_check_finishes___reversed = (1<<datasetset.get_output_count()) -1
+        for i_from_left in range(self.get_output_count()):
+            dataset = datasetset.dataset_children[i_from_left]
+            datasetfield = self.fields[i_from_left]
             
             _temp_tuple = datasetfield.valid_irr(dataset, total_amount_irr, log_the_error_to_file_and_return_immediately = False)
             finished_the_check = _temp_tuple[0]
             check_count = _temp_tuple[1]
             error_count = _temp_tuple[2]
             
-            1w 没检查完怎么办？？？
+            if finished_the_check:
+                i_from_right = self.get_output_count()-1-i_from_left
+                flags_of_sub_check_finishes ^= 1<<i_from_right
+                flags_of_sub_check_finishes___reversed ^= 1<<i_from_right
+                pass
             
-            assert finished_the_check
-            result.append((check_count, error_count))
+            list_of_total_and_error.append((check_count, error_count))
             pass
-        return result
+        return flags_of_sub_check_finishes, flags_of_sub_check_finishes___reversed, list_of_total_and_error
     
     pass#end of class
     
 if "test" and True:
+    
+    1w 继续。
+    
     a_Dataset_Set = Dataset_Set(6, 3)
     a_Dataset_Set.add_binary(11, 0b111)
     a_Dataset_Set.add_binary(15, 0b110)
@@ -4809,8 +4836,9 @@ if "test" and True:
     assert a_Dataset_Set.get_output_count() == a_DatasetField_Set.get_output_count()
     assert a_Dataset_Set.get_output_count() == 3
 
-    _result_tuple_list = a_DatasetField_Set.valid(a_Dataset_Set)
-    assert [(4, 0), (4, 0), (4, 0), ] == _result_tuple_list
+    _, flags___reversed, list_of_total_and_error = a_DatasetField_Set.valid(a_Dataset_Set)
+    assert 0 == flags___reversed
+    assert [(4, 0), (4, 0), (4, 0), ] == list_of_total_and_error
     
     
     a_Dataset_Set = Dataset_Set(6, 3)
@@ -4821,8 +4849,11 @@ if "test" and True:
     assert a_Dataset_Set.max_input_bits == 6
     assert a_Dataset_Set.get_output_count() == 3
     
-    _result_tuple_list = a_DatasetField_Set.valid(a_Dataset_Set)
-    assert [(2, 0), (2, 0), (2, 0), ] == _result_tuple_list
+    
+    
+    _, flags___reversed, list_of_total_and_error = a_DatasetField_Set.valid(a_Dataset_Set)
+    assert 0 == flags___reversed
+    assert [(2, 0), (2, 0), (2, 0), ] == list_of_total_and_error
     
     
     a_Dataset_Set = Dataset_Set(6, 3)
@@ -4838,8 +4869,9 @@ if "test" and True:
     FieldLength = a_Dataset_Set.get_recommended_addr_FieldLength()
     a_DatasetField_Set = DatasetField_Set(a_Dataset_Set, leaf_keep_dataset = True)
     assert a_DatasetField_Set.get_output_count() == 3
-    _result_tuple_list = a_DatasetField_Set.valid_irr(a_Dataset_Set, 10)
-    assert [(10, 0), (10, 0), (10, 0), ] == _result_tuple_list, "this is not stable. Usually, simply retry and the test passes."
+    _, flags___reversed, list_of_total_and_error = a_DatasetField_Set.valid_irr(a_Dataset_Set, 10)
+    assert 0 == flags___reversed
+    assert [(10, 0), (10, 0), (10, 0), ] == list_of_total_and_error, "this is not stable. Usually, simply retry and the test passes."
     pass
     
 if "lookup" and True:
