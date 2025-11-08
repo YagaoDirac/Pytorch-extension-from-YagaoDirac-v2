@@ -19,6 +19,7 @@ import sys
 import random
 import time
 from datetime import datetime
+import statistics 
 
 
 dataset:'Dataset'
@@ -241,6 +242,9 @@ class Dataset:
         assert only_full, "this version only handles this case."
         
         if seed:
+            random.seed(seed)
+            pass
+        else:
             random.seed(time.time())
             pass
         
@@ -344,6 +348,9 @@ class Dataset:
         For debug purpose.'''
         dataset:list[tuple[int,bool]] = []
         if seed:
+            random.seed(seed)
+            pass
+        else:
             random.seed(time.time())
             pass
         p_both = p_True + p_False
@@ -4568,6 +4575,38 @@ class Dataset_Set:
         number_c = input&mask_c
         sum = number_1+number_2+number_c
         return (number_1, number_2, number_c, sum)
+    
+    
+    
+    
+    @staticmethod
+    def get_full_adder_testset_partly___sample_count_detect(input_bit_amount:int, \
+            proportion = 0.2, max_amount = 1000000, )->tuple[float,int,bool]:
+        '''return proportion, count, the_proportion_is_the_limit
+        
+        Input param:
+        >>> input_bit_amount: when it's 3, the result is a dataset of 3 bit + 3 bit + carry bit. Output is 4 bits.
+        >>> proportion and max_amount: both limit the max amount of item in the dataset. Only the smaller one works.
+        '''
+        total_bit_amount = input_bit_amount*2+1
+        max_possible_sample_count = 1<<total_bit_amount
+        assert proportion<0.8, "Don't torture the also. You don't need a 0.8+ proportion. Or get some other also."
+        assert proportion>0.
+        amount_needed = int(proportion * max_possible_sample_count)
+        if 0 == amount_needed:
+            amount_needed = 1
+            pass
+        assert amount_needed > 0
+        
+        the_proportion_is_the_limit = True
+        if amount_needed>max_amount:
+            the_proportion_is_the_limit = False
+            amount_needed = max_amount
+            pass
+        
+        actual_proportion = amount_needed/max_possible_sample_count
+        return actual_proportion, amount_needed, the_proportion_is_the_limit
+        
     @staticmethod
     def get_full_adder_testset_partly(input_bit_amount:int, \
             proportion = 0.2, max_amount = 1000000, \
@@ -4581,12 +4620,15 @@ class Dataset_Set:
         if seed:
             random.seed(seed)
             pass
+        else:
+            random.seed(time.time())
+            pass
         
         total_bit_amount = input_bit_amount*2+1
-        one_shift_by__total_bit_amount = 1<<total_bit_amount
+        max_possible_sample_count = 1<<total_bit_amount
         assert proportion<0.8, "Don't torture the also. You don't need a 0.8+ proportion. Or get some other also."
         assert proportion>0.
-        amount_needed = int(proportion * one_shift_by__total_bit_amount)
+        amount_needed = int(proportion * max_possible_sample_count)
         if 0 == amount_needed:
             amount_needed = 1
             pass
@@ -4597,7 +4639,7 @@ class Dataset_Set:
         
         addr_set = set()
         while True:
-            a_rand_num = random.randint(0, one_shift_by__total_bit_amount-1)
+            a_rand_num = random.randint(0, max_possible_sample_count-1)
             addr_set.add(a_rand_num)
             if addr_set.__len__() == amount_needed:
                 break
@@ -4667,6 +4709,13 @@ if "test" and True:
     a_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(2,0.2)
     #print(a_Dataset_Set.get_readable___check_btw(True))
     assert a_Dataset_Set.get_output_count() == 3
+    
+    proportion, count, the_proportion_is_the_limit = Dataset_Set.get_full_adder_testset_partly___sample_count_detect(3,0.2,5)
+    assert count == 5
+    assert the_proportion_is_the_limit == False
+    proportion, count, the_proportion_is_the_limit = Dataset_Set.get_full_adder_testset_partly___sample_count_detect(3,0.2,55)
+    assert proportion > 0.19 and proportion < 0.21 
+    assert the_proportion_is_the_limit == True
     pass
 
 
@@ -5121,7 +5170,7 @@ if "prepare for the function.":
     
     #safety
     assert training_Dataset_Set.max_input_bits == test_Dataset_Set.max_input_bits 
-    assert training_Dataset_Set.get_output_count == test_Dataset_Set.get_output_count 
+    assert training_Dataset_Set.get_output_count() == test_Dataset_Set.get_output_count()
     
     a_DatasetField_Set = DatasetField_Set(training_Dataset_Set)
     _result_tuple_bbsil = a_DatasetField_Set.valid(training_Dataset_Set)
@@ -5175,12 +5224,18 @@ if "prepare for the function.":
     pass
     
 
-def accuracy_gain_test___int_in_int_out(training_Dataset_Set:Dataset_Set, test_Dataset_Set:Dataset_Set)->tuple[float,float,float]:
+
+def accuracy_gain_test___with_uint_report(training_Dataset_Set:Dataset_Set, test_Dataset_Set:Dataset_Set \
+                )->tuple[float,float,float,float,float]:
     '''
-    return accuracy_gain, avg_diff_as_number, avg_diff_as_number_over_max_possible_value
+    return accuracy_gain, avg_bit_wise_acc, referenced_acc, avg_diff_as_number, avg_diff_as_number_over_max_possible_value
     
     >>> accuracy_gain: if all the samples outside the training dataset are randomly decided, then this is 0..
     If the tool magically provides any extra accuracy for free, this is positive.
+    
+    >>> avg_bit_wise_acc: average bitwise accuracy
+    >>> referenced_acc: calculated with the training_Dataset_Set sample count, and 1<<input bits count.
+    
     >>> avg_diff_as_number: This value means something ONLY when the output bits is an binary integer.
     >>> avg_diff_as_number_over_max_possible_value: previous value divided by it's max possible value.
     The last 2 values implies the number is unsigned int.
@@ -5189,7 +5244,7 @@ def accuracy_gain_test___int_in_int_out(training_Dataset_Set:Dataset_Set, test_D
     
     #safety
     assert training_Dataset_Set.max_input_bits == test_Dataset_Set.max_input_bits 
-    assert training_Dataset_Set.get_output_count == test_Dataset_Set.get_output_count 
+    assert training_Dataset_Set.get_output_count() == test_Dataset_Set.get_output_count()
     
     a_DatasetField_Set = DatasetField_Set(training_Dataset_Set)
     _result_tuple_bbsil = a_DatasetField_Set.valid(training_Dataset_Set)
@@ -5234,16 +5289,28 @@ def accuracy_gain_test___int_in_int_out(training_Dataset_Set:Dataset_Set, test_D
     
     _max_possible_sample_count = 1<<training_Dataset_Set.max_input_bits
     
-    referenced_acc = 1- ((_max_possible_sample_count - _training_sample_count)/2.)/_max_possible_sample_count
+    referenced_acc = 1- ((_max_possible_sample_count - _training_sample_count)/2.0)/float(_max_possible_sample_count)
     
     #result
     avg_diff_as_number = total_diff_as_number/_test_sample_count
     avg_diff_as_number_over_max_possible_value = avg_diff_as_number/_max_possible_value
     accuracy_gain = avg_bit_wise_acc - referenced_acc 
     
-    return accuracy_gain, avg_diff_as_number, avg_diff_as_number_over_max_possible_value
+    return accuracy_gain, avg_bit_wise_acc, referenced_acc, avg_diff_as_number, avg_diff_as_number_over_max_possible_value
 
-if "real test" and True:
+if "test the function." and True:
+    # input_bit_count = 7
+    # #let's fix the random seed for this test.
+    # proportion, count, the_proportion_is_the_limit = Dataset_Set.get_full_adder_testset_partly___sample_count_detect(\
+    #                                                             input_bit_count, proportion=0.3)
+    # training_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, proportion=0.3)
+    # test_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, proportion=0.5)
+    
+    # accuracy_gain, avg_bit_wise_acc, referenced_acc, avg_diff_as_number, avg_diff_as_number_over_max_possible_value \
+    #     = accuracy_gain_test___with_uint_report(training_Dataset_Set, test_Dataset_Set)
+    
+    
+    
     input_bit_count = 2
     #let's fix the random seed for this test.
     training_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, max_amount=5,              seed = 123)
@@ -5251,10 +5318,140 @@ if "real test" and True:
     assert training_Dataset_Set.get_sample_count___maybe_unsafe() == 5
     assert test_Dataset_Set.get_sample_count___maybe_unsafe() == 11
     
-    _result_tuple_fff = accuracy_gain_test___int_in_int_out(training_Dataset_Set, test_Dataset_Set)
+    _result_tuple_fff = accuracy_gain_test___with_uint_report(training_Dataset_Set, test_Dataset_Set)
+    acc_gain = _result_tuple_fff[0]
+    pass
     
-    1w 继续。
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+if "method: accuracy_gain_test___with_uint_report\n\n   slow" and True:
+    #file name
+    _time = datetime.now()
+    _time_str = _time.isoformat(sep=" ")
+    _time_str = _time_str[0:19]
+    _time_str = _time_str.replace(":","-")
+    _file_name = f"acc gain test\\acc gain test result {_time_str}.txt"
+    with open(_file_name, mode = "a", encoding="utf-8") as file:
+        file.write("method: accuracy_gain_test___with_uint_report\n\n")
+        file.write(f"{_time_str}\n\n")
+        pass#open
+    
+    for input_bit_count in range(3,22):
+        # _test_time
+        _test_time = 3
+        if input_bit_count<=10:
+            _test_time = 4
+            pass
+        if input_bit_count<=6:
+            _test_time = 5
+            pass
+        with open(_file_name, mode = "a", encoding="utf-8") as file:
+            _repeating_str_previous = f"{input_bit_count-1}  "*18
+            file.write(f"end of   {_repeating_str_previous}\n")
+            _repeating_str_here = f"{input_bit_count}  "*18
+            file.write(f"start of {_repeating_str_here}\n")
+            file.write(f"test time {_test_time}\n\n")
+            pass
+            
+        #init
+        last_training_sample_count = -1
+        working = False
+        
+        for training_proportion in [0.00001, 0.0001, 0.001, 0.01, 0.1, 0.3]:
+            #checks if the sample is too few.
+            #checks the training data
+            proportion, count, the_proportion_is_the_limit = Dataset_Set. \
+                get_full_adder_testset_partly___sample_count_detect(input_bit_count, proportion=training_proportion)
+            training_sample_count = count
+            if training_sample_count<4:
+                continue
+            if training_sample_count == last_training_sample_count:
+                #either the proportion is too small or too big
+                if working:#too big. next input_bit_count
+                    break
+                else:#too small, next proportion.
+                    continue
+            else:
+                working = True
+                last_training_sample_count = training_sample_count
+                pass
+            #checks the test data
+            proportion, count, the_proportion_is_the_limit = Dataset_Set. \
+                get_full_adder_testset_partly___sample_count_detect(input_bit_count, proportion=0.79)
+            test_sample_count = count
+            if test_sample_count<25:
+                continue
+            
+            _test_result_list:list[list[float]] = [[],[],[],[],[]]
+            for _ in range(_test_time):
+                #datasets
+                training_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, proportion=training_proportion)
+                assert training_Dataset_Set.get_sample_count___maybe_unsafe() == training_sample_count
+                test_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, proportion=0.79)
+                assert test_Dataset_Set.get_sample_count___maybe_unsafe() == test_sample_count
+                #training and valid.
+                _result_tuple_fffff___for_single_test = accuracy_gain_test___with_uint_report(training_Dataset_Set, \
+                                                                                            test_Dataset_Set)
+                #storing the test result.
+                for ii in range(5):
+                    _test_result_list[ii].append(_result_tuple_fffff___for_single_test[ii])
+                    pass
+                pass#for in range
+            #safety
+            _temp_ref_acc_list = _test_result_list[2]
+            assert _test_time == _test_result_list[2].__len__()
+            for ii in range(1, _temp_ref_acc_list.__len__()):
+                assert _temp_ref_acc_list[0] == _temp_ref_acc_list[ii]
+                pass
+            
+            #stats
+            _result_tuple_fffff:list[float] = [0,0,0,0,0]
+            for ii in range(5):
+                _result_tuple_fffff[ii] = statistics.mean(_test_result_list[ii])
+                pass
+            
+            accuracy_gain, avg_bit_wise_acc, referenced_acc, avg_diff_as_number, avg_diff_as_number_over_max_possible_value = \
+                tuple(_result_tuple_fffff)
+            
+            #log out.
+            with open(_file_name, mode = "a", encoding="utf-8") as file:
+                file.write(f"input_bit_count: {input_bit_count}\n")
+                file.write(f"test time: {_test_time}\n")
+                _actual_training_proportion = training_sample_count/(1<<(input_bit_count*2+1))
+                file.write(f"training_proportion: {_actual_training_proportion:.5f} ({training_proportion})\n")
+                file.write(f"training_sample_count: {training_sample_count}\n")
+                file.write(f"test_sample_count: {test_sample_count}\n")
+                file.write(f"                   ACC GAIN: {_result_tuple_fffff[0]:.6f}")
+                if _result_tuple_fff[0]>0:
+                    file.write(f"\n")
+                    pass
+                else:
+                    file.write(f", BAD! BAD! BAD! BAD!!!!!!!!!!!!!!!\n")
+                    pass
+                file.write(f"avg_bit_wise_acc: {_result_tuple_fffff[1]:.4f}\n")
+                _lets_calc_ref_acc_again = training_proportion/2.+0.5
+                file.write(f"referenced_acc: {_result_tuple_fffff[2]:.4f}({_lets_calc_ref_acc_again:.4f})\n")
+                file.write(f"avg_diff_as_number: {_result_tuple_fffff[3]:.4f}\n")
+                file.write(f"avg_diff_as_number_over_max_possible_value: {_result_tuple_fffff[4]:.5f}\n")
+                file.write(f"       max_possible_value: {(1<<_output_bit_count_per_sample)-1}\n")
+                file.write("\n\n")
+                pass# open
+            pass# for training_proportion in range
+        pass# for input_bit_count in range(3,22):
+                
+    pass
     
     
     
