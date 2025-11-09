@@ -9,6 +9,27 @@ a lot untested and unfinished. Simply search these 2 words to find them.
 
 '''
 
+'''还没解决的，1，xor field要标记一下纯无关的位，不然会是一个2的n次方。而且完事了还需要merge，完全没有必要。
+all irr的对面最多只有3种情况，记得assert一下。
+分别是，xor，xnor，branch。前两个是同一种情况，可以假装是一个大的field，但是要翻转符号。
+最后一种（branch），要做一个假的地址，然后用假的地址进去查，而且最后要把这个假的地址返回出来，甚至要考虑要返回所有的假地址的每一次的变化过程，方便调试。
+
+
+位的优先级。
+非xor有关位>非xor无关位>xor位。
+其中，非xor有关位可以形成branch。
+非xor无关位 和 xor位 共同构成xor leaf。
+
+在xor检测的时候，非xor有关位的xor分数是大于0，而且小于最大可能分数，非xor无关位的分数为0，xor位的分数是最大可能分数。
+于是当有非xor有关位的时候，按其中的最无关位split（未证明最优）。
+
+
+
+文档里面加一个，如果一个查询跑到了一个all irr的叶节点，应该怎么办。答，从更根的地方分叉出去。
+如果是xor了会怎么办。理论依据是什么，答，位和答案的相关性。
+'''
+
+
 from typing import Optional, TypeVar, Callable 
 
 #import SupportsRichComparison
@@ -1151,9 +1172,15 @@ class DatasetField:
     @staticmethod
     def todo_list()->str:
         return '''  
+        最后加一个直接用那个树来生成一个随机的，然后直接生成数据集。'
+    
         non-full xor field detection.
-        lookup 里面加一个具体的依据来源的地址的返回。
         '''
+    
+    @staticmethod
+    def _rand_tree___even_5_layers():
+        assert False, "unfinished."
+        pass
     
     @staticmethod
     def _new(dataset:Dataset, leaf_keep_dataset:bool = False, _debug__save_sub_dataset_when_xor = False)->'DatasetField':
@@ -4978,504 +5005,33 @@ if "lookup" and True:
         assert _input_output[1] == lookup_result
         pass
     
-"a real extrapolation test. You know, it's exciting."
-if "a special case" and True:
-    #011:10, 111:11
-    bits_count = 1
-    training_Dataset_Set = Dataset_Set(bits_count*2+1, bits_count+1)
-    addr = 0b011
-    training_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
-    addr = 0b111
-    training_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
-    training_Dataset_Set.sort()
-    assert training_Dataset_Set.max_input_bits == 3
-    assert training_Dataset_Set.get_recommended_addr_FieldLength() == 3
-    assert training_Dataset_Set.get_output_count() == 2
-    assert training_Dataset_Set.get_sample_count___maybe_unsafe() == 2
     
     
-    readable_dataset = training_Dataset_Set.get_readable___check_btw()
-    assert readable_dataset == "011:10, 111:11"
-    a_DatasetField_Set = DatasetField_Set(training_Dataset_Set)
-    assert a_DatasetField_Set.get_input_count() == 3
-    assert a_DatasetField_Set.get_output_count() == 2
-    finished = a_DatasetField_Set.valid(training_Dataset_Set)[0]
-    assert finished
-
-    #a bit manual check.        
-    _tree_0_the_high_bit = a_DatasetField_Set.fields[0].readable_as_tree()
-    assert _tree_0_the_high_bit == "___:1+ir"
-    _tree_1_the_low_bit = a_DatasetField_Set.fields[1].readable_as_tree()
-    assert _tree_1_the_low_bit == "___:(0__:0+ir, 1__:1+ir)"
-    
-    
-    #now the test set. It's bigger than the training set.        
-    #000, 011, 100, 111
-    test_Dataset_Set = Dataset_Set(bits_count*2+1, bits_count+1)
-    addr = 0b000
-    test_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
-    addr = 0b011
-    test_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
-    addr = 0b100
-    test_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
-    addr = 0b111
-    test_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
-    test_Dataset_Set.sort()
-    
-    assert test_Dataset_Set.max_input_bits == 3
-    assert test_Dataset_Set.get_recommended_addr_FieldLength() == 3
-    assert test_Dataset_Set.get_output_count() == 2
-    assert test_Dataset_Set.get_sample_count___maybe_unsafe() == 4
-    
-    readable_dataset = test_Dataset_Set.get_readable___check_btw()
-    assert readable_dataset == "000:00, 011:10, 100:01, 111:11"
-    finished,_,_,flags_of_sub_check_finishes___reversed, list_of_total_and_error = a_DatasetField_Set.valid(test_Dataset_Set)
-    assert finished
-    '''in this case, one bit is random, but the other bit passes all the 4 cases.'''
-    
-    pass
-    
-    
-    
-    
-    
-    
-    
-
-
-
-
-if "temporal code. gonna get into a standard process." and True:
-    #input zone.
-    input_bit_count = 1
-    
-    training_Dataset_Set = Dataset_Set(bits_count*2+1, bits_count+1)
-    addr = 0b011
-    training_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
-    addr = 0b111
-    training_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
-    training_Dataset_Set.sort()
-    
-    test_Dataset_Set = Dataset_Set(bits_count*2+1, bits_count+1)
-    addr = 0b000
-    test_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
-    addr = 0b011
-    test_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
-    addr = 0b100
-    test_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
-    addr = 0b111
-    test_Dataset_Set.add_binary(addr,Dataset_Set.explain_as_full_adder(addr,1)[3])
-    test_Dataset_Set.sort()
-    if "random dataset" and False:
-        training_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, max_amount=2)
-        assert training_Dataset_Set.max_input_bits == 3
-        # not sure. assert training_Dataset_Set.get_recommended_addr_FieldLength() == 3
-        assert training_Dataset_Set.get_output_count() == 2
-        
-        test_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, max_amount=4)
-        assert test_Dataset_Set.max_input_bits == 3
-        assert test_Dataset_Set.get_output_count() == 2
-        
-        pass
-    
-    a_DatasetField_Set = DatasetField_Set(training_Dataset_Set)
-    assert a_DatasetField_Set.get_input_count() == 3
-    assert a_DatasetField_Set.get_output_count() == 2
-    _result_tuple_bbsil = a_DatasetField_Set.valid(training_Dataset_Set)
-    _perfect = _result_tuple_bbsil[1]
-    assert _perfect
-    
-    _result_tuple_bbsil = a_DatasetField_Set.valid(test_Dataset_Set)
-    _finished = _result_tuple_bbsil[0]
-    assert _finished
-
-    #print(list_of_total_and_error)
-    total_diff_as_number = 0
-    total_diff_bits = 0
-    raw_test_dataset_list:list = test_Dataset_Set.get_as_int___check_btw()
-    for _input_output in raw_test_dataset_list:
-        lookup_result = a_DatasetField_Set.lookup(_input_output[0])
-        
-        diff_as_number = abs(lookup_result - _input_output[1])  
-        total_diff_as_number += diff_as_number
-        
-        _xor_of_them = lookup_result^_input_output[1]
-        diff_bits_count = count_ones(_xor_of_them)
-        total_diff_bits += diff_bits_count
-        pass
-    
-    '''
-    about the dimention: 
-    for every sample(people call it batch in deep learning), 
-    ints:
-    diff_bits, number_value(ground_truth, inferenced, diff, max_possible)
-    _output_bit_count_per_sample is training_Dataset_Set.get_output_count()
-    
-    for all samples:
-    total_diff_bits is a sum.
-    _total_bits is raw_dataset_list.__len__()*bits_per_output
-    total_diff_as_number is a sum.
-    
-    [below are returned.]    
-    average:
-    floats:
-    avg_bit_wise_acc(1 - diff/total)
-    #repeated in final result: avg_diff_over_max
-    
-    batch dim:
-    ints:
-    _training_sample_count is training_data.sample_count()
-    _test_sample_count is test_data.sample_count()
-    _max_possible_count is 1<<dataset.input_bit_count
-    floats:
-    referenced_acc = 1- ((_max_possible_count - _training_sample_count)/2)/max_possible_count
-    
-    result:
-    avg_diff_as_number_over_max_possible_value is the avg of error.
-    avg_bit_wise_acc - referenced_acc is the accuracy increase. The most important number.
-    '''
-    
-    
-    total_diff_as_number #ready 
-    total_diff_bits #ready 
-    _output_bit_count_per_sample = training_Dataset_Set.get_output_count()
-    _total_bits = raw_test_dataset_list.__len__() * _output_bit_count_per_sample
-        
-    _max_possible_value = (1<<_output_bit_count_per_sample)-1
-    
-    avg_bit_wise_acc = 1 - total_diff_bits/_total_bits
-    
-    _training_sample_count = training_Dataset_Set.get_sample_count___maybe_unsafe()
-    _test_sample_count = raw_test_dataset_list.__len__()
-    _max_possible_sample_count = 1<<training_Dataset_Set.max_input_bits
-    
-    referenced_acc = 1- ((_max_possible_sample_count - _training_sample_count)/2.)/_max_possible_sample_count
-    
-    #result
-    avg_diff_as_number_over_max_possible_value = (total_diff_as_number/_test_sample_count)/_max_possible_value
-    aaaaaaaaaaaaaaaaaaaaaaa = avg_bit_wise_acc - referenced_acc 
-    pass
-
-
-
-if "prepare for the function.":
-    #input zone.
-    
-    input_bit_count = 2
-
-    #let's fix the random seed for this test.
-    training_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, max_amount=5,              seed = 123)
-    test_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, max_amount=11, proportion=0.7, seed = 321)
-    
-    
-    #safety
-    assert training_Dataset_Set.max_input_bits == test_Dataset_Set.max_input_bits 
-    assert training_Dataset_Set.get_output_count() == test_Dataset_Set.get_output_count()
-    
-    a_DatasetField_Set = DatasetField_Set(training_Dataset_Set)
-    _result_tuple_bbsil = a_DatasetField_Set.valid(training_Dataset_Set)
-    _perfect = _result_tuple_bbsil[1]
-    assert _perfect
-    
-    #redundent.
-    _result_tuple_bbsil = a_DatasetField_Set.valid(test_Dataset_Set)
-    finished = _result_tuple_bbsil[0]
-    assert finished
-
-    #real test.
-    total_diff_as_number = 0
-    total_diff_bits = 0
-    raw_test_dataset_list = test_Dataset_Set.get_as_int___check_btw()
-    for _input_output in raw_test_dataset_list:
-        lookup_result = a_DatasetField_Set.lookup(_input_output[0])
-        
-        diff_as_number = abs(lookup_result - _input_output[1])  
-        total_diff_as_number += diff_as_number
-        
-        _xor_of_them = lookup_result^_input_output[1]
-        diff_bits_count = count_ones(_xor_of_them)
-        total_diff_bits += diff_bits_count
-        pass
-    
-    #get to the report
-    #total_diff_as_number #ready 
-    #total_diff_bits #ready 
-    
-    _training_sample_count = training_Dataset_Set.get_sample_count___maybe_unsafe()
-    _test_sample_count = raw_test_dataset_list.__len__()
-    assert raw_test_dataset_list.__len__() == test_Dataset_Set.get_sample_count___maybe_unsafe()
-    
-    _output_bit_count_per_sample = training_Dataset_Set.get_output_count()
-    assert _output_bit_count_per_sample == input_bit_count+1
-    _total_tested_bits = _test_sample_count * _output_bit_count_per_sample
-        
-    _max_possible_value = (1<<_output_bit_count_per_sample)-1
-    
-    avg_bit_wise_acc = 1 - total_diff_bits/_total_tested_bits
-    
-    _max_possible_sample_count = 1<<training_Dataset_Set.max_input_bits
-    
-    referenced_acc = 1- ((_max_possible_sample_count - _training_sample_count)/2.)/_max_possible_sample_count
-    
-    #result
-    avg_diff_as_number = total_diff_as_number/_test_sample_count
-    avg_diff_as_number_over_max_possible_value = avg_diff_as_number/_max_possible_value
-    accuracy_gain = avg_bit_wise_acc - referenced_acc 
-    pass
-    
-
-
-def accuracy_gain_test___with_uint_report(training_Dataset_Set:Dataset_Set, test_Dataset_Set:Dataset_Set \
-                )->tuple[float,float,float,float,float]:
-    '''
-    return accuracy_gain, avg_bit_wise_acc, referenced_acc, avg_diff_as_number, avg_diff_as_number_over_max_possible_value
-    
-    >>> accuracy_gain: if all the samples outside the training dataset are randomly decided, then this is 0..
-    If the tool magically provides any extra accuracy for free, this is positive.
-    
-    >>> avg_bit_wise_acc: average bitwise accuracy
-    >>> referenced_acc: calculated with the training_Dataset_Set sample count, and 1<<input bits count.
-    
-    >>> avg_diff_as_number: This value means something ONLY when the output bits is an binary integer.
-    >>> avg_diff_as_number_over_max_possible_value: previous value divided by it's max possible value.
-    The last 2 values implies the number is unsigned int.
-    '''
-    
-    
-    #safety
-    assert training_Dataset_Set.max_input_bits == test_Dataset_Set.max_input_bits 
-    assert training_Dataset_Set.get_output_count() == test_Dataset_Set.get_output_count()
-    
-    a_DatasetField_Set = DatasetField_Set(training_Dataset_Set)
-    _result_tuple_bbsil = a_DatasetField_Set.valid(training_Dataset_Set)
-    _perfect = _result_tuple_bbsil[1]
-    assert _perfect
-    
-    #redundent.
-    _result_tuple_bbsil = a_DatasetField_Set.valid(test_Dataset_Set)
-    finished = _result_tuple_bbsil[0]
-    assert finished
-
-    #real test.
-    total_diff_as_number = 0
-    total_diff_bits = 0
-    raw_test_dataset_list = test_Dataset_Set.get_as_int___check_btw()
-    for _input_output in raw_test_dataset_list:
-        lookup_result = a_DatasetField_Set.lookup(_input_output[0])
-        
-        diff_as_number = abs(lookup_result - _input_output[1])  
-        total_diff_as_number += diff_as_number
-        
-        _xor_of_them = lookup_result^_input_output[1]
-        diff_bits_count = count_ones(_xor_of_them)
-        total_diff_bits += diff_bits_count
-        pass
-    
-    #get to the report
-    #total_diff_as_number #ready 
-    #total_diff_bits #ready 
-    
-    _training_sample_count = training_Dataset_Set.get_sample_count___maybe_unsafe()
-    _test_sample_count = raw_test_dataset_list.__len__()
-    assert raw_test_dataset_list.__len__() == test_Dataset_Set.get_sample_count___maybe_unsafe()
-    
-    _output_bit_count_per_sample = training_Dataset_Set.get_output_count()
-    assert _output_bit_count_per_sample == input_bit_count+1
-    _total_tested_bits = _test_sample_count * _output_bit_count_per_sample
-        
-    _max_possible_value = (1<<_output_bit_count_per_sample)-1
-    
-    avg_bit_wise_acc = 1 - total_diff_bits/_total_tested_bits
-    
-    _max_possible_sample_count = 1<<training_Dataset_Set.max_input_bits
-    
-    referenced_acc = 1- ((_max_possible_sample_count - _training_sample_count)/2.0)/float(_max_possible_sample_count)
-    
-    #result
-    avg_diff_as_number = total_diff_as_number/_test_sample_count
-    avg_diff_as_number_over_max_possible_value = avg_diff_as_number/_max_possible_value
-    accuracy_gain = avg_bit_wise_acc - referenced_acc 
-    
-    return accuracy_gain, avg_bit_wise_acc, referenced_acc, avg_diff_as_number, avg_diff_as_number_over_max_possible_value
-
-if "test the function." and True:
-    # input_bit_count = 7
-    # #let's fix the random seed for this test.
-    # proportion, count, the_proportion_is_the_limit = Dataset_Set.get_full_adder_testset_partly___sample_count_detect(\
-    #                                                             input_bit_count, proportion=0.3)
-    # training_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, proportion=0.3)
-    # test_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, proportion=0.5)
-    
-    # accuracy_gain, avg_bit_wise_acc, referenced_acc, avg_diff_as_number, avg_diff_as_number_over_max_possible_value \
-    #     = accuracy_gain_test___with_uint_report(training_Dataset_Set, test_Dataset_Set)
-    
-    
-    
-    input_bit_count = 2
-    #let's fix the random seed for this test.
-    training_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, max_amount=5,              seed = 123)
-    test_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, max_amount=11, proportion=0.7, seed = 321)
-    assert training_Dataset_Set.get_sample_count___maybe_unsafe() == 5
-    assert test_Dataset_Set.get_sample_count___maybe_unsafe() == 11
-    
-    _result_tuple_fff = accuracy_gain_test___with_uint_report(training_Dataset_Set, test_Dataset_Set)
-    acc_gain = _result_tuple_fff[0]
-    pass
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-if "method: accuracy_gain_test___with_uint_report\n\n   slow" and True:
-    #file name
-    _time = datetime.now()
-    _time_str = _time.isoformat(sep=" ")
-    _time_str = _time_str[0:19]
-    _time_str = _time_str.replace(":","-")
-    _file_name = f"acc gain test\\acc gain test result {_time_str}.txt"
-    with open(_file_name, mode = "a", encoding="utf-8") as file:
-        file.write("method: accuracy_gain_test___with_uint_report\n\n")
-        file.write(f"{_time_str}\n\n")
-        pass#open
-    
-    for input_bit_count in range(3,22):
-        # _test_time
-        _test_time = 3
-        if input_bit_count<=10:
-            _test_time = 4
-            pass
-        if input_bit_count<=6:
-            _test_time = 5
-            pass
-        with open(_file_name, mode = "a", encoding="utf-8") as file:
-            _repeating_str_previous = f"{input_bit_count-1}  "*18
-            file.write(f"end of   {_repeating_str_previous}\n")
-            _repeating_str_here = f"{input_bit_count}  "*18
-            file.write(f"start of {_repeating_str_here}\n")
-            file.write(f"test time {_test_time}\n\n")
-            pass
-            
-        #init
-        last_training_sample_count = -1
-        working = False
-        
-        for training_proportion in [0.00001, 0.0001, 0.001, 0.01, 0.1, 0.3]:
-            #checks if the sample is too few.
-            #checks the training data
-            proportion, count, the_proportion_is_the_limit = Dataset_Set. \
-                get_full_adder_testset_partly___sample_count_detect(input_bit_count, proportion=training_proportion)
-            training_sample_count = count
-            if training_sample_count<4:
-                continue
-            if training_sample_count == last_training_sample_count:
-                #either the proportion is too small or too big
-                if working:#too big. next input_bit_count
-                    break
-                else:#too small, next proportion.
-                    continue
-            else:
-                working = True
-                last_training_sample_count = training_sample_count
-                pass
-            #checks the test data
-            proportion, count, the_proportion_is_the_limit = Dataset_Set. \
-                get_full_adder_testset_partly___sample_count_detect(input_bit_count, proportion=0.79)
-            test_sample_count = count
-            if test_sample_count<25:
-                continue
-            
-            _test_result_list:list[list[float]] = [[],[],[],[],[]]
-            for _ in range(_test_time):
-                #datasets
-                training_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, proportion=training_proportion)
-                assert training_Dataset_Set.get_sample_count___maybe_unsafe() == training_sample_count
-                test_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, proportion=0.79)
-                assert test_Dataset_Set.get_sample_count___maybe_unsafe() == test_sample_count
-                #training and valid.
-                _result_tuple_fffff___for_single_test = accuracy_gain_test___with_uint_report(training_Dataset_Set, \
-                                                                                            test_Dataset_Set)
-                #storing the test result.
-                for ii in range(5):
-                    _test_result_list[ii].append(_result_tuple_fffff___for_single_test[ii])
-                    pass
-                pass#for in range
-            #safety
-            _temp_ref_acc_list = _test_result_list[2]
-            assert _test_time == _test_result_list[2].__len__()
-            for ii in range(1, _temp_ref_acc_list.__len__()):
-                assert _temp_ref_acc_list[0] == _temp_ref_acc_list[ii]
-                pass
-            
-            #stats
-            _result_tuple_fffff:list[float] = [0,0,0,0,0]
-            for ii in range(5):
-                _result_tuple_fffff[ii] = statistics.mean(_test_result_list[ii])
-                pass
-            
-            accuracy_gain, avg_bit_wise_acc, referenced_acc, avg_diff_as_number, avg_diff_as_number_over_max_possible_value = \
-                tuple(_result_tuple_fffff)
-            
-            #log out.
-            with open(_file_name, mode = "a", encoding="utf-8") as file:
-                file.write(f"input_bit_count: {input_bit_count}\n")
-                file.write(f"test time: {_test_time}\n")
-                _actual_training_proportion = training_sample_count/(1<<(input_bit_count*2+1))
-                file.write(f"training_proportion: {_actual_training_proportion:.5f} ({training_proportion})\n")
-                file.write(f"training_sample_count: {training_sample_count}\n")
-                file.write(f"test_sample_count: {test_sample_count}\n")
-                file.write(f"                   ACC GAIN: {_result_tuple_fffff[0]:.6f}")
-                if _result_tuple_fff[0]>0:
-                    file.write(f"\n")
-                    pass
-                else:
-                    file.write(f", BAD! BAD! BAD! BAD!!!!!!!!!!!!!!!\n")
-                    pass
-                file.write(f"avg_bit_wise_acc: {_result_tuple_fffff[1]:.4f}\n")
-                _lets_calc_ref_acc_again = training_proportion/2.+0.5
-                file.write(f"referenced_acc: {_result_tuple_fffff[2]:.4f}({_lets_calc_ref_acc_again:.4f})\n")
-                file.write(f"avg_diff_as_number: {_result_tuple_fffff[3]:.4f}\n")
-                file.write(f"avg_diff_as_number_over_max_possible_value: {_result_tuple_fffff[4]:.5f}\n")
-                file.write(f"       max_possible_value: {(1<<_output_bit_count_per_sample)-1}\n")
-                file.write("\n\n")
-                pass# open
-            pass# for training_proportion in range
-        pass# for input_bit_count in range(3,22):
-                
-    pass
-    
-    
-    
-assert False,'1w最后加一个直接用那个树来生成一个随机的，然后直接生成数据集。'
-
-
-
-if "small scale validation" and True:
+###############
+###############
+###############
+###############
+###############
+###############
+###############
+###############
+###############
+###############
+if "small scale validation" and False:
     #I read this several times. It's prpbably correct. 
     bits_count = 1
     trainingset_proportion = 0.3
     testset_proportion = 0.5
     #preparing the DatasetField object.
-    trainingset_Set, FieldLength = Dataset_Set.get_full_adder_testset_partly(bits_count, trainingset_proportion)
+    trainingset_Set = Dataset_Set.get_full_adder_testset_partly(bits_count, trainingset_proportion)
     a_DatasetField_Set = DatasetField_Set(trainingset_Set)
-    training_correctness_list = a_DatasetField_Set.valid(trainingset_Set)
-    for training_correctness in training_correctness_list:
-        assert training_correctness[0] == trainingset_Set.dataset_children[0].data.__len__()
-        assert training_correctness[1] == 0
-        pass
+    _result_tuple_bbsil = a_DatasetField_Set.valid(trainingset_Set)
+    perfect = _result_tuple_bbsil[1]
+    assert perfect
     
     #now the real excitement.
-    testset_Set, _ = Dataset_Set.get_full_adder_testset_partly(bits_count, testset_proportion)
-    valid_result_list__total_and_error = a_DatasetField_Set.valid(testset_Set)
+    testset_Set = Dataset_Set.get_full_adder_testset_partly(bits_count, testset_proportion)
+    _result_tuple_bbsil = a_DatasetField_Set.valid(testset_Set)
 
 
     print(f"training set:{trainingset_Set.get_readable___check_btw(True)}")
@@ -5548,27 +5104,6 @@ def _____unchecked___get_adder_testset_full(input_bit_amount, amount_needed=-1)-
 
     
 
-assert False , '''还没解决的，1，xor field要标记一下纯无关的位，不然会是一个2的n次方。而且完事了还需要merge，完全没有必要。
-all irr的对面最多只有3种情况，记得assert一下。
-分别是，xor，xnor，branch。前两个是同一种情况，可以假装是一个大的field，但是要翻转符号。
-最后一种（branch），要做一个假的地址，然后用假的地址进去查，而且最后要把这个假的地址返回出来，甚至要考虑要返回所有的假地址的每一次的变化过程，方便调试。
-
-
-位的优先级。
-非xor有关位>非xor无关位>xor位。
-其中，非xor有关位可以形成branch。
-非xor无关位 和 xor位 共同构成xor leaf。
-
-在xor检测的时候，非xor有关位的xor分数是大于0，而且小于最大可能分数，非xor无关位的分数为0，xor位的分数是最大可能分数。
-于是当有非xor有关位的时候，按其中的最无关位split（未证明最优）。
-
-
-
-文档里面加一个，如果一个查询跑到了一个all irr的叶节点，应该怎么办。答，从更根的地方分叉出去。
-如果是xor了会怎么办。理论依据是什么，答，位和答案的相关性。
-'''
-
-assert False , "要不要做一个专门的fake xor检测？？？"
 
 
 
