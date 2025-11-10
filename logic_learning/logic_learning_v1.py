@@ -83,6 +83,7 @@ if False:
                     
 
 def count_digits(input:int)->int:
+    '''0b10000 into 5'''
     assert input>=0
     result = 0
     while input>0:
@@ -103,6 +104,7 @@ if "test" and False:
     pass
 
 def count_ones(input:int)->int:
+    '''0b10000 into 1'''
     assert input>=0
     result = 0
     while input>0:
@@ -1171,6 +1173,9 @@ class DatasetField:
         pass
     @staticmethod
     def todo_list()->str:
+        1w
+        
+        
         return '''  
         最后加一个直接用那个树来生成一个随机的，然后直接生成数据集。'
     
@@ -1178,8 +1183,56 @@ class DatasetField:
         '''
     
     @staticmethod
-    def _rand_tree___even_5_layers():
-        assert False, "unfinished."
+    def _test_only___rand_tree__even_layers__no_xor(input_bits_count:int, depth:int)->'DatasetField':
+        assert input_bits_count>1
+        assert depth>1
+        _dummy_dataset = DatasetField._new(Dataset.from_str("0", increase_input_bit_count_to=input_bits_count))
+        root = DatasetField._new(_dummy_dataset)
+        if "assertions" and True:
+            assert root.has_0
+            assert root.has_1 == False
+            assert root.has_irr
+            assert root.all_xor == False
+            assert root.children is None
+            pass
+        
+        root.has_1 = True
+        node_list:list[DatasetField] = [root]
+        while node_list.__len__()>0:
+            node = node_list.pop()
+            if node.get_depth() >= depth:
+                #this is leaf.
+                if random.random()<0.5:
+                    node.has_0 = True
+                    node.has_1 = False
+                    pass
+                else:
+                    node.has_0 = False
+                    node.has_1 = True
+                    pass
+                continue
+                pass#if depth.
+            #now it's a branch. Split!
+            to_split_at__from_right, one_shift_by_index = \
+                node._test_only_rand_tree_only__rand_unmasked_bit_index_from_right_side()
+            node.best_index_to_split_from_right_side = to_split_at__from_right
+            
+            _dummy_dataset_core: list[tuple[int, bool]] = [(node.addr, False)]
+            _the_other_addr = node.addr|one_shift_by_index
+            _dummy_dataset_core.append((_the_other_addr, False))
+            _dummy_dataset = Dataset(input_bits_count, _dummy_dataset_core)
+            
+            node.dataset = _dummy_dataset
+            node.split(to_split_at__from_right)
+            node.dataset = None
+            node_list.extend(node.children)
+
+            #already has 0.
+            node.has_1 = True
+            #notail.
+            pass # while true
+        
+        return root
         pass
     
     @staticmethod
@@ -1398,6 +1451,36 @@ class DatasetField:
     
     def get_is_leaf(self)->bool:
         return self.children is None
+    
+    def get_depth(self)->int:
+        '''valid valus from 0. Call this function on root node you get 0. '''
+        return count_ones(self.bitmask)
+        
+    def _test_only_rand_tree_only__rand_unmasked_bit_index_from_right_side(self, seed = None)->tuple[int, int]:
+        '''return i_from_right, the_bit
+        
+        returns -1 if all bits are used(marked in bitmask)'''
+        if seed:
+            random.seed(seed)
+            pass
+        else:
+            random.seed(time.time())
+            pass
+        result = -1
+        _depth = self.get_depth()
+        unused_bit_count = self.input_bits_count-_depth
+        rand_bit = random.randint(0, unused_bit_count-1)
+        temp_valid_bit_count = 0
+        for i_from_right in range(unused_bit_count):
+            the_bit = 1<<i_from_right 
+            if self.bitmask& the_bit:
+                continue
+            if rand_bit == temp_valid_bit_count:
+                return i_from_right, the_bit
+            #tail
+            temp_valid_bit_count +=1
+            pass#for i in range
+        assert False, "unreachable"
     
     def has_dataset(self)->bool:
         return self.dataset is not None
@@ -2743,7 +2826,14 @@ class DatasetField:
     
     
     
-    
+if '''get_depth   _get_unmasked_bit_index
+        _test_only___rand_tree__even_layers__no_xor''' and True:
+            
+            1w
+            
+            
+
+
     
     
     
@@ -5017,6 +5107,8 @@ if "lookup" and True:
 ###############
 ###############
 ###############
+'''
+old, no plan to use anymore
 if "small scale validation" and False:
     #I read this several times. It's prpbably correct. 
     bits_count = 1
@@ -5101,6 +5193,7 @@ def _____unchecked___get_adder_testset_full(input_bit_amount, amount_needed=-1)-
 
     
     
+'''
 
     
 
