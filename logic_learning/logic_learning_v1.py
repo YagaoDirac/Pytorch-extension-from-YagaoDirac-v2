@@ -1173,20 +1173,16 @@ class DatasetField:
         pass
     @staticmethod
     def todo_list()->str:
-        1w
-        
-        
         return '''  
-        最后加一个直接用那个树来生成一个随机的，然后直接生成数据集。'
     
         non-full xor field detection.
         '''
     
     @staticmethod
-    def _test_only___rand_tree__even_layers__no_xor(input_bits_count:int, depth:int)->'DatasetField':
+    def _test_only___rand_tree__even_layers__no_xor(input_bits_count:int, depth:int, seed = None)->'DatasetField':
         assert input_bits_count>1
-        assert depth>1
-        _dummy_dataset = DatasetField._new(Dataset.from_str("0", increase_input_bit_count_to=input_bits_count))
+        assert input_bits_count>=depth
+        _dummy_dataset = Dataset.from_str("0", increase_input_bit_count_to=input_bits_count)
         root = DatasetField._new(_dummy_dataset)
         if "assertions" and True:
             assert root.has_0
@@ -1196,6 +1192,14 @@ class DatasetField:
             assert root.children is None
             pass
         
+        if seed:
+            random.seed(seed)
+            pass
+        else:
+            random.seed(time.time())
+            pass
+                
+        log_simple:list[str] = []
         root.has_1 = True
         node_list:list[DatasetField] = [root]
         while node_list.__len__()>0:
@@ -1210,11 +1214,15 @@ class DatasetField:
                     node.has_0 = False
                     node.has_1 = True
                     pass
+                #log
+                log_simple.append(" "*13+f"leaf, bitmask{readable_binary(node.bitmask,node.input_bits_count) \
+                    }, addr{readable_binary(node.addr,node.input_bits_count)}")
                 continue
                 pass#if depth.
             #now it's a branch. Split!
             to_split_at__from_right, one_shift_by_index = \
                 node._test_only_rand_tree_only__rand_unmasked_bit_index_from_right_side()
+            assert to_split_at__from_right >= 0
             node.best_index_to_split_from_right_side = to_split_at__from_right
             
             _dummy_dataset_core: list[tuple[int, bool]] = [(node.addr, False)]
@@ -1225,10 +1233,16 @@ class DatasetField:
             node.dataset = _dummy_dataset
             node.split(to_split_at__from_right)
             node.dataset = None
+            assert node.children is not None
             node_list.extend(node.children)
 
-            #already has 0.
+            #branch has both 1 and 0. already has 0.
             node.has_1 = True
+            
+            #log
+            log_simple.append(f"branch, split at{node.best_index_to_split_from_right_side}, bitmask{ \
+                readable_binary(node.bitmask,node.input_bits_count)}, addr{readable_binary(node.addr,node.input_bits_count)}")
+            
             #notail.
             pass # while true
         
@@ -1454,24 +1468,17 @@ class DatasetField:
     
     def get_depth(self)->int:
         '''valid valus from 0. Call this function on root node you get 0. '''
+        return self.bits_already_in_use
         return count_ones(self.bitmask)
         
-    def _test_only_rand_tree_only__rand_unmasked_bit_index_from_right_side(self, seed = None)->tuple[int, int]:
-        '''return i_from_right, the_bit
+    def _test_only_rand_tree_only__rand_unmasked_bit_index_from_right_side(self)->tuple[int, int]:
+        '''return i_from_right, the_bit'''
         
-        returns -1 if all bits are used(marked in bitmask)'''
-        if seed:
-            random.seed(seed)
-            pass
-        else:
-            random.seed(time.time())
-            pass
-        result = -1
         _depth = self.get_depth()
         unused_bit_count = self.input_bits_count-_depth
         rand_bit = random.randint(0, unused_bit_count-1)
         temp_valid_bit_count = 0
-        for i_from_right in range(unused_bit_count):
+        for i_from_right in range(self.input_bits_count):
             the_bit = 1<<i_from_right 
             if self.bitmask& the_bit:
                 continue
@@ -2826,24 +2833,32 @@ class DatasetField:
     
     
     
-if '''get_depth   _get_unmasked_bit_index
+if '''get_depth   _test_only_rand_tree_only__rand_unmasked_bit_index_from_right_side
         _test_only___rand_tree__even_layers__no_xor''' and True:
-            
-            1w
-            
-            
+    a_DatasetField = DatasetField._test_only___rand_tree__even_layers__no_xor(2,2)
+    readable_as_tree = a_DatasetField.readable_as_tree()
+    assert a_DatasetField.get_depth() == 0
+    assert a_DatasetField._get_child(True).get_depth() == 1
+    assert a_DatasetField._get_child(True)._get_child(True).get_depth() == 2
+    assert a_DatasetField.bits_already_in_use == 0
+    assert a_DatasetField._get_child(True).bits_already_in_use == 1
 
-
+    random.seed(time.time())    
+    a_DatasetField = DatasetField._new(Dataset.from_str("0",increase_input_bit_count_to=8))
+    a_DatasetField.bitmask = 0b00001101
+    a_DatasetField.bits_already_in_use = 3
+    i_from_right, the_bit = a_DatasetField._test_only_rand_tree_only__rand_unmasked_bit_index_from_right_side()
+    assert a_DatasetField.bitmask & the_bit == 0
+    assert 1<<i_from_right == the_bit
     
-    
-    
+    pass
     
 if True:
     max_input_bits = 4
     dataset = Dataset.from_str('''0110 1111 1111 0110''')
     assert dataset.data == [(0, False), (1, True), (2, True), (3, False), (4, True), (5, True), (6, True), (7, True), (8, True), 
             (9, True), (10, True), (11, True), (12, False), (13, True), (14, True), (15, False)]
-    a_DatasetField:DatasetField = DatasetField._new__and_valid(dataset)
+    a_DatasetField = DatasetField._new__and_valid(dataset)
     pass
     
 if "valid function" and True:
@@ -4498,12 +4513,65 @@ I'm in China, Earth.
 
     
 
+def sample_count_detect(input_bit_amount:int, \
+        proportion = 0.2, max_amount = 1000000, )->tuple[float,int,bool]:
+    '''return proportion, count, the_proportion_is_the_limit
+    
+    Input param:
+    >>> input_bit_amount: when it's 3, the result is a dataset of 3 bit + 3 bit + carry bit. Output is 4 bits.
+    >>> proportion and max_amount: both limit the max amount of item in the dataset. Only the smaller one works.
+    '''
+    max_possible_sample_count = 1<<input_bit_amount
+    assert proportion>0.
+    assert proportion<=0.8, "don't torture the random algo."
+    amount_needed = int(proportion * max_possible_sample_count)
+    if 0 == amount_needed:
+        amount_needed = 1
+        pass
+    assert amount_needed > 0
+    
+    the_proportion_is_the_limit = True
+    if amount_needed>max_amount:
+        the_proportion_is_the_limit = False
+        amount_needed = max_amount
+        pass
+    
+    actual_proportion = amount_needed/max_possible_sample_count
+    return actual_proportion, amount_needed, the_proportion_is_the_limit
+
+if "test" and True:
+    actual_proportion, amount_needed, the_proportion_is_the_limit = sample_count_detect(3,0.5,100)
+    assert actual_proportion == 0.5
+    assert amount_needed == 4
+    assert the_proportion_is_the_limit == True
+    actual_proportion, amount_needed, the_proportion_is_the_limit = sample_count_detect(3,0.75,4)
+    assert actual_proportion == 0.5
+    assert amount_needed == 4
+    assert the_proportion_is_the_limit == False
+    actual_proportion, amount_needed, the_proportion_is_the_limit = sample_count_detect(5,0.5,1000)
+    assert actual_proportion == 0.5
+    assert amount_needed == 16
+    assert the_proportion_is_the_limit == True
+    actual_proportion, amount_needed, the_proportion_is_the_limit = sample_count_detect(5,0.25,1000)
+    assert actual_proportion == 0.25
+    assert amount_needed == 8
+    assert the_proportion_is_the_limit == True
+    pass
     
     
 class Dataset_Set:
     max_input_bits:int
     dataset_children:list[Dataset]
     is_data_sorted:bool
+    
+    @staticmethod
+    def from_dataset(input:Dataset)->'Dataset_Set':
+        result:Dataset_Set = Dataset_Set(input.max_input_bits, input.get_output_bits())
+        result.dataset_children = [input]
+        result.sort()
+        #no need to check.
+        return result
+    
     def __init__(self, max_input_bits:int, output_bits:int):
         assert max_input_bits>0, "why do you need a 0 bit input case?"
         assert output_bits>0
@@ -4667,119 +4735,134 @@ class Dataset_Set:
             pass
         return result
     
-    
-    @staticmethod
-    def explain_as_full_adder(input:int, input_bit_amount:int, safety_check = True)->tuple[int,int,int,int]:
-        '''return (in1, in2, in_carry, out)'''
-        if safety_check:
-            assert input_bit_amount>0
-            _input = input
-            _input_binary_length = 0
-            while _input>0:
-                _input_binary_length = _input_binary_length +1
-                #tail
-                _input = _input >>1
+    if "int add test":
+        @staticmethod
+        def explain_as_full_adder(input:int, input_bit_amount:int, safety_check = True)->tuple[int,int,int,int]:
+            '''return (in1, in2, in_carry, out)'''
+            if safety_check:
+                assert input_bit_amount>0
+                _input = input
+                _input_binary_length = 0
+                while _input>0:
+                    _input_binary_length = _input_binary_length +1
+                    #tail
+                    _input = _input >>1
+                    pass
+                assert _input_binary_length<=(input_bit_amount*2+1)
+                pass#safety
+            
+            mask_1 = ((1<<input_bit_amount)-1)<<(input_bit_amount+1)
+            mask_2 = ((1<<input_bit_amount)-1)<<1
+            mask_c = 1
+            
+            number_1 = (input&mask_1)>>input_bit_amount+1
+            number_2 = (input&mask_2)>>1
+            number_c = input&mask_c
+            sum = number_1+number_2+number_c
+            return (number_1, number_2, number_c, sum)
+        
+        @staticmethod
+        def get_full_adder_testset_partly___sample_count_detect(addend_bit_amount:int, \
+                proportion = 0.2, max_amount = 1000000, )->tuple[float,int,bool]:
+            '''return proportion, count, the_proportion_is_the_limit
+            
+            Input param:
+            >>> input_bit_amount: when it's 3, the result is a dataset of 3 bit + 3 bit + carry bit. Output is 4 bits.
+            >>> proportion and max_amount: both limit the max amount of item in the dataset. Only the smaller one works.
+            '''
+            total_bit_amount = addend_bit_amount*2+1
+            assert proportion<0.8, "Don't torture the also. You don't need a 0.8+ proportion. Or get some other also."
+            assert proportion>0.
+            
+            return sample_count_detect(total_bit_amount, proportion, max_amount)
+            
+            '''
+            old code.
+            amount_needed = int(proportion * max_possible_sample_count)
+            if 0 == amount_needed:
+                amount_needed = 1
                 pass
-            assert _input_binary_length<=(input_bit_amount*2+1)
-            pass#safety
-        
-        mask_1 = ((1<<input_bit_amount)-1)<<(input_bit_amount+1)
-        mask_2 = ((1<<input_bit_amount)-1)<<1
-        mask_c = 1
-        
-        number_1 = (input&mask_1)>>input_bit_amount+1
-        number_2 = (input&mask_2)>>1
-        number_c = input&mask_c
-        sum = number_1+number_2+number_c
-        return (number_1, number_2, number_c, sum)
-    
-    
-    
-    
-    @staticmethod
-    def get_full_adder_testset_partly___sample_count_detect(input_bit_amount:int, \
-            proportion = 0.2, max_amount = 1000000, )->tuple[float,int,bool]:
-        '''return proportion, count, the_proportion_is_the_limit
-        
-        Input param:
-        >>> input_bit_amount: when it's 3, the result is a dataset of 3 bit + 3 bit + carry bit. Output is 4 bits.
-        >>> proportion and max_amount: both limit the max amount of item in the dataset. Only the smaller one works.
-        '''
-        total_bit_amount = input_bit_amount*2+1
-        max_possible_sample_count = 1<<total_bit_amount
-        assert proportion<0.8, "Don't torture the also. You don't need a 0.8+ proportion. Or get some other also."
-        assert proportion>0.
-        amount_needed = int(proportion * max_possible_sample_count)
-        if 0 == amount_needed:
-            amount_needed = 1
-            pass
-        assert amount_needed > 0
-        
-        the_proportion_is_the_limit = True
-        if amount_needed>max_amount:
-            the_proportion_is_the_limit = False
-            amount_needed = max_amount
-            pass
-        
-        actual_proportion = amount_needed/max_possible_sample_count
-        return actual_proportion, amount_needed, the_proportion_is_the_limit
-        
-    @staticmethod
-    def get_full_adder_testset_partly(input_bit_amount:int, \
-            proportion = 0.2, max_amount = 1000000, \
-            seed = None)->'Dataset_Set':
-        '''return datasetset
-        
-        Input param:
-        >>> input_bit_amount: when it's 3, the result is a dataset of 3 bit + 3 bit + carry bit. Output is 4 bits.
-        >>> proportion and max_amount: both limit the max amount of item in the dataset. Only the smaller one works.
-        '''
-        if seed:
-            random.seed(seed)
-            pass
-        else:
-            random.seed(time.time())
-            pass
-        
-        total_bit_amount = input_bit_amount*2+1
-        max_possible_sample_count = 1<<total_bit_amount
-        assert proportion<0.8, "Don't torture the also. You don't need a 0.8+ proportion. Or get some other also."
-        assert proportion>0.
-        amount_needed = int(proportion * max_possible_sample_count)
-        if 0 == amount_needed:
-            amount_needed = 1
-            pass
-        assert amount_needed > 0
-        if amount_needed>max_amount:
-            amount_needed = max_amount
-            pass
-        
-        addr_set = set()
-        while True:
-            a_rand_num = random.randint(0, max_possible_sample_count-1)
-            addr_set.add(a_rand_num)
-            if addr_set.__len__() == amount_needed:
-                break
-            pass#while
-        
-        addr_list = list(addr_set)
-        addr_list.sort()
-        
-        datasetset = Dataset_Set(input_bit_amount*2+1, input_bit_amount+1)
-        for addr in addr_list:
-            _result_tuple = Dataset_Set.explain_as_full_adder(addr, input_bit_amount, False)
-            datasetset.add_binary(addr, _result_tuple[3])
-            pass
-        
-        datasetset.sort()#maybe this is repeating?
-        return datasetset
+            assert amount_needed > 0
+            
+            the_proportion_is_the_limit = True
+            if amount_needed>max_amount:
+                the_proportion_is_the_limit = False
+                amount_needed = max_amount
+                pass
+            
+            actual_proportion = amount_needed/max_possible_sample_count
+            return actual_proportion, amount_needed, the_proportion_is_the_limit
+            '''
+            
+        @staticmethod
+        def get_full_adder_testset_partly(input_bit_amount:int, \
+                proportion = 0.2, max_amount = 1000000, \
+                seed = None)->'Dataset_Set':
+            '''return datasetset
+            
+            Input param:
+            >>> input_bit_amount: when it's 3, the result is a dataset of 3 bit + 3 bit + carry bit. Output is 4 bits.
+            >>> proportion and max_amount: both limit the max amount of item in the dataset. Only the smaller one works.
+            '''
+            if seed:
+                random.seed(seed)
+                pass
+            else:
+                random.seed(time.time())
+                pass
+            
+            total_bit_amount = input_bit_amount*2+1
+            max_possible_sample_count = 1<<total_bit_amount
+            assert proportion<0.8, "Don't torture the also. You don't need a 0.8+ proportion. Or get some other also."
+            assert proportion>0.
+            amount_needed = int(proportion * max_possible_sample_count)
+            if 0 == amount_needed:
+                amount_needed = 1
+                pass
+            assert amount_needed > 0
+            if amount_needed>max_amount:
+                amount_needed = max_amount
+                pass
+            
+            addr_set = set()
+            while True:
+                a_rand_num = random.randint(0, max_possible_sample_count-1)
+                addr_set.add(a_rand_num)
+                if addr_set.__len__() == amount_needed:
+                    break
+                pass#while
+            
+            addr_list = list(addr_set)
+            addr_list.sort()
+            
+            datasetset = Dataset_Set(input_bit_amount*2+1, input_bit_amount+1)
+            for addr in addr_list:
+                _result_tuple = Dataset_Set.explain_as_full_adder(addr, input_bit_amount, False)
+                datasetset.add_binary(addr, _result_tuple[3])
+                pass
+            
+            datasetset.sort()#maybe this is repeating?
+            return datasetset
 
+        pass
+    
     #1111111111111111111111more please.
 
 
     #end of class
     
 if "test" and True:
+    a_Dataset = Dataset(5,[(1,True),(3,False),(7,True),])
+    a_Dataset_Set = Dataset_Set.from_dataset(a_Dataset)
+    _readable_str = a_Dataset_Set.get_readable___check_btw()
+    assert _readable_str == "00001:1, 00011:0, 00111:1"
+    assert a_Dataset_Set.dataset_children.__len__() == 1
+    assert a_Dataset_Set.max_input_bits == 5
+    assert a_Dataset_Set.get_output_count() == 1
+    assert a_Dataset_Set.dataset_children[0].data == a_Dataset.data
+    
+    
+    
     datasetset = Dataset_Set(8, 3)
     datasetset.add_binary(addr=111, the_bits = 0b111)
     datasetset.add_binary(addr=100, the_bits = 0b100)

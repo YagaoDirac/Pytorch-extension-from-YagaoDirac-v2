@@ -340,9 +340,6 @@ def accuracy_gain_test___add(training_Dataset_Set:Dataset_Set, test_Dataset_Set:
     
     return accuracy_gain__ol, bitwise_acc__ol, referenced_acc__sc, avg_diff_as_number, avg_diff_as_number_over_max_possible_value
 
-
-
-
 if "test the function." and True:
     input_bit_count = 5
     #let's fix the random seed for this test.
@@ -383,7 +380,7 @@ if "test the function." and True:
     
     
     
-if "method: accuracy_gain_test___with_uint_report\n\n   slow" and True:
+if "method: accuracy_gain_test___with_uint_report\n\n   slow" and False:
     #file name
     _time = datetime.now()
     _time_str = _time.isoformat(sep=" ")
@@ -536,6 +533,317 @@ if "method: accuracy_gain_test___with_uint_report\n\n   slow" and True:
                 file.write("\n\n")
                 pass# open
             pass# for training_proportion in range
+        pass# for input_bit_count in range(3,22):
+                
+    pass
+    
+    
+    
+    
+
+
+def accuracy_gain_test___single_dataset(training_Dataset:Dataset, test_Dataset:Dataset \
+                )->tuple[float,float,float,float,float]:
+    '''return accuracy_gain, bitwise_acc, referenced_acc, total_test_sample, error_count
+    
+    >>> accuracy_gain: If all the samples outside the training dataset are randomly decided, then this is 0..
+    If the tool magically provides any extra accuracy for free, this is positive.
+    
+    >>> bitwise_acc: average bitwise accuracy
+    >>> referenced_acc: calculated with the training_Dataset_Set sample count, and 1<<input bits count.
+    
+    >>> total_test_sample: literal. It's the sample count of test dataset.
+    >>> error_count: literal.
+    '''
+    
+    #safety
+    assert training_Dataset.get_input_bits() ==  test_Dataset.get_input_bits()
+    
+    #train and check
+    a_DatasetField = DatasetField._new(training_Dataset)
+    
+    total_test_sample = test_Dataset.data.__len__()
+    error_count = 0
+    for _addr_result in test_Dataset.data:
+        _result:bool = a_DatasetField.lookup(_addr_result[0])
+        if _result!= _addr_result[1]:
+            error_count +=1 
+            pass
+        pass#for
+    
+    bitwise_acc = 1- error_count / total_test_sample
+    
+    _training_sample_count = training_Dataset.data.__len__()
+    _max_possible_sample_count = 1<<training_Dataset.max_input_bits
+    referenced_acc = 1- ((_max_possible_sample_count - _training_sample_count)/2.0)/float(_max_possible_sample_count)
+    assert referenced_acc >=0.5
+    assert referenced_acc <1.
+    accuracy_gain = bitwise_acc - referenced_acc
+    
+    return accuracy_gain, bitwise_acc, referenced_acc, total_test_sample, error_count
+
+
+
+
+if "test the function." and True:
+    input_bit_count = 5
+    depth = 2
+    
+    training_sample_count = 7
+    test_sample_count = 11
+    
+    #datasets
+    ground_truth_DatasetField = DatasetField._test_only___rand_tree__even_layers__no_xor(input_bit_count, depth, seed = 123)
+    
+    _max_possible_value_as_int = (1<<input_bits_count)-1
+    training_input_as_int___set:set[int] = set()
+    while training_input_as_int___set.__len__()<training_sample_count:
+        training_input_as_int___set.add(random.randint(0, _max_possible_value_as_int))
+        #notail
+        pass
+    test_input_as_int___set:set[int] = set()
+    while test_input_as_int___set.__len__()<test_sample_count:
+        test_input_as_int___set.add(random.randint(0, _max_possible_value_as_int))
+        #notail
+        pass
+    
+    training_Dataset_Set___core:list[tuple[int,bool]] = []
+    for addr in training_input_as_int___set:
+        _result_tuple_bbbio = ground_truth_DatasetField.lookup(addr)
+        result_or_suggest = _result_tuple_bbbio[2]
+        training_Dataset_Set___core.append((addr, result_or_suggest))
+        pass
+    test_Dataset_Set___core:list[tuple[int,bool]] = []
+    for addr in test_input_as_int___set:
+        _result_tuple_bbbio = ground_truth_DatasetField.lookup(addr)
+        result_or_suggest = _result_tuple_bbbio[2]
+        test_Dataset_Set___core.append((addr, result_or_suggest))
+        pass
+    
+    training_Dataset = Dataset(max_input_bits=input_bits_count, input = training_Dataset_Set___core)
+    assert training_Dataset.data.__len__() == training_Dataset_Set___core.__len__()
+    test_Dataset = Dataset(max_input_bits=input_bits_count, input = test_Dataset_Set___core)
+    assert test_Dataset.data.__len__() == test_Dataset_Set___core.__len__()
+                        
+    _result_tuple_fffff = accuracy_gain_test___single_dataset(training_Dataset, test_Dataset)
+    
+    
+    
+    
+    pass
+   
+
+
+
+
+
+
+
+
+    
+    
+if "DatasetField._test_only___rand_tree__even_layers__no_xor" and True:
+    #file name
+    _time = datetime.now()
+    _time_str = _time.isoformat(sep=" ")
+    _time_str = _time_str[0:19]
+    _time_str = _time_str.replace(":","-")
+    _file_name = f"acc gain test\\acc gain test result {_time_str}.txt"
+    with open(_file_name, mode = "a", encoding="utf-8") as file:
+        file.write("method: DatasetField._test_only___rand_tree__even_layers__no_xor\n\n")
+        file.write(f"{_time_str}\n\n")
+        pass#open
+    
+    for input_bit_count in range(5,22,5):
+        # _test_time
+        _test_time = 5
+        '''if input_bit_count<=10:
+            _test_time = 3
+            pass
+        if input_bit_count<=8:
+            _test_time = 4
+            pass
+        if input_bit_count<=5:
+            _test_time = 5
+            pass'''
+        with open(_file_name, mode = "a", encoding="utf-8") as file:
+            _repeating_str_previous = f"{input_bit_count-1}  "*18
+            file.write(f"input_bit_count:end of   {_repeating_str_previous}\n")
+            _repeating_str_here = f"{input_bit_count}  "*18
+            file.write(f"input_bit_count:start of {_repeating_str_here}\n")
+            #file.write(f"test time {_test_time}\n\n")
+            pass
+            
+        for depth in range(3,input_bit_count,3):
+            assert depth<=input_bit_count
+                
+            with open(_file_name, mode = "a", encoding="utf-8") as file:
+                _repeating_str_previous = f"{depth-1}  "*14
+                file.write(f"depth:end of   {_repeating_str_previous}\n")
+                _repeating_str_here = f"{depth}  "*18
+                file.write(f"depth:start of {_repeating_str_here}\n")
+                #file.write(f"test time {_test_time}\n\n")
+                pass
+                
+                
+            #init
+            last_training_sample_count = -1
+            working = False
+            
+            for training_proportion in [0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.2, 0.3, 0.4, 0.5]:
+                #checks if the sample is too few.
+                #checks the training data
+                
+                
+                proportion, count, the_proportion_is_the_limit = sample_count_detect(input_bit_count, \
+                                                    proportion=training_proportion, max_amount=30_000)
+                training_sample_count = count
+                if training_sample_count<5:
+                    continue
+                if training_sample_count == last_training_sample_count:
+                    #either the proportion is too small or too big
+                    if working:#too big. next input_bit_count
+                        break
+                    else:#too small, next proportion.
+                        continue
+                else:
+                    working = True
+                    last_training_sample_count = training_sample_count
+                    pass
+                #checks the test data
+                proportion, count, the_proportion_is_the_limit = sample_count_detect(input_bit_count, \
+                                                                    proportion=0.79, max_amount=10_000)
+                test_sample_count = count
+                if test_sample_count<25:
+                    continue
+                
+                '''loop split trick again. 
+                this loop is splitted into 2 parts.'''
+                '''part 1'''
+                #datasets
+                ground_truth_DatasetField = DatasetField._test_only___rand_tree__even_layers__no_xor(input_bits_count, depth)
+                
+                _max_possible_value_as_int = (1<<input_bits_count)-1
+                training_input_as_int___set = set()
+                while training_input_as_int___set.__len__()<training_sample_count:
+                    training_input_as_int___set.add(random.randint(0, _max_possible_value_as_int))
+                    #notail
+                    pass
+                test_input_as_int___set = set()
+                while test_input_as_int___set.__len__()<test_sample_count:
+                    test_input_as_int___set.add(random.randint(0, _max_possible_value_as_int))
+                    #notail
+                    pass
+                
+                training_Dataset_Set___core = []
+                for addr in training_input_as_int___set:
+                    _result_tuple_bbbio = ground_truth_DatasetField.lookup(addr)
+                    result_or_suggest = _result_tuple_bbbio[2]
+                    training_Dataset_Set___core.append((addr, result_or_suggest))
+                    pass
+                test_Dataset_Set___core = []
+                for addr in test_input_as_int___set:
+                    _result_tuple_bbbio = ground_truth_DatasetField.lookup(addr)
+                    result_or_suggest = _result_tuple_bbbio[2]
+                    test_Dataset_Set___core.append((addr, result_or_suggest))
+                    pass
+                
+                training_Dataset = Dataset(max_input_bits=input_bits_count, input = training_Dataset_Set___core)
+                assert training_Dataset.data.__len__() == training_Dataset_Set___core.__len__()
+                test_Dataset = Dataset(max_input_bits=input_bits_count, input = test_Dataset_Set___core)
+                assert test_Dataset.data.__len__() == test_Dataset_Set___core.__len__()
+                        
+                
+                
+                a_DatasetField = DatasetField._new()
+                        
+                        
+                assert False, "        1w 继续。"
+                        
+                        
+                #training and valid.
+                accuracy_gain__ol, \
+                    bitwise_acc__ol, \
+                        referenced_acc__sc, \
+                            avg_diff_as_number, \
+                                avg_diff_as_number_over_max_possible_value \
+                    = accuracy_gain_test___add(training_Dataset_Set, test_Dataset_Set)
+                #over_all_acc_gain = accuracy_gain__ol.mean()
+                #over_all_bitwise_acc = bitwise_acc__ol.mean()
+                '''part 2'''
+                for _ in range(1, _test_time):
+                    #datasets
+                    training_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, proportion=training_proportion, \
+                            max_amount=30_000)
+                    test_Dataset_Set = Dataset_Set.get_full_adder_testset_partly(input_bit_count, proportion=0.79, \
+                            max_amount=10_000)
+                    #training and valid.
+                    in_loop__accuracy_gain__ol, \
+                        in_loop__bitwise_acc__ol, \
+                            in_loop__referenced_acc__sc, \
+                                in_loop__avg_diff_as_number, \
+                                    in_loop__avg_diff_as_number_over_max_possible_value \
+                        = accuracy_gain_test___add(training_Dataset_Set, test_Dataset_Set)
+                    
+                    accuracy_gain__ol += in_loop__accuracy_gain__ol
+                    bitwise_acc__ol += in_loop__bitwise_acc__ol
+                    assert referenced_acc__sc == in_loop__referenced_acc__sc
+                    avg_diff_as_number += in_loop__avg_diff_as_number
+                    avg_diff_as_number_over_max_possible_value += in_loop__avg_diff_as_number_over_max_possible_value
+                    
+                    #over_all_acc_gain += in_loop__accuracy_gain__ol.mean()
+                    #over_all_bitwise_acc += in_loop__bitwise_acc__ol.mean()
+                    pass#for in range
+                
+                #divides by the _test_time
+                accuracy_gain__ol /= _test_time
+                bitwise_acc__ol /= _test_time
+                assert referenced_acc__sc >= 0.5 and referenced_acc__sc < 1.
+                avg_diff_as_number /= _test_time
+                avg_diff_as_number_over_max_possible_value /= _test_time
+                    
+                over_all_acc_gain = accuracy_gain__ol.mean()
+                over_all_bitwise_acc = bitwise_acc__ol.mean()
+                
+                
+                
+                #log out.
+                with open(_file_name, mode = "a", encoding="utf-8") as file:
+                    file.write(f"input_bit_count: {input_bit_count}\n")
+                    file.write(f"depth: {depth}\n")
+                    file.write(f"-  -  -  -  -  -  -  -  -  -  -  -  \n")
+                    file.write(f"test time: {_test_time}\n")
+                    _actual_training_proportion = training_sample_count/(1<<(input_bit_count))
+                    file.write(f"training_proportion: {_actual_training_proportion:.5f} ({training_proportion})\n")
+                    file.write(f"training_sample_count: {training_sample_count}\n")
+                    file.write(f"test_sample_count: {test_sample_count}\n")
+                    file.write(f"-  -  -  -  -  -  -  -  -  -  -  -  \n")
+                    
+                    file.write(f"               avg ACC GAIN: {over_all_acc_gain}")
+                    if over_all_acc_gain >0:
+                        file.write(f"\n")
+                        pass
+                    else:
+                        file.write(f", BAD! BAD! BAD! BAD!!!!!!!!!!!!!!!\n")
+                        pass
+                    
+                    file.write(f"      avg acc: {over_all_bitwise_acc}\n")
+                    
+                    file.write(f"bitwise ACC GAIN: {accuracy_gain__ol}\n")
+                    file.write(f"bitwise ACC: {bitwise_acc__ol}\n")
+                    
+                    _lets_calc_ref_acc_again = training_proportion/2.+0.5
+                    file.write(f"referenced_acc: {referenced_acc__sc:.4f}({_lets_calc_ref_acc_again:.4f})\n")
+                    file.write(f"-  -  -  -  -  -  -  -  -  -  -  -  \n")
+                    
+                    file.write(f"avg_diff_as_number: {avg_diff_as_number:.4f}\n")
+                    file.write(f"avg_diff_as_number_over_max_possible_value: {avg_diff_as_number_over_max_possible_value:.5f}\n")
+                    
+                    file.write(f"       max_possible_value: {(1<<_output_bit_count_per_sample)-1}\n")
+                    file.write("\n\n")
+                    pass# open
+                pass# for training_proportion in range
+            pass# for depth
         pass# for input_bit_count in range(3,22):
                 
     pass
