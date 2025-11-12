@@ -1,3 +1,20 @@
+assert False, '''
+before you use this tool, I would like you to know:
+1, this tool doesn't detect xor field well. Part of xor field detection is still only in plan. 
+2, I only ran 2 test, int add test, and a teacher-student test.
+3, All the feeded cases are inferenced perfectly, no worry. But outside the feeded cases, if the logic is 
+very complex, this tool provides a 0.5% to up to 25% extra accuracy in most cases. 
+
+If you want to know more detail about the performance, run the 2 tests, read log.
+
+No tutorial, but I have a lot test code, probably enough.
+My style is, I don't hide anything, but I only recommend you to call the functions. If you modify the 
+data members, on your own risk.
+
+Ok, welcome to the era of logic learning. Now change the first ling to "assert True", and have fun.
+'''
+
+
 '''
 Author:YagaoDirac (also on X.com)
 
@@ -1209,10 +1226,12 @@ class DatasetField:
                 if random.random()<0.5:
                     node.has_0 = True
                     node.has_1 = False
+                    #node.has_irr = False
                     pass
                 else:
                     node.has_0 = False
                     node.has_1 = True
+                    #node.has_irr = False
                     pass
                 #log
                 log_simple.append(" "*13+f"leaf, bitmask{readable_binary(node.bitmask,node.input_bits_count) \
@@ -2473,7 +2492,7 @@ class DatasetField:
         print(temp2)
         pass
     
-    def readable_as_tree(self, depth:int = -1, use_TF = False, with_irr_bit_for_xor = True)->str:
+    def readable_as_tree(self, depth:int = -1, use_TF = False, with_irr_bit_for_xor = True, ignore_irr = False)->str:
         '''Behavior:
         leaf node: addr, result.
         branch node:
@@ -2503,7 +2522,7 @@ class DatasetField:
             elif self.all_irr:
                 return addr_str+"ir"        
             else:
-                if self.has_irr:
+                if self.has_irr and (not ignore_irr):
                     if self.has_0:#0+irr
                         return addr_str+false_char+"+ir"        
                     else:#1+irr
@@ -2520,8 +2539,8 @@ class DatasetField:
                 new_depth = depth-1
                 false_child = self._get_child(False)
                 true_child = self._get_child(True)
-                false_str = false_child.readable_as_tree(new_depth, use_TF)
-                true_str = true_child.readable_as_tree(new_depth, use_TF)
+                false_str = false_child.readable_as_tree(new_depth, use_TF, with_irr_bit_for_xor, ignore_irr)
+                true_str = true_child.  readable_as_tree(new_depth, use_TF, with_irr_bit_for_xor, ignore_irr)
                 return addr_str+f"({false_str}, {true_str})"
         #end of function
     
