@@ -1,3 +1,4 @@
+from typing import Optional
 from datetime import datetime
 from pathlib import Path
 import statistics
@@ -12,32 +13,38 @@ from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1 
 
 
 
-class Low_rand_mat_fac(torch.nn.Module):
-    mat_1:torch.Tensor
-    mat_2:torch.Tensor
-    def __init__(self, gt_shape:tuple[int,int], target_rank:int, 
+class Rotation_layer(torch.nn.Module):
+    mat:torch.Tensor
+    def __init__(self, dim:int, original:Optional[torch.Tensor] = None, 
                 device=None,dtype=None,*args, **kwargs):
         factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
-        assert target_rank>0
-        self.mat_1:torch.Tensor = torch.nn.Parameter(torch.randn((gt_shape[0], target_rank), device=device, dtype=dtype))
-        self.mat_2:torch.Tensor = torch.nn.Parameter(torch.randn((target_rank, gt_shape[1]), device=device, dtype=dtype))
+        if original:
+            self.mat:torch.Tensor = torch.nn.Parameter(original.detach().clone(), requires_grad=True, device=device, dtype=dtype)
+            pass
+        else:
+            self.mat:torch.Tensor = torch.nn.Parameter(torch.randn((dim,dim),requires_grad=True, device=device, dtype=dtype))
+            pass
         self.gramo_1 = Gramo(device=device)
         self.gramo_2 = Gramo(device=device)
         pass
     
     def forward(self) -> torch.Tensor:
         #model
-        mat_1_after_gramo = self.gramo_1(self.mat_1)
-        mat_2_after_gramo = self.gramo_2(self.mat_2)
-        inferenced_mat:torch.Tensor = mat_1_after_gramo@mat_2_after_gramo
-        return inferenced_mat
+        mat_1_after_gramo = self.gramo_1(self.mat)
+        mat_2_after_gramo = self.gramo_2(self.mat.transpose())
+        should_be_identical_mat:torch.Tensor = mat_1_after_gramo@mat_2_after_gramo
+        return should_be_identical_mat
 
     def extra_repr(self) -> str:
         """
         Return the extra representation of the module.
         """
-        return f"gt_shape={self.gt_shape}, target_rank={self.target_rank}"
+        return f"dim={self.mat.shape[0]}"
+    
+    def correct(self):
+        assert False, "copy the entire training process into here."
+    
     pass#end of class
 if "no test for the class. Probably correct" and False:
     pass
@@ -45,51 +52,19 @@ if "no test for the class. Probably correct" and False:
 #torch.manual_seed(123)
 
 
-_time = datetime.now()
-_time_str = _time.isoformat(sep=" ")
-_time_str = _time_str[0:19]
-_time_str = _time_str.replace(":","-")
-_file_name = f"{Path(__file__).parent/"test result"}\\sweep below_this_then_incr_lr {_time_str}.txt"
-with open(_file_name, mode = "a", encoding="utf-8") as file:
-    file.write("sweep: below_this_then_incr_lr\n\n")
-    file.write(f"{_time_str}\n\n")
-    pass#open
 
 below_this_then_incr_lr = 0.8#[0.5, 0.8]:
 incr_lr_by = 2.
 uppon_this_then_decr_lr = 1.
 decr_lr_by = 0.4
 
-for sweep in [0.5, 0.8]:
+for sweep in [0.8]:#[0.5, 0.8]:
     below_this_then_incr_lr = sweep
     
-    gt_dim = 5
-    gt_shape:tuple[int,int] = (gt_dim,gt_dim)
-    gt_mat:torch.Tensor = torch.randn(gt_shape)
-    target_rank = 5
-    
-    with open(_file_name, mode = "a", encoding="utf-8") as file:
-        file.write(f"below_this_then_incr_lr {below_this_then_incr_lr}\n")
-        file.write(f"incr_lr_by {incr_lr_by}\n")
-        file.write(f"uppon_this_then_decr_lr {uppon_this_then_decr_lr}\n")
-        file.write(f"decr_lr_by {decr_lr_by}\n")
-        file.write(f"-  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  \n")
-        file.write(f"gt_dim {gt_dim}\n")
-        file.write(f"gt_shape {gt_shape}\n")
-        file.write(f"gt_mat {gt_mat}\n")
-        file.write(f"target_rank {target_rank}\n")
-        pass
-
-    '''
-    with open(_file_name, mode = "a", encoding="utf-8") as file:
-                _repeating_str_previous = f"{input_bit_count-1}  "*18
-                file.write(f"end of   {_repeating_str_previous}\n")
-                _repeating_str_here = f"{input_bit_count}  "*18
-                file.write(f"start of {_repeating_str_here}\n")
-                file.write(f"test time {_test_time}\n\n")
-                pass
-    '''
-
+    dim = 5
+    gt_shape:tuple[int,int] = (dim,dim)
+    start_mat:torch.Tensor = torch.randn(gt_shape)
+    _identical_mat = torch.eye(dim)
 
     finished_count = 0
     epoch_count_list:list[int] = []
@@ -99,15 +74,16 @@ for sweep in [0.5, 0.8]:
     ori_abs_mean_list:list[float] = []
     for test_count in range(1,20+1):
         #init test
-        model = Low_rand_mat_fac(gt_shape, target_rank)
+        model = Rotation_layer(dim)
+        model_start_point:torch.Tensor = model.mat.detach().clone()
 
         start_lr = 0.1
         optimizer = torch.optim.SGD(params=model.parameters(), lr = start_lr)
         old_loss:float = 9999999999999999999999.
         finished = False
         for epoch in range(10000):
-            inferenced_mat = model()
-            diff:torch.Tensor = inferenced_mat-gt_mat
+            should_be_identical_mat = model()
+            diff:torch.Tensor = should_be_identical_mat-_identical_mat
             diff_sqr:torch.Tensor = diff*diff
             loss:torch.Tensor = diff_sqr.mean()#batch?
             
@@ -161,6 +137,11 @@ for sweep in [0.5, 0.8]:
             finished_count +=1
             epoch_count_list.append(epoch+1)
             loss_list.append(new_loss)
+            
+            1w 误差怎么定义？？？
+            #the real error.
+            model_start_point@(model_start_point.transpose())
+            
             ori_mean_list.append(gt_mat.mean().item())
             ori_abs_mean_list.append(gt_mat.abs().mean().item())
             ori_std_list.append(gt_mat.std().item())
