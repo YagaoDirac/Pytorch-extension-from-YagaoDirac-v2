@@ -1,8 +1,13 @@
 # 后续计划。
 # 简化版本的gramo
-# x的归一化。
-# 直接堆叠测试。
+# x的缓慢归一化。正向的辅助就等旋转nn了。
+# 直接堆叠测试。需要吗？
 # 结合relu，tanh，sigmoid测试。
+# 更规范的代码
+# torch2.x标准写法。
+
+
+
 
 
 '''
@@ -227,7 +232,11 @@ from typing import Any, Optional
 #import math
 import torch
 
-
+def dtype_upgrade(input:torch.dtype)->torch.dtype:
+    if input == torch.float64:
+        return torch.float64
+    else:
+        return torch.float32
 
 
 
@@ -536,17 +545,23 @@ class GradientModification_v2_abs_to_less_than_1__adaptive_expansion(torch.nn.Mo
     lr:float = optimizer.param_groups[0]["lr"]
     """
 
-
+    div_me_when_g_too_small:torch.nn.Parameter
+    median_expansion_to:torch.nn.Parameter
+    useful_element_lower_boundary:torch.nn.Parameter
+    useful_element_upper_boundary:torch.nn.Parameter
+    expansion_factor_fallback:torch.nn.Parameter
     def __init__(self, div_me_when_g_too_small=1e-3, median_expansion_to =0.5, \
             useful_element_lower_boundary =0.01,useful_element_upper_boundary = 0.99,\
-            expansion_factor_fallback = 0.3, *args, **kwargs) -> None:
+            expansion_factor_fallback = 0.3,
+                            device=None,dtype=None,*args, **kwargs):
+        
         super().__init__(*args, **kwargs)
         
-        self.div_me_when_g_too_small = torch.nn.Parameter(torch.tensor(div_me_when_g_too_small), requires_grad=False)
-        self.median_expansion_to = torch.nn.Parameter(torch.tensor(median_expansion_to), requires_grad=False)
-        self.useful_element_lower_boundary = torch.nn.Parameter(torch.tensor(useful_element_lower_boundary), requires_grad=False)
-        self.useful_element_upper_boundary = torch.nn.Parameter(torch.tensor(useful_element_upper_boundary), requires_grad=False)
-        self.expansion_factor_fallback=torch.nn.Parameter(torch.tensor(expansion_factor_fallback), requires_grad=False)
+        self.div_me_when_g_too_small       = torch.nn.Parameter(torch.tensor(div_me_when_g_too_small,       device=device, dtype=dtype), requires_grad=False)
+        self.median_expansion_to           = torch.nn.Parameter(torch.tensor(median_expansion_to    ,       device=device, dtype=dtype), requires_grad=False)
+        self.useful_element_lower_boundary = torch.nn.Parameter(torch.tensor(useful_element_lower_boundary, device=device, dtype=dtype), requires_grad=False)
+        self.useful_element_upper_boundary = torch.nn.Parameter(torch.tensor(useful_element_upper_boundary, device=device, dtype=dtype), requires_grad=False)
+        self.expansion_factor_fallback     = torch.nn.Parameter(torch.tensor(expansion_factor_fallback,     device=device, dtype=dtype), requires_grad=False)
         pass
     def forward(self, x:torch.Tensor)->torch.Tensor:
         # If you know how pytorch works, you can comment this checking out.
@@ -642,6 +657,19 @@ if '''dtype adaption.''' and False:
         pass
     pass
 
+if '''init test''' and True:
+    
+    1w
+    layer_GradientModification_v2_abs_to_less_than_1__adaptive_expansion = GradientModification_v2_abs_to_less_than_1__adaptive_expansion(device='cuda')
+    assert layer_GradientModification_v2_abs_to_less_than_1__adaptive_expansion.scaling_factor.device == torch.device('cuda', index=0)
+    assert layer_GradientModification_v2_abs_to_less_than_1__adaptive_expansion.scaling_factor.dtype == torch.float32
+    layer_GradientModification_v2_abs_to_less_than_1__adaptive_expansion = GradientModification_v2_abs_to_less_than_1__adaptive_expansion(dtype=torch.float64)
+    assert layer_GradientModification_v2_abs_to_less_than_1__adaptive_expansion.scaling_factor.dtype == torch.float64
+    layer_GradientModification_v2_abs_to_less_than_1__adaptive_expansion = GradientModification_v2_abs_to_less_than_1__adaptive_expansion(dtype=torch.float32)
+    assert layer_GradientModification_v2_abs_to_less_than_1__adaptive_expansion.scaling_factor.dtype == torch.float32
+    layer_GradientModification_v2_abs_to_less_than_1__adaptive_expansion = GradientModification_v2_abs_to_less_than_1__adaptive_expansion(dtype=torch.float16)
+    assert layer_GradientModification_v2_abs_to_less_than_1__adaptive_expansion.scaling_factor.dtype == torch.float32
+    pass
 
 
 
@@ -767,10 +795,11 @@ class XModification_sign_balance_abs_to_less_than_1(torch.nn.Module):
     lr:float = optimizer.param_groups[0]["lr"]
     """
 
+    div_me_when_g_too_small:torch.nn.Parameter
     def __init__(self, div_me_when_g_too_small=1e-2, \
                     *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.div_me_when_g_too_small=torch.nn.Parameter(torch.tensor(div_me_when_g_too_small), requires_grad=False)
+        self.div_me_when_g_too_small=torch.nn.Parameter(torch.tensor(div_me_when_g_too_small, device=device, dtype=dtype), requires_grad=False)
         pass
     
     def forward(self, x:torch.Tensor)->torch.Tensor:
@@ -827,8 +856,18 @@ if '''dtype adaption.''' and False:
         pass
     pass
 
-
-
+if '''init test''' and True:
+    1w
+    layer_XModification_sign_balance_abs_to_less_than_1 = XModification_sign_balance_abs_to_less_than_1(device='cuda')
+    assert layer_XModification_sign_balance_abs_to_less_than_1.scaling_factor.device == torch.device('cuda', index=0)
+    assert layer_XModification_sign_balance_abs_to_less_than_1.scaling_factor.dtype == torch.float32
+    layer_XModification_sign_balance_abs_to_less_than_1 = XModification_sign_balance_abs_to_less_than_1(dtype=torch.float64)
+    assert layer_XModification_sign_balance_abs_to_less_than_1.scaling_factor.dtype == torch.float64
+    layer_XModification_sign_balance_abs_to_less_than_1 = XModification_sign_balance_abs_to_less_than_1(dtype=torch.float32)
+    assert layer_XModification_sign_balance_abs_to_less_than_1.scaling_factor.dtype == torch.float32
+    layer_XModification_sign_balance_abs_to_less_than_1 = XModification_sign_balance_abs_to_less_than_1(dtype=torch.float16)
+    assert layer_XModification_sign_balance_abs_to_less_than_1.scaling_factor.dtype == torch.float32
+    pass
 
 
 
@@ -967,12 +1006,13 @@ class XModification_abs_to_less_than_1_then_expansion(torch.nn.Module):
     To access the learning rate, you usually need some thing like:
     lr:float = optimizer.param_groups[0]["lr"]
     """
-
+    forward_expansion_factor:torch.nn.Parameter
+    div_me_when_g_too_small:torch.nn.Parameter
     def __init__(self, forward_expansion_factor:float,div_me_when_g_too_small=1e-2, \
-                    *args, **kwargs) -> None:
+                            device=None,dtype=None,*args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.forward_expansion_factor = torch.nn.Parameter(torch.tensor(forward_expansion_factor), requires_grad=False)
-        self.div_me_when_g_too_small=torch.nn.Parameter(torch.tensor(div_me_when_g_too_small), requires_grad=False)
+        self.forward_expansion_factor = torch.nn.Parameter(torch.tensor(forward_expansion_factor, device=device, dtype=dtype), requires_grad=False)
+        self.div_me_when_g_too_small=torch.nn.Parameter(torch.tensor(div_me_when_g_too_small, device=device, dtype=dtype), requires_grad=False)
         pass
     
     def forward(self, x:torch.Tensor)->torch.Tensor:
@@ -994,7 +1034,7 @@ class XModification_abs_to_less_than_1_then_expansion(torch.nn.Module):
         self.div_me_when_g_too_small.data = torch.tensor(div_me_when_g_too_small, device=the_device, dtype=the_dtype, requires_grad=False)
         pass
     def extra_repr(self) -> str:
-        return f'grad_expansion_factor={self.grad_expansion_factor.item():.3e}, div_me_when_g_too_small={self.div_me_when_g_too_small.item():.2e}'
+        return f'forward_expansion_factor={self.forward_expansion_factor.item():.3e}, div_me_when_g_too_small={self.div_me_when_g_too_small.item():.2e}'
 
 if '''all the setters''' and False:
     layer = XModification_abs_to_less_than_1_then_expansion(0.5)
@@ -1036,8 +1076,18 @@ if '''dtype adaption.''' and False:
         pass
     pass
 
-
-
+if '''init test''' and True:
+    1w
+    layer_XModification_abs_to_less_than_1_then_expansion = XModification_abs_to_less_than_1_then_expansion(device='cuda')
+    assert layer_XModification_abs_to_less_than_1_then_expansion.scaling_factor.device == torch.device('cuda', index=0)
+    assert layer_XModification_abs_to_less_than_1_then_expansion.scaling_factor.dtype == torch.float32
+    layer_XModification_abs_to_less_than_1_then_expansion = XModification_abs_to_less_than_1_then_expansion(dtype=torch.float64)
+    assert layer_XModification_abs_to_less_than_1_then_expansion.scaling_factor.dtype == torch.float64
+    layer_XModification_abs_to_less_than_1_then_expansion = XModification_abs_to_less_than_1_then_expansion(dtype=torch.float32)
+    assert layer_XModification_abs_to_less_than_1_then_expansion.scaling_factor.dtype == torch.float32
+    layer_XModification_abs_to_less_than_1_then_expansion = XModification_abs_to_less_than_1_then_expansion(dtype=torch.float16)
+    assert layer_XModification_abs_to_less_than_1_then_expansion.scaling_factor.dtype == torch.float32
+    pass
 
 
 
@@ -1162,14 +1212,17 @@ class GradientModification_v2_mean_abs_to_1(torch.nn.Module):
     lr:float = optimizer.param_groups[0]["lr"]
     """
 
-    def __init__(self, scaling_factor:float = 1., \
-                       epi=1e-5, \
-                       mul_me_when_g_too_small = 1e3, \
-                        *args, **kwargs) -> None:
+    scaling_factor:torch.nn.Parameter
+    epi:torch.nn.Parameter 
+    mul_me_when_g_too_small:torch.nn.Parameter
+    def __init__(self, scaling_factor:float = 1., epi=1e-5, \
+                    mul_me_when_g_too_small = 1e3, \
+                            device=None,dtype=None,*args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.scaling_factor = torch.nn.Parameter(torch.tensor(scaling_factor), requires_grad=False)
-        self.epi=torch.nn.Parameter(torch.tensor(epi), requires_grad=False)
-        self.mul_me_when_g_too_small = torch.nn.Parameter(torch.tensor(mul_me_when_g_too_small), requires_grad=False)
+        dtype = dtype_upgrade(dtype)
+        self.scaling_factor          = torch.nn.Parameter(torch.tensor(scaling_factor,          device=device, dtype=dtype), requires_grad=False)
+        self.epi                     = torch.nn.Parameter(torch.tensor(epi,                     device=device, dtype=dtype), requires_grad=False)
+        self.mul_me_when_g_too_small = torch.nn.Parameter(torch.tensor(mul_me_when_g_too_small, device=device, dtype=dtype), requires_grad=False)
         pass
     def forward(self, x:torch.Tensor)->torch.Tensor:
         # If you know how pytorch works, you can comment this checking out.
@@ -1178,7 +1231,7 @@ class GradientModification_v2_mean_abs_to_1(torch.nn.Module):
         #forward(ctx, x:torch.Tensor, scaling_factor:torch.Tensor, epi=torch.Tensor, \
         #div_me_when_g_too_small:torch.Tensor)->torch.Tensor:
         return GradientModificationFunction_v2_mean_abs_to_1.apply(x, self.scaling_factor, self.epi, \
-                                                   self.mul_me_when_g_too_small)
+                                                            self.mul_me_when_g_too_small)
     def set_scaling_factor(self, scaling_factor:float)->None:
         the_device = self.scaling_factor.device
         the_dtype = self.scaling_factor.dtype
@@ -1245,6 +1298,18 @@ if '''dtype adaption.''' and False:
         pass
     pass
 
+if '''init test''' and False:
+    layer_GradientModification_v2_mean_abs_to_1 = GradientModification_v2_mean_abs_to_1(device='cuda')
+    assert layer_GradientModification_v2_mean_abs_to_1.scaling_factor.device == torch.device('cuda', index=0)
+    assert layer_GradientModification_v2_mean_abs_to_1.scaling_factor.dtype == torch.float32
+    layer_GradientModification_v2_mean_abs_to_1 = GradientModification_v2_mean_abs_to_1(dtype=torch.float64)
+    assert layer_GradientModification_v2_mean_abs_to_1.scaling_factor.dtype == torch.float64
+    layer_GradientModification_v2_mean_abs_to_1 = GradientModification_v2_mean_abs_to_1(dtype=torch.float32)
+    assert layer_GradientModification_v2_mean_abs_to_1.scaling_factor.dtype == torch.float32
+    layer_GradientModification_v2_mean_abs_to_1 = GradientModification_v2_mean_abs_to_1(dtype=torch.float16)
+    assert layer_GradientModification_v2_mean_abs_to_1.scaling_factor.dtype == torch.float32
+    pass
+    
 
 
 
@@ -1371,12 +1436,14 @@ class GradientModification_v2_abs_to_less_than_1(torch.nn.Module):
     lr:float = optimizer.param_groups[0]["lr"]
     """
 
+    grad_expansion_factor:torch.nn.Parameter
+    div_me_when_g_too_small:torch.nn.Parameter
     def __init__(self, grad_expansion_factor:float = 0.3, \
-                       div_me_when_g_too_small=1e-2, \
-                        *args, **kwargs) -> None:
+                        div_me_when_g_too_small=1e-2, \
+                            device=None,dtype=None,*args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.grad_expansion_factor = torch.nn.Parameter(torch.tensor(grad_expansion_factor), requires_grad=False)
-        self.div_me_when_g_too_small=torch.nn.Parameter(torch.tensor(div_me_when_g_too_small), requires_grad=False)
+        self.grad_expansion_factor = torch.nn.Parameter(torch.tensor(grad_expansion_factor,device=device, dtype=dtype), requires_grad=False)
+        self.div_me_when_g_too_small=torch.nn.Parameter(torch.tensor(div_me_when_g_too_small,device=device, dtype=dtype), requires_grad=False)
         pass
     def forward(self, x:torch.Tensor)->torch.Tensor:
         # If you know how pytorch works, you can comment this checking out.
@@ -1438,9 +1505,19 @@ if '''dtype adaption.''' and False:
         pass
     pass
 
-
-
-
+if '''init test''' and True:
+    1w
+    layer_GradientModification_v2_abs_to_less_than_1 = GradientModification_v2_abs_to_less_than_1(device='cuda')
+    assert layer_GradientModification_v2_abs_to_less_than_1.scaling_factor.device == torch.device('cuda', index=0)
+    assert layer_GradientModification_v2_abs_to_less_than_1.scaling_factor.dtype == torch.float32
+    layer_GradientModification_v2_abs_to_less_than_1 = GradientModification_v2_abs_to_less_than_1(dtype=torch.float64)
+    assert layer_GradientModification_v2_abs_to_less_than_1.scaling_factor.dtype == torch.float64
+    layer_GradientModification_v2_abs_to_less_than_1 = GradientModification_v2_abs_to_less_than_1(dtype=torch.float32)
+    assert layer_GradientModification_v2_abs_to_less_than_1.scaling_factor.dtype == torch.float32
+    layer_GradientModification_v2_abs_to_less_than_1 = GradientModification_v2_abs_to_less_than_1(dtype=torch.float16)
+    assert layer_GradientModification_v2_abs_to_less_than_1.scaling_factor.dtype == torch.float32
+    pass
+    
 
 
 
@@ -1635,9 +1712,11 @@ If you don't know how to use it, it's ok. I don't either.
 class ReLU_with_offset(torch.nn.Module):
     r"""y = max(1, x)
     """
-    def __init__(self, offset:float, *args, **kwargs) -> None:
+    offset:torch.nn.Parameter
+    def __init__(self, offset:float, 
+                            device=None,dtype=None,*args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.offset = torch.nn.Parameter(torch.tensor(offset), requires_grad=False)
+        self.offset = torch.nn.Parameter(torch.tensor(offset, device=device, dtype=dtype), requires_grad=False)
         #raise Exception ('untested.')
         pass
     def forward(self, x:torch.Tensor)->torch.Tensor:
@@ -1652,7 +1731,18 @@ if 'basic test' and False:
     output = layer(input)
     pass
 
-
-
+if '''init test''' and True:
+    1w
+    
+    layer_ReLU_with_offset = ReLU_with_offset(device='cuda')
+    assert layer_ReLU_with_offset.scaling_factor.device == torch.device('cuda', index=0)
+    assert layer_ReLU_with_offset.scaling_factor.dtype == torch.float32
+    layer_ReLU_with_offset = ReLU_with_offset(dtype=torch.float64)
+    assert layer_ReLU_with_offset.scaling_factor.dtype == torch.float64
+    layer_ReLU_with_offset = ReLU_with_offset(dtype=torch.float32)
+    assert layer_ReLU_with_offset.scaling_factor.dtype == torch.float32
+    layer_ReLU_with_offset = ReLU_with_offset(dtype=torch.float16)
+    assert layer_ReLU_with_offset.scaling_factor.dtype == torch.float32
+    pass
 
 
