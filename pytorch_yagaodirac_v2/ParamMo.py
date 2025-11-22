@@ -249,7 +249,16 @@ if __DEBUG_ME__():
         assert _float_equal(1., 1.01) == False
         assert _float_equal(1., 1.01, 0.1) 
         pass
-    def _tensor_equal(a:torch.Tensor, b:torch.Tensor, epi:float = 0.0001)->bool:
+    def _tensor_equal(  a:torch.Tensor|list[float]|list[list[float]], \
+                        b:torch.Tensor|list[float]|list[list[float]], \
+                            epi:float = 0.0001)->bool:
+        if not isinstance(a, torch.Tensor):
+            a = torch.tensor(a)
+            pass
+        if not isinstance(b, torch.Tensor):
+            b = torch.tensor(b)
+            pass
+        
         assert a.shape == b.shape
         with torch.inference_mode():
             diff = a-b
@@ -258,12 +267,18 @@ if __DEBUG_ME__():
             after_all = less_than.all()
             assert after_all.dtype == torch.bool
             the_item = after_all.item()
-            assert the_item is bool
+            assert isinstance(the_item, bool)
             return the_item
         pass#end of function
     if "test":
-        _tensor_equal(torch.tensor([1w]))
-        
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.]))
+        assert _tensor_equal(torch.tensor([1.,2.]), [1.,2.])
+        #assert _tensor_equal(torch.tensor([1.]), torch.tensor([[1.]]))
+        assert _tensor_equal(torch.tensor([[1.]]), torch.tensor([[1.]]))
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.000001]))
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([0.99999]))
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.001])) == False
+        pass
         
 
 def dtype_upgrade(input:torch.dtype)->torch.dtype:
@@ -327,8 +342,9 @@ if 'how to make param holo. Style 1, linear offset.' and __DEBUG_ME__() and True
     assert_param_for_ParamMo_make_holo_direct_offset(holo, epi)
     result = ParamMo_make_holo_direct_offset(the_input, holo, epi)
     
-    assert the_input.eq(torch.tensor([[-1.0, -0.1,  0.0,  0.1,  1.0]])).all()
-    assert result   .eq(torch.tensor([[-1.2, -0.3,  0.2,  0.3,  1.2]])).all()
+    assert _tensor_equal(the_input, [[-1.0, -0.1,  0.0,  0.1,  1.0]])
+    assert _tensor_equal(result, [[-1.2, -0.3,  0.2,  0.3,  1.2]]) or \
+        _tensor_equal(result,    [[-1.2, -0.3, -0.2,  0.3,  1.2]])
     pass
 
 
@@ -368,10 +384,9 @@ if 'how to make param holo. Style 2, keeps the max abs as 1' and __DEBUG_ME__() 
     assert_param_for_ParamMo_make_holo_keep_the_max_abs_as_1(holo, epi)
     result = ParamMo_make_holo_keep_the_max_abs_as_1(the_input, holo, epi)
     
-    #######################111111111111111111111111111
-    print(the_input)
-    print(result)
-    #assert the_input.eq(torch.tensor([[-1.0, -0.1,  0.0,  0.1,  1.0]])).all()
+    assert _tensor_equal(the_input, [[-1.0, -0.1,  0.0,  0.1,  1.0]])
+    assert _tensor_equal(result, [[-1.0, -0.28, -0.20,  0.28,  1.0]]) or \
+        _tensor_equal(result,    [[-1.0, -0.28,  0.20,  0.28,  1.0]])
     pass
 
 
@@ -616,6 +631,8 @@ if '''basic test''' and __DEBUG_ME__() and True:
             div_me_when_g_too_small,median_expansion_to,useful_element_lower_boundary,
                 useful_element_upper_boundary,expansion_factor_fallback)
     torch.autograd.backward(b, g_in,inputs= a)
+    
+    #_tensor_equal
     print(a.grad)
     
     g_in = torch.tensor([[0.,0.00001,0.1,0.9999,1.],[0.,0.00001,0.00001,0.9999,1.]])

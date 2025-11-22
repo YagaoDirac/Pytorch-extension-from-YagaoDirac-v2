@@ -1,15 +1,17 @@
-from typing import Any, List, Tuple, Optional, Self
+from typing import Any, List, Tuple, Optional
 import math
 import torch
 
-if "__main__" == __name__:
-    import sys
-    __temp__package_path__:str = sys.path[0]
-    pos = __temp__package_path__.rfind("\\")
-    ____package_path__ = __temp__package_path__[:pos]
-    sys.path.insert(0, ____package_path__)
-    #print("adding sys path:", ____package_path__)
+
+def __DEBUG_ME__()->bool:
+    return __name__ == "__main__"
+if "test" and False:
+    assert __DEBUG_ME__()
     pass
+
+from pathlib import Path
+import sys
+sys.path.append(str(Path(__file__).parent))
 from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1, ReLU_with_offset
 from pytorch_yagaodirac_v2.Util import debug_avg_log, data_gen_from_random_teacher, Print_Timing
 
@@ -25,49 +27,77 @@ class FCL_from_yagaodirac(torch.nn.Module):
     To get a better performance, remove the bias gramo. 
     But the bias accumulates grad based on batch. And it needs compensition against it. 
     The way is to set the scale factor of out gramo based on batch size in forward func.'''
-    def __init__(self, in_features: int, out_features: int, \
-                        bias: bool = True, \
-                            #expect_avg_log:Optional[float] = None,\
+    def __init__(self, in_features: int, out_features: int, bias: bool = True, \
+                        scaling_factor_for_grad_path:float=1., \
+                        scaling_factor_for_weight:float=1., \
+                        epi: float = 0.00001, \
+                        mul_me_when_g_too_small: float = 1000, \
+                        __debug___extra_gramo_for_bias = False, \
+                        __debug___scaling_factor_for_bias:float=1., \
                             device: Any | None = None, dtype: Any | None = None, *args, **kwargs) -> None:
+        '''
+        Forward pass is the same as torch.nn.Linear.
+        .....W..........b
+        .....|..........|
+        ..gramo_w.....gramo_b
+        .....|..........|
+        .....v..........v..(not v, it's the down arrow)
+        x -> @ -> Wx -> + -> gramo_y -> Wx+b
+        gramo doesn't do anything in forward pass. So simply ignore them.
+        Then, you get this simplified graph:
+        .....W..........b
+        .....|..........|
+        .....v..........v
+        x -> @ -> Wx -> + -> Wx+b
+        This is the same as torch.nn.Linear.
+        But,
+        But,
+        But, backward is a bit different.
+        
+        Backward is the same except for gramo layers are added. Graph:
+        ......gW.........gb(equals to gi)
+        ......^..........^..(^ is the up arrow, the opposite of v)
+        ......|..........|
+        ...gramo_w.....gramo_b
+        ......|..........|
+        go <- @ <- gi <- + <- gramo_y <- gi
+        .....................
+        
+        gW is g_for_Weight, gb is g_for_bias.
+        this graph shows all the 3 possible gramos.
+        addition doesn't modify gradient, so you see 2 gi and gb is also gi, so 3 gi in total.
+        gW is gi@x(or x@gi, idk), go is grad_out, is gi@W(or W@gi).
+        gramo_y is always needed, bc it's protecting the main grad path(or grad chain if you prefer.)
+        Bc gramo_y is always needed, gramo_b is redundent. 
+        Set the param __debug___extra_gramo_for_bias to true to enable this extra gramo. This is debug purpose.
+        '''
+        
+        
+        
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.weight_o_i = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
+        self.gramo_for_weight = GradientModification_v2_mean_abs_to_1(scaling_factor_for_weight, epi,mul_me_when_g_too_small, **factory_kwargs)
+        
         if bias:
             self.bias_o = torch.nn.Parameter(torch.empty(out_features, **factory_kwargs))
+            if __debug___extra_gramo_for_bias:
+                self.gramo_for_bias = GradientModification_v2_mean_abs_to_1(__debug___scaling_factor_for_bias, epi,mul_me_when_g_too_small, **factory_kwargs)
+                pass
+            else:
+                self.gramo_for_bias = None
+                self.register_parameter('gramo_for_bias', None)
+                pass
+            pass
         else:
             self.register_parameter('bias_o', None)
+            self.register_parameter('gramo_for_bias', None)
+            pass
         self.__reset_parameters()
 
-        # if expect_avg_log is None:
-        
-        #self.param_avg_log_expectation = math.log10(self.in_features)*-0.5-0.43
-        #print(self.param_avg_log_expectation, "param_avg_log_expectation")
-        
-        #self.grad_avg_log_expectation = math.log10(self.out_features)*-0.5+0.77
-        #self.grad_avg_log_expectation = 123123
-        #继续#继续#继续#继续#继续#继续#继续#继续#继续
-        #继续#继续#继续#继续#继续#继续#继续#继续#继续
-        #继续#继续#继续#继续#继续#继续#继续#继续#继续
-        #继续#继续#继续#继续#继续#继续#继续#继续#继续
-        #继续#继续#继续#继续#继续#继续#继续#继续#继续
-        #继续#继续#继续#继续#继续#继续#继续#继续#继续
-        #继续#继续#继续#继续#继续#继续#继续#继续#继续
-        
-        #print(self.grad_avg_log_expectation, "grad_avg_log_expectation")
-        # +0.77 when batch is 1000. in_features is 100, out_features is 100.
-        # batch incr 10x, this +0.03
-        # in_features incr 10x, this -0.04
-        # out_features doesn't affect this.
-        
-        # self.gramo_for_weight_extra_factor = math.pow(10., self.param_avg_log_expectation-self.grad_avg_log_expectation)
-        # self.drag_avg_log_of_scaling_factor_for_out_gramo_to = torch.nn.Parameter(torch.tensor([self.param_avg_log_expectation]), requires_grad=False)
-        
-        self.gramo_for_weight = GradientModification_v2_mean_abs_to_1()
-        self.gramo_for_bias = GradientModification_v2_mean_abs_to_1()
-        self.out_gramo = GradientModification_v2_mean_abs_to_1()
-        #self.reset_scaling_factor_for_weight()
+        self.out_gramo = GradientModification_v2_mean_abs_to_1(scaling_factor_for_grad_path, epi,mul_me_when_g_too_small, **factory_kwargs)
         pass
     #end of function.
 
@@ -83,37 +113,6 @@ class FCL_from_yagaodirac(torch.nn.Module):
             pass
         pass
     #end of function.
-    
-    def __XXXXXXXXXXXX__reset_scaling_factor_for_weight(self):
-        '''simply sets the inner'''
-        sqrt_out_features = math.sqrt(self.out_features)
-        self.gramo_for_weight.set_scaling_factor(math.pow(10., -0.2)*sqrt_out_features)
-        
-        #temp2 = temp.sqrt()
-        #temp3 = temp2*10.#2.
-        #temp4 = temp3/self.out_gramo.scaling_factor
-        #self.gramo_for_weight.set_scaling_factor(temp3.item())
-        #self.gramo_for_weight.set_scaling_factor(temp4.item())
-        pass
-    def scale_the_scaling_factor_for_weight(self, by:float):
-        '''simply sets the inner'''
-        self.gramo_for_weight.scale_scaling_factor(by)
-        pass
-    
-    def __XXXXXXXXX__set_scaling_factor_to_adapt_kaiming_he_init(self):
-        #in_features, out_features, avg_log weight, avg_log bias
-        #100        100             -1.4            -1.4
-        #10000      100             -2.4            -2.4
-        #100        10000           -1.4            -1.4
-        self.gramo_for_weight.set_scaling_factor(0.37/math.sqrt(self.in_features))
-        self.gramo_for_bias.set_scaling_factor(0.37/math.sqrt(self.in_features))
-        #self.gramo_for_bias.set_scaling_factor(0.037)
-        pass
-    
-    def set_scaling_factor_for_weight(self, scaling_factor:float):
-        '''simply sets the inner'''
-        self.gramo_for_weight.set_scaling_factor(scaling_factor)
-        pass
 
     def forward(self, input_b_i:torch.Tensor)->torch.Tensor:
         w_after_gramo_o_i:torch.Tensor = self.gramo_for_weight(self.weight_o_i.view(1, -1)).view(self.out_features, self.in_features)
@@ -121,16 +120,20 @@ class FCL_from_yagaodirac(torch.nn.Module):
             x_after_linear_b_o = torch.nn.functional.linear(input_b_i,w_after_gramo_o_i)
             pass
         else:
-            b_after_gramo_o:torch.Tensor = self.gramo_for_bias(self.bias_o.view(1, -1)).view(self.out_features)
-            x_after_linear_b_o = torch.nn.functional.linear(input_b_i,w_after_gramo_o_i,b_after_gramo_o)
-            pass
+            if self.gramo_for_bias is None:
+                x_after_linear_b_o = torch.nn.functional.linear(input_b_i,w_after_gramo_o_i,self.bias_o)
+                pass
+            else:
+                b_after_gramo_o:torch.Tensor = self.gramo_for_bias(self.bias_o.view(1, -1)).view(self.out_features)
+                x_after_linear_b_o = torch.nn.functional.linear(input_b_i,w_after_gramo_o_i,b_after_gramo_o)
+                pass
         result_b_o = self.out_gramo(x_after_linear_b_o)
         return result_b_o
     
     def extra_repr(self) -> str:
         return f'in_features={self.in_features}, out_features={self.out_features}, bias={self.bias_o is not None}'
 
-    def debug_get_all_avg_log(self)->Tuple[List[float], str]:
+    def ____debug_get_all_avg_log(self)->Tuple[List[float], str]:
         result:List[float] = []
         result.append(debug_avg_log(self.weight_o_i))
         result.append(debug_avg_log(self.bias_o))
@@ -145,10 +148,10 @@ class FCL_from_yagaodirac(torch.nn.Module):
             pass
         return (result, docs_str)
 
-    def convert_to_plain_fcnn(self)->torch.nn.Module:
-        has_bias = False
-        if not self.bias_o is None:
-            has_bias = True
+    def convert_to_plain_fcl(self)->torch.nn.Module:
+        has_bias = True
+        if self.bias_o is None:
+            has_bias = False
             pass
         result = torch.nn.Linear(self.in_features, self.out_features,has_bias)
         result.weight.data = self.weight_o_i.data.detach().clone()
@@ -157,8 +160,10 @@ class FCL_from_yagaodirac(torch.nn.Module):
             pass
         return result
 
-    pass
+    pass#end of class.
     
+    
+    1w
 
 if '''basic avg log10 test.(with set numbers)''' and False:
     batch = 1
