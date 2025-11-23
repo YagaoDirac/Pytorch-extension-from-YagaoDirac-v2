@@ -8,13 +8,65 @@ def __DEBUG_ME__()->bool:
 if "test" and False:
     assert __DEBUG_ME__()
     pass
+if __DEBUG_ME__():
+    def _float_equal(a:float, b:float, epi:float = 0.0001)->bool:
+        assert epi>0.
+        return abs(a-b)<epi
+    if "test":
+        assert _float_equal(1., 1.)
+        assert _float_equal(1., 1.0000001)
+        assert _float_equal(1., 1.01) == False
+        assert _float_equal(1., 1.01, 0.1) 
+        pass
+    def _tensor_equal(  a:torch.Tensor|list[float]|list[list[float]], \
+                        b:torch.Tensor|list[float]|list[list[float]], \
+                            epi:float = 0.0001)->bool:
+        if not isinstance(a, torch.Tensor):
+            a = torch.tensor(a)
+            pass
+        if not isinstance(b, torch.Tensor):
+            b = torch.tensor(b)
+            pass
+        
+        assert a.shape == b.shape
+        with torch.inference_mode():
+            diff = a-b
+            abs_of_diff = diff.abs()
+            less_than = abs_of_diff.lt(epi)
+            after_all = less_than.all()
+            assert after_all.dtype == torch.bool
+            the_item = after_all.item()
+            assert isinstance(the_item, bool)
+            return the_item
+        pass#end of function
+    if "test":
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.]))
+        assert _tensor_equal(torch.tensor([1.,2.]), [1.,2.])
+        #assert _tensor_equal(torch.tensor([1.]), torch.tensor([[1.]]))
+        assert _tensor_equal(torch.tensor([[1.]]), torch.tensor([[1.]]))
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.000001]))
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([0.99999]))
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.001])) == False
+        pass
+
+
+
+
+
+
+
+
 
 from pathlib import Path
 import sys
-sys.path.append(str(Path(__file__).parent))
-from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1, ReLU_with_offset
-from pytorch_yagaodirac_v2.Util import debug_avg_log, data_gen_from_random_teacher, Print_Timing
+sys.path.append(str(Path(__file__).parent.parent))
 
+#from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1, ReLU_with_offset
+#from pytorch_yagaodirac_v2.Util import debug_avg_log10, data_gen_from_random_teacher, Print_Timing
+sys.path.append(str(Path(__file__).parent))
+from ParamMo import GradientModification_v2_mean_abs_to_1, ReLU_with_offset
+from Util import debug_avg_log10, data_gen_from_random_teacher, Print_Timing
+#they both work.
 
 
 class FCL_from_yagaodirac(torch.nn.Module):
@@ -69,10 +121,9 @@ class FCL_from_yagaodirac(torch.nn.Module):
         gW is gi@x(or x@gi, idk), go is grad_out, is gi@W(or W@gi).
         gramo_y is always needed, bc it's protecting the main grad path(or grad chain if you prefer.)
         Bc gramo_y is always needed, gramo_b is redundent. 
-        Set the param __debug___extra_gramo_for_bias to true to enable this extra gramo. This is debug purpose.
+        Set the param __debug___extra_gramo_for_bias to true to enable this extra gramo. 
+        This is debug purpose. It actually doesn't do anything. Just in case if you want to know the difference.
         '''
-        
-        
         
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
@@ -87,7 +138,7 @@ class FCL_from_yagaodirac(torch.nn.Module):
                 self.gramo_for_bias = GradientModification_v2_mean_abs_to_1(__debug___scaling_factor_for_bias, epi,mul_me_when_g_too_small, **factory_kwargs)
                 pass
             else:
-                self.gramo_for_bias = None
+                #self.gramo_for_bias = None
                 self.register_parameter('gramo_for_bias', None)
                 pass
             pass
@@ -133,17 +184,17 @@ class FCL_from_yagaodirac(torch.nn.Module):
     def extra_repr(self) -> str:
         return f'in_features={self.in_features}, out_features={self.out_features}, bias={self.bias_o is not None}'
 
-    def ____debug_get_all_avg_log(self)->Tuple[List[float], str]:
+    def _debug_get_all_avg_log10(self)->Tuple[List[float], str]:
         result:List[float] = []
-        result.append(debug_avg_log(self.weight_o_i))
-        result.append(debug_avg_log(self.bias_o))
+        result.append(debug_avg_log10(self.weight_o_i))
+        result.append(debug_avg_log10(self.bias_o))
         docs_str = "weight_o_i, bias_o"
         if not self.weight_o_i.grad is None:
-            result.append(debug_avg_log(self.weight_o_i.grad))
+            result.append(debug_avg_log10(self.weight_o_i.grad))
             docs_str+=", weight_o_i.grad"
             pass
         if not self.bias_o.grad is None:
-            result.append(debug_avg_log(self.bias_o.grad))
+            result.append(debug_avg_log10(self.bias_o.grad))
             docs_str+=", bias_o.grad"
             pass
         return (result, docs_str)
@@ -162,22 +213,20 @@ class FCL_from_yagaodirac(torch.nn.Module):
 
     pass#end of class.
     
-    
-    1w
 
-if '''basic avg log10 test.(with set numbers)''' and False:
+if '''basic avg log10 test.(with set numbers) 可能有错。。''' and __DEBUG_ME__() and False:
     batch = 1
     in_features = 1
     out_features = 10000
     print(batch, "batch", in_features, "in_features", out_features, "out_features")
     layer = FCL_from_yagaodirac(in_features, out_features, True)
-    layer.weight_o_i = torch.nn.Parameter(torch.ones_like(layer.weight_o_i))
-    layer.bias_o = torch.nn.Parameter(torch.ones_like(layer.bias_o))
-    print(layer.debug_get_all_avg_log())
+    layer.weight_o_i.data = torch.ones_like(layer.weight_o_i)
+    layer.bias_o.data = torch.ones_like(layer.bias_o)
+    print(layer._debug_get_all_avg_log10())
     input = torch.ones([batch, in_features])
     pred:torch.Tensor = layer(input)
     pred.backward(gradient=torch.ones([batch, out_features]))
-    print(layer.debug_get_all_avg_log())
+    print(layer._debug_get_all_avg_log10())
     print(layer.weight_o_i[:2, :7].abs().log10())
     print(layer.bias_o[:7].abs().log10())
     print(layer.weight_o_i.grad[:4, :7].abs().log10())
@@ -185,18 +234,52 @@ if '''basic avg log10 test.(with set numbers)''' and False:
     #batch, in_features, out_features don't affect the output. they are all 1(log1 is 0.)
     pass
 
-if 'kaiming_he_init avg log test.(with set numbers)' and False:
+if 'kaiming_he_init avg log test.(with set numbers)' and __DEBUG_ME__() and True:
+    in_features = 100
+    out_features = 100
+    layer = FCL_from_yagaodirac(in_features, out_features, True)
+    _temp_report = layer._debug_get_all_avg_log10()
+    assert _temp_report[1] == "weight_o_i, bias_o"
+    assert _tensor_equal(_temp_report[0], [-1.45, -1.45], epi=0.1)
+    
+    in_features = 10000
+    out_features = 100
+    layer = FCL_from_yagaodirac(in_features, out_features, True)
+    _temp_report = layer._debug_get_all_avg_log10()
+    assert _temp_report[1] == "weight_o_i, bias_o"
+    assert _tensor_equal(_temp_report[0], [-2.45, -2.45], epi=0.1)
+    
     in_features = 100
     out_features = 10000
-    print(in_features, "in_features", out_features, "out_features")
     layer = FCL_from_yagaodirac(in_features, out_features, True)
-    print(layer.debug_get_all_avg_log())
+    _temp_report = layer._debug_get_all_avg_log10()
+    assert _temp_report[1] == "weight_o_i, bias_o"
+    assert _tensor_equal(_temp_report[0], [-1.45, -1.45], epi=0.1)
+    
+    in_features = 10000
+    out_features = 10000
+    layer = FCL_from_yagaodirac(in_features, out_features, True)
+    _temp_report = layer._debug_get_all_avg_log10()
+    assert _temp_report[1] == "weight_o_i, bias_o"
+    assert _tensor_equal(_temp_report[0], [-2.45, -2.45], epi=0.1)
+    #  100    100   -1.4 -1.4
+    #10000    100   -2.4 -2.4
+    #  100  10000   -1.4 -1.4
+    #10000  10000   -2.4 -2.4
+    for _ in range(11):
+        in_features = torch.randint(low=100,high=10000,size=(1,)).item()
+        out_features = torch.randint(low=100,high=10000,size=(1,)).item()
+        layer = FCL_from_yagaodirac(in_features, out_features, True)
+        _temp_report = layer._debug_get_all_avg_log10()
+        _temp_float = torch.log10(torch.tensor(in_features)).item()
+        _temp_float_2 = _temp_float*-0.5 - 0.45
+        assert _tensor_equal(_temp_report[0], [_temp_float_2, _temp_float_2], epi=0.1)
+        assert _temp_report[1] == "weight_o_i, bias_o"
     pass
-    #100   100 -1.4 -1.4
-    #10000 100 -2.4 -2.4
-    #100 10000 -1.4 -1.4
 
-if 'kaiming_he_init adaption test.(with set numbers)' and False:
+
+1w
+if 'kaiming_he_init adaption test.(with set numbers)' and __DEBUG_ME__() and True:
     batch = 100
     in_features = 100
     out_features = 10000

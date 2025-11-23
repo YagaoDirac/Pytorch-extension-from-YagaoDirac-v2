@@ -4,6 +4,56 @@ import math
 
 
 
+
+
+def __DEBUG_ME__()->bool:
+    return __name__ == "__main__"
+if "test" and False:
+    assert __DEBUG_ME__()
+    pass
+if __DEBUG_ME__():
+    def _float_equal(a:float, b:float, epi:float = 0.0001)->bool:
+        assert epi>0.
+        return abs(a-b)<epi
+    if "test":
+        assert _float_equal(1., 1.)
+        assert _float_equal(1., 1.0000001)
+        assert _float_equal(1., 1.01) == False
+        assert _float_equal(1., 1.01, 0.1) 
+        pass
+    def _tensor_equal(  a:torch.Tensor|list[float]|list[list[float]], \
+                        b:torch.Tensor|list[float]|list[list[float]], \
+                            epi:float = 0.0001)->bool:
+        if not isinstance(a, torch.Tensor):
+            a = torch.tensor(a)
+            pass
+        if not isinstance(b, torch.Tensor):
+            b = torch.tensor(b)
+            pass
+        
+        assert a.shape == b.shape
+        with torch.inference_mode():
+            diff = a-b
+            abs_of_diff = diff.abs()
+            less_than = abs_of_diff.lt(epi)
+            after_all = less_than.all()
+            assert after_all.dtype == torch.bool
+            the_item = after_all.item()
+            assert isinstance(the_item, bool)
+            return the_item
+        pass#end of function
+    if "test":
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.]))
+        assert _tensor_equal(torch.tensor([1.,2.]), [1.,2.])
+        #assert _tensor_equal(torch.tensor([1.]), torch.tensor([[1.]]))
+        assert _tensor_equal(torch.tensor([[1.]]), torch.tensor([[1.]]))
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.000001]))
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([0.99999]))
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.001])) == False
+        pass
+
+
+
 def vector_length_norm(input:torch.Tensor, epi = 0.000001)->torch.Tensor:
     r'''The shape must be [batch, dim]'''
     if len(input.shape)!=2:
@@ -384,7 +434,14 @@ def debug_strong_grad_ratio(parameter:torch.nn.parameter.Parameter, log10_diff =
 
 
 
-def debug_avg_log(input:torch.Tensor)->float:
+def debug_avg_log10(input:torch.Tensor)->float:
+    '''I dont really remember this function too much. 
+    
+    I believe it provides a avg of log10. 
+    
+    A lot lines in here is safety.
+    If the data has a lot elements very close to 0., this function may not be very helpful.
+    '''
     the_log = input.abs().log10()
     flag_inf = the_log.isinf()
     count_of_nan_and_inf = the_log.isnan().sum()+flag_inf.sum()
@@ -394,11 +451,19 @@ def debug_avg_log(input:torch.Tensor)->float:
     nelement = input.nelement()
     result = numerator/(nelement-count_of_nan_and_inf)
     return result.item()
-# input = torch.tensor([torch.nan, torch.inf, torch.inf*-1, 0., -100])
-# print(debug_avg_log(input))
-# input = torch.tensor([10000000000000000000.,-100000000000000000000000000.])
-# print(debug_avg_log(input))
-# fds=432
+
+if "test" and __DEBUG_ME__() and True:
+    input = torch.tensor([torch.nan, torch.inf, torch.inf*-1])
+    fdsfds= debug_avg_log10(input) 
+    
+    1w   math.isnan
+    
+    assert debug_avg_log10(input) is flo('nan')
+    input = torch.tensor([torch.nan, torch.inf, torch.inf*-1, 0., -100])
+    assert _float_equal(debug_avg_log10(input), 2.)
+    input = torch.tensor([1e10,-1e20])
+    assert _float_equal(debug_avg_log10(input), 15.)
+    pass
 
 
 

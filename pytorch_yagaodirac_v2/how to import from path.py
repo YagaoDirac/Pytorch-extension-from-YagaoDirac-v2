@@ -1,3 +1,14 @@
+from pathlib import Path
+import sys
+sys.path.append(str(Path(__file__).parent))
+
+
+
+
+
+
+
+
 import os, sys
 ori_path = sys.path[0]
 index = ori_path.rfind("\\")
