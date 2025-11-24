@@ -65,7 +65,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 #from pytorch_yagaodirac_v2.Util import debug_avg_log10, data_gen_from_random_teacher, Print_Timing
 sys.path.append(str(Path(__file__).parent))
 from ParamMo import GradientModification_v2_mean_abs_to_1, ReLU_with_offset
-from Util import debug_avg_log10, data_gen_from_random_teacher, Print_Timing
+from Util import debug_avg_log10___no_batch_dim, data_gen_from_random_teacher, Print_Timing
 #they both work.
 
 
@@ -186,15 +186,15 @@ class FCL_from_yagaodirac(torch.nn.Module):
 
     def _debug_get_all_avg_log10(self)->Tuple[List[float], str]:
         result:List[float] = []
-        result.append(debug_avg_log10(self.weight_o_i))
-        result.append(debug_avg_log10(self.bias_o))
+        result.append(debug_avg_log10___no_batch_dim(self.weight_o_i))
+        result.append(debug_avg_log10___no_batch_dim(self.bias_o))
         docs_str = "weight_o_i, bias_o"
         if not self.weight_o_i.grad is None:
-            result.append(debug_avg_log10(self.weight_o_i.grad))
+            result.append(debug_avg_log10___no_batch_dim(self.weight_o_i.grad))
             docs_str+=", weight_o_i.grad"
             pass
         if not self.bias_o.grad is None:
-            result.append(debug_avg_log10(self.bias_o.grad))
+            result.append(debug_avg_log10___no_batch_dim(self.bias_o.grad))
             docs_str+=", bias_o.grad"
             pass
         return (result, docs_str)

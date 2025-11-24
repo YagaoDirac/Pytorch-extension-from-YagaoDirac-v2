@@ -434,7 +434,218 @@ def debug_strong_grad_ratio(parameter:torch.nn.parameter.Parameter, log10_diff =
 
 
 
-def debug_avg_log10(input:torch.Tensor)->float:
+def get_top_percent___no_batch_dim(input:torch.Tensor, top_ratio = 0.5, error_of_percent = 0.01, \
+                            bottom = False)->torch.Tensor:
+    ''' 
+    return shape is the same as input. dtype of return is torch.bool.
+    
+    if shape is too small, this may not work.
+    '''
+    with torch.no_grad():
+        #safety first
+        _at_least_this_amount__int = int(input.nelement()*(top_ratio - error_of_percent)+0.4999999999999)
+        at_least_this_amount = torch.tensor(_at_least_this_amount__int, device=input.device)
+        _at_most_this_amount__int =  int(input.nelement()*(top_ratio + error_of_percent)+0.4999999999999)
+        at_most_this_amount =  torch.tensor(_at_most_this_amount__int, device=input.device)
+        # if at_least_this_amount == at_most_this_amount: xxxxxxxxxxxxxx
+        #     at_most_this_amount = at_least_this_amount  +1
+        #     pass
+        if _at_least_this_amount__int >= input.nelement():
+            _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
+            _temp_tensor.fill_(True)
+            return _temp_tensor
+        if _at_most_this_amount__int <= 0.:
+            _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
+            _temp_tensor.fill_(False)
+            return _temp_tensor
+        assert error_of_percent>=0.
+        
+        #real job.
+        #best dtype for count the amount.
+        _total_nelement = input.nelement()
+        if _total_nelement<=(1<<8):
+            dtype = torch.uint8
+            pass
+        elif _total_nelement<=(1<<16):
+            dtype = torch.uint16
+            pass
+        elif _total_nelement<=(1<<32):
+            dtype = torch.uint32
+            pass
+        else:
+            dtype = torch.uint64
+            pass
+        # device = input.device
+        # param_factory = {"device":device, "dtype":dtype}
+        
+        #init before loop
+        _the_max_threshold:torch.Tensor = input.max().to(torch.float64)
+        _the_min_threshold:torch.Tensor = input.min().to(torch.float64)
+        while True:
+            _guess_threshold = (_the_max_threshold+_the_min_threshold)/2.
+            if bottom:
+                flag_result = input.lt(_guess_threshold)
+                _guess_count = flag_result.to(dtype).sum()
+                if _guess_count>at_most_this_amount:
+                    _the_max_threshold = _guess_threshold
+                    pass
+                elif _guess_count<at_least_this_amount:
+                    _the_min_threshold = _guess_threshold
+                    pass
+                else:
+                    return flag_result
+                pass#if bottom:
+            else:#top
+                flag_result = input.gt(_guess_threshold)
+                _guess_count = flag_result.to(dtype).sum()
+                if _guess_count>at_most_this_amount:
+                    _the_min_threshold = _guess_threshold
+                    pass
+                elif _guess_count<at_least_this_amount:
+                    _the_max_threshold = _guess_threshold
+                    pass
+                else:
+                    return flag_result
+                pass#top
+                
+            pass#while
+        pass#  no_grad
+    pass# end of function
+    
+if "test" and __DEBUG_ME__() and True:
+    # torch.topk is not what I need.
+    # fdsfds = torch.topk(torch.tensor([1,2,3,4,5]),3, sorted=False)
+    # fdsfds2 = torch.topk(torch.tensor([1,2,3,4,5]),3, sorted=True)
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3,4,5]),top_ratio=0.2).eq(torch.tensor([False,False,False,False,True])).all()
+    assert get_top_percent___no_batch_dim(torch.tensor([5.,2,3,4,1]),top_ratio=0.2).eq(torch.tensor([True,False,False,False,False])).all()
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3,4,5]),top_ratio=0.2,bottom=True).eq( torch.tensor([True,False,False,False,False])).all()
+    assert get_top_percent___no_batch_dim(torch.tensor([5.,2,3,4,1]),top_ratio=0.2,bottom=True).eq( torch.tensor([False,False,False,False,True])).all()
+    
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3]),top_ratio=0.  ).eq(torch.tensor([False,False,False])).all()
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3]),top_ratio=0.33).eq(torch.tensor([False,False,True ])).all()
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3]),top_ratio=0.66).eq(torch.tensor([False,True ,True ])).all()
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3]),top_ratio=1.  ).eq(torch.tensor([True ,True ,True ])).all()
+
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3]),top_ratio=0. , bottom=True).eq(torch.tensor([False,False,False])).all()
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3]),top_ratio=0.4, bottom=True).eq(torch.tensor([True ,False,False])).all()
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3]),top_ratio=1. , bottom=True).eq(torch.tensor([True ,True ,True ])).all()
+
+    for _shift_by in [8,9,16,17]:
+        _1_left_shift_with_True = torch.empty(size=(1<<_shift_by ,), dtype=torch.bool)
+        _1_left_shift_with_True.fill_(value=True)
+        for dtype in [torch.float16, torch.float32, torch.float64]:
+            _the_sum = get_top_percent___no_batch_dim(torch.rand(size=(1<<_shift_by ,),dtype=dtype),0.99).sum()
+            assert _the_sum>(1<<_shift_by)*0.97 and _the_sum<(1<<_shift_by)
+        pass
+
+    #gpu
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3],device='cuda'),top_ratio=0.33).eq(torch.tensor([False,False,True ],device='cuda')).all()
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3],device='cuda'),top_ratio=0.33).device.type == 'cuda'
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3],device='cuda'),top_ratio=0.).eq(torch.tensor([False,False,False ],device='cuda')).all()
+    assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3],device='cuda'),top_ratio=0.).device.type == 'cuda'
+    
+    pass
+
+
+
+def get_top_percent(input:torch.Tensor, top_ratio = 0.5, error_of_percent = 0.01, \
+                            bottom = False)->torch.Tensor:
+    ''' 
+    return shape is the same as input. dtype of return is torch.bool.
+    
+    if shape is too small, this may not work.
+    '''
+    assert input.shape.__len__()==2
+    nelement_per_batch = input.shape[1]
+    with torch.no_grad():
+        #safety first
+        _at_least_this_amount__cpu_int = int(nelement_per_batch*(top_ratio - error_of_percent)+0.4999999999999)
+        at_least_this_amount__s = torch.tensor(_at_least_this_amount__cpu_int, device=input.device)
+        _at_most_this_amount__cpu_int =  int(nelement_per_batch*(top_ratio + error_of_percent)+0.4999999999999)
+        at_most_this_amount__s =  torch.tensor(_at_most_this_amount__cpu_int, device=input.device)
+        # if at_least_this_amount == at_most_this_amount: xxxxxxxxxxxxxx
+        #     at_most_this_amount = at_least_this_amount  +1
+        #     pass
+        if _at_least_this_amount__cpu_int >= nelement_per_batch:
+            _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
+            _temp_tensor.fill_(True)
+            return _temp_tensor
+        if _at_most_this_amount__cpu_int <= 0.:
+            _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
+            _temp_tensor.fill_(False)
+            return _temp_tensor
+        assert error_of_percent>=0.
+        
+        #real job.
+        #best dtype for count the amount.
+        _total_nelement_per_batch = nelement_per_batch
+        if _total_nelement_per_batch<=(1<<8):
+            dtype = torch.uint8
+            pass
+        elif _total_nelement_per_batch<=(1<<16):
+            dtype = torch.uint16
+            pass
+        elif _total_nelement_per_batch<=(1<<32):
+            dtype = torch.uint32
+            pass
+        else:
+            dtype = torch.uint64
+            pass
+        # device = input.device
+        # param_factory = {"device":device, "dtype":dtype}
+        
+        #init before loop
+        _the_max_threshold:torch.Tensor = input.max(dim=).to(torch.float64)
+        _the_min_threshold:torch.Tensor = input.min().to(torch.float64)
+        while True:
+            _guess_threshold = (_the_max_threshold+_the_min_threshold)/2.
+            if bottom:
+                flag_result = input.lt(_guess_threshold)
+                _guess_count = flag_result.to(dtype).sum()
+                if _guess_count>at_most_this_amount__s:
+                    _the_max_threshold = _guess_threshold
+                    pass
+                elif _guess_count<at_least_this_amount__s:
+                    _the_min_threshold = _guess_threshold
+                    pass
+                else:
+                    return flag_result
+                pass#if bottom:
+            else:#top
+                flag_result = input.gt(_guess_threshold)
+                _guess_count = flag_result.to(dtype).sum()
+                if _guess_count>at_most_this_amount__s:
+                    _the_min_threshold = _guess_threshold
+                    pass
+                elif _guess_count<at_least_this_amount__s:
+                    _the_max_threshold = _guess_threshold
+                    pass
+                else:
+                    return flag_result
+                pass#top
+                
+            pass#while
+        pass#  no_grad
+    pass# end of function
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def debug_avg_log10___no_batch_dim(input:torch.Tensor, top_ratio = 0.9)->float:
     '''I dont really remember this function too much. 
     
     I believe it provides a avg of log10. 
@@ -443,10 +654,16 @@ def debug_avg_log10(input:torch.Tensor)->float:
     If the data has a lot elements very close to 0., this function may not be very helpful.
     '''
     the_log = input.abs().log10()
+    #safety
     flag_inf = the_log.isinf()
     count_of_nan_and_inf = the_log.isnan().sum()+flag_inf.sum()
     no_nan_log = the_log.nan_to_num(0.)
     safe_log = flag_inf.logical_not()*no_nan_log
+    #safe_log is safe.
+    flag_non_trivial_log = get_top_percent___no_batch_dim(safe_log, top_ratio)
+    
+    assert False
+    
     numerator = safe_log.sum()
     nelement = input.nelement()
     result = numerator/(nelement-count_of_nan_and_inf)
@@ -454,15 +671,17 @@ def debug_avg_log10(input:torch.Tensor)->float:
 
 if "test" and __DEBUG_ME__() and True:
     input = torch.tensor([torch.nan, torch.inf, torch.inf*-1])
-    fdsfds= debug_avg_log10(input) 
-    
-    1w   math.isnan
-    
-    assert debug_avg_log10(input) is flo('nan')
+    assert math.isnan(debug_avg_log10___no_batch_dim(input))
     input = torch.tensor([torch.nan, torch.inf, torch.inf*-1, 0., -100])
-    assert _float_equal(debug_avg_log10(input), 2.)
+    assert _float_equal(debug_avg_log10___no_batch_dim(input), 2.)
     input = torch.tensor([1e10,-1e20])
-    assert _float_equal(debug_avg_log10(input), 15.)
+    assert _float_equal(debug_avg_log10___no_batch_dim(input), 15.)
+    
+    assert False, "jixu batch还没有。"
+    input = torch.tensor([1,1,1,1,1,11e10,-1e20], top_percent = True)
+    assert _float_equal(debug_avg_log10___no_batch_dim(input), 15.)
+    
+    
     pass
 
 
