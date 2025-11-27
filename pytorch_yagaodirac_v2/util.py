@@ -51,7 +51,13 @@ if __DEBUG_ME__():
         assert _tensor_equal(torch.tensor([1.]), torch.tensor([0.99999]))
         assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.001])) == False
         pass
-
+    
+    from pathlib import Path
+    import sys
+    sys.path.append(Path(__file__).parent)
+    from timeit_yagaodirac import timeit
+    # from pytorch_yagaodirac_v2.timeit_yagaodirac import timeit
+    pass
 
 
 def vector_length_norm(input:torch.Tensor, epi = 0.000001)->torch.Tensor:
@@ -434,46 +440,302 @@ def debug_strong_grad_ratio(parameter:torch.nn.parameter.Parameter, log10_diff =
 
 
 
+
+
+
+
+
+if "perf test." and __DEBUG_ME__() and True:
+    '''result. in pytorch, int tensor comparison is the same speed as tensor tensor comparison.'''
+    def func_a_t():
+        input = torch.rand(size=(100,100), device='cuda')
+        a_i:int = input.nelement()
+        a_t:torch.Tensor = torch.tensor(a_i, device='cuda')
+        the_sum_t:torch.Tensor = input.gt(2.).sum()
+        for _ in range(20):
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            if a_t>the_sum_t:
+                pass
+            pass
+        pass
+    time_of_tensor_ver, _log = timeit(func_a_t,time_at_most=2., _debug__provides_log = True)
+
+    def func_a_i():
+        input = torch.rand(size=(100,100), device='cuda')
+        a_i:int = input.nelement()
+        a_t:torch.Tensor = torch.tensor(a_i, device='cuda')
+        the_sum_t:torch.Tensor = input.gt(2.).sum()
+        for _ in range(20):
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            if a_i>the_sum_t:
+                pass
+            pass
+        pass
+    time_of_int_ver,_ = timeit(func_a_i,time_at_most=2.)
+
+    def func_empty():
+        input = torch.rand(size=(100,100), device='cuda')
+        a_i:int = input.nelement()
+        a_t:torch.Tensor = torch.tensor(a_i, device='cuda')
+        the_sum_t:torch.Tensor = input.gt(2.).sum()
+        for _ in range(20):
+            pass
+        pass
+    time_of_empty,_ = timeit(func_empty,time_at_most=2.)
+    print("int ver:  ", time_of_int_ver-time_of_empty)
+    print("tensor ver:  ", time_of_tensor_ver-time_of_empty)
+    pass
+
+
+
+
+
+
+
 def get_top_percent___no_batch_dim(input:torch.Tensor, top_ratio = 0.5, error_of_percent = 0.01, \
-                            bottom = False)->torch.Tensor:
+                            bottom = False, careful_level:int = 3)->torch.Tensor:
     ''' 
     return shape is the same as input. dtype of return is torch.bool.
     
     if shape is too small, this may not work.
     '''
+    assert error_of_percent>=0.
+    assert careful_level>0
     with torch.no_grad():
+        #into torch.
+        top_ratio__s = torch.tensor(top_ratio, dtype=torch.float64, device=input.device)
+        
+        #error_of_percent 
+        better_error_of_percent__b = 0.501/input.nelement()
+        if better_error_of_percent__b<error_of_percent:
+            better_error_of_percent__b = error_of_percent
+            pass
+        #repeat it.
+        
         #safety first
-        _at_least_this_amount__int = int(input.nelement()*(top_ratio - error_of_percent)+0.4999999999999)
-        at_least_this_amount = torch.tensor(_at_least_this_amount__int, device=input.device)
-        _at_most_this_amount__int =  int(input.nelement()*(top_ratio + error_of_percent)+0.4999999999999)
-        at_most_this_amount =  torch.tensor(_at_most_this_amount__int, device=input.device)
-        # if at_least_this_amount == at_most_this_amount: xxxxxxxxxxxxxx
-        #     at_most_this_amount = at_least_this_amount  +1
-        #     pass
-        if _at_least_this_amount__int >= input.nelement():
+        _at_least_this_amount__before_repeat = (input.nelement()*(top_ratio__s - better_error_of_percent__b)+0.4999999999999).to(torch.int64)
+        at_least_this_amount = _at_least_this_amount__before_repeat#at_least_this_amount__before_repeat.repeat()
+        _at_most_this_amount__before_repeat =  (input.nelement()*(top_ratio__s + better_error_of_percent__b)+0.4999999999999).to(torch.int64)
+        at_most_this_amount = _at_most_this_amount__before_repeat#  repeat.
+        
+        
+        if at_least_this_amount >= input.nelement():
             _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
             _temp_tensor.fill_(True)
             return _temp_tensor
-        if _at_most_this_amount__int <= 0.:
+        if at_most_this_amount <= 0.:
             _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
             _temp_tensor.fill_(False)
             return _temp_tensor
-        assert error_of_percent>=0.
         
         #real job.
         #best dtype for count the amount.
         _total_nelement = input.nelement()
         if _total_nelement<=(1<<8):
-            dtype = torch.uint8
+            int_dtype = torch.uint8
             pass
         elif _total_nelement<=(1<<16):
-            dtype = torch.uint16
+            int_dtype = torch.uint16
             pass
         elif _total_nelement<=(1<<32):
-            dtype = torch.uint32
+            int_dtype = torch.uint32
             pass
         else:
-            dtype = torch.uint64
+            int_dtype = torch.uint64
             pass
         # device = input.device
         # param_factory = {"device":device, "dtype":dtype}
@@ -481,23 +743,59 @@ def get_top_percent___no_batch_dim(input:torch.Tensor, top_ratio = 0.5, error_of
         #init before loop
         _the_max_threshold:torch.Tensor = input.max().to(torch.float64)
         _the_min_threshold:torch.Tensor = input.min().to(torch.float64)
+        
+        repeating = 0
+        old_flag_result = torch.empty_like(input,dtype=torch.bool)
+        init_ed_the_flag_result = False
         while True:
+            if _the_max_threshold-_the_min_threshold< epi
+            
             _guess_threshold = (_the_max_threshold+_the_min_threshold)/2.
             if bottom:
                 flag_result = input.lt(_guess_threshold)
-                _guess_count = flag_result.to(dtype).sum()
+                _guess_count = flag_result.to(int_dtype).sum()
+                #flag_gt
                 if _guess_count>at_most_this_amount:
                     _the_max_threshold = _guess_threshold
                     pass
+                #flag_lt
                 elif _guess_count<at_least_this_amount:
                     _the_min_threshold = _guess_threshold
                     pass
                 else:
+                    #if all()
                     return flag_result
+                
+                if init_ed_the_flag_result:
+                    if old_flag_result == flag_result:
+                        repeating +=1
+                        pass
+                    is repeating >=careful_level:
+                        repeating = 0
+                        init_ed_the_flag_result = False
+                        
+                        1w gai      
+            better_error_of_percent__b 变大= 
+                                  
+                                  重新计算：
+                        _at_least_this_amount__before_repeat = (input.nelement()*(top_ratio__s - better_error_of_percent__b)+0.4999999999999).to(torch.int64)
+        at_least_this_amount = _at_least_this_amount__before_repeat#at_least_this_amount__before_repeat.repeat()
+        _at_most_this_amount__before_repeat =  (input.nelement()*(top_ratio__s + better_error_of_percent__b)+0.4999999999999).to(torch.int64)
+        at_most_this_amount = _at_most_this_amount__before_repeat#  repeat.
+                        
+                        
+                        
+                        continue
+                        
+                        
+                    
+                init_ed_the_flag_result = True
+                old_flag_result = flag_result
+                
                 pass#if bottom:
             else:#top
                 flag_result = input.gt(_guess_threshold)
-                _guess_count = flag_result.to(dtype).sum()
+                _guess_count = flag_result.to(int_dtype).sum()
                 if _guess_count>at_most_this_amount:
                     _the_min_threshold = _guess_threshold
                     pass
@@ -511,6 +809,16 @@ def get_top_percent___no_batch_dim(input:torch.Tensor, top_ratio = 0.5, error_of
             pass#while
         pass#  no_grad
     pass# end of function
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
 if "test" and __DEBUG_ME__() and True:
     # torch.topk is not what I need.
@@ -538,6 +846,11 @@ if "test" and __DEBUG_ME__() and True:
             assert _the_sum>(1<<_shift_by)*0.97 and _the_sum<(1<<_shift_by)
         pass
 
+    #when the ratio doesn't exist.
+    #if this test returns, it's good.
+    get_top_percent___no_batch_dim(torch.tensor([1.,1,1,1,1]),top_ratio=0.5 , bottom=True)
+    
+
     #gpu
     assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3],device='cuda'),top_ratio=0.33).eq(torch.tensor([False,False,True ],device='cuda')).all()
     assert get_top_percent___no_batch_dim(torch.tensor([1.,2,3],device='cuda'),top_ratio=0.33).device.type == 'cuda'
@@ -556,17 +869,17 @@ def get_top_percent(input:torch.Tensor, top_ratio = 0.5, error_of_percent = 0.01
     if shape is too small, this may not work.
     '''
     assert input.shape.__len__()==2
-    nelement_per_batch = input.shape[1]
+    nelement_per_batch__s = input.shape[1]
     with torch.no_grad():
         #safety first
-        _at_least_this_amount__cpu_int = int(nelement_per_batch*(top_ratio - error_of_percent)+0.4999999999999)
+        _at_least_this_amount__cpu_int = int(nelement_per_batch__s*(top_ratio - error_of_percent)+0.4999999999999)
         at_least_this_amount__s = torch.tensor(_at_least_this_amount__cpu_int, device=input.device)
-        _at_most_this_amount__cpu_int =  int(nelement_per_batch*(top_ratio + error_of_percent)+0.4999999999999)
+        _at_most_this_amount__cpu_int =  int(nelement_per_batch__s*(top_ratio + error_of_percent)+0.4999999999999)
         at_most_this_amount__s =  torch.tensor(_at_most_this_amount__cpu_int, device=input.device)
         # if at_least_this_amount == at_most_this_amount: xxxxxxxxxxxxxx
         #     at_most_this_amount = at_least_this_amount  +1
         #     pass
-        if _at_least_this_amount__cpu_int >= nelement_per_batch:
+        if _at_least_this_amount__cpu_int >= nelement_per_batch__s:
             _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
             _temp_tensor.fill_(True)
             return _temp_tensor
@@ -578,14 +891,13 @@ def get_top_percent(input:torch.Tensor, top_ratio = 0.5, error_of_percent = 0.01
         
         #real job.
         #best dtype for count the amount.
-        _total_nelement_per_batch = nelement_per_batch
-        if _total_nelement_per_batch<=(1<<8):
+        if nelement_per_batch__s<=(1<<8):
             dtype = torch.uint8
             pass
-        elif _total_nelement_per_batch<=(1<<16):
+        elif nelement_per_batch__s<=(1<<16):
             dtype = torch.uint16
             pass
-        elif _total_nelement_per_batch<=(1<<32):
+        elif nelement_per_batch__s<=(1<<32):
             dtype = torch.uint32
             pass
         else:
@@ -595,18 +907,48 @@ def get_top_percent(input:torch.Tensor, top_ratio = 0.5, error_of_percent = 0.01
         # param_factory = {"device":device, "dtype":dtype}
         
         #init before loop
-        _the_max_threshold:torch.Tensor = input.max(dim=).to(torch.float64)
-        _the_min_threshold:torch.Tensor = input.min().to(torch.float64)
+        _the_max_threshold__b:torch.Tensor = input.max(dim=1).to(torch.float64)
+        _the_min_threshold__b:torch.Tensor = input.min(dim=1).to(torch.float64)
+        #1w 加一个flag
+        #1w 加一个flag
+        #1w 加一个flag
+        #1w 加一个flag
+        #1w 加一个flag
+        #1w 加一个flag
+        #1w 加一个flag
+        #1w 加一个flag
+        #1w 加一个flag
+        #1w 加一个flag
+        #1w 加一个flag
+        #1w 加一个flag
+        #1w 加一个flag
+        #1w 加一个flag
         while True:
-            _guess_threshold = (_the_max_threshold+_the_min_threshold)/2.
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            #1w 加一个强制退出条件。
+            _guess_threshold = (_the_max_threshold__b+_the_min_threshold__b)/2.
             if bottom:
                 flag_result = input.lt(_guess_threshold)
                 _guess_count = flag_result.to(dtype).sum()
                 if _guess_count>at_most_this_amount__s:
-                    _the_max_threshold = _guess_threshold
+                    _the_max_threshold__b = _guess_threshold
                     pass
                 elif _guess_count<at_least_this_amount__s:
-                    _the_min_threshold = _guess_threshold
+                    _the_min_threshold__b = _guess_threshold
                     pass
                 else:
                     return flag_result
@@ -615,10 +957,10 @@ def get_top_percent(input:torch.Tensor, top_ratio = 0.5, error_of_percent = 0.01
                 flag_result = input.gt(_guess_threshold)
                 _guess_count = flag_result.to(dtype).sum()
                 if _guess_count>at_most_this_amount__s:
-                    _the_min_threshold = _guess_threshold
+                    _the_min_threshold__b = _guess_threshold
                     pass
                 elif _guess_count<at_least_this_amount__s:
-                    _the_max_threshold = _guess_threshold
+                    _the_max_threshold__b = _guess_threshold
                     pass
                 else:
                     return flag_result

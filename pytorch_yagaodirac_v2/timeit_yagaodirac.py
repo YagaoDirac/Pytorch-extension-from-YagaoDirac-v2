@@ -202,10 +202,11 @@ def timeit(test_this_callable, params:tuple = (), time_at_most = 0.2, _magic_rat
         number_to_test *= base
         pass#for 
         
-    number_to_test = int(time_at_most / avg_time - I_believe_it_comes_stable_at)
-    if number_to_test<I_believe_it_comes_stable_at*_magic_ratio:
-        return avg_time-_calc_basic_delay(number_to_test), _log
+    _try_this_number_to_test = int(time_at_most / avg_time - I_believe_it_comes_stable_at)
+    if _try_this_number_to_test<I_believe_it_comes_stable_at*_magic_ratio:
+        return avg_time-_calc_basic_delay(int(number_to_test)), _log
         pass
+    number_to_test = _try_this_number_to_test
     
     avg_time = _raw_timeit(test_this_callable, params, number=number_to_test)[0]
     current_time = time.time()
