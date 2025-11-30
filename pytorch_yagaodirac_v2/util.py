@@ -445,7 +445,7 @@ def debug_strong_grad_ratio(parameter:torch.nn.parameter.Parameter, log10_diff =
 
 
 
-if "perf test." and __DEBUG_ME__() and True:
+if "perf test." and __DEBUG_ME__() and False:
     '''result. in pytorch, int tensor comparison is the same speed as tensor tensor comparison.'''
     def func_a_t():
         input = torch.rand(size=(100,100), device='cuda')
@@ -682,45 +682,65 @@ if "perf test." and __DEBUG_ME__() and True:
 
 
 
+    
 
-
-
-
-def get_top_percent___no_batch_dim(input:torch.Tensor, top_ratio = 0.5, error_of_percent = 0.01, \
-                            bottom = False, careful_level:int = 3)->torch.Tensor:
+def get_top_percent___no_batch_dim(input:torch.Tensor, top_ratio = 0.9, error_of_percent = 0.01, \
+                            bottom = False, careful_level:int = 3, epi = None)->torch.Tensor:
     ''' 
+    重新整理一下思路
+    这个函数有2个退出模式。
+    1是，准确的找到了所需要的比例。比例的目标区间本身是越来越宽的。
+    2是，类似二分查找的那种上下限，如果距离足够近，也就退出了。
+    核心思想就是，
+    目标，和error，算出允许的比例的上下限  top_ratio  error   at_least/most_this_amount 
+    二分查找的那个标准是最大值和最小值的平均值，然后根据需要的方向来缩小。   max, min,(threshold), epi
+    
+    
     return shape is the same as input. dtype of return is torch.bool.
     
     if shape is too small, this may not work.
+    
+    shape is [*B*atch, *I*nput]
     '''
     assert error_of_percent>=0.
     assert careful_level>0
+    assert careful_level<64, "or modify the data type. search for repeating__b = torch.zeros_like(_the_max_to_calc_threshold__b, dtype=torch.int8)"
+    if epi:
+        assert isinstance(epi, input.dtype)
+        pass
     with torch.no_grad():
         #into torch.
+        careful_level__s:torch.Tensor = torch.tensor(careful_level, device=input.device)
+        del careful_level
         top_ratio__s = torch.tensor(top_ratio, dtype=torch.float64, device=input.device)
+        del top_ratio
         
-        #error_of_percent 
-        better_error_of_percent__b = 0.501/input.nelement()
-        if better_error_of_percent__b<error_of_percent:
-            better_error_of_percent__b = error_of_percent
+        #init error_of_percent 
+        better_error_of_percent = 0.501/input.nelement()
+        if better_error_of_percent<error_of_percent:
+            better_error_of_percent = error_of_percent
             pass
-        #repeat it.
+        error_of_percent__b = torch.empty(size=[input.shape[0]], device=input.device)
+        error_of_percent__b.fill_(better_error_of_percent)
         
-        #safety first
-        _at_least_this_amount__before_repeat = (input.nelement()*(top_ratio__s - better_error_of_percent__b)+0.4999999999999).to(torch.int64)
-        at_least_this_amount = _at_least_this_amount__before_repeat#at_least_this_amount__before_repeat.repeat()
-        _at_most_this_amount__before_repeat =  (input.nelement()*(top_ratio__s + better_error_of_percent__b)+0.4999999999999).to(torch.int64)
-        at_most_this_amount = _at_most_this_amount__before_repeat#  repeat.
+        #ratio+-error, this segment appears twice in this function.
+        at_least_this_amount__b = (input.nelement()*(top_ratio__s - error_of_percent__b)+0.4999999999999).to(torch.int64)
+        at_most_this_amount__b =  (input.nelement()*(top_ratio__s + error_of_percent__b)+0.4999999999999).to(torch.int64)
         
-        
-        if at_least_this_amount >= input.nelement():
+        #safety, or maybe a early return.
+        _flag_all_true_early_return__b = at_least_this_amount__b.ge(input.nelement())
+        if _flag_all_true_early_return__b.all():
             _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
             _temp_tensor.fill_(True)
             return _temp_tensor
-        if at_most_this_amount <= 0.:
+        _flag_all_true_early_return__b = at_most_this_amount__b.le(0)
+        if _flag_all_true_early_return__b.all():
             _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
             _temp_tensor.fill_(False)
             return _temp_tensor
+        
+        #maybe optimizable. reverse+reverse = nothing.
+        if_finished__b = (_flag_all_true_early_return__b).logical_or(_flag_all_true_early_return__b)
         
         #real job.
         #best dtype for count the amount.
@@ -740,73 +760,80 @@ def get_top_percent___no_batch_dim(input:torch.Tensor, top_ratio = 0.5, error_of
         # device = input.device
         # param_factory = {"device":device, "dtype":dtype}
         
-        #init before loop
-        _the_max_threshold:torch.Tensor = input.max().to(torch.float64)
-        _the_min_threshold:torch.Tensor = input.min().to(torch.float64)
+        # init before loop
+        _the_max_to_calc_threshold__b:torch.Tensor = input.max(dim=1)
+        _the_min_to_calc_threshold__b:torch.Tensor = input.min(dim=1)
+        if input.dtype != torch.float64 and input.dtype != torch.float32:
+            _the_max_to_calc_threshold__b.to(torch.float16)
+            _the_min_to_calc_threshold__b.to(torch.float16)
+            pass
         
-        repeating = 0
-        old_flag_result = torch.empty_like(input,dtype=torch.bool)
-        init_ed_the_flag_result = False
+        repeating__b = torch.zeros_like(_the_max_to_calc_threshold__b, dtype=torch.int8)
+        old_unqualified_RESULT__b_i = torch.empty_like(input,dtype=torch.bool)
+        old_unqualified_RESULT__b_i.fill_(False)
+        # now is this one: if_finished__b
+        # it was init_ed_the_flag_result
         while True:
-            if _the_max_threshold-_the_min_threshold< epi
+            if epi is not None:
+                #check out the epi:
+                _flag_less_than_epi = (_the_max_to_calc_threshold__b-_the_min_to_calc_threshold__b).lt(epi)
+                if_finished__b.logical_or_(_flag_less_than_epi)
+                1w
+                pass
             
-            _guess_threshold = (_the_max_threshold+_the_min_threshold)/2.
+            
+            
+            
+            #similar to binary search
+            _guess_threshold = (_the_max_to_calc_threshold__b+_the_min_to_calc_threshold__b)/2.
+            RESULT_input_better_than_guess__b_i = torch.empty_like(input, dtype=torch.bool)
+            RESULT_input_better_than_guess__b_i.fill_(False)
+            RESULT_input_better_than_guess__b_i[if_finished__b] = input[if_finished__b].gt(_guess_threshold[if_finished__b])
             if bottom:
-                flag_result = input.lt(_guess_threshold)
-                _guess_count = flag_result.to(int_dtype).sum()
-                #flag_gt
-                if _guess_count>at_most_this_amount:
-                    _the_max_threshold = _guess_threshold
-                    pass
-                #flag_lt
-                elif _guess_count<at_least_this_amount:
-                    _the_min_threshold = _guess_threshold
-                    pass
-                else:
-                    #if all()
-                    return flag_result
+                RESULT_input_better_than_guess__b_i.logical_not_()
+                pass
                 
-                if init_ed_the_flag_result:
-                    if old_flag_result == flag_result:
-                        repeating +=1
-                        pass
-                    is repeating >=careful_level:
-                        repeating = 0
-                        init_ed_the_flag_result = False
-                        
-                        1w gai      
-            better_error_of_percent__b 变大= 
-                                  
-                                  重新计算：
-                        _at_least_this_amount__before_repeat = (input.nelement()*(top_ratio__s - better_error_of_percent__b)+0.4999999999999).to(torch.int64)
-        at_least_this_amount = _at_least_this_amount__before_repeat#at_least_this_amount__before_repeat.repeat()
-        _at_most_this_amount__before_repeat =  (input.nelement()*(top_ratio__s + better_error_of_percent__b)+0.4999999999999).to(torch.int64)
-        at_most_this_amount = _at_most_this_amount__before_repeat#  repeat.
-                        
-                        
-                        
-                        continue
-                        
-                        
-                    
-                init_ed_the_flag_result = True
-                old_flag_result = flag_result
+            
+            _guess_count__b = RESULT_input_better_than_guess__b_i.to(int_dtype).sum(dim=1)
+            #_guess_count = flag_result.to(int_dtype).sum(dim=1)
+            
+            #flag_gt
+            _if__guess_count__gt__cap___b = torch.empty_like(if_finished__b)
+            _if__guess_count__gt__cap___b.fill_(False)
+            _if__guess_count__gt__cap___b[if_finished__b] = _guess_count__b[if_finished__b].gt(at_most_this_amount__b[if_finished__b])
+            _the_max_to_calc_threshold__b[_if__guess_count__gt__cap___b] = _guess_threshold[_if__guess_count__gt__cap___b]
+            #flag_lt
+            _if__guess_count__lt__bottom___b = torch.empty_like(if_finished__b)
+            _if__guess_count__lt__bottom___b.fill_(False)
+            _if__guess_count__lt__bottom___b = _guess_count__b.lt(at_least_this_amount__b)
+            _the_min_to_calc_threshold__b[_if__guess_count__lt__bottom___b] = _guess_threshold[_if__guess_count__lt__bottom___b]
+            
+            if_finished__b.logical_or_((~_if__guess_count__gt__cap___b) and (~_if__guess_count__lt__bottom___b))
+            if if_finished__b.all():
+                return RESULT_input_better_than_guess__b_i
+                pass#return
+            
                 
-                pass#if bottom:
-            else:#top
-                flag_result = input.gt(_guess_threshold)
-                _guess_count = flag_result.to(int_dtype).sum()
-                if _guess_count>at_most_this_amount:
-                    _the_min_threshold = _guess_threshold
-                    pass
-                elif _guess_count<at_least_this_amount:
-                    _the_max_threshold = _guess_threshold
-                    pass
-                else:
-                    return flag_result
-                pass#top
-                
-            pass#while
+            
+            
+            _if__unchanged__b = old_unqualified_RESULT__b_i.eq(RESULT_input_better_than_guess__b_i).all(dim=1)
+            repeating__b[_if__unchanged__b].add_(1)
+            
+            
+            _if__repeated_enough__b = repeating__b.ge(careful_level__s)
+            repeating__b[_if__repeated_enough__b] = 0
+            #update the finishing flags.
+            error_of_percent__b[_if__repeated_enough__b].mul_(2.)#this 2. is not tested.
+            #maybe wrong??? is it updated?
+            
+            #ratio+-error, this segment appears twice in this function.
+            at_least_this_amount__b = (input.nelement()*(top_ratio__s - error_of_percent__b)+0.4999999999999).to(torch.int64)
+            at_most_this_amount__b =  (input.nelement()*(top_ratio__s + error_of_percent__b)+0.4999999999999).to(torch.int64)
+            
+            #tail
+            old_unqualified_RESULT__b_i = RESULT_input_better_than_guess__b_i
+            pass#while true
+        
         pass#  no_grad
     pass# end of function
     
@@ -861,7 +888,7 @@ if "test" and __DEBUG_ME__() and True:
 
 
 
-def get_top_percent(input:torch.Tensor, top_ratio = 0.5, error_of_percent = 0.01, \
+def get_top_percent如果没改就不要了_上面已经搞定了(input:torch.Tensor, top_ratio = 0.5, error_of_percent = 0.01, \
                             bottom = False)->torch.Tensor:
     ''' 
     return shape is the same as input. dtype of return is torch.bool.
