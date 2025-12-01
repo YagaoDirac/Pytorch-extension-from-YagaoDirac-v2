@@ -9,9 +9,9 @@ if "test" and False:
     assert __DEBUG_ME__()
     pass
 if __DEBUG_ME__():
-    def _float_equal(a:float, b:float, epi:float = 0.0001)->bool:
-        assert epi>0.
-        return abs(a-b)<epi
+    def _float_equal(a:float, b:float, epsilon:float = 0.0001)->bool:
+        assert epsilon>0.
+        return abs(a-b)<epsilon
     if "test":
         assert _float_equal(1., 1.)
         assert _float_equal(1., 1.0000001)
@@ -20,7 +20,7 @@ if __DEBUG_ME__():
         pass
     def _tensor_equal(  a:torch.Tensor|list[float]|list[list[float]], \
                         b:torch.Tensor|list[float]|list[list[float]], \
-                            epi:float = 0.0001)->bool:
+                            epsilon:float = 0.0001)->bool:
         if not isinstance(a, torch.Tensor):
             a = torch.tensor(a)
             pass
@@ -32,7 +32,7 @@ if __DEBUG_ME__():
         with torch.inference_mode():
             diff = a-b
             abs_of_diff = diff.abs()
-            less_than = abs_of_diff.lt(epi)
+            less_than = abs_of_diff.lt(epsilon)
             after_all = less_than.all()
             assert after_all.dtype == torch.bool
             the_item = after_all.item()
@@ -82,7 +82,7 @@ class FCL_from_yagaodirac(torch.nn.Module):
     def __init__(self, in_features: int, out_features: int, bias: bool = True, \
                         scaling_factor_for_grad_path:float=1., \
                         scaling_factor_for_weight:float=1., \
-                        epi: float = 0.00001, \
+                        epsilon: float = 0.00001, \
                         mul_me_when_g_too_small: float = 1000, \
                         __debug___extra_gramo_for_bias = False, \
                         __debug___scaling_factor_for_bias:float=1., \
@@ -130,12 +130,12 @@ class FCL_from_yagaodirac(torch.nn.Module):
         self.in_features = in_features
         self.out_features = out_features
         self.weight_o_i = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
-        self.gramo_for_weight = GradientModification_v2_mean_abs_to_1(scaling_factor_for_weight, epi,mul_me_when_g_too_small, **factory_kwargs)
+        self.gramo_for_weight = GradientModification_v2_mean_abs_to_1(scaling_factor_for_weight, epsilon,mul_me_when_g_too_small, **factory_kwargs)
         
         if bias:
             self.bias_o = torch.nn.Parameter(torch.empty(out_features, **factory_kwargs))
             if __debug___extra_gramo_for_bias:
-                self.gramo_for_bias = GradientModification_v2_mean_abs_to_1(__debug___scaling_factor_for_bias, epi,mul_me_when_g_too_small, **factory_kwargs)
+                self.gramo_for_bias = GradientModification_v2_mean_abs_to_1(__debug___scaling_factor_for_bias, epsilon,mul_me_when_g_too_small, **factory_kwargs)
                 pass
             else:
                 #self.gramo_for_bias = None
@@ -148,7 +148,7 @@ class FCL_from_yagaodirac(torch.nn.Module):
             pass
         self.__reset_parameters()
 
-        self.out_gramo = GradientModification_v2_mean_abs_to_1(scaling_factor_for_grad_path, epi,mul_me_when_g_too_small, **factory_kwargs)
+        self.out_gramo = GradientModification_v2_mean_abs_to_1(scaling_factor_for_grad_path, epsilon,mul_me_when_g_too_small, **factory_kwargs)
         pass
     #end of function.
 
@@ -240,28 +240,28 @@ if 'kaiming_he_init avg log test.(with set numbers)' and __DEBUG_ME__() and True
     layer = FCL_from_yagaodirac(in_features, out_features, True)
     _temp_report = layer._debug_get_all_avg_log10()
     assert _temp_report[1] == "weight_o_i, bias_o"
-    assert _tensor_equal(_temp_report[0], [-1.45, -1.45], epi=0.1)
+    assert _tensor_equal(_temp_report[0], [-1.45, -1.45], epsilon=0.1)
     
     in_features = 10000
     out_features = 100
     layer = FCL_from_yagaodirac(in_features, out_features, True)
     _temp_report = layer._debug_get_all_avg_log10()
     assert _temp_report[1] == "weight_o_i, bias_o"
-    assert _tensor_equal(_temp_report[0], [-2.45, -2.45], epi=0.1)
+    assert _tensor_equal(_temp_report[0], [-2.45, -2.45], epsilon=0.1)
     
     in_features = 100
     out_features = 10000
     layer = FCL_from_yagaodirac(in_features, out_features, True)
     _temp_report = layer._debug_get_all_avg_log10()
     assert _temp_report[1] == "weight_o_i, bias_o"
-    assert _tensor_equal(_temp_report[0], [-1.45, -1.45], epi=0.1)
+    assert _tensor_equal(_temp_report[0], [-1.45, -1.45], epsilon=0.1)
     
     in_features = 10000
     out_features = 10000
     layer = FCL_from_yagaodirac(in_features, out_features, True)
     _temp_report = layer._debug_get_all_avg_log10()
     assert _temp_report[1] == "weight_o_i, bias_o"
-    assert _tensor_equal(_temp_report[0], [-2.45, -2.45], epi=0.1)
+    assert _tensor_equal(_temp_report[0], [-2.45, -2.45], epsilon=0.1)
     #  100    100   -1.4 -1.4
     #10000    100   -2.4 -2.4
     #  100  10000   -1.4 -1.4
@@ -273,7 +273,7 @@ if 'kaiming_he_init avg log test.(with set numbers)' and __DEBUG_ME__() and True
         _temp_report = layer._debug_get_all_avg_log10()
         _temp_float = torch.log10(torch.tensor(in_features)).item()
         _temp_float_2 = _temp_float*-0.5 - 0.45
-        assert _tensor_equal(_temp_report[0], [_temp_float_2, _temp_float_2], epi=0.1)
+        assert _tensor_equal(_temp_report[0], [_temp_float_2, _temp_float_2], epsilon=0.1)
         assert _temp_report[1] == "weight_o_i, bias_o"
     pass
 
