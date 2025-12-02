@@ -1876,6 +1876,7 @@ if '''init test''' and __DEBUG_ME__() and True:
 
 
 # class XModificationFunction(torch.autograd.Function):
+# maybe this is a forward version of abs mean to 1??? If I see any use case of it, I'll get it ready.
 #     r'''input param:
 #     >>> x:torch.Tensor (must be set as require_grad = True)
 #     >>> scaling_factor = torch.tensor([1.])
@@ -2055,7 +2056,7 @@ if '''init test''' and __DEBUG_ME__() and True:
 
 
 '''
-Fyi. I tested this in some cases. I didn't see how it helps. 
+Fyi. I tested this ReLU_with_offset in some cases. I didn't see how it helps. 
 If you don't know how to use it, it's ok. I don't either.
 '''
 class ReLU_with_offset(torch.nn.Module):
@@ -2140,5 +2141,134 @@ if '''init test''' and __DEBUG_ME__() and True:
     layer_ReLU_with_offset = ReLU_with_offset(offset=4.4, dtype=torch.float16)
     assert layer_ReLU_with_offset.offset.dtype == torch.float32
     pass
+
+
+
+
+
+
+
+
+
+
+
+class BCELoss_outputs_real_probabilityFunction(torch.autograd.Function):
+    r'''
+    还没改，不急。
+    forward is a normal bce loss.
+    backward is different.
+    The purpose of this is to make a bce loss layer but it outputs the real probability.
+        
+    input param:
+    >>> x:torch.Tensor
+    >>> target:torch.Tensor
+    >>> weight(check out pytorch docs for BCELoss)
+
+    retur type: torch.Tensor
+    '''
+    @staticmethod
+    #def forward(*args: Any, **kwargs: Any)->Any:
+    def forward(x:torch.Tensor,target:torch.Tensor,weight:torch.Tensor,\
+                            *args: Any, **kwargs: Any)->Any:
+        assert_param_shape__batch_dim(x)#this is my convention. If you don't like it, commend it out.
+        torch.nn.functional.binary_cross_entropy
+        return x
+
+    @staticmethod
+    def setup_context(ctx, inputs, output):
+        x:torch.Tensor = inputs[0]
+        ctx.save_for_backward(x, output)
+        return
+        #return super().setup_context(ctx, inputs, output)
+
+    @staticmethod
+    def backward(ctx, g_in_b_o):#->tuple[Optional[torch.Tensor], None, None, None]:
+        #super().backward()
+        x:torch.Tensor
+        output:torch.Tensor
+        (x, output) = ctx.saved_tensors
+        
+        if x.requires_grad:
+            根据 g_in_b_o 算出结果。
+            return 结果, None, None
+        else:
+            return None, None, None
+
+    pass  # class
+
+if '''dim irrelated gramo''' and __DEBUG_ME__() and True:
+    scaling_factor = torch.tensor([1.], dtype=torch.float64)
+    epsilon=torch.tensor([1e-3], dtype=torch.float32)
+    mul_me_when_g_too_small = torch.tensor([10], dtype=torch.float16)
+    a = torch.zeros([5,2], requires_grad=True, dtype=torch.float16)
+    b = 1w.apply(a,scaling_factor,epsilon,mul_me_when_g_too_small)
+    g_in = torch.tensor([[0.1,0.2],[0.01,0.02,],[0.001,0.002],[1e-4,2e-4],[1e-5,2e-5]], dtype=torch.float16)
+    torch.autograd.backward(b, g_in,inputs= a)
+    print(a.grad)
+    
+    a = torch.zeros([5,1], requires_grad=True, dtype=torch.float16)
+    b = 1w.apply(a,scaling_factor,epsilon,mul_me_when_g_too_small)
+    g_in = torch.tensor([[0.1],[0.01],[0.001],[1e-4],[1e-5]], dtype=torch.float16)
+    torch.autograd.backward(b, g_in,inputs= a)
+    print(a.grad)
+    pass
+
+if '''dtype adaption.''' and __DEBUG_ME__() and True:
+    scaling_factor = torch.tensor([1.], dtype=torch.float64)
+    epsilon=torch.tensor([1e-5], dtype=torch.float32)
+    mul_me_when_g_too_small = torch.tensor([1e3], dtype=torch.float16)
+    a = torch.tensor([[0.]], requires_grad=True, dtype=torch.float16)
+    original_dtype = a.dtype
+    b = 1w.apply(a,scaling_factor,epsilon,mul_me_when_g_too_small)
+    ### g = torch.autograd.grad(b, a, retain_graph= True)#this one doesn't help.
+    g_in = torch.tensor([[1.]], dtype=torch.float16)
+    torch.autograd.backward(b, g_in,inputs= a)
+    #print(g[0])
+    assert a.grad
+    assert a.grad.dtype == original_dtype
+    pass
+
+if '''device adaption''' and __DEBUG_ME__() and True:
+    scaling_factor = torch.tensor([1.]).cuda()
+    epsilon=torch.tensor([1e-5]).cuda()
+    mul_me_when_g_too_small = torch.tensor([1e3]).cuda()
+    a = torch.tensor([[0.]], requires_grad=True).cuda()
+    b = 1w.apply(a,scaling_factor,epsilon,mul_me_when_g_too_small)
+    g_in = torch.tensor([[1.]]).cuda()
+    torch.autograd.backward(b, g_in,inputs= a)
+    assert a.grad is not None
+    assert a.grad.device == torch.device('cuda', index=0)
+    assert a.grad.device.type == 'cuda'
+    pass
+
+
+
+
+
+class BCELoss_outputs_real_probability(torch.nn._WeightedLoss):
+    def __init__(
+        self,
+        weight: Optional[torch.Tensor] = None,
+        #size_average=None,
+        #reduce=None,
+        reduction: str = "mean",
+    ) -> None:
+        #super().__init__(weight, size_average, reduce, reduction)
+        super().__init__(weight, reduction)
+        pass
+
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Runs the forward pass.
+        """
+        return BCELoss_outputs_real_probabilityFunction(
+            input, target, weight=self.weight, reduction=self.reduction
+        )
+        pass
+    
+    pass#end of function.
+
+if "test" and __DEBUG_ME__() and True:
+    1w
 
 
