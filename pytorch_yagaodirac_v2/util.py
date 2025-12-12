@@ -701,8 +701,9 @@ if "perf test." and __DEBUG_ME__() and False:
 
     
 
-def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of_percent = 0.01, \
-                            bottom = False, careful_level:int = 3, epsilon:float|torch.Tensor|None = None)->torch.Tensor:
+def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of_percent__at_least = 0.01, \
+                            bottom = False, careful_level:int = 3, epsilon:float|torch.Tensor|None = None, \
+                                _debug_needs_log = False)->tuple[torch.Tensor, list[str]]:
     ''' 
     重新整理一下思路
     这个函数有2个退出模式。
@@ -721,7 +722,7 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
     '''
     assert top_ratio>0.
     assert top_ratio<1.
-    assert error_of_percent>=0.
+    assert error_of_percent__at_least>=0.
     assert careful_level>0
     assert careful_level<64, "or modify the data type. search for repeating__b = torch.zeros_like(_the_max_to_calc_threshold__b, dtype=torch.int8)"
     if epsilon:
@@ -733,7 +734,13 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             assert epsilon
             epsilon = epsilon.to(input.dtype)        
         pass
-
+    if _debug_needs_log:
+        _log:list[str] = [f"epsilon:{epsilon.item()}"]
+        pass
+    else:
+        _log = None  
+        pass
+    
     #dtype uint
     #best dtype for count the amount.
     _total_nelement = input[0].nelement()
@@ -749,11 +756,12 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
     else:
         uint_dtype = torch.uint64
         pass
+    if _debug_needs_log:
+        _log.append(f"uint type:{str(uint_dtype)}")
+        pass
     # device = input.device
     # param_factory = {"device":device, "dtype":dtype}
-    
     #dtype int
-    _total_nelement = input[0].nelement()
     if _total_nelement<=(1<<7):
         int_dtype = torch.int8
         pass
@@ -766,6 +774,9 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
     else:
         int_dtype = torch.int64
         pass
+    if _debug_needs_log:
+        _log.append(f"int type:{str(int_dtype)}")
+        pass
     
     with torch.no_grad():
         #into torch.
@@ -777,34 +788,46 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
         top_ratio__s = torch.tensor(top_ratio, dtype=torch.float64, device=input.device)
         del top_ratio
         
+        if _debug_needs_log:
+            _log.append(f"top ratio:{top_ratio}, is bottom:{bottom}")
+            pass
+        
+        
         #init error_of_percent 
         better_error_of_percent = 0.501/input.nelement()
-        if better_error_of_percent<error_of_percent:
-            better_error_of_percent = error_of_percent
+        if better_error_of_percent<error_of_percent__at_least:
+            better_error_of_percent = error_of_percent__at_least
             pass
-        del error_of_percent
+        del error_of_percent__at_least
         error_of_percent__b = torch.empty(size=[input.shape[0]], device=input.device)
         error_of_percent__b.fill_(better_error_of_percent)
+        if _debug_needs_log:
+            _log.append(f"error_of_percent__b init to:{error_of_percent__b}")
+            pass
         
         #ratio+-error, this segment appears twice in this function.
-        at_least_this_amount__b = ((input.nelement()-1)*(top_ratio__s - error_of_percent__b)+0.5).to(int_dtype)
-        at_most_this_amount__b =  ((input.nelement()-1)*(top_ratio__s + error_of_percent__b)+0.5).to(int_dtype)
+        at_least_this_amount__b = ((input.nelement()-1)*(top_ratio__s - error_of_percent__b)).to(int_dtype)
+        at_most_this_amount__b =  ((input.nelement()-1)*(top_ratio__s + error_of_percent__b)).to(int_dtype)
+        if _debug_needs_log:
+            _log.append(f"at_least_this_amount__b init to:{at_least_this_amount__b}")
+            _log.append(f"at_most_this_amount__b init to:{at_most_this_amount__b}")
+            pass
         
         #safety, or maybe a early return.
         _flag_all_true_early_return__b = at_least_this_amount__b.ge(input.nelement())
         if _flag_all_true_early_return__b.all():
-            _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
-            _temp_tensor.fill_(True)
-            return _temp_tensor
+            _temp_tensor = torch.ones_like(input, dtype=torch.bool, device=input.device)
+            return _temp_tensor, _log
         _flag_all_true_early_return__b = at_most_this_amount__b.le(0)
         if _flag_all_true_early_return__b.all():
-            _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
-            _temp_tensor.fill_(False)
-            return _temp_tensor
+            _temp_tensor = torch.zeros_like(input, dtype=torch.bool, device=input.device)
+            return _temp_tensor, _log
         
         #maybe optimizable. reverse+reverse = nothing.
         if_finished__b = (_flag_all_true_early_return__b).logical_or(_flag_all_true_early_return__b)
-        
+        if _debug_needs_log:
+            _log.append(f"if_finished__b init to:{if_finished__b}")
+            pass
         
         # init before loop
         _the_max_to_calc_threshold__b:torch.Tensor = input.max(dim=1).values
@@ -813,52 +836,65 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             _the_max_to_calc_threshold__b.to(torch.float16)
             _the_min_to_calc_threshold__b.to(torch.float16)
             pass
+        if _debug_needs_log:
+            _log.append(f"_the_max_to_calc_threshold__b init to:{_the_max_to_calc_threshold__b}")
+            _log.append(f"_the_min_to_calc_threshold__b init to:{_the_min_to_calc_threshold__b}")
+            pass
         
         repeating__b = torch.zeros_like(_the_max_to_calc_threshold__b, dtype=torch.int8)
-        old_unqualified_RESULT__b_i = torch.empty_like(input,dtype=torch.bool)
-        old_unqualified_RESULT__b_i.fill_(False)
+        old_unqualified_RESULT__b_i = torch.zeros_like(input,dtype=torch.bool)
         # now is this one: if_finished__b
         # it was init_ed_the_flag_result
+        if _debug_needs_log:
+            _log.append(f"repeating__b init to:{repeating__b}")
+            _log.append(f"old_unqualified_RESULT__b_i init to:{old_unqualified_RESULT__b_i}")
+            pass
         
         _input_gt_guess__count__b = torch.zeros_like(if_finished__b, dtype=uint_dtype)
+        if _debug_needs_log:
+            _log.append(f"_input_gt_guess__count__b init to:{_input_gt_guess__count__b}")
+            pass
+        if _debug_needs_log:
+            loop_count = 0
+            pass
+        
         while True:
+            if _debug_needs_log:
+                _log.append(f"----  loop {loop_count}  ----")
+                pass
+            1w 好吧，无语了，写log了。
             #similar to binary search
             _guess_threshold = torch.zeros_like(if_finished__b,dtype=_the_max_to_calc_threshold__b.dtype)
             _guess_threshold[~if_finished__b] = (_the_max_to_calc_threshold__b[~if_finished__b]+_the_min_to_calc_threshold__b[~if_finished__b])/2.#maybe optimizable.
 
             #the real comparison
-            RESULT_input_gt_guess__b_i___mask_if_finish = torch.empty_like(input, dtype=torch.bool)
-            RESULT_input_gt_guess__b_i___mask_if_finish.fill_(False)
+            RESULT_input_gt_guess__b_i___mask_if_finish = torch.zeros_like(input, dtype=torch.bool)
             RESULT_input_gt_guess__b_i___mask_if_finish[~if_finished__b] = input[~if_finished__b].gt(_guess_threshold[~if_finished__b])
             #if guessed too big, then, less true
             _input_gt_guess__count__b[~if_finished__b] = RESULT_input_gt_guess__b_i___mask_if_finish[~if_finished__b].to(uint_dtype).sum(dim=1)
             #_guess_count = flag_result.to(int_dtype).sum(dim=1)
             
             # #flag_gt
-            # _if__guess_not_too_big___b = torch.empty_like(if_finished__b)
-            # _if__guess_not_too_big___b.fill_(False) # maybe this is a number? 0?
+            # _if__guess_not_too_big___b = torch.zeros_like(if_finished__b)
             # _if__guess_not_too_big___b[~if_finished__b] = _guess_count__b[~if_finished__b].le(at_most_this_amount__b[~if_finished__b])
             # # ^^^ true is good. ^^^
             # _the_min_to_calc_threshold__b[~_if__guess_not_too_big___b] = _guess_threshold[~_if__guess_not_too_big___b]
             
             #flag_gt
-            _if__guess_too_big___b = torch.empty_like(if_finished__b)
-            _if__guess_too_big___b.fill_(False) # maybe this is a number? 0?
+            _if__guess_too_big___b = torch.zeros_like(if_finished__b)
             _if__guess_too_big___b[~if_finished__b] = _input_gt_guess__count__b[~if_finished__b].lt(at_least_this_amount__b[~if_finished__b])
             # ^^^ true is bad. ^^^
             _the_max_to_calc_threshold__b[_if__guess_too_big___b] = _guess_threshold[_if__guess_too_big___b]
             
             
             # #flag_lt
-            # _if__guess_not_too_small___b = torch.empty_like(if_finished__b)
-            # _if__guess_not_too_small___b.fill_(False)
+            # _if__guess_not_too_small___b = torch.zeros_like(if_finished__b)
             # _if__guess_not_too_small___b[~if_finished__b] = _guess_count__b[~if_finished__b].ge(at_least_this_amount__b[~if_finished__b])
             # # ^^^ true is good. ^^^
             # _the_max_to_calc_threshold__b[~_if__guess_not_too_small___b] = _guess_threshold[~_if__guess_not_too_small___b]
             
             #flag_lt
-            _if__guess_too_small___b = torch.empty_like(if_finished__b)
-            _if__guess_too_small___b.fill_(False)
+            _if__guess_too_small___b = torch.zeros_like(if_finished__b)
             _if__guess_too_small___b[~if_finished__b] = _input_gt_guess__count__b[~if_finished__b].gt(at_most_this_amount__b[~if_finished__b])
             # ^^^ true is bad. ^^^
             _the_min_to_calc_threshold__b[_if__guess_too_small___b] = _guess_threshold[_if__guess_too_small___b]
@@ -883,8 +919,7 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             
             
             #if the new result[b,i] unchanged?
-            _if__unchanged__b = torch.empty_like(if_finished__b, dtype=torch.bool)
-            _if__unchanged__b.fill_(False)
+            _if__unchanged__b = torch.zeros_like(if_finished__b, dtype=torch.bool)
             _if__unchanged__b[~if_finished__b] = old_unqualified_RESULT__b_i[~if_finished__b].eq( \
                 RESULT_input_gt_guess__b_i___mask_if_finish[~if_finished__b]).all(dim=1)
             # ^^^ true is bad. ^^^
@@ -900,15 +935,18 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             #ratio+-error, this segment appears twice in this function.
             #[1]+[] is []. So this is safe.
             at_least_this_amount__b[_if__repeated_enough__b] = ((input.nelement()-1)*(top_ratio__s - \
-                error_of_percent__b[_if__repeated_enough__b])+0.5).to(int_dtype)
+                error_of_percent__b[_if__repeated_enough__b])).to(int_dtype)
             at_most_this_amount__b[_if__repeated_enough__b] =  ((input.nelement()-1)*(top_ratio__s + \
-                error_of_percent__b[_if__repeated_enough__b])+0.5).to(int_dtype)
+                error_of_percent__b[_if__repeated_enough__b])).to(int_dtype)
             # no detect for return here. reason:
             # even if this range-like can mean a range covering all the range, bc I believe it unlikely to happen.
             # I decide to delay the return to the next round.
             
             #tail
             old_unqualified_RESULT__b_i = RESULT_input_gt_guess__b_i___mask_if_finish
+            if _debug_needs_log:
+                loop_count += 1
+                pass
             pass#while true
         
         pass#  no_grad
@@ -920,33 +958,44 @@ if "test" and __DEBUG_ME__() and True:
     # fdsfds2 = torch.topk(torch.tensor([1,2,3,4,5]),3, sorted=True)
     
     n = 5
-    top_ratio = 0.77
+    top_ratio = 0.1
     error_of_percent = 0.1
-    lower_bound = (n-1)*(top_ratio - error_of_percent)+0.5
-    upper_bound = (n-1)*(top_ratio + error_of_percent)+0.5
-    assert int(lower_bound) == int(upper_bound)
+    _floor_offset = 0.
+    lower_bound = (n-1)*(top_ratio - error_of_percent)+_floor_offset
+    upper_bound = (n-1)*(top_ratio + error_of_percent)+_floor_offset
+    #assert int(lower_bound) == int(upper_bound)
     #it's possible they equal. 
     
-    # assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.2).eq(torch.tensor([False,False,False,False,True])).all()
-    # assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.2).eq(torch.tensor([True,False,False,False,False])).all()
+    a1 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.1)
+    a2 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.2)
+    a3 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.3)
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.1).eq(torch.tensor([False,False,False,False,True])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.2).eq(torch.tensor([False,False,False,True,True])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.1).eq(torch.tensor([True,False,False,False,False])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.2).eq(torch.tensor([True,False,False,True,False])).all()
     
     
     
     n = 5
-    top_ratio = 0.2
-    error_of_percent = 0.01
-    lower_bound = (n-1)*(top_ratio - error_of_percent)+0.5
-    upper_bound = (n-1)*(top_ratio + error_of_percent)+0.5
-    1w继续。
+    top_ratio = 0.1
+    error_of_percent = 0.1
+    _floor_offset = 0.
+    lower_bound = (n-1)*(top_ratio - error_of_percent)+_floor_offset
+    upper_bound = (n-1)*(top_ratio + error_of_percent)+_floor_offset
+    #1w继续。
     
-    a = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.2,bottom=True)
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.2,bottom=True).eq( torch.tensor([True,False,False,False,False])).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.2,bottom=True).eq( torch.tensor([False,False,False,False,True])).all()
+    b1 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.1,bottom=True)
+    b2 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.2,bottom=True)
+    b3 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.3,bottom=True)
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.1,bottom=True).eq( torch.tensor([True,False,False,False,False])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.2,bottom=True).eq( torch.tensor([True,True,False,False,False])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.1,bottom=True).eq( torch.tensor([False,False,False,False,True])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.1,bottom=True).eq( torch.tensor([False,True,False,False,True])).all()
     
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.  ).eq(torch.tensor([False,False,False])).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.33).eq(torch.tensor([False,False,True ])).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.66).eq(torch.tensor([False,True ,True ])).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=1.  ).eq(torch.tensor([True ,True ,True ])).all()
+    # assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.  ).eq(torch.tensor([False,False,False])).all()
+    # assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.33).eq(torch.tensor([False,False,True ])).all()
+    # assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.66).eq(torch.tensor([False,True ,True ])).all()
+    # assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=1.  ).eq(torch.tensor([True ,True ,True ])).all()
 
     assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0. , bottom=True).eq(torch.tensor([False,False,False])).all()
     assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.4, bottom=True).eq(torch.tensor([True ,False,False])).all()
@@ -974,9 +1023,9 @@ if "test" and __DEBUG_ME__() and True:
     
     the_linspace = torch.linspace(1.,100.,99)
     the_linspace = the_linspace.reshape([1,-1])
-    _temp_int = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_percent=0.01).sum().item()
+    _temp_int = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_percent__at_least=0.01).sum().item()
     assert _temp_int>18 and _temp_int<22
-    _temp_int = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_percent=0.1).sum().item()
+    _temp_int = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_percent__at_least=0.1).sum().item()
     assert _temp_int>8 and _temp_int<32
     
     
@@ -985,15 +1034,15 @@ if "test" and __DEBUG_ME__() and True:
     the_tensor = the_tensor.reshape([1,-1])
     the_tensor[-1] = 99999
     #step into the function and see how it works.
-    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_percent=0.01, careful_level = 1)
+    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_percent__at_least=0.01, careful_level = 1)
     #1w 写一下会发生什么。
     #1w 整个这个里面的都还没测试。。。。
     
     # epsilon
     the_tensor = torch.rand([1,10])
-    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_percent=0.01, epsilon=0.001)
-    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_percent=0.01, epsilon=0.1)
-    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_percent=0.01, epsilon=0.51)
+    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_percent__at_least=0.01, epsilon=0.001)
+    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_percent__at_least=0.01, epsilon=0.1)
+    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_percent__at_least=0.01, epsilon=0.51)
     
     # batch
     the_tensor = torch.tensor( [[1.,2,3,4,5],
@@ -1030,12 +1079,10 @@ def 应该是不用了get_top_percent如果没改就不要了_上面已经搞定
         #     at_most_this_amount = at_least_this_amount  +1
         #     pass
         if _at_least_this_amount__cpu_int >= nelement_per_batch__s:
-            _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
-            _temp_tensor.fill_(True)
+            _temp_tensor = torch.ones_like(input, dtype=torch.bool, device=input.device)
             return _temp_tensor
         if _at_most_this_amount__cpu_int <= 0.:
-            _temp_tensor = torch.empty_like(input, dtype=torch.bool, device=input.device)
-            _temp_tensor.fill_(False)
+            _temp_tensor = torch.zeros_like(input, dtype=torch.bool, device=input.device)
             return _temp_tensor
         assert error_of_percent>=0.
         

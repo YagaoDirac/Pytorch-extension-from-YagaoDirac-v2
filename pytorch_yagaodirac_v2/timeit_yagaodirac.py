@@ -152,6 +152,7 @@ def timeit(test_this_callable, params:tuple = (), time_at_most = 0.2, _magic_rat
             base = 4, I_believe_it_comes_stable_at = 10000, timeout_tolerence:Optional[float] = None, \
             _debug__force_warm_up = 0, _debug__provides_log = False, \
                             )->tuple[float, Optional[list[str]]]:
+    "return result(in float), log(if not None)"
     assert time_at_most>0
     assert _magic_ratio>2.
     assert base>=4 and base<=16
