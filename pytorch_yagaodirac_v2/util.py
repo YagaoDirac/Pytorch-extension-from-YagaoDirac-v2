@@ -64,12 +64,7 @@ if "test" and __DEBUG_ME__() and True:
     assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.001])) == False
     pass
 
-from pathlib import Path
-import sys
-sys.path.append(str(Path(__file__).parent))
-from timeit_yagaodirac import timeit
-# from pytorch_yagaodirac_v2.timeit_yagaodirac import timeit
-pass
+
 
 
 def vector_length_norm(input:torch.Tensor, epi = 0.000001)->torch.Tensor:
@@ -461,249 +456,13 @@ def debug_strong_grad_ratio(parameter:torch.nn.parameter.Parameter, log10_diff =
 
 
 
-"a performance test. in pytorch, int tensor comparison is the same speed as tensor tensor comparison."
-if "perf test." and __DEBUG_ME__() and False:
-    '''result. in pytorch, int tensor comparison is the same speed as tensor tensor comparison.'''
-    def func_a_t():
-        input = torch.rand(size=(100,100), device='cuda')
-        a_i:int = input.nelement()
-        a_t:torch.Tensor = torch.tensor(a_i, device='cuda')
-        the_sum_t:torch.Tensor = input.gt(2.).sum()
-        for _ in range(20):
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            if a_t>the_sum_t:
-                pass
-            pass
-        pass
-    time_of_tensor_ver, _log = timeit(func_a_t,time_at_most=2., _debug__provides_log = True)
-
-    def func_a_i():
-        input = torch.rand(size=(100,100), device='cuda')
-        a_i:int = input.nelement()
-        a_t:torch.Tensor = torch.tensor(a_i, device='cuda')
-        the_sum_t:torch.Tensor = input.gt(2.).sum()
-        for _ in range(20):
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            if a_i>the_sum_t:
-                pass
-            pass
-        pass
-    time_of_int_ver,_ = timeit(func_a_i,time_at_most=2.)
-
-    def func_empty():
-        input = torch.rand(size=(100,100), device='cuda')
-        a_i:int = input.nelement()
-        a_t:torch.Tensor = torch.tensor(a_i, device='cuda')
-        the_sum_t:torch.Tensor = input.gt(2.).sum()
-        for _ in range(20):
-            pass
-        pass
-    time_of_empty,_ = timeit(func_empty,time_at_most=2.)
-    print("int ver:  ", time_of_int_ver-time_of_empty)
-    print("tensor ver:  ", time_of_tensor_ver-time_of_empty)
-    pass
-
 
 
     
 
-def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of_percent__at_least = 0.01, \
+def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of_ratio__at_least = 0.01, \
                             bottom = False, careful_level:int = 3, epsilon:float|torch.Tensor|None = None, \
-                                _debug_needs_log = False)->tuple[torch.Tensor, list[str]]:
+                                _debug_needs_log = False)->tuple[torch.Tensor, list[str]|None]:
     ''' 
     重新整理一下思路
     这个函数有2个退出模式。
@@ -722,7 +481,7 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
     '''
     assert top_ratio>0.
     assert top_ratio<1.
-    assert error_of_percent__at_least>=0.
+    assert error_of_ratio__at_least>=0.
     assert careful_level>0
     assert careful_level<64, "or modify the data type. search for repeating__b = torch.zeros_like(_the_max_to_calc_threshold__b, dtype=torch.int8)"
     if epsilon:
@@ -735,7 +494,7 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             epsilon = epsilon.to(input.dtype)        
         pass
     if _debug_needs_log:
-        _log:list[str] = [f"epsilon:{epsilon.item()}"]
+        _log:list[str]|None = [f"epsilon:{epsilon}"]
         pass
     else:
         _log = None  
@@ -744,37 +503,23 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
     #dtype uint
     #best dtype for count the amount.
     _total_nelement = input[0].nelement()
-    if _total_nelement<=(1<<8):
-        uint_dtype = torch.uint8
-        pass
-    elif _total_nelement<=(1<<16):
-        uint_dtype = torch.uint16
-        pass
-    elif _total_nelement<=(1<<32):
-        uint_dtype = torch.uint32
-        pass
-    else:
-        uint_dtype = torch.uint64
-        pass
-    if _debug_needs_log:
-        _log.append(f"uint type:{str(uint_dtype)}")
-        pass
     # device = input.device
     # param_factory = {"device":device, "dtype":dtype}
     #dtype int
-    if _total_nelement<=(1<<7):
+    if _total_nelement<=(1<<6):
         int_dtype = torch.int8
         pass
-    elif _total_nelement<=(1<<15):
+    elif _total_nelement<=(1<<14):
         int_dtype = torch.int16
         pass
-    elif _total_nelement<=(1<<31):
+    elif _total_nelement<=(1<<30):
         int_dtype = torch.int32
         pass
     else:
         int_dtype = torch.int64
         pass
     if _debug_needs_log:
+        assert _log
         _log.append(f"int type:{str(int_dtype)}")
         pass
     
@@ -789,43 +534,56 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
         del top_ratio
         
         if _debug_needs_log:
-            _log.append(f"top ratio:{top_ratio}, is bottom:{bottom}")
+            assert _log
+            _log.append(f"top ratio:{top_ratio__s}, is bottom:{bottom}")
             pass
         
         
         #init error_of_percent 
-        better_error_of_percent = 0.501/input.nelement()
-        if better_error_of_percent<error_of_percent__at_least:
-            better_error_of_percent = error_of_percent__at_least
+        input_dim = input.shape[1]
+        better_error_of_ratio = 0.501/input_dim
+        if better_error_of_ratio<error_of_ratio__at_least:
+            better_error_of_ratio = error_of_ratio__at_least
             pass
-        del error_of_percent__at_least
-        error_of_percent__b = torch.empty(size=[input.shape[0]], device=input.device)
-        error_of_percent__b.fill_(better_error_of_percent)
+        del error_of_ratio__at_least
+        error_of_ratio__b = torch.empty(size=[input.shape[0]], device=input.device)
+        error_of_ratio__b.fill_(better_error_of_ratio)
         if _debug_needs_log:
-            _log.append(f"error_of_percent__b init to:{error_of_percent__b}")
+            assert _log
+            _log.append(f"error_of_percent__b init to:{error_of_ratio__b}")
             pass
         
         #ratio+-error, this segment appears twice in this function.
-        at_least_this_amount__b = ((input.nelement()-1)*(top_ratio__s - error_of_percent__b)).to(int_dtype)
-        at_most_this_amount__b =  ((input.nelement()-1)*(top_ratio__s + error_of_percent__b)).to(int_dtype)
+        at_least_this_amount__b = ((input_dim-2)*(top_ratio__s - error_of_ratio__b)+1.4999).to(int_dtype)
+        at_most_this_amount__b =  ((input_dim-2)*(top_ratio__s + error_of_ratio__b)+1.5001).to(int_dtype)
         if _debug_needs_log:
+            assert _log
             _log.append(f"at_least_this_amount__b init to:{at_least_this_amount__b}")
             _log.append(f"at_most_this_amount__b init to:{at_most_this_amount__b}")
             pass
         
         #safety, or maybe a early return.
-        _flag_all_true_early_return__b = at_least_this_amount__b.ge(input.nelement())
+        _flag_all_true_early_return__b = at_least_this_amount__b.ge(input_dim)
         if _flag_all_true_early_return__b.all():
             _temp_tensor = torch.ones_like(input, dtype=torch.bool, device=input.device)
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"_flag_all_true_early_return__b:{_flag_all_true_early_return__b}, all true, [return]")
+                pass
             return _temp_tensor, _log
         _flag_all_true_early_return__b = at_most_this_amount__b.le(0)
         if _flag_all_true_early_return__b.all():
             _temp_tensor = torch.zeros_like(input, dtype=torch.bool, device=input.device)
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"_flag_all_true_early_return__b:{_flag_all_true_early_return__b}, all true, [return]")
+                pass
             return _temp_tensor, _log
         
         #maybe optimizable. reverse+reverse = nothing.
         if_finished__b = (_flag_all_true_early_return__b).logical_or(_flag_all_true_early_return__b)
         if _debug_needs_log:
+            assert _log
             _log.append(f"if_finished__b init to:{if_finished__b}")
             pass
         
@@ -837,6 +595,7 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             _the_min_to_calc_threshold__b.to(torch.float16)
             pass
         if _debug_needs_log:
+            assert _log
             _log.append(f"_the_max_to_calc_threshold__b init to:{_the_max_to_calc_threshold__b}")
             _log.append(f"_the_min_to_calc_threshold__b init to:{_the_min_to_calc_threshold__b}")
             pass
@@ -846,12 +605,14 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
         # now is this one: if_finished__b
         # it was init_ed_the_flag_result
         if _debug_needs_log:
+            assert _log
             _log.append(f"repeating__b init to:{repeating__b}")
             _log.append(f"old_unqualified_RESULT__b_i init to:{old_unqualified_RESULT__b_i}")
             pass
         
-        _input_gt_guess__count__b = torch.zeros_like(if_finished__b, dtype=uint_dtype)
+        _input_gt_guess__count__b = torch.zeros_like(if_finished__b, dtype=int_dtype)
         if _debug_needs_log:
+            assert _log
             _log.append(f"_input_gt_guess__count__b init to:{_input_gt_guess__count__b}")
             pass
         if _debug_needs_log:
@@ -860,19 +621,29 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
         
         while True:
             if _debug_needs_log:
+                assert _log
                 _log.append(f"----  loop {loop_count}  ----")
+                _log.append(f"if_finished__b:{if_finished__b}")
                 pass
-            1w 好吧，无语了，写log了。
             #similar to binary search
             _guess_threshold = torch.zeros_like(if_finished__b,dtype=_the_max_to_calc_threshold__b.dtype)
             _guess_threshold[~if_finished__b] = (_the_max_to_calc_threshold__b[~if_finished__b]+_the_min_to_calc_threshold__b[~if_finished__b])/2.#maybe optimizable.
-
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"_guess_threshold:{_guess_threshold}")
+                pass
             #the real comparison
-            RESULT_input_gt_guess__b_i___mask_if_finish = torch.zeros_like(input, dtype=torch.bool)
-            RESULT_input_gt_guess__b_i___mask_if_finish[~if_finished__b] = input[~if_finished__b].gt(_guess_threshold[~if_finished__b])
+            RESULT__if__input_gt_guess__b_i = torch.zeros_like(input, dtype=torch.bool)
+            RESULT__if__input_gt_guess__b_i[~if_finished__b] = input[~if_finished__b].gt(_guess_threshold[~if_finished__b])
             #if guessed too big, then, less true
-            _input_gt_guess__count__b[~if_finished__b] = RESULT_input_gt_guess__b_i___mask_if_finish[~if_finished__b].to(uint_dtype).sum(dim=1)
+            _input_gt_guess__count__b[~if_finished__b] = RESULT__if__input_gt_guess__b_i[~if_finished__b].to(int_dtype).sum(dim=1)
             #_guess_count = flag_result.to(int_dtype).sum(dim=1)
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"RESULT_input_gt_guess__b_i___mask_if_finish:{RESULT__if__input_gt_guess__b_i}")
+                _log.append(f"_input_gt_guess__count__b:{_input_gt_guess__count__b}")
+                pass
+            
             
             # #flag_gt
             # _if__guess_not_too_big___b = torch.zeros_like(if_finished__b)
@@ -885,7 +656,11 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             _if__guess_too_big___b[~if_finished__b] = _input_gt_guess__count__b[~if_finished__b].lt(at_least_this_amount__b[~if_finished__b])
             # ^^^ true is bad. ^^^
             _the_max_to_calc_threshold__b[_if__guess_too_big___b] = _guess_threshold[_if__guess_too_big___b]
-            
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"_if__guess_too_big___b:{_if__guess_too_big___b}")
+                _log.append(f"_the_max_to_calc_threshold__b:{_the_max_to_calc_threshold__b}")
+                pass
             
             # #flag_lt
             # _if__guess_not_too_small___b = torch.zeros_like(if_finished__b)
@@ -898,53 +673,129 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             _if__guess_too_small___b[~if_finished__b] = _input_gt_guess__count__b[~if_finished__b].gt(at_most_this_amount__b[~if_finished__b])
             # ^^^ true is bad. ^^^
             _the_min_to_calc_threshold__b[_if__guess_too_small___b] = _guess_threshold[_if__guess_too_small___b]
-            
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"_if__guess_too_small___b:{_if__guess_too_small___b}")
+                _log.append(f"_the_min_to_calc_threshold__b:{_the_min_to_calc_threshold__b}")
+                pass
             
             _flag__not_too_loose__and__not_too_tight = (~_if__guess_too_big___b) and (~_if__guess_too_small___b)
             # ^^^ true is good. ^^^                       ^^^ true is bad. ^^^          ^^^ true is bad. ^^^  
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"_flag__not_too_loose__and__not_too_tight:{_flag__not_too_loose__and__not_too_tight}")
+                _log.append(f"if_finished__b, from:{_the_min_to_calc_threshold__b}")
+                pass
             if_finished__b.logical_or_(_flag__not_too_loose__and__not_too_tight)
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"{_log.pop()}, to:{_the_min_to_calc_threshold__b}")
+                pass
             
             if epsilon is not None:
                 _flag_less_than_epsilon = (_the_max_to_calc_threshold__b-_the_min_to_calc_threshold__b).lt(epsilon)
+                if _debug_needs_log:
+                    assert _log
+                    _log.append(f"bc epsilon, _flag_less_than_epsilon:{_flag_less_than_epsilon}, and it makes if_finished__b from:{if_finished__b}")
+                    pass
                 if_finished__b.logical_or_(_flag_less_than_epsilon)
+                if _debug_needs_log:
+                    assert _log
+                    _log.append(f"{_log.pop()}, to:{_the_min_to_calc_threshold__b}")
+                    pass
                 pass#if epsilon
             
             # this is the only [return] timing.
             if if_finished__b.all():
-                if bottom:
-                    RESULT_input_gt_guess__b_i___mask_if_finish.logical_not_()
+                if _debug_needs_log:
+                    assert _log
+                    _log.append(f"[return]")
                     pass
-                return RESULT_input_gt_guess__b_i___mask_if_finish
+                if bottom:
+                    if _debug_needs_log:
+                        assert _log
+                        _log.append(f"[bc it's bottom=true, returns the reversed result]")
+                        pass
+                    RESULT__if__input_gt_guess__b_i.logical_not_()
+                    pass
+                return RESULT__if__input_gt_guess__b_i, _log
                 pass #if if_finished__b.all():
+            
             
             
             #if the new result[b,i] unchanged?
             _if__unchanged__b = torch.zeros_like(if_finished__b, dtype=torch.bool)
             _if__unchanged__b[~if_finished__b] = old_unqualified_RESULT__b_i[~if_finished__b].eq( \
-                RESULT_input_gt_guess__b_i___mask_if_finish[~if_finished__b]).all(dim=1)
+                RESULT__if__input_gt_guess__b_i[~if_finished__b]).all(dim=1)
             # ^^^ true is bad. ^^^
+            
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"_if__unchanged__b:{_if__unchanged__b}")
+                _log.append(f"repeating__b, from:{repeating__b}")
+                pass
             repeating__b[_if__unchanged__b].add_(1)
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"{_log.pop()}, to:{repeating__b}")
+                pass
+            
             
             #if 
             _if__repeated_enough__b = repeating__b.ge(careful_level__s)
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"_if__repeated_enough__b:{_if__repeated_enough__b}")
+                _log.append(f"repeating__b, from:{repeating__b}")
+                pass
             repeating__b[_if__repeated_enough__b] = 0
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"{_log.pop()}, to:{repeating__b}")
+                _log.append(f"error_of_percent__b, from:{error_of_ratio__b}")
+                pass
             #update the finishing flags.
-            error_of_percent__b[_if__repeated_enough__b].mul_(2.)#this 2. is not tested.
+            error_of_ratio__b[_if__repeated_enough__b].mul_(2.)#this 2. is not tested.
             #maybe wrong??? is it updated?
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"{_log.pop()}, to:{error_of_ratio__b}")
+                pass
             
+            
+            
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"_if__repeated_enough__b:{_if__repeated_enough__b}")
+                _log.append(f"at_least_this_amount__b, from:{at_least_this_amount__b}")
+                _log.append(f"at_most_this_amount__b, from:{at_most_this_amount__b}")
+                pass
             #ratio+-error, this segment appears twice in this function.
             #[1]+[] is []. So this is safe.
-            at_least_this_amount__b[_if__repeated_enough__b] = ((input.nelement()-1)*(top_ratio__s - \
-                error_of_percent__b[_if__repeated_enough__b])).to(int_dtype)
-            at_most_this_amount__b[_if__repeated_enough__b] =  ((input.nelement()-1)*(top_ratio__s + \
-                error_of_percent__b[_if__repeated_enough__b])).to(int_dtype)
+            
+            at_least_this_amount__b[_if__repeated_enough__b] = ((input_dim-2)*(top_ratio__s - \
+                error_of_ratio__b[_if__repeated_enough__b])+1.4999).to(int_dtype)
+            at_most_this_amount__b[_if__repeated_enough__b] =  ((input_dim-2)*(top_ratio__s + \
+                error_of_ratio__b[_if__repeated_enough__b])+1.5001).to(int_dtype)
             # no detect for return here. reason:
             # even if this range-like can mean a range covering all the range, bc I believe it unlikely to happen.
             # I decide to delay the return to the next round.
+            if _debug_needs_log:
+                assert _log
+                _temp_str_at_most_this_amount__b_from = _log.pop()
+                _log.append(f"{_log.pop()}, to:{at_least_this_amount__b}")
+                _log.append(f"{_temp_str_at_most_this_amount__b_from}, to:{at_most_this_amount__b}")
+                pass
             
             #tail
-            old_unqualified_RESULT__b_i = RESULT_input_gt_guess__b_i___mask_if_finish
             if _debug_needs_log:
+                assert _log
+                _log.append(f"RESULT__b_i, from:{old_unqualified_RESULT__b_i}, to:{RESULT__if__input_gt_guess__b_i}")
+                pass
+            old_unqualified_RESULT__b_i = RESULT__if__input_gt_guess__b_i
+            if _debug_needs_log:
+                assert _log
+                _log.append(f"loop {loop_count} ends.")
                 loop_count += 1
                 pass
             pass#while true
@@ -954,78 +805,132 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
     
 if "test" and __DEBUG_ME__() and True:
     # torch.topk is not what I need.
-    # fdsfds = torch.topk(torch.tensor([1,2,3,4,5]),3, sorted=False)
-    # fdsfds2 = torch.topk(torch.tensor([1,2,3,4,5]),3, sorted=True)
+    # a = torch.topk(torch.tensor([1,2,3,4,5]),3, sorted=False)
+    # b = torch.topk(torch.tensor([1,2,3,4,5]),3, sorted=True)
     
-    n = 5
-    top_ratio = 0.1
-    error_of_percent = 0.1
-    _floor_offset = 0.
-    lower_bound = (n-1)*(top_ratio - error_of_percent)+_floor_offset
-    upper_bound = (n-1)*(top_ratio + error_of_percent)+_floor_offset
-    #assert int(lower_bound) == int(upper_bound)
-    #it's possible they equal. 
+    if "to test the formula for bounds" and False:
+        n = 5
+        top_ratio_list:list[float] = []
+        for ii in range(1,10):
+            top_ratio_list.append(ii*0.1)
+            pass
+        error_of_percent = 0.1
+        _floor_offset = 1.
+        
+        for top_ratio in top_ratio_list:
+            lower_bound = (n-2)*(top_ratio - error_of_percent)+_floor_offset
+            upper_bound = (n-2)*(top_ratio + error_of_percent)+_floor_offset
+            # print(f"{top_ratio:.2f}, {lower_bound:.2f}/{upper_bound:.2f}")
+            # from 1. to 4.
+            # but in the real case, the offset is around 1.5, bc it's truncated into integer later.
+            pass
+        
+        n = 5
+        top_ratio_list = []
+        for ii in range(1,30):
+            top_ratio_list.append(ii*0.01)
+            pass
+        error_of_percent = 0.1
+        _floor_offset = 1.5
+        
+        for top_ratio in top_ratio_list:
+            lower_bound = (n-2)*(top_ratio - error_of_percent)+_floor_offset
+            upper_bound = (n-2)*(top_ratio + error_of_percent)+_floor_offset
+            #print(f"{top_ratio:.2f}, {lower_bound:.2f}/{upper_bound:.2f}")
+            pass
+        
+        for top_ratio in [0.06,0.07, 0.39,0.4, 0.73,0.74]:
+            lower_bound = (n-2)*(top_ratio - error_of_percent)+_floor_offset
+            upper_bound = (n-2)*(top_ratio + error_of_percent)+_floor_offset
+            #print(f"{top_ratio:.2f}, {lower_bound:.2f}/{upper_bound:.2f}")
+            pass
+        
+        #but this one looks symmetry.
+        n = 10
+        top_ratio_list = []
+        for ii in range(1,100):
+            top_ratio_list.append(ii*0.01)
+            pass
+        error_of_percent = 0.1
+        _floor_offset = 1.5
+        
+        for top_ratio in top_ratio_list:
+            lower_bound = (n-2)*(top_ratio - error_of_percent)+_floor_offset
+            upper_bound = (n-2)*(top_ratio + error_of_percent)+_floor_offset
+            #print(f"{top_ratio:.2f}, {lower_bound:.2f}/{upper_bound:.2f}")
     
-    a1 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.1)
-    a2 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.2)
-    a3 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.3)
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.1).eq(torch.tensor([False,False,False,False,True])).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.2).eq(torch.tensor([False,False,False,True,True])).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.1).eq(torch.tensor([True,False,False,False,False])).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.2).eq(torch.tensor([True,False,False,True,False])).all()
-    
-    
-    
-    n = 5
-    top_ratio = 0.1
-    error_of_percent = 0.1
-    _floor_offset = 0.
-    lower_bound = (n-1)*(top_ratio - error_of_percent)+_floor_offset
-    upper_bound = (n-1)*(top_ratio + error_of_percent)+_floor_offset
-    #1w继续。
-    
-    b1 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.1,bottom=True)
-    b2 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.2,bottom=True)
-    b3 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.3,bottom=True)
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.1,bottom=True).eq( torch.tensor([True,False,False,False,False])).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.2,bottom=True).eq( torch.tensor([True,True,False,False,False])).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.1,bottom=True).eq( torch.tensor([False,False,False,False,True])).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.1,bottom=True).eq( torch.tensor([False,True,False,False,True])).all()
-    
-    # assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.  ).eq(torch.tensor([False,False,False])).all()
-    # assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.33).eq(torch.tensor([False,False,True ])).all()
-    # assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.66).eq(torch.tensor([False,True ,True ])).all()
-    # assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=1.  ).eq(torch.tensor([True ,True ,True ])).all()
+    if "already tested " and False:
+        #a1 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.01, _debug_needs_log = True)
+        #a2 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.33, _debug_needs_log = True)
+        #a3 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.67, _debug_needs_log = True)
+        #a4 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.99, _debug_needs_log = True)
+        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.01)[0].eq(torch.tensor([False,False,False,False,True])).all()
+        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.33)[0].eq(torch.tensor([False,False,False,True,True])).all()
+        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.67)[0].eq(torch.tensor([False,False,True,True,True])).all()
+        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.99)[0].eq(torch.tensor([False,True,True,True,True])).all()
+        
+        assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.01)[0].eq(torch.tensor([True,False,False,False,False])).all()
+        assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.33)[0].eq(torch.tensor([True,False,False,True,False])).all()
+        
 
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0. , bottom=True).eq(torch.tensor([False,False,False])).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.4, bottom=True).eq(torch.tensor([True ,False,False])).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=1. , bottom=True).eq(torch.tensor([True ,True ,True ])).all()
-
-    for _shift_by in [6,7,8,9,15,16,17]:
-        _1_left_shift_with_True = torch.empty(size=(1<<_shift_by ,), dtype=torch.bool)
-        _1_left_shift_with_True.fill_(value=True)
-        for dtype in [torch.float16, torch.float32, torch.float64]:
-            _the_sum = get_mask_of_top_element__rough(torch.rand(size=(1<<_shift_by ,),dtype=dtype),0.99).sum()
-            assert _the_sum>(1<<_shift_by)*0.97 and _the_sum<(1<<_shift_by)
-        pass
+        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.01,bottom=True)[0].eq(torch.tensor([True,False,False,False,False])).all()
+        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.33,bottom=True)[0].eq(torch.tensor([True,True,False,False,False])).all()
+        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.67,bottom=True)[0].eq(torch.tensor([True,True,True,False,False])).all()
+        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.99,bottom=True)[0].eq(torch.tensor([True,True,True,True,False])).all()
+        
+        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.01)[0].eq(torch.tensor([False,False,True])).all()
+        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.99)[0].eq(torch.tensor([False,True,True])).all()
+        
+        assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3]]),top_ratio=0.01)[0].eq(torch.tensor([True,False,False])).all()
+        assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3]]),top_ratio=0.99)[0].eq(torch.tensor([True,False,True])).all()
+        
+        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.01,bottom=True)[0].eq(torch.tensor([True,False,False])).all()
+        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.99,bottom=True)[0].eq(torch.tensor([True,True,False])).all()
+        
+            
+        _shift_by_list = [          6,          7,         14,         15,]
+        _int_dtype_list = [ torch.int8, torch.int16, torch.int16,torch.int32]
+        for ii in range(_shift_by_list.__len__()):
+            _shift_by = _shift_by_list[ii]
+            _1_left_shift_by_shift_by_ = 1<<_shift_by
+            for dtype in [torch.float16, torch.float32, torch.float64]:
+                _input = torch.rand(size=[1,_1_left_shift_by_shift_by_],dtype=dtype)
+                _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.9, _debug_needs_log = True)
+                _the_sum = _result_tuple__tensor__list[0].sum().item()
+                assert _the_sum>(_1_left_shift_by_shift_by_)*0.8
+                assert _the_sum<(_1_left_shift_by_shift_by_)
+                
+                _log = _result_tuple__tensor__list[1]
+                assert _log
+                assert _log.__len__() >20 
+                assert _log[1] == f"int type:{_int_dtype_list[ii]}"
+            pass
 
     #when the ratio doesn't exist.
     #if this test returns, it's good.
-    get_mask_of_top_element__rough(torch.tensor([[1.,1,1,1,1]]),top_ratio=0.5 , bottom=True)
+    # epsilon helps when all elements are equal or nearly equal.
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,1,1,1,1]]),top_ratio=0.5, bottom=True, epsilon=0.001, _debug_needs_log = True)
+    _log = _result_tuple__tensor__list[1]
+    
+    1w
+    可能log要分题材。
+    稍微不同一点的数字看看会如何
+    
+    
     
 
     #gpu
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.33).eq(torch.tensor([False,False,True ],device='cuda')).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.33).device.type == 'cuda'
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.).eq(torch.tensor([False,False,False ],device='cuda')).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.).device.type == 'cuda'
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.33)[0].eq(torch.tensor([False,False,True ],device='cuda')).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.33)[0].device.type == 'cuda'
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.)[0].eq(torch.tensor([False,False,False ],device='cuda')).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.)[0].device.type == 'cuda'
     
     
     the_linspace = torch.linspace(1.,100.,99)
     the_linspace = the_linspace.reshape([1,-1])
-    _temp_int = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_percent__at_least=0.01).sum().item()
+    _temp_int = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_ratio__at_least=0.01)[0].sum().item()
     assert _temp_int>18 and _temp_int<22
-    _temp_int = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_percent__at_least=0.1).sum().item()
+    _temp_int = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_ratio__at_least=0.1)[0].sum().item()
     assert _temp_int>8 and _temp_int<32
     
     
@@ -1034,22 +939,22 @@ if "test" and __DEBUG_ME__() and True:
     the_tensor = the_tensor.reshape([1,-1])
     the_tensor[-1] = 99999
     #step into the function and see how it works.
-    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_percent__at_least=0.01, careful_level = 1)
+    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_ratio__at_least=0.01, careful_level = 1)
     #1w 写一下会发生什么。
     #1w 整个这个里面的都还没测试。。。。
     
     # epsilon
     the_tensor = torch.rand([1,10])
-    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_percent__at_least=0.01, epsilon=0.001)
-    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_percent__at_least=0.01, epsilon=0.1)
-    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_percent__at_least=0.01, epsilon=0.51)
+    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_ratio__at_least=0.01, epsilon=0.001)
+    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_ratio__at_least=0.01, epsilon=0.1)
+    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_ratio__at_least=0.01, epsilon=0.51)
     
     # batch
     the_tensor = torch.tensor( [[1.,2,3,4,5],
                                 [5.,2,3,4,1]])
     the_result = torch.tensor([[False,False,False,False,True],
                                 [True,False,False,False,False]])
-    assert get_mask_of_top_element__rough(the_tensor, top_ratio=0.2).eq(the_result).all()
+    assert get_mask_of_top_element__rough(the_tensor, top_ratio=0.2)[0].eq(the_result).all()
     
     
     
