@@ -24,9 +24,9 @@ if "test" and False:
     c = _line_()
     pass
 
-def _float_equal(a:float, b:float, epi:float = 0.0001)->bool:
-    assert epi>0.
-    return abs(a-b)<epi
+def _float_equal(a:float, b:float, epsi:float = 0.0001)->bool:
+    assert epsi>0.
+    return abs(a-b)<epsi
 if "test" and __DEBUG_ME__() and True:
     assert _float_equal(1., 1.)
     assert _float_equal(1., 1.0000001)
@@ -461,8 +461,11 @@ def debug_strong_grad_ratio(parameter:torch.nn.parameter.Parameter, log10_diff =
     
 
 def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of_ratio__at_least = 0.01, \
-                            bottom = False, careful_level:int = 3, epsilon:float|torch.Tensor|None = None, \
-                                _debug_needs_log = False)->tuple[torch.Tensor, list[str]|None]:
+                            bottom = False, careful_level:int = 3, epsilon__for_binary_search:float|torch.Tensor|None = None, \
+                    _needs_log__before_loop = False, _needs_log__basic_of_loop = False, \
+                    _needs_log__binary_search_in_loop = False, \
+                    _needs_log__error_ratio_in_loop = False, \
+                                    )->tuple[torch.Tensor, dict[str, list[str]]|None]:
     ''' 
     重新整理一下思路
     这个函数有2个退出模式。
@@ -484,20 +487,25 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
     assert error_of_ratio__at_least>=0.
     assert careful_level>0
     assert careful_level<64, "or modify the data type. search for repeating__b = torch.zeros_like(_the_max_to_calc_threshold__b, dtype=torch.int8)"
-    if epsilon:
-        if isinstance(epsilon, float):
-            epsilon = torch.tensor(epsilon, device=input.device, dtype=input.dtype)
-            pass
-        else:
-            assert epsilon is torch.Tensor
-            assert epsilon
-            epsilon = epsilon.to(input.dtype)        
-        pass
-    if _debug_needs_log:
-        _log:list[str]|None = [f"epsilon:{epsilon}"]
+    
+    _cpu = input.device.type != "cuda"
+    if _cpu and _needs_log__before_loop:
+        _log:dict[str, list[str]]|None = {}
         pass
     else:
         _log = None  
+        pass
+    
+    if epsilon__for_binary_search:
+        if isinstance(epsilon__for_binary_search, float):
+            epsilon__for_binary_search = torch.tensor(epsilon__for_binary_search, device=input.device, dtype=input.dtype)
+            pass
+        else:
+            assert epsilon__for_binary_search is torch.Tensor
+            assert epsilon__for_binary_search.dtype == input.dtype
+        pass
+    if (_log is not None) and _needs_log__before_loop:
+        _log["before_loop"] = [f"epsilon__for_binary_search:{epsilon__for_binary_search}"]
         pass
     
     #dtype uint
@@ -518,9 +526,8 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
     else:
         int_dtype = torch.int64
         pass
-    if _debug_needs_log:
-        assert _log
-        _log.append(f"int type:{str(int_dtype)}")
+    if _log and _needs_log__before_loop:
+        _log["before_loop"].append(f"int type:{str(int_dtype)}")
         pass
     
     with torch.no_grad():
@@ -532,14 +539,11 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             pass
         top_ratio__s = torch.tensor(top_ratio, dtype=torch.float64, device=input.device)
         del top_ratio
-        
-        if _debug_needs_log:
-            assert _log
-            _log.append(f"top ratio:{top_ratio__s}, is bottom:{bottom}")
+        if _log and _needs_log__before_loop:
+            _log["before_loop"].append(f"top ratio:{top_ratio__s}, is bottom:{bottom}")
             pass
         
-        
-        #init error_of_percent 
+        #init error_of_ratio 
         input_dim = input.shape[1]
         better_error_of_ratio = 0.501/input_dim
         if better_error_of_ratio<error_of_ratio__at_least:
@@ -548,173 +552,177 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
         del error_of_ratio__at_least
         error_of_ratio__b = torch.empty(size=[input.shape[0]], device=input.device)
         error_of_ratio__b.fill_(better_error_of_ratio)
-        if _debug_needs_log:
-            assert _log
-            _log.append(f"error_of_percent__b init to:{error_of_ratio__b}")
+        if _log and _needs_log__before_loop:
+            _log["before_loop"].append(f"error_of_ratio__b init to:{error_of_ratio__b}")
             pass
         
         #ratio+-error, this segment appears twice in this function.
         at_least_this_amount__b = ((input_dim-2)*(top_ratio__s - error_of_ratio__b)+1.4999).to(int_dtype)
         at_most_this_amount__b =  ((input_dim-2)*(top_ratio__s + error_of_ratio__b)+1.5001).to(int_dtype)
-        if _debug_needs_log:
-            assert _log
-            _log.append(f"at_least_this_amount__b init to:{at_least_this_amount__b}")
-            _log.append(f"at_most_this_amount__b init to:{at_most_this_amount__b}")
+        if _log and _needs_log__before_loop:
+            _log["before_loop"].append(f"at_least_this_amount__b init to:{at_least_this_amount__b}")
+            _log["before_loop"].append(f"at_most_this_amount__b init to:{at_most_this_amount__b}")
             pass
         
         #safety, or maybe a early return.
         _flag_all_true_early_return__b = at_least_this_amount__b.ge(input_dim)
         if _flag_all_true_early_return__b.all():
             _temp_tensor = torch.ones_like(input, dtype=torch.bool, device=input.device)
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"_flag_all_true_early_return__b:{_flag_all_true_early_return__b}, all true, [return]")
+            if _log and _needs_log__before_loop:
+                _log["before_loop"].append(f"_flag_all_true_early_return__b:{_flag_all_true_early_return__b}, all true, [return]")
                 pass
             return _temp_tensor, _log
         _flag_all_true_early_return__b = at_most_this_amount__b.le(0)
         if _flag_all_true_early_return__b.all():
             _temp_tensor = torch.zeros_like(input, dtype=torch.bool, device=input.device)
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"_flag_all_true_early_return__b:{_flag_all_true_early_return__b}, all true, [return]")
+            if _log and _needs_log__before_loop:
+                _log["before_loop"].append(f"_flag_all_true_early_return__b:{_flag_all_true_early_return__b}, all true, [return]")
                 pass
             return _temp_tensor, _log
         
         #maybe optimizable. reverse+reverse = nothing.
         if_finished__b = (_flag_all_true_early_return__b).logical_or(_flag_all_true_early_return__b)
-        if _debug_needs_log:
-            assert _log
-            _log.append(f"if_finished__b init to:{if_finished__b}")
+        if _log and _needs_log__before_loop:
+            _log["before_loop"].append(f"if_finished__b init to:{if_finished__b}")
             pass
         
         # init before loop
-        _the_max_to_calc_threshold__b:torch.Tensor = input.max(dim=1).values
-        _the_min_to_calc_threshold__b:torch.Tensor = input.min(dim=1).values
+        _the_max_to_calc_threshold__b_1:torch.Tensor = input.max(dim=1).values.reshape([-1,1])
+        _the_min_to_calc_threshold__b_1:torch.Tensor = input.min(dim=1).values.reshape([-1,1])
         if input.dtype != torch.float64 and input.dtype != torch.float32:
-            _the_max_to_calc_threshold__b.to(torch.float16)
-            _the_min_to_calc_threshold__b.to(torch.float16)
+            _the_max_to_calc_threshold__b_1.to(torch.float16)
+            _the_min_to_calc_threshold__b_1.to(torch.float16)
             pass
-        if _debug_needs_log:
-            assert _log
-            _log.append(f"_the_max_to_calc_threshold__b init to:{_the_max_to_calc_threshold__b}")
-            _log.append(f"_the_min_to_calc_threshold__b init to:{_the_min_to_calc_threshold__b}")
+        if _log and _needs_log__before_loop:
+            _log["before_loop"].append(f"_the_max_to_calc_threshold__b init to:{_the_max_to_calc_threshold__b_1}")
+            _log["before_loop"].append(f"_the_min_to_calc_threshold__b init to:{_the_min_to_calc_threshold__b_1}")
             pass
         
-        repeating__b = torch.zeros_like(_the_max_to_calc_threshold__b, dtype=torch.int8)
+        repeating__b = torch.zeros_like(_the_max_to_calc_threshold__b_1, dtype=torch.int8)
         old_unqualified_RESULT__b_i = torch.zeros_like(input,dtype=torch.bool)
         # now is this one: if_finished__b
         # it was init_ed_the_flag_result
-        if _debug_needs_log:
-            assert _log
-            _log.append(f"repeating__b init to:{repeating__b}")
-            _log.append(f"old_unqualified_RESULT__b_i init to:{old_unqualified_RESULT__b_i}")
+        if _log and _needs_log__before_loop:
+            _log["before_loop"].append(f"repeating__b init to:{repeating__b}")
+            _log["before_loop"].append(f"old_unqualified_RESULT__b_i init to:{old_unqualified_RESULT__b_i}")
             pass
         
         _input_gt_guess__count__b = torch.zeros_like(if_finished__b, dtype=int_dtype)
-        if _debug_needs_log:
-            assert _log
-            _log.append(f"_input_gt_guess__count__b init to:{_input_gt_guess__count__b}")
-            pass
-        if _debug_needs_log:
-            loop_count = 0
+        if _log and _needs_log__before_loop:
+            _log["before_loop"].append(f"_input_gt_guess__count__b init to:{_input_gt_guess__count__b}")
             pass
         
+        _needs_log__loop_count = _cpu and (_needs_log__basic_of_loop or _needs_log__binary_search_in_loop or \
+                                    _needs_log__error_ratio_in_loop)
+        if _needs_log__loop_count:
+            if _log is None:
+                _log = {}
+                pass
+        if _cpu and (_log is not None) and _needs_log__loop_count:
+            loop_count = 0
+            _log["in_loop"] = []
+            pass
         while True:
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"----  loop {loop_count}  ----")
-                _log.append(f"if_finished__b:{if_finished__b}")
+            if _log:
+                if _needs_log__loop_count:
+                    _log["in_loop"].append(f"----  loop {loop_count}  ----")
+                    pass
+                if _needs_log__basic_of_loop:
+                    _log["in_loop"].append(f"if_finished__b:{if_finished__b}")
+                    pass
                 pass
             #similar to binary search
-            _guess_threshold = torch.zeros_like(if_finished__b,dtype=_the_max_to_calc_threshold__b.dtype)
-            _guess_threshold[~if_finished__b] = (_the_max_to_calc_threshold__b[~if_finished__b]+_the_min_to_calc_threshold__b[~if_finished__b])/2.#maybe optimizable.
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"_guess_threshold:{_guess_threshold}")
+            _guess_threshold__b_1 = torch.zeros_like(if_finished__b,dtype=_the_max_to_calc_threshold__b_1.dtype).reshape([-1,1])
+            _guess_threshold__b_1[~if_finished__b] = (_the_max_to_calc_threshold__b_1[~if_finished__b]+_the_min_to_calc_threshold__b_1[~if_finished__b])/2.#maybe optimizable.
+            if _log and _needs_log__binary_search_in_loop:
+                _log["in_loop"].append(f"_guess_threshold:{_guess_threshold__b_1}")
                 pass
             #the real comparison
             RESULT__if__input_gt_guess__b_i = torch.zeros_like(input, dtype=torch.bool)
-            RESULT__if__input_gt_guess__b_i[~if_finished__b] = input[~if_finished__b].gt(_guess_threshold[~if_finished__b])
+            RESULT__if__input_gt_guess__b_i[~if_finished__b] = input[~if_finished__b].gt(_guess_threshold__b_1[~if_finished__b])
             #if guessed too big, then, less true
-            _input_gt_guess__count__b[~if_finished__b] = RESULT__if__input_gt_guess__b_i[~if_finished__b].to(int_dtype).sum(dim=1)
+            _input_gt_guess__count__b[~if_finished__b] = RESULT__if__input_gt_guess__b_i[~if_finished__b].sum(dim=1, dtype=int_dtype)
             #_guess_count = flag_result.to(int_dtype).sum(dim=1)
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"RESULT_input_gt_guess__b_i___mask_if_finish:{RESULT__if__input_gt_guess__b_i}")
-                _log.append(f"_input_gt_guess__count__b:{_input_gt_guess__count__b}")
+            if _log and _needs_log__binary_search_in_loop:
+                _log["in_loop"].append(f"RESULT_input_gt_guess__b_i___mask_if_finish:{RESULT__if__input_gt_guess__b_i}")
+                _log["in_loop"].append(f"_input_gt_guess__count__b:{_input_gt_guess__count__b}")
                 pass
             
             
-            # #flag_gt
+            # #flag_gt old code
             # _if__guess_not_too_big___b = torch.zeros_like(if_finished__b)
             # _if__guess_not_too_big___b[~if_finished__b] = _guess_count__b[~if_finished__b].le(at_most_this_amount__b[~if_finished__b])
             # # ^^^ true is good. ^^^
             # _the_min_to_calc_threshold__b[~_if__guess_not_too_big___b] = _guess_threshold[~_if__guess_not_too_big___b]
             
             #flag_gt
-            _if__guess_too_big___b = torch.zeros_like(if_finished__b)
-            _if__guess_too_big___b[~if_finished__b] = _input_gt_guess__count__b[~if_finished__b].lt(at_least_this_amount__b[~if_finished__b])
+            _if__guess_too_big___b_1 = torch.zeros_like(if_finished__b).reshape([-1,1])
+            _if__guess_too_big___b_1[~if_finished__b] = _input_gt_guess__count__b[~if_finished__b].lt(at_least_this_amount__b[~if_finished__b])
             # ^^^ true is bad. ^^^
-            _the_max_to_calc_threshold__b[_if__guess_too_big___b] = _guess_threshold[_if__guess_too_big___b]
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"_if__guess_too_big___b:{_if__guess_too_big___b}")
-                _log.append(f"_the_max_to_calc_threshold__b:{_the_max_to_calc_threshold__b}")
+            if _log and _needs_log__binary_search_in_loop:
+                _log["in_loop"].append(f"_if__guess_too_big___b:{_if__guess_too_big___b_1}")
+                _log["in_loop"].append(f"_the_max_to_calc_threshold__b, from:{_the_max_to_calc_threshold__b_1}")
+                pass
+            _the_max_to_calc_threshold__b_1[_if__guess_too_big___b_1] = _guess_threshold__b_1[_if__guess_too_big___b_1]
+            if _log and _needs_log__binary_search_in_loop:
+                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{_the_max_to_calc_threshold__b_1}")
                 pass
             
-            # #flag_lt
+            
+            # #flag_lt old code
             # _if__guess_not_too_small___b = torch.zeros_like(if_finished__b)
             # _if__guess_not_too_small___b[~if_finished__b] = _guess_count__b[~if_finished__b].ge(at_least_this_amount__b[~if_finished__b])
             # # ^^^ true is good. ^^^
             # _the_max_to_calc_threshold__b[~_if__guess_not_too_small___b] = _guess_threshold[~_if__guess_not_too_small___b]
             
             #flag_lt
-            _if__guess_too_small___b = torch.zeros_like(if_finished__b)
-            _if__guess_too_small___b[~if_finished__b] = _input_gt_guess__count__b[~if_finished__b].gt(at_most_this_amount__b[~if_finished__b])
+            _if__guess_too_small___b_1 = torch.zeros_like(if_finished__b).reshape([-1,1])
+            _if__guess_too_small___b_1[~if_finished__b] = _input_gt_guess__count__b[~if_finished__b].gt(at_most_this_amount__b[~if_finished__b])
             # ^^^ true is bad. ^^^
-            _the_min_to_calc_threshold__b[_if__guess_too_small___b] = _guess_threshold[_if__guess_too_small___b]
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"_if__guess_too_small___b:{_if__guess_too_small___b}")
-                _log.append(f"_the_min_to_calc_threshold__b:{_the_min_to_calc_threshold__b}")
+            if _log and _needs_log__binary_search_in_loop:
+                _log["in_loop"].append(f"_if__guess_too_small___b:{_if__guess_too_small___b_1}")
+                _log["in_loop"].append(f"_the_min_to_calc_threshold__b:{_the_min_to_calc_threshold__b_1}")
+                pass
+            _the_min_to_calc_threshold__b_1[_if__guess_too_small___b_1] = _guess_threshold__b_1[_if__guess_too_small___b_1]
+            if _log and _needs_log__binary_search_in_loop:
+                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{_the_min_to_calc_threshold__b_1}")
                 pass
             
-            _flag__not_too_loose__and__not_too_tight = (~_if__guess_too_big___b) and (~_if__guess_too_small___b)
+            _flag__not_too_loose__and__not_too_tight___b_1 = (~_if__guess_too_big___b_1) and (~_if__guess_too_small___b_1)
             # ^^^ true is good. ^^^                       ^^^ true is bad. ^^^          ^^^ true is bad. ^^^  
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"_flag__not_too_loose__and__not_too_tight:{_flag__not_too_loose__and__not_too_tight}")
-                _log.append(f"if_finished__b, from:{_the_min_to_calc_threshold__b}")
+            if _log: 
+                if _needs_log__binary_search_in_loop:
+                    _log["in_loop"].append(f"_flag__not_too_loose__and__not_too_tight:{_flag__not_too_loose__and__not_too_tight___b_1}")
+                    pass
+                if _needs_log__basic_of_loop:
+                    _log["in_loop"].append(f"if_finished__b, from:{_the_min_to_calc_threshold__b_1}")
+                    pass
                 pass
-            if_finished__b.logical_or_(_flag__not_too_loose__and__not_too_tight)
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"{_log.pop()}, to:{_the_min_to_calc_threshold__b}")
+            if_finished__b.logical_or_(_flag__not_too_loose__and__not_too_tight___b_1)
+            if _log and _needs_log__basic_of_loop:
+                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{_the_min_to_calc_threshold__b_1}")
                 pass
             
-            if epsilon is not None:
-                _flag_less_than_epsilon = (_the_max_to_calc_threshold__b-_the_min_to_calc_threshold__b).lt(epsilon)
-                if _debug_needs_log:
-                    assert _log
-                    _log.append(f"bc epsilon, _flag_less_than_epsilon:{_flag_less_than_epsilon}, and it makes if_finished__b from:{if_finished__b}")
+            if epsilon__for_binary_search is not None:
+                _flag_less_than_epsilon = (_the_max_to_calc_threshold__b_1-_the_min_to_calc_threshold__b_1).lt(epsilon__for_binary_search)
+                if _log and _needs_log__binary_search_in_loop:
+                    _log["in_loop"].append(f"epsilon__for_binary_search:{epsilon__for_binary_search}")
+                    _log["in_loop"].append(f"[bc epsilon__for_binary_search], _flag_less_than_epsilon:{_flag_less_than_epsilon}, and it makes if_finished__b from:{if_finished__b}")
                     pass
                 if_finished__b.logical_or_(_flag_less_than_epsilon)
-                if _debug_needs_log:
-                    assert _log
-                    _log.append(f"{_log.pop()}, to:{_the_min_to_calc_threshold__b}")
+                if _log and _needs_log__binary_search_in_loop:
+                    _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{if_finished__b}")
                     pass
                 pass#if epsilon
             
             # this is the only [return] timing.
             if if_finished__b.all():
-                if _debug_needs_log:
-                    assert _log
-                    _log.append(f"[return]")
+                if _log:
+                    _log["in_loop"].append(f"[return]")
                     pass
                 if bottom:
-                    if _debug_needs_log:
-                        assert _log
-                        _log.append(f"[bc it's bottom=true, returns the reversed result]")
+                    if _log:
+                        _log["in_loop"].append(f"{_log["in_loop"].pop()}[bc it's bottom=true, returns the reversed result]")
                         pass
                     RESULT__if__input_gt_guess__b_i.logical_not_()
                     pass
@@ -729,46 +737,45 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
                 RESULT__if__input_gt_guess__b_i[~if_finished__b]).all(dim=1)
             # ^^^ true is bad. ^^^
             
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"_if__unchanged__b:{_if__unchanged__b}")
-                _log.append(f"repeating__b, from:{repeating__b}")
+            if _log and _needs_log__error_ratio_in_loop:
+                _log["in_loop"].append(f"_if__unchanged__b:{_if__unchanged__b}")
+                _log["in_loop"].append(f"repeating__b, from:{repeating__b}")
                 pass
-            repeating__b[_if__unchanged__b].add_(1)
-            if _debug_needs_log:
+            repeating__b[_if__unchanged__b] = repeating__b[_if__unchanged__b].add(1)
+            if _log and _needs_log__error_ratio_in_loop:
                 assert _log
-                _log.append(f"{_log.pop()}, to:{repeating__b}")
+                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{repeating__b}")
                 pass
             
             
             #if 
             _if__repeated_enough__b = repeating__b.ge(careful_level__s)
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"_if__repeated_enough__b:{_if__repeated_enough__b}")
-                _log.append(f"repeating__b, from:{repeating__b}")
+            if _log and _needs_log__error_ratio_in_loop:
+                _log["in_loop"].append(f"_if__repeated_enough__b:{_if__repeated_enough__b}")
+                _log["in_loop"].append(f"repeating__b, from:{repeating__b}")
                 pass
             repeating__b[_if__repeated_enough__b] = 0
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"{_log.pop()}, to:{repeating__b}")
-                _log.append(f"error_of_percent__b, from:{error_of_ratio__b}")
+            if _log and _needs_log__error_ratio_in_loop:
+                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{repeating__b}")
+                _log["in_loop"].append(f"error_of_ratio__b, from:{error_of_ratio__b}")
                 pass
             #update the finishing flags.
-            error_of_ratio__b[_if__repeated_enough__b].mul_(2.)#this 2. is not tested.
+            error_of_ratio__b[_if__repeated_enough__b] = error_of_ratio__b[_if__repeated_enough__b].mul(2.)#this 2. is not tested.
             #maybe wrong??? is it updated?
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"{_log.pop()}, to:{error_of_ratio__b}")
+            if _log and _needs_log__error_ratio_in_loop:
+                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{error_of_ratio__b}")
                 pass
             
             
             
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"_if__repeated_enough__b:{_if__repeated_enough__b}")
-                _log.append(f"at_least_this_amount__b, from:{at_least_this_amount__b}")
-                _log.append(f"at_most_this_amount__b, from:{at_most_this_amount__b}")
+            if _log:
+                if _needs_log__error_ratio_in_loop:
+                    _log["in_loop"].append(f"_if__repeated_enough__b:{_if__repeated_enough__b}")
+                    pass
+                if _needs_log__basic_of_loop:
+                    _log["in_loop"].append(f"at_least_this_amount__b, from:{at_least_this_amount__b}")
+                    _log["in_loop"].append(f"at_most_this_amount__b, from:{at_most_this_amount__b}")
+                    pass
                 pass
             #ratio+-error, this segment appears twice in this function.
             #[1]+[] is []. So this is safe.
@@ -780,22 +787,19 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             # no detect for return here. reason:
             # even if this range-like can mean a range covering all the range, bc I believe it unlikely to happen.
             # I decide to delay the return to the next round.
-            if _debug_needs_log:
-                assert _log
-                _temp_str_at_most_this_amount__b_from = _log.pop()
-                _log.append(f"{_log.pop()}, to:{at_least_this_amount__b}")
-                _log.append(f"{_temp_str_at_most_this_amount__b_from}, to:{at_most_this_amount__b}")
+            if _log and _needs_log__basic_of_loop: 
+                _temp_str_at_most_this_amount__b_from = _log["in_loop"].pop()
+                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{at_least_this_amount__b}")
+                _log["in_loop"].append(f"{_temp_str_at_most_this_amount__b_from}, to:{at_most_this_amount__b}")
                 pass
             
             #tail
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"RESULT__b_i, from:{old_unqualified_RESULT__b_i}, to:{RESULT__if__input_gt_guess__b_i}")
+            if _log and _needs_log__binary_search_in_loop:
+                _log["in_loop"].append(f"RESULT__b_i, from:{old_unqualified_RESULT__b_i}, to:{RESULT__if__input_gt_guess__b_i}")
                 pass
             old_unqualified_RESULT__b_i = RESULT__if__input_gt_guess__b_i
-            if _debug_needs_log:
-                assert _log
-                _log.append(f"loop {loop_count} ends.")
+            if _log and _needs_log__loop_count:
+                _log["in_loop"].append(f"loop {loop_count} ends.")
                 loop_count += 1
                 pass
             pass#while true
@@ -814,12 +818,12 @@ if "test" and __DEBUG_ME__() and True:
         for ii in range(1,10):
             top_ratio_list.append(ii*0.1)
             pass
-        error_of_percent = 0.1
+        error_of_ratio = 0.1
         _floor_offset = 1.
         
         for top_ratio in top_ratio_list:
-            lower_bound = (n-2)*(top_ratio - error_of_percent)+_floor_offset
-            upper_bound = (n-2)*(top_ratio + error_of_percent)+_floor_offset
+            lower_bound = (n-2)*(top_ratio - error_of_ratio)+_floor_offset
+            upper_bound = (n-2)*(top_ratio + error_of_ratio)+_floor_offset
             # print(f"{top_ratio:.2f}, {lower_bound:.2f}/{upper_bound:.2f}")
             # from 1. to 4.
             # but in the real case, the offset is around 1.5, bc it's truncated into integer later.
@@ -830,18 +834,18 @@ if "test" and __DEBUG_ME__() and True:
         for ii in range(1,30):
             top_ratio_list.append(ii*0.01)
             pass
-        error_of_percent = 0.1
+        error_of_ratio = 0.1
         _floor_offset = 1.5
         
         for top_ratio in top_ratio_list:
-            lower_bound = (n-2)*(top_ratio - error_of_percent)+_floor_offset
-            upper_bound = (n-2)*(top_ratio + error_of_percent)+_floor_offset
+            lower_bound = (n-2)*(top_ratio - error_of_ratio)+_floor_offset
+            upper_bound = (n-2)*(top_ratio + error_of_ratio)+_floor_offset
             #print(f"{top_ratio:.2f}, {lower_bound:.2f}/{upper_bound:.2f}")
             pass
         
         for top_ratio in [0.06,0.07, 0.39,0.4, 0.73,0.74]:
-            lower_bound = (n-2)*(top_ratio - error_of_percent)+_floor_offset
-            upper_bound = (n-2)*(top_ratio + error_of_percent)+_floor_offset
+            lower_bound = (n-2)*(top_ratio - error_of_ratio)+_floor_offset
+            upper_bound = (n-2)*(top_ratio + error_of_ratio)+_floor_offset
             #print(f"{top_ratio:.2f}, {lower_bound:.2f}/{upper_bound:.2f}")
             pass
         
@@ -851,12 +855,12 @@ if "test" and __DEBUG_ME__() and True:
         for ii in range(1,100):
             top_ratio_list.append(ii*0.01)
             pass
-        error_of_percent = 0.1
+        error_of_ratio = 0.1
         _floor_offset = 1.5
         
         for top_ratio in top_ratio_list:
-            lower_bound = (n-2)*(top_ratio - error_of_percent)+_floor_offset
-            upper_bound = (n-2)*(top_ratio + error_of_percent)+_floor_offset
+            lower_bound = (n-2)*(top_ratio - error_of_ratio)+_floor_offset
+            upper_bound = (n-2)*(top_ratio + error_of_ratio)+_floor_offset
             #print(f"{top_ratio:.2f}, {lower_bound:.2f}/{upper_bound:.2f}")
     
     if "already tested " and False:
@@ -895,77 +899,152 @@ if "test" and __DEBUG_ME__() and True:
             _1_left_shift_by_shift_by_ = 1<<_shift_by
             for dtype in [torch.float16, torch.float32, torch.float64]:
                 _input = torch.rand(size=[1,_1_left_shift_by_shift_by_],dtype=dtype)
-                _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.9, _debug_needs_log = True)
+                _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.9, _needs_log__before_loop = True, \
+                                                                                                _needs_log__basic_of_loop = True)
                 _the_sum = _result_tuple__tensor__list[0].sum().item()
                 assert _the_sum>(_1_left_shift_by_shift_by_)*0.8
                 assert _the_sum<(_1_left_shift_by_shift_by_)
                 
                 _log = _result_tuple__tensor__list[1]
                 assert _log
-                assert _log.__len__() >20 
-                assert _log[1] == f"int type:{_int_dtype_list[ii]}"
+                assert _log["before_loop"][1]
+                assert _log["before_loop"][1] == f"int type:{_int_dtype_list[ii]}"
+                assert _log["in_loop"].__len__() >1
+                
             pass
 
-    #when the ratio doesn't exist.
-    #if this test returns, it's good.
-    # epsilon helps when all elements are equal or nearly equal.
-    _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,1,1,1,1]]),top_ratio=0.5, bottom=True, epsilon=0.001, _debug_needs_log = True)
-    _log = _result_tuple__tensor__list[1]
-    
-    1w
-    可能log要分题材。
-    稍微不同一点的数字看看会如何
-    
-    
-    
+        # epsilon
+        # epsilon helps when all elements are equal or nearly equal.
+        # When the ratio doesn't exist, it's also helpful. At least the function returns.
+        _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,1,1,1,1]]),top_ratio=0.5, bottom=True, epsilon__for_binary_search=0.001, \
+                        _needs_log__before_loop = True,             _needs_log__basic_of_loop = True, \
+                        _needs_log__binary_search_in_loop = True,   _needs_log__error_ratio_in_loop = True, )
+        _log = _result_tuple__tensor__list[1]
+        assert _log
+        assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search], _flag_less_than_epsilon:{torch.tensor([True])\
+                                            }, and it makes if_finished__b from:{torch.tensor([False])}, to:{torch.tensor([True])}"
+        
+        _input = torch.zeros(size=[1,30])
+        _input[0,0] = -1.
+        _input[0,-1] = 1.
+        _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.5, epsilon__for_binary_search=0.01, \
+                        _needs_log__binary_search_in_loop = True,   _needs_log__error_ratio_in_loop = True, )
+        _log = _result_tuple__tensor__list[1]
+        assert _log
+        assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search], _flag_less_than_epsilon:{torch.tensor([True])\
+                                            }, and it makes if_finished__b from:{torch.tensor([False])}, to:{torch.tensor([True])}"
+        assert isinstance(_log["in_loop"], list)
+        _temp_log_len_for_epsilon_0_01 = _log["in_loop"].__len__()
+        
+        _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.5, epsilon__for_binary_search=0.1, \
+                        _needs_log__binary_search_in_loop = True,   _needs_log__error_ratio_in_loop = True, )
+        _log = _result_tuple__tensor__list[1]
+        assert _log
+        assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search], _flag_less_than_epsilon:{torch.tensor([True])\
+                                            }, and it makes if_finished__b from:{torch.tensor([False])}, to:{torch.tensor([True])}"
+        assert isinstance(_log["in_loop"], list)
+        _temp_log_len_for_epsilon_0_1 = _log["in_loop"].__len__()
+        
+        _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.5, epsilon__for_binary_search=1., \
+                        _needs_log__binary_search_in_loop = True,   _needs_log__error_ratio_in_loop = True, )
+        _log = _result_tuple__tensor__list[1]
+        assert _log
+        assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search], _flag_less_than_epsilon:{torch.tensor([True])\
+                                            }, and it makes if_finished__b from:{torch.tensor([False])}, to:{torch.tensor([True])}"
+        assert isinstance(_log["in_loop"], list)
+        _temp_log_len_for_epsilon_1 = _log["in_loop"].__len__()
+        
+        assert _temp_log_len_for_epsilon_0_01>_temp_log_len_for_epsilon_0_1
+        assert _temp_log_len_for_epsilon_0_1>_temp_log_len_for_epsilon_1
 
-    #gpu
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.33)[0].eq(torch.tensor([False,False,True ],device='cuda')).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.33)[0].device.type == 'cuda'
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.)[0].eq(torch.tensor([False,False,False ],device='cuda')).all()
-    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.)[0].device.type == 'cuda'
+        #gpu
+        _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,2,3]], device='cuda'),top_ratio=0.25)
+        assert _result_tuple__tensor__list[0].device.type == "cuda"
+        assert _result_tuple__tensor__list[0].eq(torch.tensor([False,False,True ],device='cuda')).all()
+        _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.75)
+        assert _result_tuple__tensor__list[0].device.type == "cuda"
+        assert _result_tuple__tensor__list[0].eq(torch.tensor([False,True,True ],device='cuda')).all()
+        #gpu has no log.
+        _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'), _needs_log__before_loop = True)
+        assert _result_tuple__tensor__list[1] is None
+        
+            
+        #error_of_ratio__at_least
+        the_linspace = torch.linspace(1.,100.,99).reshape([1,-1])
+        _result_tuple__tensor__list = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_ratio__at_least=0.01, \
+                                                                        _needs_log__basic_of_loop = True)
+        _temp_int = _result_tuple__tensor__list[0].sum().item()
+        assert _temp_int>20-2 and _temp_int<20+2
+        _log = _result_tuple__tensor__list[1]
+        assert _log
+        _log_len_for__error_ratio_0_01 = _log["in_loop"].__len__()
+        
+        _result_tuple__tensor__list = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_ratio__at_least=0.1, \
+                                                                        _needs_log__basic_of_loop = True)
+        _temp_int = _result_tuple__tensor__list[0].sum().item()
+        assert _temp_int>20-11 and _temp_int<20+11
+        _log = _result_tuple__tensor__list[1]
+        assert _log
+        _log_len_for__error_ratio_0_1 = _log["in_loop"].__len__()
+        
+        assert _log_len_for__error_ratio_0_01>_log_len_for__error_ratio_0_1
+        
     
+        
+        # careful_level
+        # when the binary search doesn't work stably, this careful_level controls the second way of exit.
+        # when the loop repeats too much without any progress, the real error_of_ratio(or maybe something else) is modified to 
+        # eventually break the loop. The result maybe rougher, but at least, you get some result.
+        _input = torch.zeros(size=[1,100])
+        _input[0,0] = 99999
+        #step into the function and see how it works.
+        _result_tuple__tensor__list = get_mask_of_top_element__rough(_input, top_ratio=0.5, error_of_ratio__at_least=0.0000001, \
+                                            careful_level = 1, 
+                                                _needs_log__basic_of_loop = True, _needs_log__binary_search_in_loop = True, \
+                                                _needs_log__error_ratio_in_loop = True)
+        _log = _result_tuple__tensor__list[1]
+        assert _log
+        _from_list = [0.005,0.005,0.01, 0.02,0.04,0.08,0.16]
+        _to_list =   [0.005, 0.01,0.02, 0.04,0.08,0.16,0.32]
+        _epsi_list = [0.001,0.001,0.001,0.01,0.01,0.01,0.01]
+        
+        for ii in range((180-15)//21):
+            log_index = ii*21 +15
+            _log_item = _log["in_loop"][log_index]
+            _pos_0 = _log_item.find("error_of_ratio__b, from:tensor([", 0)
+            assert _pos_0 == 0
+            _pos_1 = _log_item.find("]), to:", 32)
+            _pos_2 = _log_item.find("])", 40)
+            #aaaaaa = _log_item[32:_pos_1]
+            _number_from = float(_log_item[32:_pos_1])
+            _float_equal(_number_from, _from_list[ii], epsi=_epsi_list[ii])
+            #bbbbbb = _log_item[_pos_1+15:_pos_2]
+            _number_to = float(_log_item[_pos_1+15:_pos_2])
+            _float_equal(_number_to, _to_list[ii], epsi=_epsi_list[ii])
+            pass
+        
     
-    the_linspace = torch.linspace(1.,100.,99)
-    the_linspace = the_linspace.reshape([1,-1])
-    _temp_int = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_ratio__at_least=0.01)[0].sum().item()
-    assert _temp_int>18 and _temp_int<22
-    _temp_int = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_ratio__at_least=0.1)[0].sum().item()
-    assert _temp_int>8 and _temp_int<32
+    1w 总之就是所有东西都写成了不带batch的写法。。。。要把所有dim改一遍。
     
-    
-    # careful_level
-    the_tensor = torch.linspace(1.,100.,99)
-    the_tensor = the_tensor.reshape([1,-1])
-    the_tensor[-1] = 99999
-    #step into the function and see how it works.
-    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_ratio__at_least=0.01, careful_level = 1)
-    #1w 写一下会发生什么。
-    #1w 整个这个里面的都还没测试。。。。
-    
-    # epsilon
-    the_tensor = torch.rand([1,10])
-    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_ratio__at_least=0.01, epsilon=0.001)
-    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_ratio__at_least=0.01, epsilon=0.1)
-    get_mask_of_top_element__rough(the_tensor, top_ratio=0.5, error_of_ratio__at_least=0.01, epsilon=0.51)
-    
-    # batch
+    # batch>1
     the_tensor = torch.tensor( [[1.,2,3,4,5],
                                 [5.,2,3,4,1]])
     the_result = torch.tensor([[False,False,False,False,True],
                                 [True,False,False,False,False]])
-    assert get_mask_of_top_element__rough(the_tensor, top_ratio=0.2)[0].eq(the_result).all()
-    
-    
-    
-    
-    
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(the_tensor, top_ratio=0.01)[0].eq(the_result).all()
+    assert _result_tuple__tensor__list[0].eq(the_result).all()
+    the_tensor = torch.tensor( [[1.,2,3,4,5],
+                                [5.,2,3,4,1]], device='cuda')
+    the_result = torch.tensor([[False,False,False,False,True],
+                                [True,False,False,False,False]], device='cuda')
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(the_tensor, top_ratio=0.01)[0].eq(the_result).all()
+    assert _result_tuple__tensor__list[0].eq(the_result).all()
     
     pass
 
 
 
-def 应该是不用了get_top_percent如果没改就不要了_上面已经搞定了(input:torch.Tensor, top_ratio = 0.5, error_of_percent = 0.01, \
+def 应该是不用了get_top_ratio如果没改就不要了_上面已经搞定了(input:torch.Tensor, top_ratio = 0.5, error_of_ratio = 0.01, \
                             bottom = False)->torch.Tensor:
     ''' 
     return shape is the same as input. dtype of return is torch.bool.
@@ -976,9 +1055,9 @@ def 应该是不用了get_top_percent如果没改就不要了_上面已经搞定
     nelement_per_batch__s = input.shape[1]
     with torch.no_grad():
         #safety first
-        _at_least_this_amount__cpu_int = int(nelement_per_batch__s*(top_ratio - error_of_percent)+0.4999999999999)
+        _at_least_this_amount__cpu_int = int(nelement_per_batch__s*(top_ratio - error_of_ratio)+0.4999999999999)
         at_least_this_amount__s = torch.tensor(_at_least_this_amount__cpu_int, device=input.device)
-        _at_most_this_amount__cpu_int =  int(nelement_per_batch__s*(top_ratio + error_of_percent)+0.4999999999999)
+        _at_most_this_amount__cpu_int =  int(nelement_per_batch__s*(top_ratio + error_of_ratio)+0.4999999999999)
         at_most_this_amount__s =  torch.tensor(_at_most_this_amount__cpu_int, device=input.device)
         # if at_least_this_amount == at_most_this_amount: xxxxxxxxxxxxxx
         #     at_most_this_amount = at_least_this_amount  +1
@@ -989,7 +1068,7 @@ def 应该是不用了get_top_percent如果没改就不要了_上面已经搞定
         if _at_most_this_amount__cpu_int <= 0.:
             _temp_tensor = torch.zeros_like(input, dtype=torch.bool, device=input.device)
             return _temp_tensor
-        assert error_of_percent>=0.
+        assert error_of_ratio>=0.
         
         #real job.
         #best dtype for count the amount.
