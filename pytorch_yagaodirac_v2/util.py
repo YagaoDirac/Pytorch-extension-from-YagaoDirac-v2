@@ -460,7 +460,7 @@ def debug_strong_grad_ratio(parameter:torch.nn.parameter.Parameter, log10_diff =
 
     
 
-def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of_ratio__at_least = 0.01, \
+def get_mask_of_top_element__rough(input__b_i:torch.Tensor, top_ratio = 0.9, error_of_ratio__at_least = 0.01, \
                             bottom = False, careful_level:int = 3, epsilon__for_binary_search:float|torch.Tensor|None = None, \
                     _needs_log__before_loop = False, _needs_log__basic_of_loop = False, \
                     _needs_log__binary_search_in_loop = False, \
@@ -475,20 +475,41 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
     目标，和error，算出允许的比例的上下限  top_ratio  error   at_least/most_this_amount 
     二分查找的那个标准是最大值和最小值的平均值，然后根据需要的方向来缩小。   max, min,(threshold), epi
     
+    maintainance note:
+    this function is init+loop, the loop is binary_search+if_return+if_repeating
+    or, it's
+    def ...():
+        init
+        while true:
+            binary_search
+            if_return?(the only return)
+            if_repeating
+            pass#while true
+        pass#end of function
+    In init, there's a bit early return. I didn't remove it, but it should not be triggered.
+    The binary search is not an exact binary search, but it feels similar. The max or min is assigned with mid 
+        according to the condition, to modify the threshold.
+    Then test if the return condition is met.
+    The if_repeating is something detecting if the loop is too repeating. If so, it broadens the error_of_ratio,
+        and makes the return condition looser.
+    The function guaruntees to return nomatter what you provide, unless there's inf,-inf or nan. 
+    I didn't test this extreme case. So please make sure the input is legit numbers.
     
     return shape is the same as input. dtype of return is torch.bool.
     
-    if shape is too small, this may not work.
+    if shape is too small, this may not work. Valid code uses 3 or 5 elements/batch, but this function is design 
+        to process >10 elements/batch input.
     
     shape is [*B*atch, *I*nput]
     '''
+    assert input.shape.__len__() == 2
     assert top_ratio>0.
     assert top_ratio<1.
     assert error_of_ratio__at_least>=0.
     assert careful_level>0
     assert careful_level<64, "or modify the data type. search for repeating__b = torch.zeros_like(_the_max_to_calc_threshold__b, dtype=torch.int8)"
     
-    _cpu = input.device.type != "cuda"
+    _cpu = input__b_i.device.type != "cuda"
     if _cpu and _needs_log__before_loop:
         _log:dict[str, list[str]]|None = {}
         pass
@@ -498,29 +519,39 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
     
     if epsilon__for_binary_search:
         if isinstance(epsilon__for_binary_search, float):
-            epsilon__for_binary_search = torch.tensor(epsilon__for_binary_search, device=input.device, dtype=input.dtype)
+            epsilon__for_binary_search__s = torch.tensor(epsilon__for_binary_search, device=input__b_i.device, dtype=input__b_i.dtype)
             pass
         else:
-            assert epsilon__for_binary_search is torch.Tensor
-            assert epsilon__for_binary_search.dtype == input.dtype
+            # if the assertions don't pass, modify it. I didn't test it very carefully. 
+            # simply reference the line above.
+            if epsilon__for_binary_search.shape == torch.Size([1])
+                epsilon__for_binary_search__s = epsilon__for_binary_search.clone().to(input__b_i.device)
+                pass
+            elif epsilon__for_binary_search.shape == torch.Size([])
+                epsilon__for_binary_search__s = epsilon__for_binary_search.clone().to(input__b_i.device).reshape([1])
+                pass
+
+            assert epsilon__for_binary_search__s.shape == [1,]
+            assert epsilon__for_binary_search__s.dtype == input__b_i.dtype
         pass
     if (_log is not None) and _needs_log__before_loop:
         _log["before_loop"] = [f"epsilon__for_binary_search:{epsilon__for_binary_search}"]
         pass
     
+    
     #dtype uint
     #best dtype for count the amount.
-    _total_nelement = input[0].nelement()
+    _element_per_batch__s = input__b_i.shape[1]
     # device = input.device
     # param_factory = {"device":device, "dtype":dtype}
     #dtype int
-    if _total_nelement<=(1<<6):
+    if _element_per_batch__s<=(1<<6):
         int_dtype = torch.int8
         pass
-    elif _total_nelement<=(1<<14):
+    elif _element_per_batch__s<=(1<<14):
         int_dtype = torch.int16
         pass
-    elif _total_nelement<=(1<<30):
+    elif _element_per_batch__s<=(1<<30):
         int_dtype = torch.int32
         pass
     else:
@@ -532,49 +563,48 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
     
     with torch.no_grad():
         #into torch.
-        careful_level__s:torch.Tensor = torch.tensor(careful_level, device=input.device)
+        careful_level__s:torch.Tensor = torch.tensor(careful_level, device=input__b_i.device)
         del careful_level
         if bottom:
             top_ratio = 1.- top_ratio
             pass
-        top_ratio__s = torch.tensor(top_ratio, dtype=torch.float64, device=input.device)
+        top_ratio__s = torch.tensor(top_ratio, dtype=torch.float64, device=input__b_i.device)
         del top_ratio
         if _log and _needs_log__before_loop:
             _log["before_loop"].append(f"top ratio:{top_ratio__s}, is bottom:{bottom}")
             pass
         
         #init error_of_ratio 
-        input_dim = input.shape[1]
-        better_error_of_ratio = 0.501/input_dim
+        better_error_of_ratio = 0.501/_element_per_batch__s
         if better_error_of_ratio<error_of_ratio__at_least:
             better_error_of_ratio = error_of_ratio__at_least
             pass
         del error_of_ratio__at_least
-        error_of_ratio__b = torch.empty(size=[input.shape[0]], device=input.device)
+        error_of_ratio__b = torch.empty(size=[input__b_i.shape[0]], device=input__b_i.device)#.reshape([-1,1])
         error_of_ratio__b.fill_(better_error_of_ratio)
         if _log and _needs_log__before_loop:
             _log["before_loop"].append(f"error_of_ratio__b init to:{error_of_ratio__b}")
             pass
         
         #ratio+-error, this segment appears twice in this function.
-        at_least_this_amount__b = ((input_dim-2)*(top_ratio__s - error_of_ratio__b)+1.4999).to(int_dtype)
-        at_most_this_amount__b =  ((input_dim-2)*(top_ratio__s + error_of_ratio__b)+1.5001).to(int_dtype)
+        at_least_this_amount__b = ((_element_per_batch__s-2)*(top_ratio__s - error_of_ratio__b)+1.4999).to(int_dtype)#.reshape([-1,1])
+        at_most_this_amount__b =  ((_element_per_batch__s-2)*(top_ratio__s + error_of_ratio__b)+1.5001).to(int_dtype)#.reshape([-1,1])
         if _log and _needs_log__before_loop:
             _log["before_loop"].append(f"at_least_this_amount__b init to:{at_least_this_amount__b}")
             _log["before_loop"].append(f"at_most_this_amount__b init to:{at_most_this_amount__b}")
             pass
         
         #safety, or maybe a early return.
-        _flag_all_true_early_return__b = at_least_this_amount__b.ge(input_dim)
+        _flag_all_true_early_return__b = at_least_this_amount__b.ge(_element_per_batch__s)
         if _flag_all_true_early_return__b.all():
-            _temp_tensor = torch.ones_like(input, dtype=torch.bool, device=input.device)
+            _temp_tensor = torch.ones_like(input__b_i, dtype=torch.bool, device=input__b_i.device)
             if _log and _needs_log__before_loop:
                 _log["before_loop"].append(f"_flag_all_true_early_return__b:{_flag_all_true_early_return__b}, all true, [return]")
                 pass
             return _temp_tensor, _log
         _flag_all_true_early_return__b = at_most_this_amount__b.le(0)
         if _flag_all_true_early_return__b.all():
-            _temp_tensor = torch.zeros_like(input, dtype=torch.bool, device=input.device)
+            _temp_tensor = torch.zeros_like(input__b_i, dtype=torch.bool, device=input__b_i.device)
             if _log and _needs_log__before_loop:
                 _log["before_loop"].append(f"_flag_all_true_early_return__b:{_flag_all_true_early_return__b}, all true, [return]")
                 pass
@@ -587,24 +617,24 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             pass
         
         # init before loop
-        _the_max_to_calc_threshold__b_1:torch.Tensor = input.max(dim=1).values.reshape([-1,1])
-        _the_min_to_calc_threshold__b_1:torch.Tensor = input.min(dim=1).values.reshape([-1,1])
-        if input.dtype != torch.float64 and input.dtype != torch.float32:
-            _the_max_to_calc_threshold__b_1.to(torch.float16)
-            _the_min_to_calc_threshold__b_1.to(torch.float16)
+        _the_max_to_calc_threshold__b:torch.Tensor = input__b_i.max(dim=1).values#.reshape([-1,1])#111111111111111111
+        _the_min_to_calc_threshold__b:torch.Tensor = input__b_i.min(dim=1).values#.reshape([-1,1])
+        if input__b_i.dtype != torch.float64 and input__b_i.dtype != torch.float32:
+            _the_max_to_calc_threshold__b.to(torch.float16)
+            _the_min_to_calc_threshold__b.to(torch.float16)
             pass
         if _log and _needs_log__before_loop:
-            _log["before_loop"].append(f"_the_max_to_calc_threshold__b init to:{_the_max_to_calc_threshold__b_1}")
-            _log["before_loop"].append(f"_the_min_to_calc_threshold__b init to:{_the_min_to_calc_threshold__b_1}")
+            _log["before_loop"].append(f"_the_max_to_calc_threshold__b init to:{_the_max_to_calc_threshold__b}")
+            _log["before_loop"].append(f"_the_min_to_calc_threshold__b init to:{_the_min_to_calc_threshold__b}")
             pass
         
-        repeating__b = torch.zeros_like(_the_max_to_calc_threshold__b_1, dtype=torch.int8)
-        old_unqualified_RESULT__b_i = torch.zeros_like(input,dtype=torch.bool)
+        repeating__b = torch.zeros_like(_the_max_to_calc_threshold__b, dtype=torch.int8)#.squeeze_()#11111111111111
+        old_unqualified_RESULT__if__input_gt_guess__b_i = torch.zeros_like(input__b_i,dtype=torch.bool)
         # now is this one: if_finished__b
         # it was init_ed_the_flag_result
         if _log and _needs_log__before_loop:
             _log["before_loop"].append(f"repeating__b init to:{repeating__b}")
-            _log["before_loop"].append(f"old_unqualified_RESULT__b_i init to:{old_unqualified_RESULT__b_i}")
+            _log["before_loop"].append(f"old_unqualified_RESULT__b_i init to:{old_unqualified_RESULT__if__input_gt_guess__b_i}")
             pass
         
         _input_gt_guess__count__b = torch.zeros_like(if_finished__b, dtype=int_dtype)
@@ -632,14 +662,15 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
                     pass
                 pass
             #similar to binary search
-            _guess_threshold__b_1 = torch.zeros_like(if_finished__b,dtype=_the_max_to_calc_threshold__b_1.dtype).reshape([-1,1])
-            _guess_threshold__b_1[~if_finished__b] = (_the_max_to_calc_threshold__b_1[~if_finished__b]+_the_min_to_calc_threshold__b_1[~if_finished__b])/2.#maybe optimizable.
+            _guess_threshold__b = torch.zeros_like(if_finished__b,dtype=_the_max_to_calc_threshold__b.dtype)#.reshape([-1,1])#11111111111111
+            _guess_threshold__b[~if_finished__b] = (_the_max_to_calc_threshold__b[~if_finished__b]+_the_min_to_calc_threshold__b[~if_finished__b])/2.#maybe optimizable.
             if _log and _needs_log__binary_search_in_loop:
-                _log["in_loop"].append(f"_guess_threshold:{_guess_threshold__b_1}")
+                _log["in_loop"].append(f"_guess_threshold:{_guess_threshold__b}")
                 pass
             #the real comparison
-            RESULT__if__input_gt_guess__b_i = torch.zeros_like(input, dtype=torch.bool)
-            RESULT__if__input_gt_guess__b_i[~if_finished__b] = input[~if_finished__b].gt(_guess_threshold__b_1[~if_finished__b])
+            RESULT__if__input_gt_guess__b_i = torch.zeros_like(input__b_i, dtype=torch.bool)
+            RESULT__if__input_gt_guess__b_i[~if_finished__b] = input__b_i[~if_finished__b].gt \
+                                                (_guess_threshold__b[~if_finished__b].expand([1,_element_per_batch__s]))
             #if guessed too big, then, less true
             _input_gt_guess__count__b[~if_finished__b] = RESULT__if__input_gt_guess__b_i[~if_finished__b].sum(dim=1, dtype=int_dtype)
             #_guess_count = flag_result.to(int_dtype).sum(dim=1)
@@ -656,16 +687,16 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             # _the_min_to_calc_threshold__b[~_if__guess_not_too_big___b] = _guess_threshold[~_if__guess_not_too_big___b]
             
             #flag_gt
-            _if__guess_too_big___b_1 = torch.zeros_like(if_finished__b).reshape([-1,1])
-            _if__guess_too_big___b_1[~if_finished__b] = _input_gt_guess__count__b[~if_finished__b].lt(at_least_this_amount__b[~if_finished__b])
+            _if__guess_too_big___b = torch.zeros_like(if_finished__b)
+            _if__guess_too_big___b[~if_finished__b] = _input_gt_guess__count__b[~if_finished__b].lt(at_least_this_amount__b[~if_finished__b])
             # ^^^ true is bad. ^^^
             if _log and _needs_log__binary_search_in_loop:
-                _log["in_loop"].append(f"_if__guess_too_big___b:{_if__guess_too_big___b_1}")
-                _log["in_loop"].append(f"_the_max_to_calc_threshold__b, from:{_the_max_to_calc_threshold__b_1}")
+                _log["in_loop"].append(f"_if__guess_too_big___b:{_if__guess_too_big___b}")
+                _log["in_loop"].append(f"_the_max_to_calc_threshold__b, from:{_the_max_to_calc_threshold__b}")
                 pass
-            _the_max_to_calc_threshold__b_1[_if__guess_too_big___b_1] = _guess_threshold__b_1[_if__guess_too_big___b_1]
+            _the_max_to_calc_threshold__b[_if__guess_too_big___b] = _guess_threshold__b[_if__guess_too_big___b]
             if _log and _needs_log__binary_search_in_loop:
-                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{_the_max_to_calc_threshold__b_1}")
+                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{_the_max_to_calc_threshold__b}")
                 pass
             
             
@@ -676,38 +707,39 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             # _the_max_to_calc_threshold__b[~_if__guess_not_too_small___b] = _guess_threshold[~_if__guess_not_too_small___b]
             
             #flag_lt
-            _if__guess_too_small___b_1 = torch.zeros_like(if_finished__b).reshape([-1,1])
-            _if__guess_too_small___b_1[~if_finished__b] = _input_gt_guess__count__b[~if_finished__b].gt(at_most_this_amount__b[~if_finished__b])
+            _if__guess_too_small___b = torch.zeros_like(if_finished__b)
+            _if__guess_too_small___b[~if_finished__b] = _input_gt_guess__count__b[~if_finished__b].gt(at_most_this_amount__b[~if_finished__b])
             # ^^^ true is bad. ^^^
             if _log and _needs_log__binary_search_in_loop:
-                _log["in_loop"].append(f"_if__guess_too_small___b:{_if__guess_too_small___b_1}")
-                _log["in_loop"].append(f"_the_min_to_calc_threshold__b:{_the_min_to_calc_threshold__b_1}")
+                _log["in_loop"].append(f"_if__guess_too_small___b:{_if__guess_too_small___b}")
+                _log["in_loop"].append(f"_the_min_to_calc_threshold__b:{_the_min_to_calc_threshold__b}")
                 pass
-            _the_min_to_calc_threshold__b_1[_if__guess_too_small___b_1] = _guess_threshold__b_1[_if__guess_too_small___b_1]
+            _the_min_to_calc_threshold__b[_if__guess_too_small___b] = _guess_threshold__b[_if__guess_too_small___b]
             if _log and _needs_log__binary_search_in_loop:
-                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{_the_min_to_calc_threshold__b_1}")
+                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{_the_min_to_calc_threshold__b}")
                 pass
             
-            _flag__not_too_loose__and__not_too_tight___b_1 = (~_if__guess_too_big___b_1) and (~_if__guess_too_small___b_1)
-            # ^^^ true is good. ^^^                       ^^^ true is bad. ^^^          ^^^ true is bad. ^^^  
+            _flag__not_too_loose__and__not_too_tight___b_1 = (~_if__guess_too_big___b).logical_and(~_if__guess_too_small___b)
+            #           ^^^ true is good. ^^^                   ^^^ true is bad. ^^^                  ^^^ true is bad. ^^^  
             if _log: 
                 if _needs_log__binary_search_in_loop:
                     _log["in_loop"].append(f"_flag__not_too_loose__and__not_too_tight:{_flag__not_too_loose__and__not_too_tight___b_1}")
                     pass
                 if _needs_log__basic_of_loop:
-                    _log["in_loop"].append(f"if_finished__b, from:{_the_min_to_calc_threshold__b_1}")
+                    _log["in_loop"].append(f"if_finished__b, from:{_the_min_to_calc_threshold__b}")
                     pass
                 pass
             if_finished__b.logical_or_(_flag__not_too_loose__and__not_too_tight___b_1)
             if _log and _needs_log__basic_of_loop:
-                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{_the_min_to_calc_threshold__b_1}")
+                _log["in_loop"].append(f"{_log["in_loop"].pop()}, to:{_the_min_to_calc_threshold__b}")
                 pass
             
             if epsilon__for_binary_search is not None:
-                _flag_less_than_epsilon = (_the_max_to_calc_threshold__b_1-_the_min_to_calc_threshold__b_1).lt(epsilon__for_binary_search)
+                _flag_less_than_epsilon = (_the_max_to_calc_threshold__b-_the_min_to_calc_threshold__b).lt(epsilon__for_binary_search__s)
                 if _log and _needs_log__binary_search_in_loop:
-                    _log["in_loop"].append(f"epsilon__for_binary_search:{epsilon__for_binary_search}")
-                    _log["in_loop"].append(f"[bc epsilon__for_binary_search], _flag_less_than_epsilon:{_flag_less_than_epsilon}, and it makes if_finished__b from:{if_finished__b}")
+                    _log["in_loop"].append(f"epsilon__for_binary_search__s:{epsilon__for_binary_search__s}")
+                    _log["in_loop"].append(f"[bc epsilon__for_binary_search__s], _flag_less_than_epsilon:{_flag_less_than_epsilon \
+                                                    }, and it makes if_finished__b from:{if_finished__b}")
                     pass
                 if_finished__b.logical_or_(_flag_less_than_epsilon)
                 if _log and _needs_log__binary_search_in_loop:
@@ -733,8 +765,8 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             
             #if the new result[b,i] unchanged?
             _if__unchanged__b = torch.zeros_like(if_finished__b, dtype=torch.bool)
-            _if__unchanged__b[~if_finished__b] = old_unqualified_RESULT__b_i[~if_finished__b].eq( \
-                RESULT__if__input_gt_guess__b_i[~if_finished__b]).all(dim=1)
+            _if__unchanged__b[~if_finished__b] = old_unqualified_RESULT__if__input_gt_guess__b_i[~if_finished__b].eq( \
+                                                                RESULT__if__input_gt_guess__b_i[~if_finished__b]).all(dim=1)
             # ^^^ true is bad. ^^^
             
             if _log and _needs_log__error_ratio_in_loop:
@@ -780,9 +812,9 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             #ratio+-error, this segment appears twice in this function.
             #[1]+[] is []. So this is safe.
             
-            at_least_this_amount__b[_if__repeated_enough__b] = ((input_dim-2)*(top_ratio__s - \
+            at_least_this_amount__b[_if__repeated_enough__b] = ((_element_per_batch__s-2)*(top_ratio__s - \
                 error_of_ratio__b[_if__repeated_enough__b])+1.4999).to(int_dtype)
-            at_most_this_amount__b[_if__repeated_enough__b] =  ((input_dim-2)*(top_ratio__s + \
+            at_most_this_amount__b[_if__repeated_enough__b] =  ((_element_per_batch__s-2)*(top_ratio__s + \
                 error_of_ratio__b[_if__repeated_enough__b])+1.5001).to(int_dtype)
             # no detect for return here. reason:
             # even if this range-like can mean a range covering all the range, bc I believe it unlikely to happen.
@@ -795,9 +827,9 @@ def get_mask_of_top_element__rough(input:torch.Tensor, top_ratio = 0.9, error_of
             
             #tail
             if _log and _needs_log__binary_search_in_loop:
-                _log["in_loop"].append(f"RESULT__b_i, from:{old_unqualified_RESULT__b_i}, to:{RESULT__if__input_gt_guess__b_i}")
+                _log["in_loop"].append(f"RESULT__b_i, from:{old_unqualified_RESULT__if__input_gt_guess__b_i}, to:{RESULT__if__input_gt_guess__b_i}")
                 pass
-            old_unqualified_RESULT__b_i = RESULT__if__input_gt_guess__b_i
+            old_unqualified_RESULT__if__input_gt_guess__b_i = RESULT__if__input_gt_guess__b_i
             if _log and _needs_log__loop_count:
                 _log["in_loop"].append(f"loop {loop_count} ends.")
                 loop_count += 1
@@ -913,132 +945,148 @@ if "test" and __DEBUG_ME__() and True:
                 
             pass
 
-        # epsilon
-        # epsilon helps when all elements are equal or nearly equal.
-        # When the ratio doesn't exist, it's also helpful. At least the function returns.
-        _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,1,1,1,1]]),top_ratio=0.5, bottom=True, epsilon__for_binary_search=0.001, \
-                        _needs_log__before_loop = True,             _needs_log__basic_of_loop = True, \
-                        _needs_log__binary_search_in_loop = True,   _needs_log__error_ratio_in_loop = True, )
-        _log = _result_tuple__tensor__list[1]
-        assert _log
-        assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search], _flag_less_than_epsilon:{torch.tensor([True])\
-                                            }, and it makes if_finished__b from:{torch.tensor([False])}, to:{torch.tensor([True])}"
+    # epsilon
+    # epsilon helps when all elements are equal or nearly equal.
+    # When the ratio doesn't exist, it's also helpful. At least the function returns.
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,1,1,1,1]]),top_ratio=0.5, bottom=True, epsilon__for_binary_search=0.001, \
+                    _needs_log__before_loop = True,             _needs_log__basic_of_loop = True, \
+                    _needs_log__binary_search_in_loop = True,   _needs_log__error_ratio_in_loop = True, )
+    _log = _result_tuple__tensor__list[1]
+    assert _log
+    assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search__s], _flag_less_than_epsilon:{torch.tensor([True])\
+                                        }, and it makes if_finished__b from:{torch.tensor([False])}, to:{torch.tensor([True])}"
+    
+    _input = torch.zeros(size=[1,30])
+    _input[0,0] = -1.
+    _input[0,-1] = 1.
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.5, epsilon__for_binary_search=0.01, \
+                    _needs_log__binary_search_in_loop = True,   _needs_log__error_ratio_in_loop = True, )
+    _log = _result_tuple__tensor__list[1]
+    assert _log
+    assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search__s], _flag_less_than_epsilon:{torch.tensor([True])\
+                                        }, and it makes if_finished__b from:{torch.tensor([False])}, to:{torch.tensor([True])}"
+    assert isinstance(_log["in_loop"], list)
+    _temp_log_len_for_epsilon_0_01 = _log["in_loop"].__len__()
+    
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.5, epsilon__for_binary_search=0.1, \
+                    _needs_log__binary_search_in_loop = True,   _needs_log__error_ratio_in_loop = True, )
+    _log = _result_tuple__tensor__list[1]
+    assert _log
+    assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search__s], _flag_less_than_epsilon:{torch.tensor([True])\
+                                        }, and it makes if_finished__b from:{torch.tensor([False])}, to:{torch.tensor([True])}"
+    assert isinstance(_log["in_loop"], list)
+    _temp_log_len_for_epsilon_0_1 = _log["in_loop"].__len__()
+    
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.5, epsilon__for_binary_search=1., \
+                    _needs_log__binary_search_in_loop = True,   _needs_log__error_ratio_in_loop = True, )
+    _log = _result_tuple__tensor__list[1]
+    assert _log
+    assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search__s], _flag_less_than_epsilon:{torch.tensor([True])\
+                                        }, and it makes if_finished__b from:{torch.tensor([False])}, to:{torch.tensor([True])}"
+    assert isinstance(_log["in_loop"], list)
+    _temp_log_len_for_epsilon_1 = _log["in_loop"].__len__()
+    
+    assert _temp_log_len_for_epsilon_0_01>_temp_log_len_for_epsilon_0_1
+    assert _temp_log_len_for_epsilon_0_1>_temp_log_len_for_epsilon_1
+    
+    
         
-        _input = torch.zeros(size=[1,30])
-        _input[0,0] = -1.
-        _input[0,-1] = 1.
-        _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.5, epsilon__for_binary_search=0.01, \
-                        _needs_log__binary_search_in_loop = True,   _needs_log__error_ratio_in_loop = True, )
-        _log = _result_tuple__tensor__list[1]
-        assert _log
-        assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search], _flag_less_than_epsilon:{torch.tensor([True])\
-                                            }, and it makes if_finished__b from:{torch.tensor([False])}, to:{torch.tensor([True])}"
-        assert isinstance(_log["in_loop"], list)
-        _temp_log_len_for_epsilon_0_01 = _log["in_loop"].__len__()
         
-        _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.5, epsilon__for_binary_search=0.1, \
-                        _needs_log__binary_search_in_loop = True,   _needs_log__error_ratio_in_loop = True, )
-        _log = _result_tuple__tensor__list[1]
-        assert _log
-        assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search], _flag_less_than_epsilon:{torch.tensor([True])\
+    #epsilon__for_binary_search as tensor
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,1,1,1,1]]),top_ratio=0.5, \
+                                                                    epsilon__for_binary_search=torch.tensor(0.001), \
+                                                                _needs_log__binary_search_in_loop = True,  )
+    _log = _result_tuple__tensor__list[1]
+    assert _log
+    assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search__s], _flag_less_than_epsilon:{torch.tensor([True])\
                                             }, and it makes if_finished__b from:{torch.tensor([False])}, to:{torch.tensor([True])}"
-        assert isinstance(_log["in_loop"], list)
-        _temp_log_len_for_epsilon_0_1 = _log["in_loop"].__len__()
-        
-        _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.5, epsilon__for_binary_search=1., \
-                        _needs_log__binary_search_in_loop = True,   _needs_log__error_ratio_in_loop = True, )
-        _log = _result_tuple__tensor__list[1]
-        assert _log
-        assert _log["in_loop"][-2]  == f"[bc epsilon__for_binary_search], _flag_less_than_epsilon:{torch.tensor([True])\
-                                            }, and it makes if_finished__b from:{torch.tensor([False])}, to:{torch.tensor([True])}"
-        assert isinstance(_log["in_loop"], list)
-        _temp_log_len_for_epsilon_1 = _log["in_loop"].__len__()
-        
-        assert _temp_log_len_for_epsilon_0_01>_temp_log_len_for_epsilon_0_1
-        assert _temp_log_len_for_epsilon_0_1>_temp_log_len_for_epsilon_1
 
-        #gpu
-        _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,2,3]], device='cuda'),top_ratio=0.25)
-        assert _result_tuple__tensor__list[0].device.type == "cuda"
-        assert _result_tuple__tensor__list[0].eq(torch.tensor([False,False,True ],device='cuda')).all()
-        _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.75)
-        assert _result_tuple__tensor__list[0].device.type == "cuda"
-        assert _result_tuple__tensor__list[0].eq(torch.tensor([False,True,True ],device='cuda')).all()
-        #gpu has no log.
-        _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'), _needs_log__before_loop = True)
-        assert _result_tuple__tensor__list[1] is None
-        
-            
-        #error_of_ratio__at_least
-        the_linspace = torch.linspace(1.,100.,99).reshape([1,-1])
-        _result_tuple__tensor__list = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_ratio__at_least=0.01, \
-                                                                        _needs_log__basic_of_loop = True)
-        _temp_int = _result_tuple__tensor__list[0].sum().item()
-        assert _temp_int>20-2 and _temp_int<20+2
-        _log = _result_tuple__tensor__list[1]
-        assert _log
-        _log_len_for__error_ratio_0_01 = _log["in_loop"].__len__()
-        
-        _result_tuple__tensor__list = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_ratio__at_least=0.1, \
-                                                                        _needs_log__basic_of_loop = True)
-        _temp_int = _result_tuple__tensor__list[0].sum().item()
-        assert _temp_int>20-11 and _temp_int<20+11
-        _log = _result_tuple__tensor__list[1]
-        assert _log
-        _log_len_for__error_ratio_0_1 = _log["in_loop"].__len__()
-        
-        assert _log_len_for__error_ratio_0_01>_log_len_for__error_ratio_0_1
-        
+
+
+    #gpu
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,2,3]], device='cuda'),top_ratio=0.25)
+    assert _result_tuple__tensor__list[0].device.type == "cuda"
+    assert _result_tuple__tensor__list[0].eq(torch.tensor([False,False,True ],device='cuda')).all()
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'),top_ratio=0.75)
+    assert _result_tuple__tensor__list[0].device.type == "cuda"
+    assert _result_tuple__tensor__list[0].eq(torch.tensor([False,True,True ],device='cuda')).all()
+    #gpu has no log.
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(torch.tensor([[1.,2,3]],device='cuda'), _needs_log__before_loop = True)
+    assert _result_tuple__tensor__list[1] is None
     
         
-        # careful_level
-        # when the binary search doesn't work stably, this careful_level controls the second way of exit.
-        # when the loop repeats too much without any progress, the real error_of_ratio(or maybe something else) is modified to 
-        # eventually break the loop. The result maybe rougher, but at least, you get some result.
-        _input = torch.zeros(size=[1,100])
-        _input[0,0] = 99999
-        #step into the function and see how it works.
-        _result_tuple__tensor__list = get_mask_of_top_element__rough(_input, top_ratio=0.5, error_of_ratio__at_least=0.0000001, \
-                                            careful_level = 1, 
-                                                _needs_log__basic_of_loop = True, _needs_log__binary_search_in_loop = True, \
-                                                _needs_log__error_ratio_in_loop = True)
-        _log = _result_tuple__tensor__list[1]
-        assert _log
-        _from_list = [0.005,0.005,0.01, 0.02,0.04,0.08,0.16]
-        _to_list =   [0.005, 0.01,0.02, 0.04,0.08,0.16,0.32]
-        _epsi_list = [0.001,0.001,0.001,0.01,0.01,0.01,0.01]
-        
-        for ii in range((180-15)//21):
-            log_index = ii*21 +15
-            _log_item = _log["in_loop"][log_index]
-            _pos_0 = _log_item.find("error_of_ratio__b, from:tensor([", 0)
-            assert _pos_0 == 0
-            _pos_1 = _log_item.find("]), to:", 32)
-            _pos_2 = _log_item.find("])", 40)
-            #aaaaaa = _log_item[32:_pos_1]
-            _number_from = float(_log_item[32:_pos_1])
-            _float_equal(_number_from, _from_list[ii], epsi=_epsi_list[ii])
-            #bbbbbb = _log_item[_pos_1+15:_pos_2]
-            _number_to = float(_log_item[_pos_1+15:_pos_2])
-            _float_equal(_number_to, _to_list[ii], epsi=_epsi_list[ii])
-            pass
+    #error_of_ratio__at_least
+    the_linspace = torch.linspace(1.,100.,99).reshape([1,-1])
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_ratio__at_least=0.01, \
+                                                                    _needs_log__basic_of_loop = True)
+    _temp_int = _result_tuple__tensor__list[0].sum().item()
+    assert _temp_int>20-2 and _temp_int<20+2
+    _log = _result_tuple__tensor__list[1]
+    assert _log
+    _log_len_for__error_ratio_0_01 = _log["in_loop"].__len__()
+    
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(the_linspace,top_ratio=0.2, error_of_ratio__at_least=0.1, \
+                                                                    _needs_log__basic_of_loop = True)
+    _temp_int = _result_tuple__tensor__list[0].sum().item()
+    assert _temp_int>20-11 and _temp_int<20+11
+    _log = _result_tuple__tensor__list[1]
+    assert _log
+    _log_len_for__error_ratio_0_1 = _log["in_loop"].__len__()
+    
+    assert _log_len_for__error_ratio_0_01>_log_len_for__error_ratio_0_1
+    
+
+    
+    # careful_level
+    # when the binary search doesn't work stably, this careful_level controls the second way of exit.
+    # when the loop repeats too much without any progress, the real error_of_ratio(or maybe something else) is modified to 
+    # eventually break the loop. The result maybe rougher, but at least, you get some result.
+    _input = torch.zeros(size=[1,100])
+    _input[0,0] = 99999
+    #step into the function and see how it works.
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(_input, top_ratio=0.5, error_of_ratio__at_least=0.0000001, \
+                                        careful_level = 1, 
+                                            _needs_log__basic_of_loop = True, _needs_log__binary_search_in_loop = True, \
+                                            _needs_log__error_ratio_in_loop = True)
+    _log = _result_tuple__tensor__list[1]
+    assert _log
+    _from_list = [0.005,0.005,0.01, 0.02,0.04,0.08,0.16]
+    _to_list =   [0.005, 0.01,0.02, 0.04,0.08,0.16,0.32]
+    _epsi_list = [0.001,0.001,0.001,0.01,0.01,0.01,0.01]
+    
+    for ii in range((180-15)//21):
+        log_index = ii*21 +15
+        _log_item = _log["in_loop"][log_index]
+        _pos_0 = _log_item.find("error_of_ratio__b, from:tensor([", 0)
+        assert _pos_0 == 0
+        _pos_1 = _log_item.find("]), to:", 32)
+        _pos_2 = _log_item.find("])", 40)
+        #aaaaaa = _log_item[32:_pos_1]
+        _number_from = float(_log_item[32:_pos_1])
+        _float_equal(_number_from, _from_list[ii], epsi=_epsi_list[ii])
+        #bbbbbb = _log_item[_pos_1+15:_pos_2]
+        _number_to = float(_log_item[_pos_1+15:_pos_2])
+        _float_equal(_number_to, _to_list[ii], epsi=_epsi_list[ii])
+        pass
         
     
-    1w 总之就是所有东西都写成了不带batch的写法。。。。要把所有dim改一遍。
+    #1w 总之就是所有东西都写成了不带batch的写法。。。。要把所有dim改一遍。
     
     # batch>1
     the_tensor = torch.tensor( [[1.,2,3,4,5],
                                 [5.,2,3,4,1]])
     the_result = torch.tensor([[False,False,False,False,True],
                                 [True,False,False,False,False]])
-    _result_tuple__tensor__list = get_mask_of_top_element__rough(the_tensor, top_ratio=0.01)[0].eq(the_result).all()
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(the_tensor, top_ratio=0.01)
     assert _result_tuple__tensor__list[0].eq(the_result).all()
     the_tensor = torch.tensor( [[1.,2,3,4,5],
                                 [5.,2,3,4,1]], device='cuda')
     the_result = torch.tensor([[False,False,False,False,True],
                                 [True,False,False,False,False]], device='cuda')
-    _result_tuple__tensor__list = get_mask_of_top_element__rough(the_tensor, top_ratio=0.01)[0].eq(the_result).all()
+    _result_tuple__tensor__list = get_mask_of_top_element__rough(the_tensor, top_ratio=0.01)
     assert _result_tuple__tensor__list[0].eq(the_result).all()
+    
+    
     
     pass
 
