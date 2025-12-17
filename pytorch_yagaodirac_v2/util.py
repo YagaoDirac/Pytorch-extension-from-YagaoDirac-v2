@@ -90,311 +90,314 @@ if '''some basic test.''' and __DEBUG_ME__() and True:
 
 
 
-# def protect_rotation_matrix(input:torch.Tensor, epi = 0.000001):#->torch.Tensor:
-#     if len(input.shape)!=2:
-#         raise Exception("send matrix here.")
-#     dim = input.shape[0]
-#     if dim!=input.shape[1]:
-#         raise Exception("It must be square.")
-    
-#     with torch.no_grad():
-#         # two_triagles = (input-input.T)*0.5
-#         # diagonal = input.mul(torch.eye(dim))
-#         # output_raw = two_triagles+diagonal
+
+if "old rotation neural net related" and False:
+
+
+    # def protect_rotation_matrix(input:torch.Tensor, epi = 0.000001):#->torch.Tensor:
+    #     if len(input.shape)!=2:
+    #         raise Exception("send matrix here.")
+    #     dim = input.shape[0]
+    #     if dim!=input.shape[1]:
+    #         raise Exception("It must be square.")
         
-#         length_of_output_raw_b = input.mul(input).sum(dim=1,keepdim=False).sqrt()
-#         epi_tensor = torch.tensor([epi], device=length_of_output_raw_b.device, dtype=length_of_output_raw_b.dtype)
-#         length_of_output_raw_safe_b = length_of_output_raw_b.maximum(epi_tensor)
-#         sqrt_of_length_b = length_of_output_raw_safe_b.sqrt()
-#         #result = input/length_of_input_safe_b#.unsqueeze(dim=1)
-#         output = input/sqrt_of_length_b.unsqueeze(dim=1)/sqrt_of_length_b.unsqueeze(dim=0)
-        
-#         raise Exception("test not passed..")
-#         fds=432
-    
-#     #output = vector_length_norm(output_raw)#shape is intentional.
-    
-#     return output
-# raw_from_randn = torch.tensor([[0.5,2],[3.,4]])#randn([2,2])
-# rotation_matrix = protect_rotation_matrix(raw_from_randn)
-# print(rotation_matrix[0].mul(rotation_matrix[0]).sum())
-# print(rotation_matrix[1].mul(rotation_matrix[1]).sum())
-# print(rotation_matrix.T[0].mul(rotation_matrix.T[0]).sum())
-# print(rotation_matrix.T[1].mul(rotation_matrix.T[1]).sum())
-# unit_length_vec = vector_length_norm(torch.randn([1,2])).unsqueeze(dim=2)
-# print(unit_length_vec.mul(unit_length_vec).sum(), "unit_length_vec")
-# after_rotation = rotation_matrix.matmul(unit_length_vec).squeeze(dim=2)
-# print(after_rotation.mul(after_rotation).sum())
-# length_after_rotation = after_rotation.mul(after_rotation).sum(dim=1)
-
-# fds=432
-    
-    
-        
-
-
-
-# def float_to_spherical(input:torch.Tensor, mix = False)->torch.Tensor:
-#     '''Basically, the mix flag only helps with debug. It may be slower a bit.'''
-#     if len(input.shape)!=2:
-#         raise Exception("The shape must be [batch, dim]")
-#     if input.amax()>1. or input.amin()<0.:
-#         raise Exception("Value must be inside [0., 1.] (both included.)")
-#     input_in_rad =  input*torch.pi/2.
-#     the_cos = input_in_rad.cos()
-#     the_sin = input_in_rad.sin()
-#     if not mix:
-#         result = torch.concat([the_cos, the_sin], dim=1)
-#         return result
-#     the_cos = the_cos.unsqueeze(dim=2)
-#     the_sin = the_sin.unsqueeze(dim=2)
-#     result = torch.concat([the_cos, the_sin], dim=2)
-#     result = result.view([input.shape[0], -1])
-#     return result
-# '''some basic test.'''
-# input = torch.tensor([[0., 0.33333, 0.5], [0.6, 0.7, 0.8]])
-# print(float_to_spherical(input))
-# print(float_to_spherical(input, True))
-# fds=432
-        
-
-# def spherical_to_float(input:torch.Tensor, mix = False, rigorous = False)->torch.Tensor:
-#     if len(input.shape)!=2:
-#         raise Exception("The shape must be [batch, dim]")
-#     if input.shape[1]%2 == 1:
-#         raise Exception("The dim must be 2x something. They are pairs of cos and sin.")
-#     if rigorous and (input.amax()>1. or input.amin()<0.):
-#         raise Exception("Value must be inside [0., 1.] (both included.). Or set the param:rigorous to False.")
-#     if not mix:
-#         reshaped_input = input.view([input.shape[0], 2, -1])
-#         the_cos = reshaped_input[:,0,:]
-#         the_sin = reshaped_input[:,1,:]
-#         result_in_rad = torch.atan2(the_sin, the_cos)
-#         result = result_in_rad*2./torch.pi
-#         return result
-#     # mixed.
-#     reshaped_input = input.view([input.shape[0], -1, 2])
-#     the_cos = reshaped_input[:,:,0]
-#     the_sin = reshaped_input[:,:,1]
-#     result_in_rad = torch.atan2(the_sin, the_cos)
-#     result = result_in_rad*2./torch.pi
-#     return result
-# '''some basic test.'''
-# temp = torch.tensor([[0., 0.33333, 0.5], [0.6, 0.7, 0.8]])
-# input = float_to_spherical(temp)
-# print(spherical_to_float(input))
-# input = float_to_spherical(temp, mix=True)
-# print(spherical_to_float(input, mix=True))
-# fds=432
-
-
-
-
-# 写法是v1的写法。而且应该是多输出的。
-# 需要额外写一个function.set_materialize什么什么函数的实例。
-# class Grad_Balancer_2out_Function(torch.autograd.Function):
-#     r'''This class is not designed to be used directly.
-#     A critical safety check is in the wrapper class.    
-#     '''
-#     @staticmethod
-#     def forward(ctx: Any, *args: Any, **kwargs: Any)->Any:
-#         x:torch.Tensor = args[0]
-#         factor_for_path_1 = args[1]
-#         factor_for_path_2 = args[2]
-#         ctx.save_for_backward(factor_for_path_1, factor_for_path_2)
-        
-#         x = torch.stack([x, x], dim=0)
-#         x = x.requires_grad_()
-#         return x
-
-#     @staticmethod
-#     def backward(ctx, g):
-#         #super().backward()
-#         # factor_for_path_1:torch.Tensor
-#         # factor_for_path_2:torch.Tensor
-#         factor_for_path_1, factor_for_path_2 = ctx.saved_tensors
-        
-#         return g[0]*factor_for_path_1+g[1]*factor_for_path_2, None, None
-
-#     pass  # class
-# if '''some basic test.''' and __DEBUG_ME__() and True:
-#     input = torch.tensor([1., 2., 3.], requires_grad=True)
-#     factor_for_path_1 = torch.tensor([0.1])
-#     factor_for_path_2 = torch.tensor([0.01])
-#     output = Grad_Balancer_2out_Function.apply(input, factor_for_path_1, factor_for_path_2)
-#     print(output, "output")
-#     g_in = torch.ones_like(output)
-#     torch.autograd.backward(output, g_in,inputs= input)
-#     print(input.grad, "grad")
-#     pass
-
-
-
-
-# class Grad_Balancer_2out(torch.nn.Module):
-#     r"""This is a wrapper class. It helps you use the inner functional properly.
-    
-#     It duplicates the forward path, 
-#     and multiplies the gradient from different backward path with a given weight.
-#     """
-#     def __init__(self, factor1:float, factor2:float, \
-#                     device=None, dtype=None) -> None:
-#         # factory_kwargs = {'device': device, 'dtype': dtype}
-#         super().__init__()
-        
-#         if factor1<=0.:
-#             raise Exception("Param:factor1 must > 0.")
-#         if factor2<=0.:
-#             raise Exception("Param:factor2 must > 0.")
-        
-#         self.factor_for_path_1 = torch.Tensor([factor1])
-#         self.factor_for_path_2 = torch.Tensor([factor2])
-#         pass
-#     def forward(self, x:torch.Tensor)->torch.Tensor:
-#         # If you know how pytorch works, you can comment this checking out.
-#         if self.training and (not x.requires_grad):
-#             raise Exception("Set x.requires_grad to True. If you know what you are doing, you can comment this line.")
-
-#         #forward(ctx, x:torch.Tensor, scaling_ratio:torch.Tensor, epi=torch.Tensor, \
-#         #div_me_when_g_too_small:torch.Tensor)->torch.Tensor:
-#         return Grad_Balancer_2out_Function.apply(x, self.factor_for_path_1, self.factor_for_path_2)
-
-#     pass # class
-# if '''some basic test.''' and __DEBUG_ME__() and True:
-#     layer = Grad_Balancer_2out(0.1, 0.02)
-#     input = torch.tensor([1., 2., 3.], requires_grad=True)
-#     output = layer(input)
-#     print(output, "output")
-#     g_in = torch.ones_like(output)
-#     torch.autograd.backward(output, g_in,inputs= input)
-#     print(input.grad, "grad")
-#     pass
-
-
-
-# class Grad_Balancer_Function(torch.autograd.Function):
-#     r'''This class is not designed to be used directly.
-#     A critical safety check is in the wrapper class.    
-#     '''
-#     @staticmethod
-#     def forward(ctx: Any, *args: Any, **kwargs: Any)->Any:
-#         x:torch.Tensor = args[0]
-#         factor = args[1]
-#         x = x.unsqueeze(dim=0)
-#         result = x
-        
-#         for _ in range(1, len(factor)):
-#             result = torch.concat([result,x], dim=0)
-        
-#         ctx.save_for_backward(factor)
-        
-#         result = result.requires_grad_()
-#         return result
-
-#     @staticmethod
-#     def backward(ctx, g):
-#         #super().backward()
-#         (factor,) = ctx.saved_tensors#this gives a TUPLE!!!
-#         g_out = torch.zeros_like(g[0])
-        
-#         for i in range(len(factor)):
-#             g_out += g[i]*(factor[i].item())
+    #     with torch.no_grad():
+    #         # two_triagles = (input-input.T)*0.5
+    #         # diagonal = input.mul(torch.eye(dim))
+    #         # output_raw = two_triagles+diagonal
             
-#         return g_out, None
-
-#     pass  # class
-# if '''some basic test.''' and __DEBUG_ME__() and True:
-#     input = torch.tensor([1., 2.], requires_grad=True)
-#     factor = torch.tensor([0.1, 0.02, 0.003])
-#     output = Grad_Balancer_Function.apply(input, factor)
-#     print(output, "output")
-#     g_in = torch.ones_like(output)
-#     torch.autograd.backward(output, g_in,inputs= input)
-#     print(input.grad, "grad")
-
-#     input = torch.tensor([[1., 2.], [3., 4.], ], requires_grad=True)
-#     factor = torch.tensor([0.1, 0.02, 0.003])
-#     output = Grad_Balancer_Function.apply(input, factor)
-#     print(output, "output")
-#     g_in = torch.ones_like(output)
-#     torch.autograd.backward(output, g_in,inputs= input)
-#     print(input.grad, "grad")
-#     pass
-
-
-
-
-# class Grad_Balancer(torch.nn.Module):
-#     r"""This is a wrapper class. It helps you use the inner functional properly.
-    
-#     It duplicates the forward path, 
-#     and multiplies the gradient from different backward path with a given weight.
-#     """
-#     def __init__(self, weight_tensor_for_grad:torch.Tensor = torch.Tensor([1., 1.]), \
-#                     device=None, dtype=None) -> None:
-#         # factory_kwargs = {'device': device, 'dtype': dtype}
-#         super().__init__()
-#         if len(weight_tensor_for_grad.shape)!=1:
-#             raise Exception("Param:weight_tensor_for_grad should be a vector.")
-#         for i in range(len(weight_tensor_for_grad)):
-#             if weight_tensor_for_grad[i]<=0.:
-#                 raise Exception(f'The [{i}] element in the factor tensor is <=0.. It must be >0..')
+    #         length_of_output_raw_b = input.mul(input).sum(dim=1,keepdim=False).sqrt()
+    #         epi_tensor = torch.tensor([epi], device=length_of_output_raw_b.device, dtype=length_of_output_raw_b.dtype)
+    #         length_of_output_raw_safe_b = length_of_output_raw_b.maximum(epi_tensor)
+    #         sqrt_of_length_b = length_of_output_raw_safe_b.sqrt()
+    #         #result = input/length_of_input_safe_b#.unsqueeze(dim=1)
+    #         output = input/sqrt_of_length_b.unsqueeze(dim=1)/sqrt_of_length_b.unsqueeze(dim=0)
             
-#         self.weight_tensor_for_grad = weight_tensor_for_grad
-#         pass
-#     def forward(self, x:torch.Tensor)->torch.Tensor:
-#         # If you know how pytorch works, you can comment this checking out.
-#         if self.training and (not x.requires_grad):
-#             raise Exception("Set x.requires_grad to True. If you know what you are doing, you can comment this line.")
+    #         raise Exception("test not passed..")
+    #         fds=432
+        
+    #     #output = vector_length_norm(output_raw)#shape is intentional.
+        
+    #     return output
+    # raw_from_randn = torch.tensor([[0.5,2],[3.,4]])#randn([2,2])
+    # rotation_matrix = protect_rotation_matrix(raw_from_randn)
+    # print(rotation_matrix[0].mul(rotation_matrix[0]).sum())
+    # print(rotation_matrix[1].mul(rotation_matrix[1]).sum())
+    # print(rotation_matrix.T[0].mul(rotation_matrix.T[0]).sum())
+    # print(rotation_matrix.T[1].mul(rotation_matrix.T[1]).sum())
+    # unit_length_vec = vector_length_norm(torch.randn([1,2])).unsqueeze(dim=2)
+    # print(unit_length_vec.mul(unit_length_vec).sum(), "unit_length_vec")
+    # after_rotation = rotation_matrix.matmul(unit_length_vec).squeeze(dim=2)
+    # print(after_rotation.mul(after_rotation).sum())
+    # length_after_rotation = after_rotation.mul(after_rotation).sum(dim=1)
 
-#         #forward(ctx, x:torch.Tensor, scaling_ratio:torch.Tensor, epi=torch.Tensor, \
-#         #div_me_when_g_too_small:torch.Tensor)->torch.Tensor:
-#         return Grad_Balancer_Function.apply(x, self.weight_tensor_for_grad)
-# if '''some basic test.''' and __DEBUG_ME__() and True:
-#     factor = torch.tensor([0.1, 0.02, 0.003])
-#     layer = Grad_Balancer(factor)
-#     input = torch.tensor([1., 2.], requires_grad=True)
-#     output = layer(input)
-#     print(output, "output")
-#     g_in = torch.ones_like(output)
-#     torch.autograd.backward(output, g_in,inputs= input)
-#     print(input.grad, "grad")
-#     pass
-
-
-
-
+    # fds=432
+        
+        
+            
 
 
-# 应该是过时了，以前gramo没有维度自适应的，现在有了，这个就不用了。
-# def init_weight_vec_len_maintaining(in_features:int, out_features:int)->Tuple[torch.Tensor, float]:
-#     '''output list:
-#     >>> weight:torch.Tensor
-#     >>> recommended scaling ratio for gramo after this weight:float
-    
-#     The reason:
-    
-#     This init only provides weight (no bias). If the input x has a vector-length of 1., 
-#     after matmul ,it's still very close to 1. Unless the dim is very small.
-#     >>> in_features = 300
-#     >>> out_features = 400
-#     >>> for _ in range(5):
-#     >>>     input_temp = torch.rand([1,in_features, 1])
-#     >>>     length_of_input_temp = input_temp.mul(input_temp).sum().sqrt()
-#     >>>     input = input_temp/length_of_input_temp
-#     >>>     debug_checks_the_length = input.mul(input).sum()
-#     >>>     the_factor = math.sqrt(3.)/math.sqrt(out_features)#*in_features)
-#     >>>     w = (torch.rand([out_features, in_features])*2.-1.)*the_factor
-#     >>>     output = w.matmul(input)
-#     >>>     print(output.mul(output).sum())
-#     I want the vector length of output always near to 1.
-#     '''
-#     sqrt_3 = math.sqrt(3.)
-#     the_factor = sqrt_3/math.sqrt(out_features)#*in_features)
-    
-#     #the_factor = 3./math.sqrt(out_features)#*in_features)
-#     result = (torch.rand([out_features, in_features])*2.-1.)*the_factor
-#     return result, sqrt_3
+
+    # def float_to_spherical(input:torch.Tensor, mix = False)->torch.Tensor:
+    #     '''Basically, the mix flag only helps with debug. It may be slower a bit.'''
+    #     if len(input.shape)!=2:
+    #         raise Exception("The shape must be [batch, dim]")
+    #     if input.amax()>1. or input.amin()<0.:
+    #         raise Exception("Value must be inside [0., 1.] (both included.)")
+    #     input_in_rad =  input*torch.pi/2.
+    #     the_cos = input_in_rad.cos()
+    #     the_sin = input_in_rad.sin()
+    #     if not mix:
+    #         result = torch.concat([the_cos, the_sin], dim=1)
+    #         return result
+    #     the_cos = the_cos.unsqueeze(dim=2)
+    #     the_sin = the_sin.unsqueeze(dim=2)
+    #     result = torch.concat([the_cos, the_sin], dim=2)
+    #     result = result.view([input.shape[0], -1])
+    #     return result
+    # '''some basic test.'''
+    # input = torch.tensor([[0., 0.33333, 0.5], [0.6, 0.7, 0.8]])
+    # print(float_to_spherical(input))
+    # print(float_to_spherical(input, True))
+    # fds=432
+            
+
+    # def spherical_to_float(input:torch.Tensor, mix = False, rigorous = False)->torch.Tensor:
+    #     if len(input.shape)!=2:
+    #         raise Exception("The shape must be [batch, dim]")
+    #     if input.shape[1]%2 == 1:
+    #         raise Exception("The dim must be 2x something. They are pairs of cos and sin.")
+    #     if rigorous and (input.amax()>1. or input.amin()<0.):
+    #         raise Exception("Value must be inside [0., 1.] (both included.). Or set the param:rigorous to False.")
+    #     if not mix:
+    #         reshaped_input = input.view([input.shape[0], 2, -1])
+    #         the_cos = reshaped_input[:,0,:]
+    #         the_sin = reshaped_input[:,1,:]
+    #         result_in_rad = torch.atan2(the_sin, the_cos)
+    #         result = result_in_rad*2./torch.pi
+    #         return result
+    #     # mixed.
+    #     reshaped_input = input.view([input.shape[0], -1, 2])
+    #     the_cos = reshaped_input[:,:,0]
+    #     the_sin = reshaped_input[:,:,1]
+    #     result_in_rad = torch.atan2(the_sin, the_cos)
+    #     result = result_in_rad*2./torch.pi
+    #     return result
+    # '''some basic test.'''
+    # temp = torch.tensor([[0., 0.33333, 0.5], [0.6, 0.7, 0.8]])
+    # input = float_to_spherical(temp)
+    # print(spherical_to_float(input))
+    # input = float_to_spherical(temp, mix=True)
+    # print(spherical_to_float(input, mix=True))
+    # fds=432
+    pass
+
+if "grad balancer,          not in use at the moment" and False:
+
+    # 写法是v1的写法。而且应该是多输出的。
+    # 需要额外写一个function.set_materialize什么什么函数的实例。
+    # class Grad_Balancer_2out_Function(torch.autograd.Function):
+    #     r'''This class is not designed to be used directly.
+    #     A critical safety check is in the wrapper class.    
+    #     '''
+    #     @staticmethod
+    #     def forward(ctx: Any, *args: Any, **kwargs: Any)->Any:
+    #         x:torch.Tensor = args[0]
+    #         factor_for_path_1 = args[1]
+    #         factor_for_path_2 = args[2]
+    #         ctx.save_for_backward(factor_for_path_1, factor_for_path_2)
+            
+    #         x = torch.stack([x, x], dim=0)
+    #         x = x.requires_grad_()
+    #         return x
+
+    #     @staticmethod
+    #     def backward(ctx, g):
+    #         #super().backward()
+    #         # factor_for_path_1:torch.Tensor
+    #         # factor_for_path_2:torch.Tensor
+    #         factor_for_path_1, factor_for_path_2 = ctx.saved_tensors
+            
+    #         return g[0]*factor_for_path_1+g[1]*factor_for_path_2, None, None
+
+    #     pass  # class
+    # if '''some basic test.''' and __DEBUG_ME__() and True:
+    #     input = torch.tensor([1., 2., 3.], requires_grad=True)
+    #     factor_for_path_1 = torch.tensor([0.1])
+    #     factor_for_path_2 = torch.tensor([0.01])
+    #     output = Grad_Balancer_2out_Function.apply(input, factor_for_path_1, factor_for_path_2)
+    #     print(output, "output")
+    #     g_in = torch.ones_like(output)
+    #     torch.autograd.backward(output, g_in,inputs= input)
+    #     print(input.grad, "grad")
+    #     pass
+
+
+
+
+    # class Grad_Balancer_2out(torch.nn.Module):
+    #     r"""This is a wrapper class. It helps you use the inner functional properly.
+        
+    #     It duplicates the forward path, 
+    #     and multiplies the gradient from different backward path with a given weight.
+    #     """
+    #     def __init__(self, factor1:float, factor2:float, \
+    #                     device=None, dtype=None) -> None:
+    #         # factory_kwargs = {'device': device, 'dtype': dtype}
+    #         super().__init__()
+            
+    #         if factor1<=0.:
+    #             raise Exception("Param:factor1 must > 0.")
+    #         if factor2<=0.:
+    #             raise Exception("Param:factor2 must > 0.")
+            
+    #         self.factor_for_path_1 = torch.Tensor([factor1])
+    #         self.factor_for_path_2 = torch.Tensor([factor2])
+    #         pass
+    #     def forward(self, x:torch.Tensor)->torch.Tensor:
+    #         # If you know how pytorch works, you can comment this checking out.
+    #         if self.training and (not x.requires_grad):
+    #             raise Exception("Set x.requires_grad to True. If you know what you are doing, you can comment this line.")
+
+    #         #forward(ctx, x:torch.Tensor, scaling_ratio:torch.Tensor, epi=torch.Tensor, \
+    #         #div_me_when_g_too_small:torch.Tensor)->torch.Tensor:
+    #         return Grad_Balancer_2out_Function.apply(x, self.factor_for_path_1, self.factor_for_path_2)
+
+    #     pass # class
+    # if '''some basic test.''' and __DEBUG_ME__() and True:
+    #     layer = Grad_Balancer_2out(0.1, 0.02)
+    #     input = torch.tensor([1., 2., 3.], requires_grad=True)
+    #     output = layer(input)
+    #     print(output, "output")
+    #     g_in = torch.ones_like(output)
+    #     torch.autograd.backward(output, g_in,inputs= input)
+    #     print(input.grad, "grad")
+    #     pass
+
+
+
+    # class Grad_Balancer_Function(torch.autograd.Function):
+    #     r'''This class is not designed to be used directly.
+    #     A critical safety check is in the wrapper class.    
+    #     '''
+    #     @staticmethod
+    #     def forward(ctx: Any, *args: Any, **kwargs: Any)->Any:
+    #         x:torch.Tensor = args[0]
+    #         factor = args[1]
+    #         x = x.unsqueeze(dim=0)
+    #         result = x
+            
+    #         for _ in range(1, len(factor)):
+    #             result = torch.concat([result,x], dim=0)
+            
+    #         ctx.save_for_backward(factor)
+            
+    #         result = result.requires_grad_()
+    #         return result
+
+    #     @staticmethod
+    #     def backward(ctx, g):
+    #         #super().backward()
+    #         (factor,) = ctx.saved_tensors#this gives a TUPLE!!!
+    #         g_out = torch.zeros_like(g[0])
+            
+    #         for i in range(len(factor)):
+    #             g_out += g[i]*(factor[i].item())
+                
+    #         return g_out, None
+
+    #     pass  # class
+    # if '''some basic test.''' and __DEBUG_ME__() and True:
+    #     input = torch.tensor([1., 2.], requires_grad=True)
+    #     factor = torch.tensor([0.1, 0.02, 0.003])
+    #     output = Grad_Balancer_Function.apply(input, factor)
+    #     print(output, "output")
+    #     g_in = torch.ones_like(output)
+    #     torch.autograd.backward(output, g_in,inputs= input)
+    #     print(input.grad, "grad")
+
+    #     input = torch.tensor([[1., 2.], [3., 4.], ], requires_grad=True)
+    #     factor = torch.tensor([0.1, 0.02, 0.003])
+    #     output = Grad_Balancer_Function.apply(input, factor)
+    #     print(output, "output")
+    #     g_in = torch.ones_like(output)
+    #     torch.autograd.backward(output, g_in,inputs= input)
+    #     print(input.grad, "grad")
+    #     pass
+
+
+
+
+    # class Grad_Balancer(torch.nn.Module):
+    #     r"""This is a wrapper class. It helps you use the inner functional properly.
+        
+    #     It duplicates the forward path, 
+    #     and multiplies the gradient from different backward path with a given weight.
+    #     """
+    #     def __init__(self, weight_tensor_for_grad:torch.Tensor = torch.Tensor([1., 1.]), \
+    #                     device=None, dtype=None) -> None:
+    #         # factory_kwargs = {'device': device, 'dtype': dtype}
+    #         super().__init__()
+    #         if len(weight_tensor_for_grad.shape)!=1:
+    #             raise Exception("Param:weight_tensor_for_grad should be a vector.")
+    #         for i in range(len(weight_tensor_for_grad)):
+    #             if weight_tensor_for_grad[i]<=0.:
+    #                 raise Exception(f'The [{i}] element in the factor tensor is <=0.. It must be >0..')
+                
+    #         self.weight_tensor_for_grad = weight_tensor_for_grad
+    #         pass
+    #     def forward(self, x:torch.Tensor)->torch.Tensor:
+    #         # If you know how pytorch works, you can comment this checking out.
+    #         if self.training and (not x.requires_grad):
+    #             raise Exception("Set x.requires_grad to True. If you know what you are doing, you can comment this line.")
+
+    #         #forward(ctx, x:torch.Tensor, scaling_ratio:torch.Tensor, epi=torch.Tensor, \
+    #         #div_me_when_g_too_small:torch.Tensor)->torch.Tensor:
+    #         return Grad_Balancer_Function.apply(x, self.weight_tensor_for_grad)
+    # if '''some basic test.''' and __DEBUG_ME__() and True:
+    #     factor = torch.tensor([0.1, 0.02, 0.003])
+    #     layer = Grad_Balancer(factor)
+    #     input = torch.tensor([1., 2.], requires_grad=True)
+    #     output = layer(input)
+    #     print(output, "output")
+    #     g_in = torch.ones_like(output)
+    #     torch.autograd.backward(output, g_in,inputs= input)
+    #     print(input.grad, "grad")
+    #     pass
+    pass
+
+if "probably the old gramo???" and False:
+
+    # 应该是过时了，以前gramo没有维度自适应的，现在有了，这个就不用了。
+    # def init_weight_vec_len_maintaining(in_features:int, out_features:int)->Tuple[torch.Tensor, float]:
+    #     '''output list:
+    #     >>> weight:torch.Tensor
+    #     >>> recommended scaling ratio for gramo after this weight:float
+        
+    #     The reason:
+        
+    #     This init only provides weight (no bias). If the input x has a vector-length of 1., 
+    #     after matmul ,it's still very close to 1. Unless the dim is very small.
+    #     >>> in_features = 300
+    #     >>> out_features = 400
+    #     >>> for _ in range(5):
+    #     >>>     input_temp = torch.rand([1,in_features, 1])
+    #     >>>     length_of_input_temp = input_temp.mul(input_temp).sum().sqrt()
+    #     >>>     input = input_temp/length_of_input_temp
+    #     >>>     debug_checks_the_length = input.mul(input).sum()
+    #     >>>     the_factor = math.sqrt(3.)/math.sqrt(out_features)#*in_features)
+    #     >>>     w = (torch.rand([out_features, in_features])*2.-1.)*the_factor
+    #     >>>     output = w.matmul(input)
+    #     >>>     print(output.mul(output).sum())
+    #     I want the vector length of output always near to 1.
+    #     '''
+    #     sqrt_3 = math.sqrt(3.)
+    #     the_factor = sqrt_3/math.sqrt(out_features)#*in_features)
+        
+    #     #the_factor = 3./math.sqrt(out_features)#*in_features)
+    #     result = (torch.rand([out_features, in_features])*2.-1.)*the_factor
+    #     return result, sqrt_3
+    pass
 
 
 
@@ -449,10 +452,6 @@ def debug_strong_grad_ratio(parameter:torch.nn.parameter.Parameter, log10_diff =
         print(result, "inside debug_micro_grad_ratio function __line 1082")
         pass
     return result
-
-
-
-
 
 
 
@@ -524,15 +523,13 @@ def get_mask_of_top_element__rough(input__b_i:torch.Tensor, top_ratio = 0.9, err
         else:
             # if the assertions don't pass, modify it. I didn't test it very carefully. 
             # simply reference the line above.
-            if epsilon__for_binary_search.shape == torch.Size([1])
-                epsilon__for_binary_search__s = epsilon__for_binary_search.clone().to(input__b_i.device)
+            assert isinstance(epsilon__for_binary_search, torch.Tensor)
+            assert epsilon__for_binary_search.dtype == input__b_i.dtype
+            epsilon__for_binary_search__s = epsilon__for_binary_search.clone().to(input__b_i.device)
+            if epsilon__for_binary_search.shape == torch.Size([]):
+                epsilon__for_binary_search__s = epsilon__for_binary_search__s.reshape([1,])
                 pass
-            elif epsilon__for_binary_search.shape == torch.Size([])
-                epsilon__for_binary_search__s = epsilon__for_binary_search.clone().to(input__b_i.device).reshape([1])
-                pass
-
-            assert epsilon__for_binary_search__s.shape == [1,]
-            assert epsilon__for_binary_search__s.dtype == input__b_i.dtype
+            assert epsilon__for_binary_search__s.shape == torch.Size([1])
         pass
     if (_log is not None) and _needs_log__before_loop:
         _log["before_loop"] = [f"epsilon__for_binary_search:{epsilon__for_binary_search}"]
@@ -670,7 +667,7 @@ def get_mask_of_top_element__rough(input__b_i:torch.Tensor, top_ratio = 0.9, err
             #the real comparison
             RESULT__if__input_gt_guess__b_i = torch.zeros_like(input__b_i, dtype=torch.bool)
             RESULT__if__input_gt_guess__b_i[~if_finished__b] = input__b_i[~if_finished__b].gt \
-                                                (_guess_threshold__b[~if_finished__b].expand([1,_element_per_batch__s]))
+                                                (_guess_threshold__b[~if_finished__b].reshape([-1,1]).expand([-1,_element_per_batch__s]))
             #if guessed too big, then, less true
             _input_gt_guess__count__b[~if_finished__b] = RESULT__if__input_gt_guess__b_i[~if_finished__b].sum(dim=1, dtype=int_dtype)
             #_guess_count = flag_result.to(int_dtype).sum(dim=1)
@@ -894,56 +891,59 @@ if "test" and __DEBUG_ME__() and True:
             lower_bound = (n-2)*(top_ratio - error_of_ratio)+_floor_offset
             upper_bound = (n-2)*(top_ratio + error_of_ratio)+_floor_offset
             #print(f"{top_ratio:.2f}, {lower_bound:.2f}/{upper_bound:.2f}")
+        pass
     
-    if "already tested " and False:
-        #a1 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.01, _debug_needs_log = True)
-        #a2 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.33, _debug_needs_log = True)
-        #a3 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.67, _debug_needs_log = True)
-        #a4 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.99, _debug_needs_log = True)
-        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.01)[0].eq(torch.tensor([False,False,False,False,True])).all()
-        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.33)[0].eq(torch.tensor([False,False,False,True,True])).all()
-        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.67)[0].eq(torch.tensor([False,False,True,True,True])).all()
-        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.99)[0].eq(torch.tensor([False,True,True,True,True])).all()
-        
-        assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.01)[0].eq(torch.tensor([True,False,False,False,False])).all()
-        assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.33)[0].eq(torch.tensor([True,False,False,True,False])).all()
-        
+    
+    
+    
+    #a1 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.01, _debug_needs_log = True)
+    #a2 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.33, _debug_needs_log = True)
+    #a3 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.67, _debug_needs_log = True)
+    #a4 = get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.99, _debug_needs_log = True)
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.01)[0].eq(torch.tensor([False,False,False,False,True])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.33)[0].eq(torch.tensor([False,False,False,True,True])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.67)[0].eq(torch.tensor([False,False,True,True,True])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.99)[0].eq(torch.tensor([False,True,True,True,True])).all()
+    
+    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.01)[0].eq(torch.tensor([True,False,False,False,False])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3,4,1]]),top_ratio=0.33)[0].eq(torch.tensor([True,False,False,True,False])).all()
+    
 
-        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.01,bottom=True)[0].eq(torch.tensor([True,False,False,False,False])).all()
-        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.33,bottom=True)[0].eq(torch.tensor([True,True,False,False,False])).all()
-        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.67,bottom=True)[0].eq(torch.tensor([True,True,True,False,False])).all()
-        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.99,bottom=True)[0].eq(torch.tensor([True,True,True,True,False])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.01,bottom=True)[0].eq(torch.tensor([True,False,False,False,False])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.33,bottom=True)[0].eq(torch.tensor([True,True,False,False,False])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.67,bottom=True)[0].eq(torch.tensor([True,True,True,False,False])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3,4,5]]),top_ratio=0.99,bottom=True)[0].eq(torch.tensor([True,True,True,True,False])).all()
+    
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.01)[0].eq(torch.tensor([False,False,True])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.99)[0].eq(torch.tensor([False,True,True])).all()
+    
+    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3]]),top_ratio=0.01)[0].eq(torch.tensor([True,False,False])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3]]),top_ratio=0.99)[0].eq(torch.tensor([True,False,True])).all()
+    
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.01,bottom=True)[0].eq(torch.tensor([True,False,False])).all()
+    assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.99,bottom=True)[0].eq(torch.tensor([True,True,False])).all()
+    
         
-        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.01)[0].eq(torch.tensor([False,False,True])).all()
-        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.99)[0].eq(torch.tensor([False,True,True])).all()
-        
-        assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3]]),top_ratio=0.01)[0].eq(torch.tensor([True,False,False])).all()
-        assert get_mask_of_top_element__rough(torch.tensor([[5.,2,3]]),top_ratio=0.99)[0].eq(torch.tensor([True,False,True])).all()
-        
-        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.01,bottom=True)[0].eq(torch.tensor([True,False,False])).all()
-        assert get_mask_of_top_element__rough(torch.tensor([[1.,2,3]]),top_ratio=0.99,bottom=True)[0].eq(torch.tensor([True,True,False])).all()
-        
+    _shift_by_list = [          6,          7,         14,         15,]
+    _int_dtype_list = [ torch.int8, torch.int16, torch.int16,torch.int32]
+    for ii in range(_shift_by_list.__len__()):
+        _shift_by = _shift_by_list[ii]
+        _1_left_shift_by_shift_by_ = 1<<_shift_by
+        for dtype in [torch.float16, torch.float32, torch.float64]:
+            _input = torch.rand(size=[1,_1_left_shift_by_shift_by_],dtype=dtype)
+            _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.9, _needs_log__before_loop = True, \
+                                                                                            _needs_log__basic_of_loop = True)
+            _the_sum = _result_tuple__tensor__list[0].sum().item()
+            assert _the_sum>(_1_left_shift_by_shift_by_)*0.8
+            assert _the_sum<(_1_left_shift_by_shift_by_)
             
-        _shift_by_list = [          6,          7,         14,         15,]
-        _int_dtype_list = [ torch.int8, torch.int16, torch.int16,torch.int32]
-        for ii in range(_shift_by_list.__len__()):
-            _shift_by = _shift_by_list[ii]
-            _1_left_shift_by_shift_by_ = 1<<_shift_by
-            for dtype in [torch.float16, torch.float32, torch.float64]:
-                _input = torch.rand(size=[1,_1_left_shift_by_shift_by_],dtype=dtype)
-                _result_tuple__tensor__list = get_mask_of_top_element__rough(_input,top_ratio=0.9, _needs_log__before_loop = True, \
-                                                                                                _needs_log__basic_of_loop = True)
-                _the_sum = _result_tuple__tensor__list[0].sum().item()
-                assert _the_sum>(_1_left_shift_by_shift_by_)*0.8
-                assert _the_sum<(_1_left_shift_by_shift_by_)
-                
-                _log = _result_tuple__tensor__list[1]
-                assert _log
-                assert _log["before_loop"][1]
-                assert _log["before_loop"][1] == f"int type:{_int_dtype_list[ii]}"
-                assert _log["in_loop"].__len__() >1
-                
-            pass
+            _log = _result_tuple__tensor__list[1]
+            assert _log
+            assert _log["before_loop"][1]
+            assert _log["before_loop"][1] == f"int type:{_int_dtype_list[ii]}"
+            assert _log["in_loop"].__len__() >1
+            
+        pass
 
     # epsilon
     # epsilon helps when all elements are equal or nearly equal.
@@ -1070,7 +1070,6 @@ if "test" and __DEBUG_ME__() and True:
         pass
         
     
-    #1w 总之就是所有东西都写成了不带batch的写法。。。。要把所有dim改一遍。
     
     # batch>1
     the_tensor = torch.tensor( [[1.,2,3,4,5],
@@ -1090,133 +1089,121 @@ if "test" and __DEBUG_ME__() and True:
     
     pass
 
-
-
-def 应该是不用了get_top_ratio如果没改就不要了_上面已经搞定了(input:torch.Tensor, top_ratio = 0.5, error_of_ratio = 0.01, \
-                            bottom = False)->torch.Tensor:
-    ''' 
-    return shape is the same as input. dtype of return is torch.bool.
-    
-    if shape is too small, this may not work.
-    '''
-    assert input.shape.__len__()==2
-    nelement_per_batch__s = input.shape[1]
-    with torch.no_grad():
-        #safety first
-        _at_least_this_amount__cpu_int = int(nelement_per_batch__s*(top_ratio - error_of_ratio)+0.4999999999999)
-        at_least_this_amount__s = torch.tensor(_at_least_this_amount__cpu_int, device=input.device)
-        _at_most_this_amount__cpu_int =  int(nelement_per_batch__s*(top_ratio + error_of_ratio)+0.4999999999999)
-        at_most_this_amount__s =  torch.tensor(_at_most_this_amount__cpu_int, device=input.device)
-        # if at_least_this_amount == at_most_this_amount: xxxxxxxxxxxxxx
-        #     at_most_this_amount = at_least_this_amount  +1
-        #     pass
-        if _at_least_this_amount__cpu_int >= nelement_per_batch__s:
-            _temp_tensor = torch.ones_like(input, dtype=torch.bool, device=input.device)
-            return _temp_tensor
-        if _at_most_this_amount__cpu_int <= 0.:
-            _temp_tensor = torch.zeros_like(input, dtype=torch.bool, device=input.device)
-            return _temp_tensor
-        assert error_of_ratio>=0.
+if "old version of get_mask_of_top_element__rough function" and False:
+    def 应该是不用了get_top_ratio如果没改就不要了_上面已经搞定了(input:torch.Tensor, top_ratio = 0.5, error_of_ratio = 0.01, \
+                                bottom = False)->torch.Tensor:
+        ''' 
+        return shape is the same as input. dtype of return is torch.bool.
         
-        #real job.
-        #best dtype for count the amount.
-        if nelement_per_batch__s<=(1<<8):
-            dtype = torch.uint8
-            pass
-        elif nelement_per_batch__s<=(1<<16):
-            dtype = torch.uint16
-            pass
-        elif nelement_per_batch__s<=(1<<32):
-            dtype = torch.uint32
-            pass
-        else:
-            dtype = torch.uint64
-            pass
-        # device = input.device
-        # param_factory = {"device":device, "dtype":dtype}
-        
-        #init before loop
-        _the_max_threshold__b:torch.Tensor = input.max(dim=1).values.to(torch.float64)
-        _the_min_threshold__b:torch.Tensor = input.min(dim=1).values.to(torch.float64)
-        #1w 加一个flag
-        #1w 加一个flag
-        #1w 加一个flag
-        #1w 加一个flag
-        #1w 加一个flag
-        #1w 加一个flag
-        #1w 加一个flag
-        #1w 加一个flag
-        #1w 加一个flag
-        #1w 加一个flag
-        #1w 加一个flag
-        #1w 加一个flag
-        #1w 加一个flag
-        #1w 加一个flag
-        while True:
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            #1w 加一个强制退出条件。
-            _guess_threshold = (_the_max_threshold__b+_the_min_threshold__b)/2.
-            if bottom:
-                flag_result = input.lt(_guess_threshold)
-                _guess_count = flag_result.to(dtype).sum()
-                if _guess_count>at_most_this_amount__s:
-                    _the_max_threshold__b = _guess_threshold
-                    pass
-                elif _guess_count<at_least_this_amount__s:
-                    _the_min_threshold__b = _guess_threshold
-                    pass
-                else:
-                    return flag_result
-                pass#if bottom:
-            else:#top
-                flag_result = input.gt(_guess_threshold)
-                _guess_count = flag_result.to(dtype).sum()
-                if _guess_count>at_most_this_amount__s:
-                    _the_min_threshold__b = _guess_threshold
-                    pass
-                elif _guess_count<at_least_this_amount__s:
-                    _the_max_threshold__b = _guess_threshold
-                    pass
-                else:
-                    return flag_result
-                pass#top
-                
-            pass#while
-        pass#  no_grad
-    pass# end of function
-    
+        if shape is too small, this may not work.
+        '''
+        assert input.shape.__len__()==2
+        nelement_per_batch__s = input.shape[1]
+        with torch.no_grad():
+            #safety first
+            _at_least_this_amount__cpu_int = int(nelement_per_batch__s*(top_ratio - error_of_ratio)+0.4999999999999)
+            at_least_this_amount__s = torch.tensor(_at_least_this_amount__cpu_int, device=input.device)
+            _at_most_this_amount__cpu_int =  int(nelement_per_batch__s*(top_ratio + error_of_ratio)+0.4999999999999)
+            at_most_this_amount__s =  torch.tensor(_at_most_this_amount__cpu_int, device=input.device)
+            # if at_least_this_amount == at_most_this_amount: xxxxxxxxxxxxxx
+            #     at_most_this_amount = at_least_this_amount  +1
+            #     pass
+            if _at_least_this_amount__cpu_int >= nelement_per_batch__s:
+                _temp_tensor = torch.ones_like(input, dtype=torch.bool, device=input.device)
+                return _temp_tensor
+            if _at_most_this_amount__cpu_int <= 0.:
+                _temp_tensor = torch.zeros_like(input, dtype=torch.bool, device=input.device)
+                return _temp_tensor
+            assert error_of_ratio>=0.
+            
+            #real job.
+            #best dtype for count the amount.
+            if nelement_per_batch__s<=(1<<8):
+                dtype = torch.uint8
+                pass
+            elif nelement_per_batch__s<=(1<<16):
+                dtype = torch.uint16
+                pass
+            elif nelement_per_batch__s<=(1<<32):
+                dtype = torch.uint32
+                pass
+            else:
+                dtype = torch.uint64
+                pass
+            # device = input.device
+            # param_factory = {"device":device, "dtype":dtype}
+            
+            #init before loop
+            _the_max_threshold__b:torch.Tensor = input.max(dim=1).values.to(torch.float64)
+            _the_min_threshold__b:torch.Tensor = input.min(dim=1).values.to(torch.float64)
+            #1w 加一个flag
+            #1w 加一个flag
+            #1w 加一个flag
+            #1w 加一个flag
+            #1w 加一个flag
+            #1w 加一个flag
+            #1w 加一个flag
+            #1w 加一个flag
+            #1w 加一个flag
+            #1w 加一个flag
+            #1w 加一个flag
+            #1w 加一个flag
+            #1w 加一个flag
+            #1w 加一个flag
+            while True:
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                #1w 加一个强制退出条件。
+                _guess_threshold = (_the_max_threshold__b+_the_min_threshold__b)/2.
+                if bottom:
+                    flag_result = input.lt(_guess_threshold)
+                    _guess_count = flag_result.to(dtype).sum()
+                    if _guess_count>at_most_this_amount__s:
+                        _the_max_threshold__b = _guess_threshold
+                        pass
+                    elif _guess_count<at_least_this_amount__s:
+                        _the_min_threshold__b = _guess_threshold
+                        pass
+                    else:
+                        return flag_result
+                    pass#if bottom:
+                else:#top
+                    flag_result = input.gt(_guess_threshold)
+                    _guess_count = flag_result.to(dtype).sum()
+                    if _guess_count>at_most_this_amount__s:
+                        _the_min_threshold__b = _guess_threshold
+                        pass
+                    elif _guess_count<at_least_this_amount__s:
+                        _the_max_threshold__b = _guess_threshold
+                        pass
+                    else:
+                        return flag_result
+                    pass#top
+                    
+                pass#while
+            pass#  no_grad
+        pass# end of function
+    pass# old code.        
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-def debug_avg_log10___no_batch_dim(input:torch.Tensor, top_ratio = 0.9)->float:
+def debug_avg_log10___no_batch_dim________not_finished(input:torch.Tensor, top_ratio = 0.9)->float:
     '''I dont really remember this function too much. 
     
     I believe it provides a avg of log10. 
@@ -1260,7 +1247,63 @@ if "test" and __DEBUG_ME__() and True:
 
 
 
-# backup code.
+def debug_avg_log10(input:torch.Tensor, top_ratio = 0.9)->float:
+    '''I dont really remember this function too much. 
+    
+    I believe it provides a avg of log10. 
+    
+    A lot lines in here is safety.
+    If the data has a lot elements very close to 0., this function may not be very helpful.
+    '''
+    assert input.shape.__len__() == 2
+    
+    the_log = input.abs().log10()
+    #safety
+    no_nan_log = the_log.nan_to_num(-999999.,posinf=-999999.,neginf=-999999.) 
+    #safe_log is safe.
+    useful_log:torch.Tensor = get_mask_of_top_element__rough(no_nan_log,)[0]
+    result = useful_log.mean(dim=1)
+    
+    assert result.shape.__len__() == 2
+    assert result.shape[1] == 1
+    
+    return result
+
+if "test" and __DEBUG_ME__() and True:
+    1w 继续。
+    input = torch.tensor([torch.nan, torch.inf, torch.inf*-1])
+    assert math.isnan(debug_avg_log10(input))
+    input = torch.tensor([torch.nan, torch.inf, torch.inf*-1, 0., -100])
+    assert _float_equal(debug_avg_log10(input), 2.)
+    input = torch.tensor([1e10,-1e20])
+    assert _float_equal(debug_avg_log10(input), 15.)
+    
+    assert False, "jixu batch还没有。"
+    input = torch.tensor([1,1,1,1,1,11e10,-1e20], top_percent = True)
+    assert _float_equal(debug_avg_log10___no_batch_dim(input), 15.)
+    
+    
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if "param strength measurement functions. Maybe reopen after maintainance." and False:
+
+    # backup code.
     # def debug_get_zero_grad_ratio(self, directly_print_out:float = False)->float:
     #     with torch.no_grad():
     #         result = 0.
@@ -1333,7 +1376,7 @@ if "test" and __DEBUG_ME__() and True:
     #         print(result, "inside debug_micro_grad_ratio function __line 1082")
     #         pass
     #     return result
-
+    pass
 
 
 
