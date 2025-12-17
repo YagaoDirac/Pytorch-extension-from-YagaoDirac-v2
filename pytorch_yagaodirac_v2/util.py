@@ -24,9 +24,9 @@ if "test" and False:
     c = _line_()
     pass
 
-def _float_equal(a:float, b:float, epsi:float = 0.0001)->bool:
-    assert epsi>0.
-    return abs(a-b)<epsi
+def _float_equal(a:float, b:float, epsilon:float = 0.0001)->bool:
+    assert epsilon>0.
+    return abs(a-b)<epsilon
 if "test" and __DEBUG_ME__() and True:
     assert _float_equal(1., 1.)
     assert _float_equal(1., 1.0000001)
@@ -35,7 +35,7 @@ if "test" and __DEBUG_ME__() and True:
     pass
 def _tensor_equal(  a:torch.Tensor|list[float]|list[list[float]], \
                     b:torch.Tensor|list[float]|list[list[float]], \
-                        epi:float = 0.0001)->bool:
+                        epsilon:float = 0.0001)->bool:
     if not isinstance(a, torch.Tensor):
         a = torch.tensor(a)
         pass
@@ -47,7 +47,7 @@ def _tensor_equal(  a:torch.Tensor|list[float]|list[list[float]], \
     with torch.inference_mode():
         diff = a-b
         abs_of_diff = diff.abs()
-        less_than = abs_of_diff.lt(epi)
+        less_than = abs_of_diff.lt(epsilon)
         after_all = less_than.all()
         assert after_all.dtype == torch.bool
         the_item = after_all.item()
@@ -494,12 +494,16 @@ def get_mask_of_top_element__rough(input__b_i:torch.Tensor, top_ratio = 0.9, err
     The function guaruntees to return nomatter what you provide, unless there's inf,-inf or nan. 
     I didn't test this extreme case. So please make sure the input is legit numbers.
     
-    return shape is the same as input. dtype of return is torch.bool.
+    Shape:
+    
+    Input is [batch, something], return shape is the same as input. dtype of return is torch.bool.
+    
+    Dimention name:
+    
+    shape is [*B*atch, *I*nput]
     
     if shape is too small, this may not work. Valid code uses 3 or 5 elements/batch, but this function is design 
         to process >10 elements/batch input.
-    
-    shape is [*B*atch, *I*nput]
     '''
     assert input.shape.__len__() == 2
     assert top_ratio>0.
@@ -1063,10 +1067,10 @@ if "test" and __DEBUG_ME__() and True:
         _pos_2 = _log_item.find("])", 40)
         #aaaaaa = _log_item[32:_pos_1]
         _number_from = float(_log_item[32:_pos_1])
-        _float_equal(_number_from, _from_list[ii], epsi=_epsi_list[ii])
+        _float_equal(_number_from, _from_list[ii], epsilon=_epsi_list[ii])
         #bbbbbb = _log_item[_pos_1+15:_pos_2]
         _number_to = float(_log_item[_pos_1+15:_pos_2])
-        _float_equal(_number_to, _to_list[ii], epsi=_epsi_list[ii])
+        _float_equal(_number_to, _to_list[ii], epsilon=_epsi_list[ii])
         pass
         
     
@@ -1200,10 +1204,8 @@ if "old version of get_mask_of_top_element__rough function" and False:
 
 
 
-
-
-
-def debug_avg_log10___no_batch_dim________not_finished(input:torch.Tensor, top_ratio = 0.9)->float:
+def ____debug_avg_log10___no_batch_dim________not_finished(input:torch.Tensor, top_ratio = 0.9)->float:
+    assert False, "not finished, and no plan for it."
     '''I dont really remember this function too much. 
     
     I believe it provides a avg of log10. 
@@ -1227,27 +1229,22 @@ def debug_avg_log10___no_batch_dim________not_finished(input:torch.Tensor, top_r
     result = numerator/(nelement-count_of_nan_and_inf)
     return result.item()
 
-if "test" and __DEBUG_ME__() and True:
+if "not maintained" and __DEBUG_ME__() and False:
     input = torch.tensor([torch.nan, torch.inf, torch.inf*-1])
-    assert math.isnan(debug_avg_log10___no_batch_dim(input))
+    assert math.isnan(____debug_avg_log10___no_batch_dim________not_finished(input))
     input = torch.tensor([torch.nan, torch.inf, torch.inf*-1, 0., -100])
-    assert _float_equal(debug_avg_log10___no_batch_dim(input), 2.)
+    assert _float_equal(____debug_avg_log10___no_batch_dim________not_finished(input), 2.)
     input = torch.tensor([1e10,-1e20])
-    assert _float_equal(debug_avg_log10___no_batch_dim(input), 15.)
+    assert _float_equal(____debug_avg_log10___no_batch_dim________not_finished(input), 15.)
     
     assert False, "jixu batch还没有。"
     input = torch.tensor([1,1,1,1,1,11e10,-1e20], top_percent = True)
-    assert _float_equal(debug_avg_log10___no_batch_dim(input), 15.)
+    assert _float_equal(____debug_avg_log10___no_batch_dim________not_finished(input), 15.)
     
     
     pass
 
-
-
-
-
-
-def debug_avg_log10(input:torch.Tensor, top_ratio = 0.9)->float:
+def debug_avg_log10(input:torch.Tensor, top_ratio = 0.9)->torch.Tensor:
     '''I dont really remember this function too much. 
     
     I believe it provides a avg of log10. 
@@ -1257,31 +1254,66 @@ def debug_avg_log10(input:torch.Tensor, top_ratio = 0.9)->float:
     '''
     assert input.shape.__len__() == 2
     
-    the_log = input.abs().log10()
+    log_of_input = input.abs().log10()
     #safety
-    no_nan_log = the_log.nan_to_num(-999999.,posinf=-999999.,neginf=-999999.) 
+    no_nan_log = log_of_input.nan_to_num(-999999.,posinf=-999999.,neginf=-999999.) 
     #safe_log is safe.
-    useful_log:torch.Tensor = get_mask_of_top_element__rough(no_nan_log,)[0]
-    result = useful_log.mean(dim=1)
+    useful_flag:torch.Tensor = get_mask_of_top_element__rough(no_nan_log,)[0]
     
-    assert result.shape.__len__() == 2
-    assert result.shape[1] == 1
+    result:torch.Tensor = torch.empty(size=[input.shape[0]], device=input.device,dtype=input.dtype)
     
+    # maybe in the future, this would be optimized with masked_tensor
+    for batch_number in range(input.shape[0]):
+        sliced_tensor = no_nan_log[batch_number][useful_flag[batch_number]]
+        if sliced_tensor.nelement() == 0:
+            #idk if the result is inf or -inf, so let it be nan.
+            result[batch_number] = torch.nan
+            pass
+        else:
+            result[batch_number] = sliced_tensor.mean()
+            pass
+        pass
+    
+    assert result.shape.__len__() == 1
+    assert result.shape[0] == input.shape[0]
     return result
 
 if "test" and __DEBUG_ME__() and True:
-    1w 继续。
-    input = torch.tensor([torch.nan, torch.inf, torch.inf*-1])
-    assert math.isnan(debug_avg_log10(input))
-    input = torch.tensor([torch.nan, torch.inf, torch.inf*-1, 0., -100])
-    assert _float_equal(debug_avg_log10(input), 2.)
-    input = torch.tensor([1e10,-1e20])
-    assert _float_equal(debug_avg_log10(input), 15.)
+    _input = torch.ones(size=[1,20])
+    _input = _input + torch.randn_like(_input)*0.01
+    assert _tensor_equal(debug_avg_log10(_input), torch.zeros(size=[1]),epsilon=0.01)
+    _input = torch.ones(size=[1,20])*-1.
+    _input = _input + torch.randn_like(_input)*0.01
+    assert _tensor_equal(debug_avg_log10(_input), torch.zeros(size=[1]),epsilon=0.01)
+
+    _input = torch.ones(size=[1,11])
+    _input[0,0] = 0.
+    assert _tensor_equal(debug_avg_log10(_input), torch.zeros(size=[1]),epsilon=0.01)
     
-    assert False, "jixu batch还没有。"
-    input = torch.tensor([1,1,1,1,1,11e10,-1e20], top_percent = True)
-    assert _float_equal(debug_avg_log10___no_batch_dim(input), 15.)
     
+    _input = torch.ones(size=[1,11])
+    _input[0,0] = 0.0000000001
+    assert _tensor_equal(debug_avg_log10(_input), torch.zeros(size=[1]),epsilon=0.01)
+    
+    _input = torch.ones(size=[1,11])
+    _input[0,0] = 0.0000000001
+    assert _tensor_equal(debug_avg_log10(_input), torch.zeros(size=[1]),epsilon=0.01)
+    
+    _input = torch.ones(size=[1,11])
+    _input[0,0] = 0.0000000001
+    _input[0,1] = 0.0000000001
+    1w
+    
+    assert _tensor_equal(debug_avg_log10(_input), torch.tensor([-1.]),epsilon=0.01)
+    
+    _input = torch.ones(size=[1,11])
+    _input[0,0] = 0.0000000001
+    _input[0,1] = 1e10
+    assert _tensor_equal(debug_avg_log10(_input), torch.tensor([-1.]),epsilon=0.01)
+    
+    
+    _input = torch.randn(size=[10,100])
+    fdsfds = debug_avg_log10(_input)
     
     pass
 
@@ -1547,7 +1579,7 @@ def data_gen_for_directly_stacking_test_same_dim_no_duplicated(\
         input = input*2-1
         pass
     answer_index:torch.Tensor = torch.linspace(0,dim-1,dim, dtype=torch.int64)
-    for _ in range(dim+torch.randint(0,dim,[1]).item()):
+    for _ in range(dim+int(torch.randint(0,dim,[1]).item())):
         rand_i = torch.randint(0,dim,[1])
         rand_ii = torch.randint(0,dim,[1])
         temp = answer_index[rand_i]
@@ -1783,7 +1815,7 @@ class Print_Timing:
         self.max_gap = max_gap
         
         self.return_true_when:List[float] = []
-        the_exp = 0
+        the_exp = 0.
         if first-start_with-1>0:
             the_exp = math.log10(first-start_with-1)
             pass
