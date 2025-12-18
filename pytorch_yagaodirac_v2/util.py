@@ -1278,12 +1278,21 @@ if "not maintained" and __DEBUG_ME__() and False:
     pass
 
 def avg_log10_safe(input:torch.Tensor, top_ratio = 0.9)->torch.Tensor:
-    '''I dont really remember this function too much. 
+    '''
+    Calcs the average of log10 of abs of input. 
     
-    I believe it provides a avg of log10. 
+    The least log intermediate results are ignored. Because if a number is very close to 0, 
+    the log10 of it is very negative, and any noise on such elements will introduce a bit 
+    noise into the final result. So they are ignored.
+
+    Inside this function, it calls get_mask_of_top_element__rough to help filter the
+    bad intermediate results. That function also helps in a lot other cases.
     
-    A lot lines in here is safety.
-    If the data has a lot elements very close to 0., this function may not be very helpful.
+    This function is mainly designed to help extract info from tensors, and to help
+    measure some aspects in neural network training dynamics.
+    
+    If you don't like the shape convention and you know what you are doing, fell free
+    to modify this function and the inner get_mask_of_top_element__rough function.
     '''
     assert input.shape.__len__() == 2, "my convention, shape is [batch, anything]"
     

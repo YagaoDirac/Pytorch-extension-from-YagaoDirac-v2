@@ -54,9 +54,6 @@ if __DEBUG_ME__():
 
 
 
-
-
-
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
@@ -65,7 +62,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 #from pytorch_yagaodirac_v2.Util import debug_avg_log10, data_gen_from_random_teacher, Print_Timing
 sys.path.append(str(Path(__file__).parent))
 from ParamMo import GradientModification_v2_mean_abs_to_1, ReLU_with_offset
-from Util import debug_avg_log10___no_batch_dim, data_gen_from_random_teacher, Print_Timing
+from Util import avg_log10_safe, data_gen_from_random_teacher, Print_Timing
 #they both work.
 
 
@@ -185,16 +182,17 @@ class FCL_from_yagaodirac(torch.nn.Module):
         return f'in_features={self.in_features}, out_features={self.out_features}, bias={self.bias_o is not None}'
 
     def _debug_get_all_avg_log10(self)->Tuple[List[float], str]:
+        "return   result, docs_str"
         result:List[float] = []
-        result.append(debug_avg_log10___no_batch_dim(self.weight_o_i))
-        result.append(debug_avg_log10___no_batch_dim(self.bias_o))
+        result.append(avg_log10_safe(self.weight_o_i))
+        result.append(avg_log10_safe(self.bias_o))
         docs_str = "weight_o_i, bias_o"
         if not self.weight_o_i.grad is None:
-            result.append(debug_avg_log10___no_batch_dim(self.weight_o_i.grad))
+            result.append(avg_log10_safe(self.weight_o_i.grad))
             docs_str+=", weight_o_i.grad"
             pass
         if not self.bias_o.grad is None:
-            result.append(debug_avg_log10___no_batch_dim(self.bias_o.grad))
+            result.append(avg_log10_safe(self.bias_o.grad))
             docs_str+=", bias_o.grad"
             pass
         return (result, docs_str)
@@ -214,7 +212,8 @@ class FCL_from_yagaodirac(torch.nn.Module):
     pass#end of class.
     
 
-if '''basic avg log10 test.(with set numbers) 可能有错。。''' and __DEBUG_ME__() and False:
+if '''basic avg log10 test.(with set numbers) 可能有错。。''' and __DEBUG_ME__() and True:
+    1w
     batch = 1
     in_features = 1
     out_features = 10000
