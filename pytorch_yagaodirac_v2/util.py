@@ -1331,6 +1331,158 @@ def avg_log10_safe(input:torch.Tensor, top_ratio = 0.9)->torch.Tensor:
         return result
     pass#end of function
 
+if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
+    "You don't have to read the code. Code only helps you understand the result."
+    "If you don't have much time, read the commends directly."
+    if "tested" and False:
+        
+        "torch.ones, scan dim*dim matmal dim*dim, factor not in this part"
+        # _dim_mid=[  100],c.shape=[torch.Size([100,   100])],  ,log10_of_a=0.0000, log10_of_b=0.0000,,,log10_of_c=2.0000
+        # _dim_mid=[ 1000],c.shape=[torch.Size([1000,  1000])], ,log10_of_a=0.0000, log10_of_b=0.0000,,,log10_of_c=3.0000        
+        # _dim_mid=[10000],c.shape=[torch.Size([10000, 10000])],,log10_of_a=0.0000, log10_of_b=0.0000,,,log10_of_c=4.0000
+        # log_c is basically log_a + log_b + log10(_dim_mid)
+        for _dim in [1e2, 1e3, 1e4]:
+            _dim = int(_dim)
+            _dim1 = _dim
+            _dim2 = _dim
+            _dim_mid = _dim
+            
+            device = 'cuda'
+            a = torch.ones(size=[_dim1,    _dim_mid], device=device)
+            b = torch.ones(size=[_dim_mid, _dim2   ], device=device)
+            c = a.matmul(b)
+            log10_of_a = a.log10().mean().cpu()
+            assert _tensor_equal(log10_of_a, torch.tensor(0.), 0.0001)
+            log10_of_b = b.log10().mean().cpu()
+            assert _tensor_equal(log10_of_b, torch.tensor(0.), 0.0001)
+            assert _tensor_equal(log10_of_a, log10_of_b, 0.0001)
+            log10_of_c = c.log10().mean().cpu()
+            print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape}], _factor not in this test,,,log10_of_a={log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c={log10_of_c:.4f}")
+            _diff = math.log10(_dim_mid)
+            assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.0001)
+            pass
+    
+
+        "torch.ones, scan dim1*dim_mid matmal dim_mid*dim_2, factor not in this part"
+        #log_a and log_b are both 0. log_c is log10(_dim_mid)
+        for _dim in [1e2, 1e3, 1e4]:
+            for _ in range(5):
+                _dim = int(_dim)
+                _dim1 = _dim
+                _dim2 = _dim
+                _dim_mid = random.randint(100,10000)
+                
+                device = 'cuda'
+                a = torch.ones(size=[_dim1,    _dim_mid], device=device)
+                b = torch.ones(size=[_dim_mid, _dim2   ], device=device)
+                c = a.matmul(b)
+                log10_of_a = a.log10().mean().cpu()
+                assert _tensor_equal(log10_of_a, torch.tensor(0.), 0.0001)
+                log10_of_b = b.log10().mean().cpu()
+                assert _tensor_equal(log10_of_b, torch.tensor(0.), 0.0001)
+                assert _tensor_equal(log10_of_a, log10_of_b, 0.0001)
+                log10_of_c = c.log10().mean().cpu()
+                print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape}], _factor not in this test,,,log10_of_a={log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c={log10_of_c:.4f}")
+                _diff = math.log10(_dim_mid)
+                assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.0001)
+                pass#for _
+            pass#for dim
+            
+        "all the test uppon are only with 1, no -1. "
+    
+1w继续。符号随机，看看随机比例和结果的变化。
+    "torch.ones(with altered sign), scan dim1*dim_mid matmal dim_mid*dim_2, factor not in this part"
+    #log_a and log_b are both 0. log_c is log10(_dim_mid)
+    for _dim in [1e2, 1e3, 1e4]:
+        for _ in range(5):
+            _dim = int(_dim)
+            _dim1 = _dim
+            _dim2 = _dim
+            #_dim_mid = random.randint(100,10000)
+            _dim_mid = _dim
+            
+            device = 'cuda'
+            a = torch.ones(size=[_dim1,    _dim_mid], device=device)
+            b = torch.ones(size=[_dim_mid, _dim2   ], device=device)
+            c = a.matmul(b)
+            log10_of_a = a.log10().mean().cpu()
+            assert _tensor_equal(log10_of_a, torch.tensor(0.), 0.0001)
+            log10_of_b = b.log10().mean().cpu()
+            assert _tensor_equal(log10_of_b, torch.tensor(0.), 0.0001)
+            assert _tensor_equal(log10_of_a, log10_of_b, 0.0001)
+            log10_of_c = c.log10().mean().cpu()
+            print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape}], _factor not in this test,,,log10_of_a={log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c={log10_of_c:.4f}")
+            _diff = math.log10(_dim_mid)
+            assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.0001)
+            pass#for _
+        pass#for dim
+    
+    
+    
+    "randn, d*d matmal d*d, fixed factor"
+    for _dim in [1e2, 1e3, 1e4]:
+        _dim = int(_dim)
+        _factor = 1.
+        device = 'cuda'
+        a = torch.randn(size=[_dim, _dim], device=device)*_factor
+        b = torch.randn_like(a)*_factor
+        c = a.matmul(b)
+        log10_of_a = avg_log10_safe(a).mean().cpu()
+        log10_of_b = avg_log10_safe(b).mean().cpu()
+        assert _tensor_equal(log10_of_a, log10_of_b, 0.015)
+        log10_of_c = avg_log10_safe(c).mean().cpu()
+        print(f"_dim=[{_dim:5}],c.shape=[{c.shape}], _factor={_factor},,,log10_of_a={log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c={log10_of_c:.4f}")
+        _diff = math.log10(_dim)/2.
+        assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.04)
+        pass
+    
+    
+    
+    "fixed dim, scan factor"
+    for _factor in [1e-2, 1e-1, 1, 1e1, 1e2]:
+        _dim = 1000
+        device = 'cuda'
+        a = torch.randn(size=[_dim, _dim], device=device)*_factor
+        b = torch.randn_like(a)*_factor
+        c = a.matmul(b)
+        
+        log10_of_a = avg_log10_safe(a).mean().cpu()
+        assert _tensor_equal(log10_of_a, [0.], 0.01)
+        log10_of_b = avg_log10_safe(b).mean().cpu()
+        assert _tensor_equal(log10_of_b, [0.], 0.01)
+        #assert _tensor_equal(log10_of_a, log10_of_b, 0.015)
+        log10_of_c = avg_log10_safe(c).mean().cpu()
+        print(f"_dim=[{_dim:5}],c.shape=[{c.shape}], _factor={_factor},,,log10_of_a={log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c={log10_of_c:.4f}")
+        _diff = math.log10(_dim)/2.
+        #assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.04)
+        pass
+    
+        
+        
+        
+        
+        
+    "d1*d2 matmal d2*d1"
+    for _dim1 in [1e2, 1e3, 1e4]:
+        _dim1 = int(_dim1)
+        _dim2 = 100
+        _factor = 1.
+        device = 'cuda'
+        a = torch.randn(size=[_dim1, _dim2], device=device)*_factor
+        b = torch.randn(size=[_dim2, _dim1], device=device)*_factor
+        c = a.matmul(b)
+        log10_of_a = avg_log10_safe(a).mean().cpu()
+        log10_of_b = avg_log10_safe(b).mean().cpu()
+        assert _tensor_equal(log10_of_a, log10_of_b, 0.015)
+        log10_of_c = avg_log10_safe(c).mean().cpu()
+        print(f"_dim1=[{_dim1:5}],_dim2=[{_dim2:5}],c.shape=[{c.shape}], _factor={_factor},,,log10_of_a={log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c={log10_of_c:.4f}")
+        _diff = math.log10(_dim)/2.
+        assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.04)
+        pass
+    
+    
+    pass
+
 if "test" and __DEBUG_ME__() and True:
     _input = torch.ones(size=[1,20])
     _input = _input + torch.randn_like(_input)*0.001
@@ -1396,13 +1548,13 @@ if "test" and __DEBUG_ME__() and True:
     _std_max =      [0.05,  0.02,   0.015,   0.015,  0.04,]#   0.07]
     for ii in range(_dim_list.__len__()):
         _dim:int = int(_dim_list[ii])
-        _input = torch.randn(size=[100,_dim])
+        _input = torch.randn(size=[100,_dim], device='cuda')
         _output = avg_log10_safe(_input)
-        mean_of_output = _output.mean()
+        mean_of_output = _output.mean().cpu()
         _tensor_equal(mean_of_output.reshape([1]), [_mean_list[ii]], _mean_epsilon[ii])    
-        std_of_output = _output.std()
+        std_of_output = _output.std().cpu()
         assert std_of_output.lt(_std_max[ii])
-        print(f"{_dim}  {mean_of_output}  {std_of_output}")
+        #prin(f"{_dim}  {mean_of_output}  {std_of_output}")
         pass
     
     pass
