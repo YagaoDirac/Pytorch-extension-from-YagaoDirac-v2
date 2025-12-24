@@ -2189,6 +2189,20 @@ class BCELoss_outputs_real_probabilityFunction(torch.autograd.Function):
         (x, output) = ctx.saved_tensors
         
         if x.requires_grad:
+            _if__output_pos = output.gt(0.5)
+            
+            _if__pos = g_in_b_o.gt(0.)
+            _if__neg = g_in_b_o.lt(0.)
+            
+            应该是1的总数，
+            应该是0的总数
+            实际上是某一个的总数
+            算出比例
+            乘上去。
+            乘上g自己的abs。
+            可能要开平方？？？
+            
+            
             根据 g_in_b_o 算出结果。
             return 结果, None, None
         else:
@@ -2272,3 +2286,7 @@ if "test" and __DEBUG_ME__() and True:
     1w
 
 
+
+assert False, '''todo list:
+给gramo加一个缩放的时候保护精度的设计，就是所有的乘法只能乘2的n次方。
+'''
