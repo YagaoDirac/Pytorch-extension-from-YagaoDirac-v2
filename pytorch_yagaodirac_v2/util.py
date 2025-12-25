@@ -1596,25 +1596,209 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
             print()
             pass#for dim
     
-    
-    
-    "randn, sigmoid(d*d) matmal d*d, fixed factor"
-    # _dim_mid=[  100],c.shape=[  100,  100],,,log10_of_a=-0.2927, log10_of_b=-0.1448,,,log10_of_c(safe)=0.5133, 0.6773, 0.5937
-    # _dim_mid=[ 1000],c.shape=[ 1000, 1000],,,log10_of_a=-0.2962, log10_of_b=-0.1580,,,log10_of_c(safe)=1.0885, 1.0662, 1.0841
-    # _dim_mid=[10000],c.shape=[10000,10000],,,log10_of_a=-0.2962, log10_of_b=-0.1589,,,log10_of_c(safe)=1.5677, 1.5899, 1.5763
-    # part of the result: log10(_dim_mid)*0.5
-    # log_c is basically log_a + log_b + log10(mid_dim)*0.5 + (0. to 0.03)
-    
-    _sigmoid_layer = torch.nn.Sigmoid()
-    if "scan the log10 of sigmoid(randn) first" and False:
-        for _ in range(10):
-            a = _sigmoid_layer(torch.randn(size=[10000,10000], device='cuda'))
-            log10_of_a = avg_log10_safe(a).mean().cpu().item()
-            assert _float_equal(log10_of_a, -0.2963, 0.0001)
+        
+        
+        "randn, sigmoid(d*d) matmal d*d, fixed factor"
+        # _dim_mid=[  100],c.shape=[  100,  100],,,log10_of_a=-0.2927, log10_of_b=-0.1448,,,log10_of_c(safe)=0.5133, 0.6773, 0.5937
+        # _dim_mid=[ 1000],c.shape=[ 1000, 1000],,,log10_of_a=-0.2962, log10_of_b=-0.1580,,,log10_of_c(safe)=1.0885, 1.0662, 1.0841
+        # _dim_mid=[10000],c.shape=[10000,10000],,,log10_of_a=-0.2962, log10_of_b=-0.1589,,,log10_of_c(safe)=1.5677, 1.5899, 1.5763
+        # part of the result: log10(_dim_mid)*0.5
+        # log_c is basically log_a + log_b + log10(mid_dim)*0.5 + (0. to 0.03)
+        
+        _sigmoid_layer = torch.nn.Sigmoid()
+        if "scan the log10 of sigmoid(randn) first" and False:
+            for _ in range(10):
+                a = _sigmoid_layer(torch.randn(size=[10000,10000], device='cuda'))
+                log10_of_a = avg_log10_safe(a).mean().cpu().item()
+                assert _float_equal(log10_of_a, -0.2963, 0.0001)
+                pass
             pass
-        pass
+        for _dim in [1e2, 1e3, 1e4]:
+            for test_index in range(3):
+                #dim
+                _dim = int(_dim)
+                _dim1 = _dim
+                _dim2 = _dim
+                _dim_mid = _dim# or ? _dim_mid = random.randint(100,10000)
+                #init a and b
+                device = 'cuda'
+                a = _sigmoid_layer(torch.randn(size=[_dim1,    _dim_mid], device=device))
+                log10_of_a = avg_log10_safe(a).mean().cpu().item()
+                assert _float_equal(log10_of_a, -0.296, 0.005)#sigmoid(randn) is -0.276
+                b =                torch.randn(size=[_dim_mid, _dim2   ], device=device)
+                log10_of_b = avg_log10_safe(b).mean().cpu().item()
+                assert _float_equal(log10_of_b, -0.16, 0.02)
+                #calc and measure.
+                c = a.matmul(b)
+                log10_of_c = avg_log10_safe(c.reshape([1,-1])).mean().cpu().item()
+                if test_index == 0:
+                    print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _factor not in this test,,,log10_of_a={\
+                                            log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c(safe)={log10_of_c:.4f}", end="")
+                    pass
+                else:
+                    print(f", {log10_of_c:.4f}", end="")
+                    pass
+                _diff = math.log10(_dim_mid)
+                #assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.0001)
+                pass#for test_index
+            print()
+            pass#for dim
+    
+    
+    
+        
+
+        "randn, sigmoid(d*d scale with some scale_factor) matmal d*d, fixed factor"
+        
+        _sigmoid_layer = torch.nn.Sigmoid()
+            
+        #                                *****
+        #     log_c measured by top ratio 0.9, while log_a measured by top ratio 0.5
+        #                                *****                                      dim= 100 ,1000 ,10000
+        # _scale_factor=0.01,,,log10_of_a=-0.2993, log10_of_b=-0.157,,,log10_of_c(safe)=0.512,1.047,1.545
+        # _scale_factor=0.1 ,,,log10_of_a=-0.2844, log10_of_b=-0.156,,,log10_of_c(safe)=0.519,1.043,1.544
+        # _scale_factor=0.3 ,,,log10_of_a=-0.2552, log10_of_b=-0.151,,,log10_of_c(safe)=0.554,1.053,1.546
+        # _scale_factor=1.0 ,,,log10_of_a=-0.1789, log10_of_b=-0.158,,,log10_of_c(safe)=0.588,1.072,1.578
+        # _scale_factor=3.0 ,,,log10_of_a=-0.0889, log10_of_b=-0.144,,,log10_of_c(safe)=0.630,1.141,1.637
+        # _scale_factor=10.0,,,log10_of_a=-0.0378, log10_of_b=-0.151,,,log10_of_c(safe)=0.662,1.163,1.667
+            
+            
+        #                                *****
+        #     log_c measured by top ratio 0.7, while log_a measured by top ratio 0.5
+        #                                *****                                        dim= 100 ,1000  ,10000
+        # _scale_factor=0.01,,,log10_of_a=-0.2993, log10_of_b=-0.1542,,,log10_of_c(safe)=0.6601,1.1709,1.6703
+        # _scale_factor=0.1 ,,,log10_of_a=-0.2840, log10_of_b=-0.1527,,,log10_of_c(safe)=0.6889,1.1751,1.6703
+        # _scale_factor=0.3 ,,,log10_of_a=-0.2554, log10_of_b=-0.1538,,,log10_of_c(safe)=0.6497,1.1772,1.6746
+        # _scale_factor=1.0 ,,,log10_of_a=-0.1795, log10_of_b=-0.1573,,,log10_of_c(safe)=0.6786,1.2031,1.7081
+        # _scale_factor=3.0 ,,,log10_of_a=-0.0843, log10_of_b=-0.1503,,,log10_of_c(safe)=0.7520,1.2642,1.7624
+        # _scale_factor=10.0,,,log10_of_a=-0.0389, log10_of_b=-0.1579,,,log10_of_c(safe)=0.8014,1.3051,1.8075
+            
+            
+        #                                *****
+        #     log_c measured by top ratio 0.6, while log_a measured by top ratio 0.5
+        #                                *****                                     dim= 100 ,1000 ,10000
+        # _scale_factor=0.01,,,log10_of_a=-0.299, log10_of_b=-0.151,,,log10_of_c(safe)=0.745,1.221,1.721,
+        # _scale_factor=0.1 ,,,log10_of_a=-0.284, log10_of_b=-0.153,,,log10_of_c(safe)=0.711,1.232,1.724,
+        # _scale_factor=0.3 ,,,log10_of_a=-0.254, log10_of_b=-0.151,,,log10_of_c(safe)=0.700,1.231,1.728,
+        # _scale_factor=1.0 ,,,log10_of_a=-0.178, log10_of_b=-0.154,,,log10_of_c(safe)=0.752,1.252,1.760,
+        # _scale_factor=3.0 ,,,log10_of_a=-0.093, log10_of_b=-0.156,,,log10_of_c(safe)=0.807,1.317,1.822,
+        # _scale_factor=10.0,,,log10_of_a=-0.038, log10_of_b=-0.157,,,log10_of_c(safe)=0.869,1.356,1.860,
+            
+            
+        #                                *****
+        #     log_c measured by top ratio 0.5, while log_a measured by top ratio 0.5
+        #                                *****                                       dim= 100 ,1000  ,10000
+        # _scale_factor=0.01,,,log10_of_a=-0.2993, log10_of_b=-0.157,,,log10_of_c(safe)=0.7767,1.2704,1.7751
+        # _scale_factor=0.1 ,,,log10_of_a=-0.2840, log10_of_b=-0.151,,,log10_of_c(safe)=0.7726,1.2707,1.7747
+        # _scale_factor=0.3 ,,,log10_of_a=-0.2541, log10_of_b=-0.152,,,log10_of_c(safe)=0.7748,1.2821,1.7756
+        # _scale_factor=1.0 ,,,log10_of_a=-0.1765, log10_of_b=-0.153,,,log10_of_c(safe)=0.8146,1.3037,1.8106
+        # _scale_factor=3.0 ,,,log10_of_a=-0.0866, log10_of_b=-0.157,,,log10_of_c(safe)=0.8471,1.3664,1.8664
+        # _scale_factor=10.0,,,log10_of_a=-0.0403, log10_of_b=-0.152,,,log10_of_c(safe)=0.8996,1.4057,1.9053
+        
+        # log_c is basically 0.5*log_a + log_b + 0.5*log10(mid_dim) + 0.3, 
+        # condition is log_c is measured with top_ratio 0.5, if top_ratio increases by 0.1, the 0.3 also incr by 0.05(and gets 0.35)
+        
+        if "some extra result" and False:
+            # here is some extra result about the log10(sigmoid(randn* some factor))
+            #                     top_ratio=     0.9,,,               =0.5,,,
+            # _scale_factor=0.01,    log10_of_a=-0.3006    log10_of_a=-0.2993
+            # _scale_factor=0.1 ,    log10_of_a=-0.2972    log10_of_a=-0.2843
+            # _scale_factor=0.3 ,    log10_of_a=-0.2920    log10_of_a=-0.2539
+            # _scale_factor=1.0 ,    log10_of_a=-0.296     log10_of_a=-0.1766
+            # _scale_factor=3.0 ,    log10_of_a=-0.419     log10_of_a=-0.085 
+            # _scale_factor=10.0,    log10_of_a=-1.11      log10_of_a=-0.025 
+            # the upper the smaller the std. The lower the greater the std.
+            # when the top_ratio is 0.9, a lot elements are between 0 and 0.5. When the _scale_factor
+            # increases, they get close to 0, and makes the log10 result smaller.
+            # Thus, I also tested with top_ratio=0.5, to only consider the elements >0.5 and increases.
+            pass
+        if 'some basic test' and False:
+            for top_ratio in [0.9, 0.5]:
+                for _scale_factor in [0.01, 0.1, 0.3, 1., 3., 10.]:
+                    if "scan the log10 of sigmoid(randn) first" and True:
+                        for test_index in range(5):
+                            a_before_sigmoid = torch.randn(size=[10000,10000], device='cuda')*_scale_factor
+                            _std_of_a_before_sigmoid = a_before_sigmoid.std().cpu().item()
+                            assert _float_equal(_std_of_a_before_sigmoid, _scale_factor, 0.05*_scale_factor)
+                            a = _sigmoid_layer(a_before_sigmoid)
+                            log10_of_a = avg_log10_safe(a, top_ratio).mean().cpu().item()
+                            if test_index == 0:
+                                print(f"top_ratio={top_ratio},,, _scale_factor={_scale_factor}, log10_of_a={log10_of_a:.6f}", end="")
+                                pass
+                            else:
+                                print(f", {log10_of_a:.6f}", end="")
+                                pass 
+                            #assert _float_equal(log10_of_a, -0.2963, 0.0001)
+                            pass# test_index
+                        print()
+                        pass
+                    pass
+        
+        #then the real test.
+        for _scale_factor in [0.01, 0.1, 0.3, 1., 3., 10.]:
+            for _dim in [1e2, 1e3, 1e4]:
+                _result_list = []
+                for test_index in range(5):
+                    #dim
+                    _dim = int(_dim)
+                    _dim1 = _dim
+                    _dim2 = _dim
+                    _dim_mid = _dim# or ? _dim_mid = random.randint(100,10000)
+                    #init a and b
+                    device = 'cuda'
+                    a = _sigmoid_layer(torch.randn(size=[_dim1,    _dim_mid], device=device)*_scale_factor)
+                    log10_of_a = avg_log10_safe(a, top_ratio=0.5).mean().cpu().item()
+                    #assert _float_equal(log10_of_a, -0.296, 0.005)#sigmoid(randn) is -0.276
+                    b =                torch.randn(size=[_dim_mid, _dim2   ], device=device)
+                    log10_of_b = avg_log10_safe(b).mean().cpu().item()
+                    assert _float_equal(log10_of_b, -0.16, 0.02)
+                    #calc and measure.
+                    c = a.matmul(b)
+                    log10_of_c = avg_log10_safe(c.reshape([1,-1]), top_ratio=0.6).mean().cpu().item()
+                    if test_index == 0:
+                        print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _scale_factor={_scale_factor},,,log10_of_a={\
+                                                log10_of_a:.3f}, log10_of_b={log10_of_b:.3f},,,log10_of_c(safe)={log10_of_c:.3f}", end="")
+                        pass
+                    else:
+                        print(f", {log10_of_c:.4f}", end="")
+                        pass
+                    _result_list.append(log10_of_c)
+                    #_diff = math.log10(_dim_mid)
+                    #assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.0001)
+                    pass#for test_index
+                print(f",,,,,avg={torch.tensor(_result_list).mean().item():.3f}")
+                pass#for dim
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    "a is uniform distribution, d*d matmal d*d, fixed factor"
+    
+    if 'some basic test' and False:
+        for test_index in range(5):
+            a = torch.rand(10000, 10000)*2.-1.
+            log10_of_a = avg_log10_safe(a).mean().cpu().item()
+            assert _float_equal(log10_of_a, -0.3235, 0.0003)
+            if test_index == 0:
+                print(f"log10_of_a={log10_of_a:.6f}", end="")
+                pass
+            else:
+                print(f", {log10_of_a:.6f}", end="")
+                pass 
+            pass# test_index
+    
+    1w 继续。
+    
+    #then the real test.
     for _dim in [1e2, 1e3, 1e4]:
-        for test_index in range(3):
+        _result_list = []
+        for test_index in range(5):
             #dim
             _dim = int(_dim)
             _dim1 = _dim
@@ -1622,27 +1806,40 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
             _dim_mid = _dim# or ? _dim_mid = random.randint(100,10000)
             #init a and b
             device = 'cuda'
-            a = _sigmoid_layer(torch.randn(size=[_dim1,    _dim_mid], device=device))
+            a = torch.rand(size=[_dim1,    _dim_mid], device=device)*2.-1.
             log10_of_a = avg_log10_safe(a).mean().cpu().item()
-            assert _float_equal(log10_of_a, -0.296, 0.005)#sigmoid(randn) is -0.276
+            assert _float_equal(log10_of_a, -0.3235, 0.0003)
             b =                torch.randn(size=[_dim_mid, _dim2   ], device=device)
             log10_of_b = avg_log10_safe(b).mean().cpu().item()
             assert _float_equal(log10_of_b, -0.16, 0.02)
             #calc and measure.
             c = a.matmul(b)
-            log10_of_c = avg_log10_safe(c.reshape([1,-1])).mean().cpu().item()
+            log10_of_c = avg_log10_safe(c.reshape([1,-1]), top_ratio=0.6).mean().cpu().item()
             if test_index == 0:
-                print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _factor not in this test,,,log10_of_a={\
-                                        log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c(safe)={log10_of_c:.4f}", end="")
+                print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _scale_factor={_scale_factor},,,log10_of_a={\
+                                        log10_of_a:.3f}, log10_of_b={log10_of_b:.3f},,,log10_of_c(safe)={log10_of_c:.3f}", end="")
                 pass
             else:
                 print(f", {log10_of_c:.4f}", end="")
                 pass
-            _diff = math.log10(_dim_mid)
+            _result_list.append(log10_of_c)
+            #_diff = math.log10(_dim_mid)
             #assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.0001)
             pass#for test_index
-        print()
+        print(f",,,,,avg={torch.tensor(_result_list).mean().item():.3f}")
         pass#for dim
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     pass
 

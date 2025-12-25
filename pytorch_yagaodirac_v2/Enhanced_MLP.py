@@ -76,6 +76,7 @@ class FCL_from_yagaodirac(torch.nn.Module):
     To get a better performance, remove the bias gramo. 
     But the bias accumulates grad based on batch. And it needs compensition against it. 
     The way is to set the scale factor of out gramo based on batch size in forward func.'''
+    @torch.no_grad()
     def __init__(self, in_features: int, out_features: int, bias: bool = True, \
                         scaling_factor_for_grad_path:float=1., \
                         scaling_factor_for_weight:float=1., \
@@ -149,6 +150,7 @@ class FCL_from_yagaodirac(torch.nn.Module):
         pass
     #end of function.
 
+    @torch.no_grad()
     def __reset_parameters(self) -> None:
         # Setting a=sqrt(5) in kaiming_uniform is the same as initializing with
         # uniform(-1/sqrt(in_features), 1/sqrt(in_features)). For details, see
@@ -181,6 +183,7 @@ class FCL_from_yagaodirac(torch.nn.Module):
     def extra_repr(self) -> str:
         return f'in_features={self.in_features}, out_features={self.out_features}, bias={self.bias_o is not None}'
 
+    @torch.inference_mode()
     def _debug_get_all_avg_log10(self)->Tuple[List[float], str]:
         "return   result, docs_str"
         result:List[float] = []
@@ -197,6 +200,7 @@ class FCL_from_yagaodirac(torch.nn.Module):
             pass
         return (result, docs_str)
 
+    @torch.no_grad()
     def convert_to_plain_fcl(self)->torch.nn.Module:
         has_bias = True
         if self.bias_o is None:
@@ -212,8 +216,27 @@ class FCL_from_yagaodirac(torch.nn.Module):
     pass#end of class.
     
 
+
+1w
+我猜之前应该是，原版的mlp做一个log10，看看，然后上我的那个，看看。
+
+
 if '''basic avg log10 test.(with set numbers) 可能有错。。''' and __DEBUG_ME__() and True:
-    1w
+    #batch = 1
+    
+    "init log10 test"
+    in_features = 1000
+    for out_features in [100, 1000, 10000]:
+        layer = torch.nn.Linear(in_features, out_features, True, device='cuda')
+        _log_w = avg_log10_safe(layer.weight).mean().cpu().item()
+        _log_b = avg_log10_safe(layer.weight).cpu().item()
+        ""    
+        
+    
+    
+    
+    
+    
     batch = 1
     in_features = 1
     out_features = 10000
