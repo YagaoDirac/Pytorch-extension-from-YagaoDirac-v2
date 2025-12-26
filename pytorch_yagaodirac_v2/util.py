@@ -1779,6 +1779,10 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
     
 
     "a is uniform distribution, d*d matmal d*d, fixed factor"
+    # _dim_mid=[  100],c.shape=[  100,  100],,,log10_of_a=-0.319, log10_of_b=-0.153,,,log10_of_c(safe)=avg=0.786
+    # _dim_mid=[ 1000],c.shape=[ 1000, 1000],,,log10_of_a=-0.323, log10_of_b=-0.157,,,log10_of_c(safe)=avg=1.282
+    # _dim_mid=[10000],c.shape=[10000,10000],,,log10_of_a=-0.324, log10_of_b=-0.159,,,log10_of_c(safe)=avg=1.787
+    # log_c is basically log_a + log_b + 0.5*log10(mid_dim) + 0.27, 
     
     if 'some basic test' and False:
         for test_index in range(5):
@@ -1793,12 +1797,10 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
                 pass 
             pass# test_index
     
-    1w 继续。
-    
     #then the real test.
     for _dim in [1e2, 1e3, 1e4]:
         _result_list = []
-        for test_index in range(5):
+        for test_index in range(7):
             #dim
             _dim = int(_dim)
             _dim1 = _dim
@@ -1806,17 +1808,17 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
             _dim_mid = _dim# or ? _dim_mid = random.randint(100,10000)
             #init a and b
             device = 'cuda'
-            a = torch.rand(size=[_dim1,    _dim_mid], device=device)*2.-1.
+            a = torch.rand (size=[_dim1,    _dim_mid], device=device)*2.-1.
             log10_of_a = avg_log10_safe(a).mean().cpu().item()
-            assert _float_equal(log10_of_a, -0.3235, 0.0003)
-            b =                torch.randn(size=[_dim_mid, _dim2   ], device=device)
+            assert _float_equal(log10_of_a, -0.3235, 0.05)
+            b = torch.randn(size=[_dim_mid, _dim2   ], device=device)
             log10_of_b = avg_log10_safe(b).mean().cpu().item()
             assert _float_equal(log10_of_b, -0.16, 0.02)
             #calc and measure.
             c = a.matmul(b)
             log10_of_c = avg_log10_safe(c.reshape([1,-1]), top_ratio=0.6).mean().cpu().item()
             if test_index == 0:
-                print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _scale_factor={_scale_factor},,,log10_of_a={\
+                print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}],,,log10_of_a={\
                                         log10_of_a:.3f}, log10_of_b={log10_of_b:.3f},,,log10_of_c(safe)={log10_of_c:.3f}", end="")
                 pass
             else:
@@ -1828,15 +1830,6 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
             pass#for test_index
         print(f",,,,,avg={torch.tensor(_result_list).mean().item():.3f}")
         pass#for dim
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     
     

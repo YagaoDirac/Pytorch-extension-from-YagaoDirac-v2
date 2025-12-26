@@ -61,8 +61,9 @@ sys.path.append(str(Path(__file__).parent.parent))
 #from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1, ReLU_with_offset
 #from pytorch_yagaodirac_v2.Util import debug_avg_log10, data_gen_from_random_teacher, Print_Timing
 sys.path.append(str(Path(__file__).parent))
-from ParamMo import GradientModification_v2_mean_abs_to_1, ReLU_with_offset
-from Util import avg_log10_safe, data_gen_from_random_teacher, Print_Timing
+
+from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1, ReLU_with_offset
+from pytorch_yagaodirac_v2.Util import avg_log10_safe, data_gen_from_random_teacher, Print_Timing
 #they both work.
 
 
@@ -217,8 +218,8 @@ class FCL_from_yagaodirac(torch.nn.Module):
     
 
 
-1w
-我猜之前应该是，原版的mlp做一个log10，看看，然后上我的那个，看看。
+# 1w
+# 我猜之前应该是，原版的mlp做一个log10，看看，然后上我的那个，看看。
 
 
 if '''basic avg log10 test.(with set numbers) 可能有错。。''' and __DEBUG_ME__() and True:
@@ -227,16 +228,32 @@ if '''basic avg log10 test.(with set numbers) 可能有错。。''' and __DEBUG_
     "init log10 test"
     in_features = 1000
     for out_features in [100, 1000, 10000]:
-        layer = torch.nn.Linear(in_features, out_features, True, device='cuda')
-        _log_w = avg_log10_safe(layer.weight).mean().cpu().item()
-        _log_b = avg_log10_safe(layer.weight).cpu().item()
-        ""    
+        result_list_w = []
+        result_list_b = []
+        for test_index in range(5):
+            layer = torch.nn.Linear(in_features, out_features, True, device='cuda')
+            _log_w = avg_log10_safe(layer.weight).mean().cpu().item()
+            result_list_w.append(_log_w)
+            _log_b = avg_log10_safe(layer.weight).cpu().item()
+            result_list_b.append(_log_b)
+            print(f"_log_w={_log_w:.4f}, _log_b={_log_b:.4f}")
+            # if test_index == 0:
+            #     pass
+            # else:
+            #     pass
+            pass#test_index
+        print(f"avg _log_w={torch.tensor(result_list_w).mean().cpu().item():.4f}, _log_b={\
+                            torch.tensor(result_list_b).mean().cpu().item():.4f}")
+        print(f"std _log_w={torch.tensor(result_list_w).std().cpu().item():.4f}, _log_b={\
+                            torch.tensor(result_list_b).std().cpu().item():.4f}")
+        pass
+        
         
     
     
     
     
-    
+    assert False
     batch = 1
     in_features = 1
     out_features = 10000
@@ -300,7 +317,7 @@ if 'kaiming_he_init avg log test.(with set numbers)' and __DEBUG_ME__() and True
     pass
 
 
-1w
+assert False
 if 'kaiming_he_init adaption test.(with set numbers)' and __DEBUG_ME__() and True:
     batch = 100
     in_features = 100

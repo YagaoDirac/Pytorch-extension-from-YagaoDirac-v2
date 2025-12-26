@@ -2154,6 +2154,14 @@ if '''init test''' and __DEBUG_ME__() and True:
 
 class BCELoss_outputs_real_probabilityFunction(torch.autograd.Function):
     r'''
+    输出是错误比例。
+    
+    暂时只是一个玩具，没想到什么很正常的用途。难道数字神经网络再来一次吗？？？？？
+    
+    公式部分嘛。0不动。
+    
+    最后的 weight, reduction 两个的实现可能和原版的不一样。没这么细。
+    
     还没改，不急。
     forward is a normal bce loss.
     backward is different.
@@ -2168,31 +2176,65 @@ class BCELoss_outputs_real_probabilityFunction(torch.autograd.Function):
     '''
     @staticmethod
     #def forward(*args: Any, **kwargs: Any)->Any:
-    def forward(x:torch.Tensor,target:torch.Tensor,weight:torch.Tensor,\
+    def forward(input:torch.Tensor,target:torch.Tensor, weight:torch.Tensor|None,threshold:torch.Tensor, \
+                    the_min:torch.Tensor, the_max:torch.Tensor,\
                             *args: Any, **kwargs: Any)->Any:
-        assert_param_shape__batch_dim(x)#this is my convention. If you don't like it, commend it out.
-        torch.nn.functional.binary_cross_entropy
-        return x
+        assert_param_shape__batch_dim(input)#this is my convention. If you don't like it, commend it out.
+        _input_gt_threshold = input.gt(threshold)
+        _target_gt_threshold = target.le(threshold)
+        result_raw = _input_gt_threshold.logical_xor(_target_gt_threshold)
+        result = result_raw.mean(dim=1)
+        return result, _input_gt_threshold, _target_gt_threshold     
 
     @staticmethod
-    def setup_context(ctx, inputs, output):
-        x:torch.Tensor = inputs[0]
-        ctx.save_for_backward(x, output)
+    def setup_context(ctx:torch.autograd.function.FunctionCtx, inputs, output):
+        #ctx:torch.autograd.function.FunctionCtx
+        #input:torch.Tensor = input[0]
+        #target:torch.Tensor = input[1]
+        weight:torch.Tensor = input[2]
+        #threshold:torch.Tensor = input[3]
+        the_min:torch.Tensor = input[4]
+        the_max:torch.Tensor = input[5]
+        result = output[0]
+        _input_gt_threshold = output[1]
+        _target_gt_threshold = output[2]
+        if weight is None:
+            ctx.save_for_backward(result, the_min, the_max, _input_gt_threshold, _target_gt_threshold)
+            pass
+        else:
+            ctx.save_for_backward(result, the_min, the_max, _input_gt_threshold, _target_gt_threshold, weight)
+            pass
         return
         #return super().setup_context(ctx, inputs, output)
 
     @staticmethod
-    def backward(ctx, g_in_b_o):#->tuple[Optional[torch.Tensor], None, None, None]:
+    def backward(ctx:torch.autograd.function.FunctionCtx, g_in_b_o):#->tuple[Optional[torch.Tensor], None, None, None]:
         #super().backward()
-        x:torch.Tensor
-        output:torch.Tensor
-        (x, output) = ctx.saved_tensors
+        the_min:torch.Tensor
+        the_max:torch.Tensor
+        _input_gt_threshold:torch.Tensor
+        _target_gt_threshold:torch.Tensor
+        weight:torch.Tensor|None
+        
+        if ctx.saved_tensors.__len__() == 5:
+            (result, the_min, the_max, _input_gt_threshold, _target_gt_threshold) = ctx.saved_tensors
+            weight = None
+            pass
+        else:
+            (result, the_min, the_max, _input_gt_threshold, _target_gt_threshold, weight) = ctx.saved_tensors
+            pass
+        
+        感觉直接乘以对面的概率就完事了。
+        1w
         
         if x.requires_grad:
             _if__output_pos = output.gt(0.5)
             
             _if__pos = g_in_b_o.gt(0.)
             _if__neg = g_in_b_o.lt(0.)
+            
+            
+            
             
             应该是1的总数，
             应该是0的总数
@@ -2204,11 +2246,25 @@ class BCELoss_outputs_real_probabilityFunction(torch.autograd.Function):
             
             
             根据 g_in_b_o 算出结果。
-            return 结果, None, None
+            return 结果, None, None, None, None, None
         else:
-            return None, None, None
+            return None, None, None, None, None, None
 
     pass  # class
+
+if "和原版的行为对比" and True:
+    "原版"
+    bceloss_no_reduction = torch.nn.BCELoss(reduction="none")
+    input = torch.linspace(start=0., end=1., steps=5, requires_grad=True)
+    target = torch.zeros_like(input)
+    loss:torch.Tensor = bceloss_no_reduction(input, target)
+    print(loss)
+    loss.backward(torch.ones_like(loss))
+    print(input.grad)
+    # Notice the last element in grad, it's 1e12. 
+    # Most elements are in range 0 to 10, but the wrongest one provides 1e12.
+    # What lr should you use?
+    pass
 
 if '''dim irrelated gramo''' and __DEBUG_ME__() and True:
     scaling_factor = torch.tensor([1.], dtype=torch.float64)
@@ -2265,6 +2321,7 @@ class BCELoss_outputs_real_probability(torch.nn._WeightedLoss):
         weight: Optional[torch.Tensor] = None,
         #size_average=None,
         #reduce=None,
+        assert threshold
         reduction: str = "mean",
     ) -> None:
         #super().__init__(weight, size_average, reduce, reduction)
