@@ -556,17 +556,18 @@ class GradientModificationFunction_v2_abs_to_less_than_1__adaptive_expansion(tor
 
     @staticmethod
     def backward(ctx, g_in_b_o):
-        #super().backward()
-        x_needs_grad:torch.Tensor
-        div_me_when_g_too_small:torch.Tensor
-        median_expansion_to:torch.Tensor
-        useful_element_lower_boundary:torch.Tensor
-        useful_element_upper_boundary:torch.Tensor
-        expansion_factor_fallback:torch.Tensor
+        # super().backward()
+        # x_needs_grad:torch.Tensor
+        # div_me_when_g_too_small:torch.Tensor
+        # median_expansion_to:torch.Tensor
+        # useful_element_lower_boundary:torch.Tensor
+        # useful_element_upper_boundary:torch.Tensor
+        # expansion_factor_fallback:torch.Tensor
         (x_needs_grad,div_me_when_g_too_small,median_expansion_to,useful_element_lower_boundary,
                 useful_element_upper_boundary,expansion_factor_fallback) = ctx.saved_tensors
         
-        grad_for_x_b_o:Optional[torch.Tensor] = None
+        #grad_for_x_b_o:Optional[torch.Tensor] = None
+        grad_for_x_b_o = None
         
         if x_needs_grad:
                 
@@ -578,11 +579,14 @@ class GradientModificationFunction_v2_abs_to_less_than_1__adaptive_expansion(tor
             max_abs_of_each_batch__raw__b_1 = abs_of_g_in_b_o.amax(dim=1,keepdim=True)
             max_abs_of_each_batch__safe__b_1 = max_abs_of_each_batch__raw__b_1.maximum(div_me_when_g_too_small)
             reverse_of_max_abs_of_each_batch__safe__b_1 = (1./max_abs_of_each_batch__safe__b_1).to(g_in_b_o.dtype)
-            abs_of_grad_for_x_bofore_scale_step2_b_o:torch.Tensor = abs_of_g_in_b_o*reverse_of_max_abs_of_each_batch__safe__b_1
+            #abs_of_grad_for_x_bofore_scale_step2_b_o:torch.Tensor
+            abs_of_grad_for_x_bofore_scale_step2_b_o = abs_of_g_in_b_o*reverse_of_max_abs_of_each_batch__safe__b_1
             #now, grad_for_x_bofore_scale_step2_b_o has a abs==1 element for each output.
             
-            flag_not_too_small_b_o:torch.Tensor = abs_of_grad_for_x_bofore_scale_step2_b_o.gt(useful_element_lower_boundary)
-            flag_not_too_big_b_o:torch.Tensor = abs_of_grad_for_x_bofore_scale_step2_b_o.lt(useful_element_upper_boundary)
+            #flag_not_too_small_b_o:torch.Tensor
+            flag_not_too_small_b_o = abs_of_grad_for_x_bofore_scale_step2_b_o.gt(useful_element_lower_boundary)
+            #flag_not_too_big_b_o:torch.Tensor
+            flag_not_too_big_b_o = abs_of_grad_for_x_bofore_scale_step2_b_o.lt(useful_element_upper_boundary)
             flag_useful_b_o = flag_not_too_small_b_o.logical_and(flag_not_too_big_b_o)
             amount_of_useful_element_b_1 = flag_useful_b_o.sum(dim=1,keepdim=True)
             flag_has_useful_element_b_1 = amount_of_useful_element_b_1.gt(torch.tensor(0))#at least a 1. I need 2 to calc.
@@ -859,7 +863,7 @@ if '''init test''' and __DEBUG_ME__() and True:
 
 
 class XModificationFunction_sign_balance_abs_to_less_than_1(torch.autograd.Function):
-    r'''This autograd function scale grad to have a mean(abs(square)) to specified number(1 by default).
+    r'''This autograd function scale grad to have a mean(abs(square)) (is this wrong??) to specified number(1 by default).
     It's designed mainly to help analogy signal handling with error propagation.
     
     input param:
@@ -932,11 +936,12 @@ if '''basic test''' and __DEBUG_ME__() and True:
     
     a = torch.tensor([[1.,1,1,-1],[1,1,1,-2],[2,2,2,-1],[1,1,2,-1],], dtype=torch.float16)
     aa = a*torch.rand([1])*-1
+    #if this rand number is too small, the assertion may be unstable.
     b = XModificationFunction_sign_balance_abs_to_less_than_1.apply(aa,div_me_when_g_too_small)
-    assert _tensor_equal(b, torch.tensor( [[-0.33, -0.33, -0.33,  1.],
-                                    [-0.33, -0.33, -0.33,  1.],
-                                    [-0.33, -0.33, -0.33,  1.],
-                                    [-0.25, -0.25, -0.50,  1.]], dtype=torch.float16), epsilon=0.01)
+    assert _tensor_equal(b, torch.tensor(  [[-0.33, -0.33, -0.33,  1.],
+                                            [-0.33, -0.33, -0.33,  1.],
+                                            [-0.33, -0.33, -0.33,  1.],
+                                            [-0.25, -0.25, -0.50,  1.]], dtype=torch.float16), epsilon=0.01)
     assert _tensor_equal(b.sum(dim=1), torch.tensor([ 0., 0, 0, 0.],dtype=torch.float16), epsilon=0.01)
     pass
 
@@ -1168,21 +1173,34 @@ if '''dim irrelated ???''' and __DEBUG_ME__() and True:
     forward_expansion_factor = torch.tensor(0.5)
     div_me_when_g_too_small = torch.tensor(2e-3)
     #flag_grad_expansion_back = torch.tensor(True)
-    
     a = torch.tensor([[0.1,0.2],[0.01,0.02,],[0.001,0.002],[1e-4,2e-4],[1e-5,2e-5]], requires_grad=True, dtype=torch.float16)
     b = XModificationFunction_abs_to_less_than_1_then_expansion.apply(a,forward_expansion_factor,div_me_when_g_too_small)
     #b = XModificationFunction_abs_to_less_than_1_for_both_path.apply(a,forward_expansion_factor,div_me_when_g_too_small,flag_grad_expansion_back)
-    print(b)1w 继续改。
+    assert _tensor_equal(b, torch.tensor(  [[0.7070, 1.0000],
+                                            [0.7070, 1.0000],
+                                            [0.7070, 1.0000],
+                                            [0.2236, 0.3162],
+                                            [0.0707, 0.1000]]), epsilon=0.001)
     g_in = torch.tensor([[0.1,0.2],[0.01,0.02,],[0.001,0.002],[1e-4,2e-4],[1e-5,2e-5]], dtype=torch.float16)
     torch.autograd.backward(b, g_in,inputs= a)
-    print(a.grad)
+    assert a.grad is not None
+    assert _tensor_equal(a.grad[:2],torch.tensor(  [[1e-1, 2e-1],
+                                                    [1e-2, 2e-2]], dtype=torch.float16), epsilon=1e-4)
+    assert _tensor_equal(a.grad[2:4],torch.tensor( [[1e-3, 2e-3],
+                                                    [1e-4, 2e-4]], dtype=torch.float16), epsilon=1e-6)
+    assert _tensor_equal(a.grad[4],torch.tensor(    [1e-5, 2e-5] , dtype=torch.float16), epsilon=1e-7)
     
     a = torch.tensor([[0.1],[0.01],[0.001],[1e-4],[1e-5]], requires_grad=True, dtype=torch.float16)
     b = XModificationFunction_abs_to_less_than_1_then_expansion.apply(a,forward_expansion_factor,div_me_when_g_too_small)
-    print(b)
+    assert _tensor_equal(b, torch.tensor([[1],[1],[0.707],[0.2236],[0.0707]]))
     g_in = torch.tensor([[0.1],[0.01],[0.001],[1e-4],[1e-5]], dtype=torch.float16)
     torch.autograd.backward(b, g_in,inputs= a)
-    print(a.grad)
+    assert a.grad is not None
+    assert _tensor_equal(a.grad[:2], torch.tensor( [[0.1],
+                                                    [0.01]], dtype=torch.float16), epsilon=1e-4)
+    assert _tensor_equal(a.grad[2:4], torch.tensor([[0.001],
+                                                    [1e-4]], dtype=torch.float16), epsilon=1e-6)
+    assert _tensor_equal(a.grad[4], torch.tensor(   [1e-5],  dtype=torch.float16), epsilon=1e-7)
     pass
 
 if '''dtype adaption.''' and __DEBUG_ME__() and True:
@@ -1402,7 +1420,8 @@ class GradientModificationFunction_v2_mean_abs_to_1(torch.autograd.Function):
 
     @staticmethod
     def setup_context(ctx, inputs, output):
-        x:torch.Tensor = inputs[0]
+        #x:torch.Tensor
+        x = inputs[0]
         scaling_factor = inputs[1]
         epsilon = inputs[2]
         mul_me_when_g_too_small = inputs[3]
@@ -1414,29 +1433,34 @@ class GradientModificationFunction_v2_mean_abs_to_1(torch.autograd.Function):
     @staticmethod
     def backward(ctx, g_in_b_o):#->tuple[Optional[torch.Tensor], None, None, None]:
         #super().backward()
-        scaling_factor:torch.Tensor
-        epsilon:torch.Tensor
-        mul_me_when_g_too_small:torch.Tensor
+        # scaling_factor:torch.Tensor
+        # epsilon:torch.Tensor
+        # mul_me_when_g_too_small:torch.Tensor
         (scaling_factor, epsilon, mul_me_when_g_too_small, x_needs_grad) = ctx.saved_tensors
         
-        grad_for_x_b_o:Optional[torch.Tensor] = None
+        #grad_for_x_b_o:Optional[torch.Tensor] = None
+        grad_for_x_b_o = None
         
         if x_needs_grad:
-            out_features_as_float:torch.Tensor = torch.tensor([g_in_b_o.shape[-1]], dtype=torch.float64, device=g_in_b_o.device)
+            #out_features_as_float:torch.Tensor
+            out_features_as_float = torch.tensor([g_in_b_o.shape[-1]], dtype=torch.float64, device=g_in_b_o.device)
             #mul_me_when_g_too_small = mul_me_when_g_too_small_per_element#*out_features_as_float
 
-            avg_length_per_element_b_1:torch.Tensor = (g_in_b_o.mul(g_in_b_o).sum(dim=1,keepdim = True)/out_features_as_float).sqrt()
+            #avg_length_per_element_b_1:torch.Tensor
+            avg_length_per_element_b_1 = (g_in_b_o.mul(g_in_b_o).sum(dim=1,keepdim = True)/out_features_as_float).sqrt()
             mul_me_when_g_is_ok_raw_b_1 = scaling_factor/avg_length_per_element_b_1
             
             mul_me_when_g_is_ok_raw_b_1.nan_to_num_(mul_me_when_g_too_small.item())
             not_too_big_flag = mul_me_when_g_is_ok_raw_b_1.lt(mul_me_when_g_too_small*1000)#is this needed?
             mul_me_when_g_is_ok_b_1 = not_too_big_flag*mul_me_when_g_is_ok_raw_b_1+not_too_big_flag.logical_not()*mul_me_when_g_too_small
             
-            too_small_b_1:torch.Tensor = avg_length_per_element_b_1.le(epsilon)#*out_features_as_float)
+            # too_small_b_1:torch.Tensor
+            too_small_b_1 = avg_length_per_element_b_1.le(epsilon)#*out_features_as_float)
             
             mul_me_b_1 = too_small_b_1.logical_not()*mul_me_when_g_is_ok_b_1+ too_small_b_1*mul_me_when_g_too_small
             mul_me_b_1 = mul_me_b_1.to(g_in_b_o.dtype)
-            grad_for_x_b_o:torch.Tensor = g_in_b_o*mul_me_b_1
+            # grad_for_x_b_o:torch.Tensor
+            grad_for_x_b_o = g_in_b_o*mul_me_b_1
             pass
 
         return grad_for_x_b_o, None, None, None
@@ -1451,13 +1475,24 @@ if '''dim irrelated gramo''' and __DEBUG_ME__() and True:
     b = GradientModificationFunction_v2_mean_abs_to_1.apply(a,scaling_factor,epsilon,mul_me_when_g_too_small)
     g_in = torch.tensor([[0.1,0.2],[0.01,0.02,],[0.001,0.002],[1e-4,2e-4],[1e-5,2e-5]], dtype=torch.float16)
     torch.autograd.backward(b, g_in,inputs= a)
-    print(a.grad)
+    assert a.grad is not None
+    assert _tensor_equal(a.grad[:3], torch.tensor( [[6.3232e-01, 1.2646e+00],
+                                                    [6.3232e-01, 1.2646e+00],
+                                                    [6.3232e-01, 1.2646e+00]], dtype=torch.float16), epsilon=1e-4)
+    assert _tensor_equal(a.grad[3:], torch.tensor( [[1.0004e-03, 2.0008e-03],
+                                                    [1.0014e-04, 2.0027e-04]], dtype=torch.float16), epsilon=1e-7)
+    
     
     a = torch.zeros([5,1], requires_grad=True, dtype=torch.float16)
     b = GradientModificationFunction_v2_mean_abs_to_1.apply(a,scaling_factor,epsilon,mul_me_when_g_too_small)
     g_in = torch.tensor([[0.1],[0.01],[0.001],[1e-4],[1e-5]], dtype=torch.float16)
     torch.autograd.backward(b, g_in,inputs= a)
-    print(a.grad)
+    assert a.grad is not None
+    assert _tensor_equal(a.grad[:3], torch.tensor( [[1.0000e+00],
+                                                    [1.0000e+00],
+                                                    [9.9414e-01]], dtype=torch.float16), epsilon=1e-4)
+    assert _tensor_equal(a.grad[3:], torch.tensor( [[1.0004e-03],
+                                                    [1.0014e-04]], dtype=torch.float16), epsilon=1e-7)
     pass
 
 if '''dtype adaption.''' and __DEBUG_ME__() and True:
@@ -1470,7 +1505,6 @@ if '''dtype adaption.''' and __DEBUG_ME__() and True:
     ### g = torch.autograd.grad(b, a, retain_graph= True)#this one doesn't help.
     g_in = torch.tensor([[1.]], dtype=torch.float16)
     torch.autograd.backward(b, g_in,inputs= a)
-    #print(g[0])
     assert a.grad
     assert a.grad.dtype == original_dtype
     pass
@@ -1716,12 +1750,13 @@ class GradientModificationFunction_v2_abs_to_less_than_1(torch.autograd.Function
     @staticmethod
     def backward(ctx, g_in_b_o):
         #super().backward()
-        grad_expansion_factor:torch.Tensor
-        x_needs_grad:torch.Tensor
-        div_me_when_g_too_small:torch.Tensor
+        # grad_expansion_factor:torch.Tensor
+        # x_needs_grad:torch.Tensor
+        # div_me_when_g_too_small:torch.Tensor
         (grad_expansion_factor, x_needs_grad,div_me_when_g_too_small) = ctx.saved_tensors
         
-        grad_for_x_b_o:Optional[torch.Tensor] = None
+        #grad_for_x_b_o:Optional[torch.Tensor] = None
+        grad_for_x_b_o = None
         
         if x_needs_grad:
                 
@@ -1757,20 +1792,38 @@ if '''dim irrelated gramo''' and __DEBUG_ME__() and True:
     b = GradientModificationFunction_v2_abs_to_less_than_1.apply(a,grad_expansion_factor,div_me_when_g_too_small)
     g_in = torch.tensor([[0.1,0.2],[0.01,0.02,],[0.001,0.002],[1e-4,2e-4],[1e-5,2e-5]], dtype=torch.float16)
     torch.autograd.backward(b, g_in,inputs= a)
-    print(a.grad)
+    assert a.grad is not None
+    assert _tensor_equal(a.grad, torch.tensor( [[0.8120, 1.0000],
+                                                [0.8120, 1.0000],
+                                                [0.8120, 1.0000],
+                                                [0.4070, 0.5010],
+                                                [0.2040, 0.2512]], dtype=torch.float16), epsilon=1e-7)
+    
     
     a = torch.zeros([5,1], requires_grad=True, dtype=torch.float16)
     b = GradientModificationFunction_v2_abs_to_less_than_1.apply(a,grad_expansion_factor,div_me_when_g_too_small)
     g_in = torch.tensor([[0.1],[0.01],[0.001],[1e-4],[1e-5]], dtype=torch.float16)
     torch.autograd.backward(b, g_in,inputs= a)
-    print(a.grad)
+    assert a.grad is not None
+    assert _tensor_equal(a.grad, torch.tensor( [[1.0000],
+                                                [1.0000],
+                                                [0.8120],
+                                                [0.4070],
+                                                [0.2040]], dtype=torch.float16), epsilon=1e-7)
+    
     
     grad_expansion_factor = torch.tensor([1.], dtype=torch.float64)
     a = torch.zeros([3,2], requires_grad=True, dtype=torch.float16)
     b = GradientModificationFunction_v2_abs_to_less_than_1.apply(a,grad_expansion_factor,div_me_when_g_too_small)
-    g_in = torch.tensor([[0.1,0.2],[-0.1,0.2],[-0.1,-0.2],], dtype=torch.float16)
+    g_in = torch.tensor(   [[ 0.1, 0.2],
+                            [-0.1, 0.2],
+                            [-0.1,-0.2],], dtype=torch.float16)
     torch.autograd.backward(b, g_in,inputs= a)
-    print(a.grad)
+    assert a.grad is not None
+    assert _tensor_equal(a.grad, torch.tensor( [[ 0.5,  1],
+                                                [-0.5,  1],
+                                                [-0.5, -1]], dtype=torch.float16), epsilon=1e-7)
+    
     pass
 
 if '''dtype adaption.''' and __DEBUG_ME__() and True:
@@ -1784,7 +1837,6 @@ if '''dtype adaption.''' and __DEBUG_ME__() and True:
     ### g = torch.autograd.grad(b, a, retain_graph= True)#this one doesn't help.
     g_in = torch.tensor([[1.]], dtype=torch.float16)
     torch.autograd.backward(b, g_in,inputs= a)
-    #print(g[0])
     assert a.grad
     assert a.grad.dtype == original_dtype
     pass
@@ -1796,7 +1848,6 @@ if '''device adaption''' and __DEBUG_ME__() and True:
     b = GradientModificationFunction_v2_abs_to_less_than_1.apply(a,grad_expansion_factor,div_me_when_g_too_small)
     g_in = torch.tensor([[1.]]).cuda()
     torch.autograd.backward(b, g_in,inputs= a)
-    #print(g[0])
     assert a.grad
     assert a.grad.device.type == 'cuda'
     pass
@@ -1842,14 +1893,14 @@ class GradientModification_v2_abs_to_less_than_1(torch.nn.Module):
 
 if '''all the setters''' and __DEBUG_ME__() and True:
     model_GradientModification_v2_abs_to_less_than_1 = GradientModification_v2_abs_to_less_than_1()
-    print(model_GradientModification_v2_abs_to_less_than_1.grad_expansion_factor.requires_grad, "should be False")
-    print(model_GradientModification_v2_abs_to_less_than_1.div_me_when_g_too_small.requires_grad, "should be False")
+    assert model_GradientModification_v2_abs_to_less_than_1.grad_expansion_factor.requires_grad == False
+    assert model_GradientModification_v2_abs_to_less_than_1.div_me_when_g_too_small.requires_grad == False
     model_GradientModification_v2_abs_to_less_than_1.set_grad_expansion_factor(0.123)
-    print(model_GradientModification_v2_abs_to_less_than_1.grad_expansion_factor, "should be 0.123")
-    print(model_GradientModification_v2_abs_to_less_than_1.grad_expansion_factor.requires_grad, "should be False")
+    assert _tensor_equal(model_GradientModification_v2_abs_to_less_than_1.grad_expansion_factor, torch.tensor(0.123))
+    assert model_GradientModification_v2_abs_to_less_than_1.grad_expansion_factor.requires_grad == False
     model_GradientModification_v2_abs_to_less_than_1.set_div_me_when_g_too_small(0.234)
-    print(model_GradientModification_v2_abs_to_less_than_1.div_me_when_g_too_small, "should be 0.234")
-    print(model_GradientModification_v2_abs_to_less_than_1.div_me_when_g_too_small.requires_grad, "should be False")
+    assert _tensor_equal(model_GradientModification_v2_abs_to_less_than_1.div_me_when_g_too_small, torch.tensor(0.234))
+    assert model_GradientModification_v2_abs_to_less_than_1.div_me_when_g_too_small.requires_grad == False
     pass
 
 if '''dtype adaption.''' and __DEBUG_ME__() and True:
@@ -1958,8 +2009,8 @@ if '''init test''' and __DEBUG_ME__() and True:
 # # div_me_when_g_too_small = torch.tensor([1e-3], dtype=torch.float16)
 # # a = torch.tensor([[0.]], dtype=torch.float16)
 # # original_dtype = a.dtype
-# # print(XModificationFunction.apply(a,scaling_factor,epsilon,div_me_when_g_too_small))
-# # print("should be ", original_dtype)
+# # prin(XModificationFunction.apply(a,scaling_factor,epsilon,div_me_when_g_too_small))
+# # prin("should be ", original_dtype)
 # # fds=432
 
 # # '''when x_in is too small.'''
@@ -1967,16 +2018,16 @@ if '''init test''' and __DEBUG_ME__() and True:
 # # epsilon=torch.tensor([1e-5])
 # # div_me_when_g_too_small = torch.tensor([1e-3])
 # # input = torch.tensor([[0.0000012]])
-# # print(XModificationFunction.apply(input,scaling_factor,epsilon,div_me_when_g_too_small))
-# # print("should be ", input/div_me_when_g_too_small)
+# # prin(XModificationFunction.apply(input,scaling_factor,epsilon,div_me_when_g_too_small))
+# # prin("should be ", input/div_me_when_g_too_small)
 
 # # '''when x_in is NOT too small.'''
 # # scaling_factor = torch.tensor([1.])
 # # epsilon=torch.tensor([1e-5])
 # # div_me_when_g_too_small = torch.tensor([1e-3])
 # # input = torch.tensor([[0.12]])
-# # print(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
-# # print("should be 1.")
+# # prin(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
+# # prin("should be 1.")
 # # fds=432
 
 # # '''The shape is [batches, inside a batch]. Computation is limited inside each batch.'''
@@ -1984,27 +2035,27 @@ if '''init test''' and __DEBUG_ME__() and True:
 # # epsilon=torch.tensor([1e-5])
 # # div_me_when_g_too_small = torch.tensor([1e-3])
 # # input = torch.tensor([[0.12, 0.12]])
-# # print(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
-# # print("should be 0.7, 0.7")
+# # prin(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
+# # prin("should be 0.7, 0.7")
 
 # # input = torch.tensor([[0.12], [0.12]])
-# # print(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
-# # print("should be 1., 1.")
+# # prin(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
+# # prin("should be 1., 1.")
 
 
 # # input = torch.tensor([[0.1, 0.173], [0.12, 0.12]])
-# # print(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
-# # print("should be 0.5, 0.86, 0.7, 0.7")
+# # prin(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
+# # prin("should be 0.5, 0.86, 0.7, 0.7")
 # # fds=432
 
 # # '''Other 3 input besides the main input x.'''
 # # input = torch.tensor([[0.0001, 0.0001], [0.12, 0.12]])
-# # print(XModificationFunction.apply(input, torch.tensor([1.]), torch.tensor([0.001]),torch.tensor([0.1])))
-# # print("should be 0.001, 0.001, 0.7, 0.7")
+# # prin(XModificationFunction.apply(input, torch.tensor([1.]), torch.tensor([0.001]),torch.tensor([0.1])))
+# # prin("should be 0.001, 0.001, 0.7, 0.7")
 
 # # input = torch.tensor([[0.0001, 0.0001], [0.12, 0.12]])
-# # print(XModificationFunction.apply(input, torch.tensor([2.]), torch.tensor([0.001]),torch.tensor([0.1])))
-# # print("should be 0.002, 0.002, 1.4, 1.4")
+# # prin(XModificationFunction.apply(input, torch.tensor([2.]), torch.tensor([0.001]),torch.tensor([0.1])))
+# # prin("should be 0.002, 0.002, 1.4, 1.4")
 # # fds=432
 
 
@@ -2219,137 +2270,235 @@ class BCELoss_outputs_real_probabilityFunction(torch.autograd.Function):
         >>> result:torch.Tensor, what you need.
         >>> _target_gt_threshold:torch.Tensor, IGNORE THIS   
         '''    
-        assert False, "untested."
         
         
         assert_param_shape__batch_dim(input)#this is my convention. If you don't like it, commend it out.
-        _input_gt_threshold = input.gt(0.5)
-        _target_gt_threshold = target.le(0.5)
-        result_raw = _input_gt_threshold.logical_xor(_target_gt_threshold)
-        result = result_raw.mean(dim=1)
+        _input_lt_threshold = input.lt(0.5)
+        #_target_gt_threshold = target.le(0.5)
+        result_raw = _input_lt_threshold.logical_xor(target)
+        result = result_raw.mean(dim=1, dtype=torch.float64)#basically this is the end of neural net.
         result.requires_grad_(input.requires_grad)
         #return result, _input_gt_threshold, _target_gt_threshold     
-        return result, _target_gt_threshold     
+        return result     
 
     @staticmethod
     def setup_context(ctx:torch.autograd.function.FunctionCtx, inputs, output):
         #ctx:torch.autograd.function.FunctionCtx
         
-        input:torch.Tensor = input[0]
-        #target:torch.Tensor = input[1]
-        #weight:torch.Tensor|None, = input[2]  moved below
-        no_grad_zone_size:torch.Tensor = input[3]
+        input:torch.Tensor = inputs[0]
+        target:torch.Tensor = inputs[1]
+        #weight:torch.Tensor|None, = inputs[2]  moved below
+        no_grad_zone_size:torch.Tensor = inputs[3]
         
-        result = output[0]
-        #_input_gt_threshold = output[1]
-        _target_gt_threshold = output[1]
+        #result = output[0]
         
-        weight:torch.Tensor = input[2]
+        weight:torch.Tensor = inputs[2]
         
         if weight is None:
-            ctx.save_for_backward(input, no_grad_zone_size,result, _target_gt_threshold)
+            #ctx.save_for_backward(input, no_grad_zone_size,result, _target_gt_threshold)
+            ctx.save_for_backward(input, target, no_grad_zone_size)
             pass
         else:
-            ctx.save_for_backward(input, no_grad_zone_size, result, _target_gt_threshold, \
-                                                weight)
+            #ctx.save_for_backward(input, no_grad_zone_size, result, _target_gt_threshold, \
+            ctx.save_for_backward(input, target, no_grad_zone_size,   weight)
             pass
         return
         #return super().setup_context(ctx, inputs, output)
 
     @staticmethod
-    def backward(ctx:torch.autograd.function.FunctionCtx, g_in_b_o):#->tuple[Optional[torch.Tensor], None, None, None]:
-        #super().backward()
-        input:torch.Tensor
-        no_grad_zone_size:torch.Tensor 
-        result:torch.Tensor
-        _target_gt_threshold:torch.Tensor
-        weight:torch.Tensor|None
+    #def backward(ctx:torch.autograd.function.FunctionCtx, g_in_b_o):#->tuple[Optional[torch.Tensor], None, None, None]:
+    def backward(ctx, g_in_b):#->tuple[Optional[torch.Tensor], None, None, None]:
         
-        if ctx.saved_tensors.__len__() == 4:
-            (input, no_grad_zone_size, result, _target_gt_threshold)\
-                                                        = ctx.saved_tensors
-            weight = None
-            pass
-        else:
-            (input, no_grad_zone_size, result, _target_gt_threshold, \
-                                                weight) = ctx.saved_tensors
-            pass
+        #super().backward()
+        # input:torch.Tensor
+        # no_grad_zone_size:torch.Tensor 
+        #result:torch.Tensor
+        # target:torch.Tensor
+        # weight:torch.Tensor|None
+        
+        return torch.tensor([[111.,222.,333]],device=g_in_b.device),None,None,None
+        
+        match ctx.saved_tensors.__len__():
+            case 3:
+                (input, target, no_grad_zone_size)= ctx.saved_tensors
+                weight = None
+                pass
+            case 4:
+                (input, target, no_grad_zone_size,   weight) = ctx.saved_tensors
+                pass
+            case _:
+                assert False, "unreachable"
+            # end of match.
         
         if input.requires_grad == False:
-            return None,None,None,None,None
+            return None,None,None,None
         
-        _total_dist = 1.
-        input_gt_0_5 = input.gt(0.5)
+        #_total_dist = 1.
+        #input_gt_0_5 = input.gt(0.5)
         
         grad = torch.zeros_like(input)
-        grad[input_gt_0_5] = input[input_gt_0_5]-no_grad_zone_size
-        grad[~input_gt_0_5] = 1-input[~input_gt_0_5]
-        grad.sub_(no_grad_zone_size)
-        grad[~grad.gt(0.)] = 0. #-inf and nan returns false from gt().
+        #grad[_target_gt_threshold] = input[_target_gt_threshold]-no_grad_zone_size
+        grad[ target] = torch.minimum(torch.tensor(0.), input[ target]-(1-no_grad_zone_size))
+        #grad[~_target_gt_threshold] = input[~_target_gt_threshold]-(1-no_grad_zone_size)
+        grad[~target] = torch.maximum(torch.tensor(0.), input[~target]-no_grad_zone_size)
+        #xxxxxxxx grad.sub_(no_grad_zone_size)
+        #xxxxxxxxx why is this ??? grad[~grad.gt(0.)] = 0. #-inf and nan returns false from gt().
         
-        if weight:
+        if g_in_b.ne(1.).any():
+            g_in_b = g_in_b.unsqueeze(dim=-1).expand(-1,grad.shape[1])
+            assert g_in_b.shape == grad.shape
+            grad.mul_(g_in_b)
+            pass
+        if weight is not None:
             grad.mul_(weight)
             pass
         
-        return grad,None,None,None,None
+        return grad,None,None,None
 
     pass  # class
 
-if '''SigmoidBCELoss_outputs_real_probabilityFunction''' and __DEBUG_ME__() and True:
-    input = torch.tensor( [[0 ,0.1,0.2,0.8,0.9,1.]])
-    target = torch.tensor([[0.,  0,  0,  0,  0,0,]])
-    #weight = torch.tensor
+if '''BCELoss_outputs_real_probabilityFunction''' and __DEBUG_ME__() and False:
+    a = torch.tensor( [[0 ,0.1,0.2,0.9,1.]], requires_grad=True)
+    target = torch.zeros_like(a, dtype = torch.bool)
     weight = None
+    no_grad_zone_size = torch.tensor(0.)
+    b = BCELoss_outputs_real_probabilityFunction.apply(a, target, weight, no_grad_zone_size)
+    assert _tensor_equal(b, torch.tensor([0.6]))
+    b.backward()
+    #g_in = torch.tensor([1.], dtype=torch.float16)
+    #torch.autograd.backward(b, g_in, inputs = a)
+    assert a.grad is not None
+    assert _tensor_equal(a.grad, torch.tensor([[0., 0.1, 0.2, 0.9, 1]]))#, epsilon=1e-7)
+
+
+    #target
+    a = torch.tensor( [[0 ,0.1,0.2,0.9,1.]], requires_grad=True)
+    target = torch.ones_like(a, dtype = torch.bool)
+    weight = None
+    no_grad_zone_size = torch.tensor(0.)
+    b = BCELoss_outputs_real_probabilityFunction.apply(a, target, weight, no_grad_zone_size)
+    assert _tensor_equal(b, torch.tensor([0.4]))
+    b.backward()
+    assert a.grad is not None
+    assert _tensor_equal(a.grad, torch.tensor([[-1., -0.9, -0.8, -0.1, 0]]))#, epsilon=1e-7)
+    
+    a = torch.tensor( [[0 ,0.1,0.2,0.9,1.]], requires_grad=True)
+    target = torch.tensor([[False,False,False,True,True]])
+    b = BCELoss_outputs_real_probabilityFunction.apply(a, target, weight, no_grad_zone_size)
+    assert _tensor_equal(b, torch.tensor([1.]))
+    b.backward()
+    assert a.grad is not None
+    assert _tensor_equal(a.grad, torch.tensor([[0., 0.1, 0.2, -0.1, 0]]))#, epsilon=1e-7)
+    
+    
+    # no_grad_zone_size
+    a = torch.tensor( [[0 ,0.1,0.2,0.9,1.]], requires_grad=True)
+    target = torch.zeros_like(a, dtype = torch.bool)
     no_grad_zone_size = torch.tensor(0.1)
-    _result_tuple_tensortensor = BCELoss_outputs_real_probabilityFunction.apply(input, target, weight, no_grad_zone_size)
-    result = _result_tuple_tensortensor[0]
-    assert _float_equal(result.item(), 1.)
+    b = BCELoss_outputs_real_probabilityFunction.apply(a, target, weight, no_grad_zone_size)
+    assert _tensor_equal(b, torch.tensor([0.6]))
+    b.backward()
+    assert a.grad is not None
+    assert _tensor_equal(a.grad, torch.tensor([[0., 0, 0.1, 0.8, 0.9]]))#, epsilon=1e-7)
+
+    
+    #weight = torch.tensor
+    a = torch.tensor([[0 ,0.1,0.2,0.9,1.]], requires_grad=True)
+    target = torch.zeros_like(a, dtype = torch.bool)
+    weight = torch.tensor([[11. , 12, 13,14,15]])
+    no_grad_zone_size = torch.tensor(0.)
+    b = BCELoss_outputs_real_probabilityFunction.apply(a, target, weight, no_grad_zone_size)
+    assert _tensor_equal(b, torch.tensor([0.6]))
+    b.backward()
+    assert a.grad is not None
+    assert _tensor_equal(a.grad, torch.tensor([[0., 1.2, 2.6, 12.6, 15]]))#, epsilon=1e-7)
+
+    
+    # no grad
+    a = torch.tensor([[0 ,0.1,0.2,0.9,1.]], requires_grad=False)
+    target = torch.zeros_like(a, dtype = torch.bool)
+    weight = None
+    no_grad_zone_size = torch.tensor(0.)
+    assert a.requires_grad == False
+    b = BCELoss_outputs_real_probabilityFunction.apply(a, target, weight, no_grad_zone_size)
+    assert b.grad_fn is None
+
+    
+    #g_in, although I don't recommend you do this. This tool is not designed to do so.
+    a = torch.tensor( [[0 ,0.1,0.2,0.9,1.]], requires_grad=True)
+    target = torch.zeros_like(a, dtype = torch.bool)
+    weight = None
+    no_grad_zone_size = torch.tensor(0.)
+    b = BCELoss_outputs_real_probabilityFunction.apply(a, target, weight, no_grad_zone_size)
+    assert _tensor_equal(b, torch.tensor([0.6]))
+    g_in = torch.tensor([123.])
+    torch.autograd.backward(b, g_in, inputs=a)
+    assert a.grad is not None
+    assert _tensor_equal(a.grad, torch.tensor([[0., 12.3, 24.6, 110.7, 123]]))#, epsilon=1e-7)
     
     
-    assert False
+    #batch
+    a = torch.tensor( [[0 ,0.1,0.2,0.9,1.],[0 ,0,0,1,1]], requires_grad=True)
+    target = torch.tensor( [[False,False,False,False,True],[False,True,True,True,True]])
+    weight = None
+    no_grad_zone_size = torch.tensor(0.)
+    b = BCELoss_outputs_real_probabilityFunction.apply(a, target, weight, no_grad_zone_size)
+    assert _tensor_equal(b, torch.tensor([0.8, 0.6]))
+    b.backward(torch.ones_like(b))
+    assert a.grad is not None
+    assert _tensor_equal(a.grad, torch.tensor([[0., 0.1, 0.2, 0.9, 0],[0,-1,-1,0,0],]))#, epsilon=1e-7)
     
+    for _ in range(15):
+        a = torch.rand(size=[32,16])
+        a.requires_grad_(True)
+        assert a.requires_grad
+        target = torch.randint_like(a, low=0, high=2, dtype=torch.bool)
+        weight = None
+        no_grad_zone_size = torch.tensor(0.)
+        b = BCELoss_outputs_real_probabilityFunction.apply(a, target, weight, no_grad_zone_size)
+        assert b.ge(0.).all()# b is in range [0,1]
+        assert b.le(1.).all()
+        b.backward(torch.ones_like(b))
+        assert a.grad is not None
+        _a_ge_0 = a.grad.ge(0.)
+        assert _a_ge_0.ne(target).all()
+        _a_le_0 = a.grad.le(0.)
+        assert _a_le_0.eq(target).all()
+        pass
     
-    
-    
-    scaling_factor = torch.tensor([1.], dtype=torch.float64)
-    epsilon=torch.tensor([1e-3], dtype=torch.float32)
-    mul_me_when_g_too_small = torch.tensor([10], dtype=torch.float16)
-    a = torch.zeros([5,2], requires_grad=True, dtype=torch.float16)
-    b = BCELoss_outputs_real_probabilityFunction.apply(a,scaling_factor,epsilon,mul_me_when_g_too_small)
-    g_in = torch.tensor([[0.1,0.2],[0.01,0.02,],[0.001,0.002],[1e-4,2e-4],[1e-5,2e-5]], dtype=torch.float16)
-    torch.autograd.backward(b, g_in,inputs= a)
-    print(a.grad)
-    
-    a = torch.zeros([5,1], requires_grad=True, dtype=torch.float16)
-    b = BCELoss_outputs_real_probabilityFunction.apply(a,scaling_factor,epsilon,mul_me_when_g_too_small)
-    g_in = torch.tensor([[0.1],[0.01],[0.001],[1e-4],[1e-5]], dtype=torch.float16)
-    torch.autograd.backward(b, g_in,inputs= a)
-    print(a.grad)
     pass
 
-if '''dtype adaption.''' and __DEBUG_ME__() and True:
-    scaling_factor = torch.tensor([1.], dtype=torch.float64)
-    epsilon=torch.tensor([1e-5], dtype=torch.float32)
-    mul_me_when_g_too_small = torch.tensor([1e3], dtype=torch.float16)
-    a = torch.tensor([[0.]], requires_grad=True, dtype=torch.float16)
+if '''dtype adaption.''' and __DEBUG_ME__() and False:
+    a = torch.tensor( [[0 ,0.1,0.2,0.9,1.]], requires_grad=True)
     original_dtype = a.dtype
-    b = BCELoss_outputs_real_probabilityFunction.apply(a,scaling_factor,epsilon,mul_me_when_g_too_small)
-    ### g = torch.autograd.grad(b, a, retain_graph= True)#this one doesn't help.
-    g_in = torch.tensor([[1.]], dtype=torch.float16)
-    torch.autograd.backward(b, g_in,inputs= a)
-    #print(g[0])
-    assert a.grad
+    target = torch.zeros_like(a, dtype = torch.bool)
+    weight = torch.tensor([[11. , 12, 13,14,15]], dtype=torch.float64)
+    no_grad_zone_size = torch.tensor(0.1, dtype=torch.float64)
+    b = BCELoss_outputs_real_probabilityFunction.apply(a, target, weight, no_grad_zone_size)
+    assert b.dtype == torch.float64
+    g_in =  torch.tensor([123.], dtype=torch.float64)
+    b.backward(g_in)
+    assert a.grad is not None
     assert a.grad.dtype == original_dtype
     pass
 
 if '''device adaption''' and __DEBUG_ME__() and True:
-    scaling_factor = torch.tensor([1.]).cuda()
-    epsilon=torch.tensor([1e-5]).cuda()
-    mul_me_when_g_too_small = torch.tensor([1e3]).cuda()
-    a = torch.tensor([[0.]], requires_grad=True).cuda()
-    b = BCELoss_outputs_real_probabilityFunction.apply(a,scaling_factor,epsilon,mul_me_when_g_too_small)
-    g_in = torch.tensor([[1.]]).cuda()
-    torch.autograd.backward(b, g_in,inputs= a)
+    #torch.cuda.empty_cache()
+    a = torch.tensor([[0 ,0.2,0.9]], requires_grad=True).cuda()
+    a.grad = torch.tensor([[33.,44,55]], device='cuda')
+    target = torch.tensor([[True,False,True]]).cuda()
+    #assert a.shape == target.shape
+    weight = torch.tensor([[11., 12, 13]]).cuda()
+    no_grad_zone_size = torch.tensor(0.1).cuda()
+    b = BCELoss_outputs_real_probabilityFunction.apply(a, target, weight, no_grad_zone_size)
+    assert _float_equal(b.item(), 2./3)
+    assert b.grad_fn is not None
+    assert b.device == torch.device('cuda', index=0)
+    assert b.device.type == 'cuda'
+
+    #torch.Tensor.backward(b,g_in,inputs=a)
+    b.backward(inputs = a)1w 操。
+    #torch.cuda.synchronize()
     assert a.grad is not None
     assert a.grad.device == torch.device('cuda', index=0)
     assert a.grad.device.type == 'cuda'
@@ -2361,10 +2510,27 @@ if "和原版的行为对比"and __DEBUG_ME__() and True:
     bceloss_no_reduction = torch.nn.BCELoss(reduction="none")
     input = torch.linspace(start=0., end=1., steps=5, requires_grad=True)
     target = torch.zeros_like(input)
-    loss:torch.Tensor = bceloss_no_reduction(input, target)
-    print(loss)
+    loss = bceloss_no_reduction(input, target)
+    assert _tensor_equal(loss, torch.tensor( [[111111, 1.0000],
+                                                [0.8120, 1.0000],
+                                                [0.8120, 1.0000],
+                                                [0.4070, 0.5010],
+                                                [0.2040, 0.2512]], dtype=torch.float16), epsilon=1e-7)
+    
+    
+    
+    
     loss.backward(torch.ones_like(loss))
-    print(input.grad)
+    assert input.grad is not None
+    assert _tensor_equal(input.grad, torch.tensor( [[111111, 1.0000],
+                                                [0.8120, 1.0000],
+                                                [0.8120, 1.0000],
+                                                [0.4070, 0.5010],
+                                                [0.2040, 0.2512]], dtype=torch.float16), epsilon=1e-7)
+    
+    
+    
+    
     # Notice the last element in grad, it's 1e12. 
     # Most elements are in range 0 to 10, but the wrongest one provides 1e12.
     # What lr should you use?
@@ -2414,8 +2580,18 @@ class BCELoss_outputs_real_probability(torch.nn.modules.loss._WeightedLoss):
             assert target[~target_gt_0_5].eq(0.).all()
             pass
         
+        
+        if target.dtype == torch.bool:
+            target_for_inner = target
+            pass
+        elif target.dtype == torch.float:
+            target_for_inner = target.gt(0.5)
+            pass
+        else:
+            assert False, "target.dtype can only be bool or float"
+        
         temp_result_tuple = BCELoss_outputs_real_probabilityFunction.apply(
-                                input, target, self.weight, self.no_grad_zone_size)
+                                input, target_for_inner, self.weight, self.no_grad_zone_size)
         return temp_result_tuple[0]
     
     pass#end of class
