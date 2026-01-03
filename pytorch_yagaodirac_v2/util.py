@@ -9,9 +9,9 @@ import random
 
 def __DEBUG_ME__()->bool:
     return __name__ == "__main__"
-if "test" and True:
-    assert __DEBUG_ME__()
-    pass
+# if "test" and True:
+#     assert __DEBUG_ME__()
+#     pass
 
 import sys
 def _line_():
@@ -65,6 +65,11 @@ if "test" and __DEBUG_ME__() and True:
     assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.001])) == False
     pass
 
+from typing import TypeAlias,Literal
+DeviceLikeType: TypeAlias = str|torch.device|int
+def iota(how_many:int, dtype:torch.dtype|None = None,\
+            device: DeviceLikeType|None = None)->torch.Tensor:
+    return torch.linspace(start=0,end=how_many-1,steps=how_many ,dtype=dtype, device=device)
 
 
 
