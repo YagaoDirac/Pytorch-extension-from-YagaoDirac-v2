@@ -25,7 +25,13 @@ if "test" and False:
     c = _line_()
     pass
 
-def _float_equal(a:float, b:float, epsilon:float = 0.0001)->bool:
+def _float_equal(a:float|torch.Tensor, b:float, epsilon:float = 0.0001)->bool:
+    if isinstance(a, torch.Tensor):
+        a = a.item()
+        pass
+    if isinstance(b, torch.Tensor):
+        b = b.item()
+        pass
     assert epsilon>0.
     return abs(a-b)<epsilon
 if "test" and __DEBUG_ME__() and True:
@@ -69,7 +75,64 @@ from typing import TypeAlias,Literal
 DeviceLikeType: TypeAlias = str|torch.device|int
 def iota(how_many:int, dtype:torch.dtype|None = None,\
             device: DeviceLikeType|None = None)->torch.Tensor:
+    if dtype is None:
+        if how_many<(1<<7):
+            dtype = torch.int8
+            pass
+        elif how_many<(1<<15):
+            dtype = torch.int16
+            pass
+        elif how_many<(1<<31):
+            dtype = torch.int32
+            pass
+        else:
+            dtype = torch.uint64
+            pass
+        pass
     return torch.linspace(start=0,end=how_many-1,steps=how_many ,dtype=dtype, device=device)
+
+
+if "torch linspace dtype test" and __DEBUG_ME__() and True:
+    for device in ["cpu", "cuda"]:
+        for dtype in [torch.int8,torch.int16,torch.int32,torch.int64,torch.int,torch.uint8,torch.long]:
+                                            #but uint16,uint32,uint64 are not allowed
+            _temp = torch.linspace(start=0,end=7,steps=8 ,dtype=dtype, device=device)
+            pass
+        pass
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int8)
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int16)
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int32)
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int64)
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int)
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint8)
+    #torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint16) not working
+    #torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint32) not working
+    #torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint64) not working
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.long)
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int8,device='cuda')
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int16,device='cuda')
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int32,device='cuda')
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int64,device='cuda')
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int,device='cuda')
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint8,device='cuda')
+    #torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint16,device='cuda') not working
+    #torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint32,device='cuda') not working
+    #torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint64,device='cuda') not working
+    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.long,device='cuda')
+    pass    
+if "test" and __DEBUG_ME__() and True:
+    _temp = iota(127)
+    assert _temp.__len__() == 127
+    assert _temp[126] == 126
+    assert _temp.dtype == torch.int8
+    
+    _temp = iota(128)
+    assert _temp.__len__() == 128
+    assert _temp[127] == 127
+    assert _temp.dtype == torch.int16
+    pass
+
+
 
 
 
