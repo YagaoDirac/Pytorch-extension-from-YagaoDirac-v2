@@ -1,5 +1,5 @@
 
-from typing import Any, Optional
+from typing import Any, Optional, Literal
 #import math
 import torch
 
@@ -524,7 +524,7 @@ def assert_param_shape__batch_dim(param:torch.Tensor):
 
 
 
-
+#唯一的问题，还没在实际问题上验证过。
 
 class CrossEntropyLoss_by_yagaodiracFunction(torch.autograd.Function):
     r'''
@@ -545,33 +545,81 @@ class CrossEntropyLoss_by_yagaodiracFunction(torch.autograd.Function):
     By default, no_grad_zone_size is 0.1, so the grad range is [0, 0.9]. Now you know how to tweak lr.
         
     input param:
-    >>> input:torch.Tensor
-    >>> target:torch.Tensor
+    >>> input:torch.Tensor [batch, dim]
+    >>> target:torch.Tensor the index. [batch, 1] or [batch]
     >>> weight:torch.Tensor|None,
-    >>> no_grad_zone_size:torch.Tensor
+    >>> margin:torch.Tensor size=[1]or[], >0
     >>> index_mode:torch.Tensor a bool, size[1] or size[].
     
     return param: 
-    >>> result:torch.Tensor, 1-acc,It's in range [0,1]
+    >>> result:torch.Tensor, size=[1]or[], 1-acc,It's in range [0,1]
     '''
-    @staticmethod
     #def forward(*args: Any, **kwargs: Any)->Any:
+    @staticmethod
     def forward(input:torch.Tensor,target:torch.Tensor, weight:torch.Tensor|None,\
-                    no_grad_zone_size:torch.Tensor, target_is_index_mode:torch.Tensor,\
-                                                *args: Any, **kwargs: Any)->Any:
+                margin:torch.Tensor, target_is_index_mode:torch.Tensor,\
+                    reduction:Literal["none","mean","sum"] = "mean",\
+                        *args: Any, **kwargs: Any)->Any:
         '''
         input param:
         >>> input:torch.Tensor
         >>> target:torch.Tensor
         >>> weight:torch.Tensor|None,
-        >>> no_grad_zone_size:torch.Tensor
+        >>> margin:torch.Tensor size=[1]or[], >0
         >>> index_mode:torch.Tensor a bool
 
         return param: 
         >>> result:torch.Tensor, 1-acc
         '''    
         
-        iota_of__b = iota(input.shape[0])
+        assert_param_shape__batch_dim(input)
+        
+        if "move to module":
+            batch = input.shape[0]
+            assert target.shape[0] == batch
+            if target.shape.__len__() == 2:
+                assert target.shape[1] == 1
+                pass
+            pass
+        
+        _temp__max_of_input = input.max(dim=1)
+        
+        #<if input requires grad>
+        if input.requires_grad:
+            max_value_of_input__b = _temp__max_of_input.values
+            threshold = max_value_of_input__b-margin
+            flag__input_gt_threshold = input.gt(threshold)
+            iota_of__b = iota(input.shape[0])
+            flag__input_gt_threshold[iota_of__b, target[iota_of__b]] = False
+            has__flag__input_gt_threshold = torch.tensor(False, device=input.device)
+            if flag__input_gt_threshold.any():
+                has__flag__input_gt_threshold = torch.tensor(True)
+                pass
+            # else:
+            #     flag__input_gt_threshold = None
+            #     pass
+            pass
+        #</if input requires grad>
+        
+        max_index_of_input__b = _temp__max_of_input.indices
+        
+        result_before_reduction__b = max_index_of_input__b.eq(target)
+        
+        
+        if "mean" == reduction:
+            result = result_before_reduction__b.mean(), has__flag__input_gt_threshold#, flag__input_gt_threshold
+        elif "sum" == reduction:
+            result = result_before_reduction__b.sum(),  has__flag__input_gt_threshold#, flag__input_gt_threshold
+        else:
+            assert "none" == reduction
+            result = result_before_reduction__b
+            pass
+        
+        return result,  has__flag__input_gt_threshold#, flag__input_gt_threshold
+        
+        
+    if False:
+        "之前的bce的代码，确定不用了可以删。"
         if target_is_index_mode:
             target_as_index__b_1 = target
             pass
@@ -593,87 +641,110 @@ class CrossEntropyLoss_by_yagaodiracFunction(torch.autograd.Function):
         result.requires_grad_(input.requires_grad)
         assert result.shape.__len__() == 1
         assert result.shape[0] == input.shape[0]
-        return result     
+        return result   
+        pass  
 
     @staticmethod
     def setup_context(ctx:torch.autograd.function.FunctionCtx, inputs, output):
-        #ctx:torch.autograd.function.FunctionCtx
-        
-        input:torch.Tensor = inputs[0]
-        #target:torch.Tensor = inputs[1]
-        #weight:torch.Tensor|None, = inputs[2]  moved below
-        no_grad_zone_size:torch.Tensor = inputs[3]
+        input__b_d:torch.Tensor = inputs[0]
+        target__b:torch.Tensor  = inputs[1]
+        #weight:torch.Tensor|None = inputs[2] moved below
+        margin__s:torch.Tensor = inputs[3]# it's called margin in forward function.
         #target_is_index_mode:torch.Tensor = inputs[4]
+        #reduction:??? = inputs[5]xxxxxx
         
-        #result = output[0]
-        target_as_index__b_1 = output[1]
+        #result = output[0]  
+        #has__flag__input_gt_threshold = output[1]
         
         weight:torch.Tensor = inputs[2]
         
+        #ctx:torch.autograd.function.FunctionCtx
         if weight is None:
             #ctx.save_for_backward(input, no_grad_zone_size,result, _target_gt_threshold)
-            ctx.save_for_backward(input, no_grad_zone_size, target_as_index__b_1)
+            ctx.save_for_backward(input__b_d, target__b, margin__s)
             pass
         else:
             #ctx.save_for_backward(input, no_grad_zone_size, result, _target_gt_threshold, \
-            ctx.save_for_backward(input, no_grad_zone_size, target_as_index__b_1,   weight)
+            ctx.save_for_backward(input__b_d, target__b, margin__s,   weight)
             pass
         return
         #return super().setup_context(ctx, inputs, output)
 
     @staticmethod
     #def backward(ctx:torch.autograd.function.FunctionCtx, g_in_b_o):#->tuple[Optional[torch.Tensor], None, None, None]:
-    def backward(ctx, g_in_b):#->tuple[Optional[torch.Tensor], None, None, None]:
+    def backward(ctx, g_in):#->tuple[Optional[torch.Tensor], None, None, None]:
         #super().backward()
-        # input:torch.Tensor
-        # no_grad_zone_size:torch.Tensor 
-        #result:torch.Tensor
-        # target:torch.Tensor
-        # weight:torch.Tensor|None
+        # input:torch.Tensor = inputs[0]
+        # target:torch.Tensor  = inputs[1]
+        # weight:torch.Tensor|None = inputs[2]
+        # margin__s:torch.Tensor = inputs[3]
+        # target_is_index_mode:torch.Tensor = inputs[4]
+        # #reduction:??? = inputs[5]xxxxxx
         
+        # input__b_d:torch.Tensor
+        # target__b:torch.Tensor
+        # margin__s:torch.Tensor
         match ctx.saved_tensors.__len__():
             case 3:
-                (input, no_grad_zone_size, target_as_index__b_1)= ctx.saved_tensors
+                (input__b_d, target__b, margin__s)= ctx.saved_tensors
                 weight = None
                 pass
             case 4:
-                (input, no_grad_zone_size, target_as_index__b_1,   weight) = ctx.saved_tensors
+                (input__b_d, target__b, margin__s,   weight) = ctx.saved_tensors
                 pass
             case _:
                 assert False, "unreachable"
             # end of match.
         
-        if input.requires_grad == False:
-            return None,None,None,None
+        # maybe recomputation is faster.
+        #<if input requires grad>
+        if input.requires_grad:
+            _temp__max_of_input = input__b_d.max(dim=1)
+            max_value_of_input__b = _temp__max_of_input.values
+            threshold__b = max_value_of_input__b-margin__s
+            grad__b_d:torch.Tensor = input__b_d-threshold__b
+            iota_of__b = iota(input__b_d.shape[0])
+            grad__b_d[iota_of__b, target[iota_of__b]] = 0.#clear the targeted elements.
+            _if_input_minus_threshold__le_0__b_d = grad__b_d.le(0.)
+            
+            grad__b_d[_if_input_minus_threshold__le_0__b_d] = 0.#relu-like
+            #now if any element of grad__b_d is greater than 0, it needs update.
+            
+            _if_this_batch_has_bad_element__b = _if_input_minus_threshold__le_0__b_d.logical_not().any(dim=1)
+            if _if_this_batch_has_bad_element__b.any():
+                # bb == bad batch
+                iota_of_bad_batch__bb = iota_of__b[_if_this_batch_has_bad_element__b]
+                max_bad_element__bb = grad__b_d[_if_this_batch_has_bad_element__b].max(dim=1).values
+                grad__b_d[iota_of_bad_batch__bb, target__b[iota_of_bad_batch__bb]] = -max_bad_element__bb
+                pass
+            
+            if g_in.ne(1.).any():
+                if g_in.nelement()>1:
+                    grad__b_d.mul_(g_in)
+                    pass
+                elif g_in.nelement()>1:
+                    g_in = g_in.reshape([input__b_d.shape[0],1])
+                    g_in.expand_as(grad__b_d)
+                    grad__b_d.mul_(g_in)
+                    pass
+                else:
+                    assert False, "unreachable"
+                pass
+            if weight is not None:
+                grad__b_d.mul_(weight)
+                pass
+            
+            return grad__b_d,None,None,None,None,None
+        #</if input requires grad>
+        else:        
+            return None,None,None,None,None,None
         
-        #_total_dist = 1.
-        #input_gt_0_5 = input.gt(0.5)
-        
-        
-        1w
-        
-        grad = torch.zeros_like(input)
-        #grad[_target_gt_threshold] = input[_target_gt_threshold]-no_grad_zone_size
-        grad[ target] = torch.minimum(torch.tensor(0.), input[ target]-(1-no_grad_zone_size))
-        #grad[~_target_gt_threshold] = input[~_target_gt_threshold]-(1-no_grad_zone_size)
-        grad[~target] = torch.maximum(torch.tensor(0.), input[~target]-no_grad_zone_size)
-        #xxxxxxxx grad.sub_(no_grad_zone_size)
-        #xxxxxxxxx why is this ??? grad[~grad.gt(0.)] = 0. #-inf and nan returns false from gt().
-        
-        if g_in_b.ne(1.).any():
-            g_in_b = g_in_b.unsqueeze(dim=-1).expand(-1,grad.shape[1])
-            assert g_in_b.shape == grad.shape
-            grad.mul_(g_in_b)
-            pass
-        if weight is not None:
-            grad.mul_(weight)
-            pass
-        
-        return grad,None,None,None
+        pass#/ function
 
-    pass  # class
+    pass#/ class
 
 if '''CrossEntropyLoss_outputs_real_probabilityFunction''' and __DEBUG_ME__() and True:
+    1w
     a = torch.tensor( [[0 ,0.1,0.2,0.9,1.]], requires_grad=True)
     target = torch.zeros_like(a, dtype = torch.bool)
     weight = None
@@ -858,6 +929,8 @@ class CrossEntropyLoss_by_yagaodirac(torch.nn.modules.loss._WeightedLoss):
         """
         Runs the forward pass.
         """
+        
+        1w assert 拿过来。
         
         1w 分一下index mode
         
