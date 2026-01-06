@@ -73,21 +73,11 @@ if "test" and __DEBUG_ME__() and True:
 
 from typing import TypeAlias,Literal
 DeviceLikeType: TypeAlias = str|torch.device|int
-def iota(how_many:int, dtype:torch.dtype|None = None,\
+def iota(how_many:int, dtype_is_int64=False,\
             device: DeviceLikeType|None = None)->torch.Tensor:
-    if dtype is None:
-        if how_many<(1<<7):
-            dtype = torch.int8
-            pass
-        elif how_many<(1<<15):
-            dtype = torch.int16
-            pass
-        elif how_many<(1<<31):
-            dtype = torch.int32
-            pass
-        else:
-            dtype = torch.uint64
-            pass
+    dtype = torch.uint64
+    if not dtype_is_int64 and how_many<(1<<31):
+        dtype = torch.int32
         pass
     return torch.linspace(start=0,end=how_many-1,steps=how_many ,dtype=dtype, device=device)
 
@@ -99,37 +89,69 @@ if "torch linspace dtype test" and __DEBUG_ME__() and True:
             _temp = torch.linspace(start=0,end=7,steps=8 ,dtype=dtype, device=device)
             pass
         pass
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int8)
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int16)
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int32)
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int64)
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int)
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint8)
-    #torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint16) not working
-    #torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint32) not working
-    #torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint64) not working
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.long)
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int8,device='cuda')
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int16,device='cuda')
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int32,device='cuda')
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int64,device='cuda')
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int,device='cuda')
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint8,device='cuda')
-    #torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint16,device='cuda') not working
-    #torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint32,device='cuda') not working
-    #torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint64,device='cuda') not working
-    torch.linspace(start=0,end=7,steps=8 ,dtype=torch.long,device='cuda')
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int8)
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int16)
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int32)
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int64)
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint8)
+    #_temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint16) not working
+    #_temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint32) not working
+    #_temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint64) not working
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int)#int32
+    assert _temp_tensor.dtype == torch.int32
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.long)#int64
+    assert _temp_tensor.dtype == torch.int64
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int8,device='cuda')
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int16,device='cuda')
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int32,device='cuda')
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int64,device='cuda')
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint8,device='cuda')
+    #_temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint16,device='cuda') not working
+    #_temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint32,device='cuda') not working
+    #_temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.uint64,device='cuda') not working
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.int,device='cuda')#int32
+    assert _temp_tensor.dtype == torch.int32
+    _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.long,device='cuda')#int64
+    assert _temp_tensor.dtype == torch.int64
     pass    
 if "test" and __DEBUG_ME__() and True:
-    _temp = iota(127)
-    assert _temp.__len__() == 127
-    assert _temp[126] == 126
-    assert _temp.dtype == torch.int8
+    _1_leftshift_31_minus_1 = (1<<31)-1
+    _temp = iota(_1_leftshift_31_minus_1)
+    assert _temp.__len__() == _1_leftshift_31_minus_1
+    assert _temp[-1] == _1_leftshift_31_minus_1-1
+    assert _temp.dtype == torch.int32
     
-    _temp = iota(128)
-    assert _temp.__len__() == 128
-    assert _temp[127] == 127
-    assert _temp.dtype == torch.int16
+    _1_leftshift_31 = 1<<31
+    _temp = iota(_1_leftshift_31)
+    assert _temp.__len__() == _1_leftshift_31
+    assert _temp[-1] == _1_leftshift_31-1
+    assert _temp.dtype == torch.int64
+    
+    _temp = iota(3, dtype_is_int64=True)
+    assert _tensor_equal(_temp, [0.,1,2])
+    assert _temp.dtype == torch.int64
+    pass
+if "can it be index?" and __DEBUG_ME__() and True:
+    "pytorch only allows int32 or int64 as index."
+    _data = torch.linspace(0,99,100, dtype=torch.float32).reshape([10,10])
+    
+    iota_of_data = iota(4)
+    assert iota_of_data.dtype == torch.int32
+    _part_of_data = _data[iota_of_data, iota_of_data]
+    assert _tensor_equal(_part_of_data, [0.,11,22,33])
+    
+    iota_of_data = iota(4, dtype_is_int64=True)
+    assert iota_of_data.dtype == torch.int64
+    _part_of_data = _data[iota_of_data, iota_of_data]
+    assert _tensor_equal(_part_of_data, [0.,11,22,33])
+    
+    if "the following don't work. They raise." and False and False and False:
+        _data = torch.linspace(0,99,100, dtype=torch.float32).reshape([10,10])
+        iota_of_data = iota(4)
+        _part_of_data = _data[iota_of_data.to(torch.int8), iota_of_data]
+        _part_of_data = _data[iota_of_data.to(torch.int16), iota_of_data]
+        _part_of_data = _data[iota_of_data.to(torch.uint8), iota_of_data]
+        pass
     pass
 
 
