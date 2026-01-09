@@ -541,15 +541,16 @@ class CrossEntropyLoss_by_yagaodiracFunction(torch.autograd.Function):
     
     Interface is a bit different from the torch.nn.BCELoss.
     
-    The grad is calculated only with input and target. Also, grad is in range [0, 1-no_grad_zone_size].
-    By default, no_grad_zone_size is 0.1, so the grad range is [0, 0.9]. Now you know how to tweak lr.
+    The grad is calculated only with input and target. Also, grad is in range [0, 1-xxxxxxxxxx].
+    By default, xxxxxxxx is 0.1, so the grad range is [0, 0.9]. Now you know how to tweak lr.
         
     input param:
     >>> input:torch.Tensor [batch, dim]
     >>> target:torch.Tensor the index. [batch, 1] or [batch]
     >>> weight:torch.Tensor|None,
     >>> margin:torch.Tensor size=[1]or[], >0
-    >>> reduction:Literal["none","mean","sum"], affects the shape of result.
+    >>> reduction:Literal["none","mean","sum"], affects the shape of result. If set to none, the output has not grad_fn, 
+    and has a dtype of int8. The other 2 cases(mean and sum) are designed to train the model, they output a float64 with grad_fn.
     
     return param: 
     >>> result:torch.Tensor, size=[1]or[], 1-acc,It's in range [0,1]
@@ -558,7 +559,7 @@ class CrossEntropyLoss_by_yagaodiracFunction(torch.autograd.Function):
     #def forward(*args: Any, **kwargs: Any)->Any:
     @staticmethod
     def forward(input:torch.Tensor,target:torch.Tensor, weight:torch.Tensor|None,\
-                margin:torch.Tensor, reduction:Literal["none","mean","sum"] = "mean",\
+                margin:torch.Tensor, reduction__yagao_version:Literal["none","mean","sum"] = "mean",\
                         *args: Any, **kwargs: Any)->Any:
         '''
         input param:
@@ -566,28 +567,40 @@ class CrossEntropyLoss_by_yagaodiracFunction(torch.autograd.Function):
         >>> target:torch.Tensor the index. [batch, 1] or [batch]
         >>> weight:torch.Tensor|None,
         >>> margin:torch.Tensor size=[1]or[], >0
-        >>> reduction:Literal["none","mean","sum"], affects the shape of result.
-
+        >>> reduction:Literal["none","mean","sum"], affects the shape of result. If set to none, the output has not grad_fn, 
+        and has a dtype of int8. The other 2 cases(mean and sum) are designed to train the model, they output a float64 with grad_fn.
+        
         return param: 
-        >>> result:torch.Tensor, size=[1]or[], 1-acc,It's in range [0,1](if reduction is mean.)
+        >>> result:torch.Tensor, size=[1]or[], 1-acc,It's in range [0,1](if reduction__yagao_version is mean.)
         >>> ignore this one.
+        
+        Just in case is you are curious about the second output. It's any_of__flag__minor_element_gt_threshold.
+        When this layer provides any grad(when you ask for), if this flag is false, it provides all 0s(no grad).
+        But if it can provide any grad, this flag is set to true.
         '''    
         
         assert_param_shape__batch_dim(input)
         
-        if "move to module":
-            _batch = input.shape[0]
-            assert target.shape[0] == _batch
-            if target.shape.__len__() == 2:
-                assert target.shape[1] == 1
-                target = target.reshape([-1])
-                assert target.shape.__len__() == 1
-                pass
-            pass
-        
+        #< calc the result>
         _temp__max_of_input = input.max(dim=1)
+        max_index_of_input__b = _temp__max_of_input.indices
+        result_before_reduction__b = max_index_of_input__b.eq(target)
+        if "mean" == reduction__yagao_version:
+            result = result_before_reduction__b.logical_not().to(torch.float64).mean()#, flag__input_gt_threshold
+            pass
+        elif "sum" == reduction__yagao_version:
+            result = result_before_reduction__b.logical_not().to(torch.float64).sum()#, flag__input_gt_threshold
+            pass
+        else:
+            assert "none" == reduction__yagao_version
+            result = result_before_reduction__b.logical_not().to(torch.int8)
+            result.requires_grad_(False)
+            assert result.requires_grad == False
+            pass
+        #</ calc the result>
         
-        #<if input requires grad>
+        #< Something for the backward, if input requires grad>
+        any_of__flag__minor_element_gt_threshold = None
         if input.requires_grad:
             max_value_of_input__b = _temp__max_of_input.values
             threshold__b = max_value_of_input__b-margin
@@ -595,31 +608,17 @@ class CrossEntropyLoss_by_yagaodiracFunction(torch.autograd.Function):
             flag__input_gt_threshold = input.gt(threshold__b__expand_d)
             iota_of__b = iota(input.shape[0])
             flag__input_gt_threshold[iota_of__b, target[iota_of__b]] = False
-            has__flag__input_gt_threshold = torch.tensor(False, device=input.device)
+            any_of__flag__minor_element_gt_threshold = torch.tensor(False, device=input.device)
             if flag__input_gt_threshold.any():
-                has__flag__input_gt_threshold = torch.tensor(True)
+                any_of__flag__minor_element_gt_threshold = torch.tensor(True)
                 pass
             # else:
             #     flag__input_gt_threshold = None
             #     pass
             pass
-        #</if input requires grad>
+        #</ Something for the backward, if input requires grad>
         
-        max_index_of_input__b = _temp__max_of_input.indices
-        
-        result_before_reduction__b = max_index_of_input__b.eq(target)
-        
-        
-        if "mean" == reduction:
-            result = result_before_reduction__b.to(torch.float64).mean()#, flag__input_gt_threshold
-        elif "sum" == reduction:
-            result = result_before_reduction__b.to(torch.float64).sum()#, flag__input_gt_threshold
-        else:
-            assert "none" == reduction
-            result = result_before_reduction__b
-            pass
-        
-        return result,  has__flag__input_gt_threshold#, flag__input_gt_threshold
+        return result,  any_of__flag__minor_element_gt_threshold#, flag__input_gt_threshold
         
         
     if False:
@@ -655,20 +654,18 @@ class CrossEntropyLoss_by_yagaodiracFunction(torch.autograd.Function):
         #weight:torch.Tensor|None = inputs[2] moved below
         margin__s:torch.Tensor = inputs[3]# it's called margin in forward function.
         #target_is_index_mode:torch.Tensor = inputs[4]
-        #reduction:??? = inputs[5]xxxxxx
+        #reduction__yagao_version:??? = inputs[5]xxxxxx
         
         #result = output[0]  
-        #has__flag__input_gt_threshold = output[1]
+        #any_of__flag__minor_element_gt_threshold = output[1]
         
         weight:torch.Tensor = inputs[2]
         
         #ctx:torch.autograd.function.FunctionCtx
         if weight is None:
-            #ctx.save_for_backward(input, no_grad_zone_size,result, _target_gt_threshold)
             ctx.save_for_backward(input__b_d, target__b, margin__s)
             pass
         else:
-            #ctx.save_for_backward(input, no_grad_zone_size, result, _target_gt_threshold, \
             ctx.save_for_backward(input__b_d, target__b, margin__s,   weight)
             pass
         return
@@ -683,7 +680,7 @@ class CrossEntropyLoss_by_yagaodiracFunction(torch.autograd.Function):
         # weight:torch.Tensor|None = inputs[2]
         # margin__s:torch.Tensor = inputs[3]
         # target_is_index_mode:torch.Tensor = inputs[4]
-        # #reduction:??? = inputs[5]xxxxxx
+        # #reduction__yagao_version:??? = inputs[5]xxxxxx
         
         # input__b_d:torch.Tensor
         # target__b:torch.Tensor
@@ -722,18 +719,27 @@ class CrossEntropyLoss_by_yagaodiracFunction(torch.autograd.Function):
                 grad__b_d[iota_of_bad_batch__bb, target__b[iota_of_bad_batch__bb]] = -max_bad_element__bb
                 pass
             
+            #< mul the g_in>
             if g_in.ne(1.).any():
-                if g_in.nelement()>1:
+                if g_in.nelement() == 1:
                     grad__b_d.mul_(g_in)
                     pass
                 elif g_in.nelement()>1:
-                    g_in = g_in.reshape([input__b_d.shape[0],1])
-                    g_in.expand_as(grad__b_d)
-                    grad__b_d.mul_(g_in)
+                    assert False, f"Unreachable. Just in case. This happens when you set the reduction__yagao_version to none. {None\
+                        }You should not provide different g_in for different batch. I set the dtype for the output{None\
+                        } for this case in forward to int8 and manually set the require_grad to false. But if you {None\
+                        }modified the code, this error info is meant to help."
                     pass
-                else:
-                    assert False, "unreachable"
+                # old code.
+                #     g_in = g_in.reshape([input__b_d.shape[0],1])
+                #     g_in.expand_as(grad__b_d)
+                #     grad__b_d.mul_(g_in)
+                #     pass
+                # else:
+                #     assert False, "unreachable"
                 pass
+            #</ mul the g_in>
+            
             if weight is not None:
                 grad__b_d.mul_(weight)
                 pass
@@ -748,28 +754,30 @@ class CrossEntropyLoss_by_yagaodiracFunction(torch.autograd.Function):
     pass#/ class
 
 if '''CrossEntropyLoss_by_yagaodiracFunction''' and __DEBUG_ME__() and True:
-    #reduction.
+    #reduction__yagao_version.
     #none
     a = torch.tensor( [[1.,0,0,0],[1.,0,0,0],[1.,0,0,0]], requires_grad=True)
     target = torch.tensor([2,0,3])
     weight = None
     margin = torch.tensor(0.2)
-    reduction:Literal["none","mean","sum"] = "none"
+    reduction__yagao_version:Literal["none","mean","sum"] = "none"
     b:torch.Tensor
-    b, has__flag__input_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, margin,reduction)
-    assert b.eq(torch.tensor([False,True,False])).all()
-    assert has__flag__input_gt_threshold
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                            target, weight, margin,reduction__yagao_version)
+    assert b.eq(torch.tensor([1,0,1])).all()#wrong is 1, correct is 0.
+    assert any_of__flag__minor_element_gt_threshold
     "torch.bool is not allowed to have grad. So this test ends here...."
     #mean
     a = torch.tensor( [[1.,0,0,0],[1.,0,0,0],[1.,0,0,0]], requires_grad=True)
     target = torch.tensor([2,0,3])
     weight = None
     margin = torch.tensor(0.2)
-    reduction:Literal["none","mean","sum"] = "mean"
+    reduction__yagao_version:Literal["none","mean","sum"] = "mean"
     b:torch.Tensor
-    b, has__flag__input_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, margin,reduction)
-    assert _float_equal(b.item(), 1./3)
-    assert has__flag__input_gt_threshold
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                            target, weight, margin,reduction__yagao_version)
+    assert _float_equal(b.item(), 2./3)
+    assert any_of__flag__minor_element_gt_threshold
     b.backward(gradient=torch.ones_like(b), inputs=a)
     #g_in = torch.tensor([1.], dtype=torch.float16)
     #torch.autograd.backward(b, g_in, inputs = a)
@@ -780,11 +788,12 @@ if '''CrossEntropyLoss_by_yagaodiracFunction''' and __DEBUG_ME__() and True:
     target = torch.tensor([2,0,3])
     weight = None
     margin = torch.tensor(0.2)
-    reduction:Literal["none","mean","sum"] = "sum"
+    reduction__yagao_version:Literal["none","mean","sum"] = "sum"
     b:torch.Tensor
-    b, has__flag__input_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, margin,reduction)
-    assert _float_equal(b.item(), 1.)
-    assert has__flag__input_gt_threshold
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                            target, weight, margin,reduction__yagao_version)
+    assert _float_equal(b.item(), 2.)
+    assert any_of__flag__minor_element_gt_threshold
     b.backward(gradient=torch.ones_like(b), inputs=a)
     assert a.grad is not None
     assert _tensor_equal(a.grad, torch.tensor([[0.2,0,-0.2,0],[0,0,0,0],[0.2,0,0,-0.2]]))#, epsilon=1e-7)
@@ -794,42 +803,45 @@ if '''CrossEntropyLoss_by_yagaodiracFunction''' and __DEBUG_ME__() and True:
     target = torch.tensor([0,0,3])
     weight = None
     margin = torch.tensor(0.2)
-    reduction:Literal["none","mean","sum"] = "mean"
+    reduction__yagao_version:Literal["none","mean","sum"] = "mean"
     b:torch.Tensor
-    b, has__flag__input_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, margin,reduction)
-    assert _float_equal(b.item(), 2./3)
-    assert has__flag__input_gt_threshold
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                            target, weight, margin,reduction__yagao_version)
+    assert _float_equal(b.item(), 1./3)
+    assert any_of__flag__minor_element_gt_threshold
     b.backward(gradient=torch.ones_like(b), inputs=a)
     assert a.grad is not None
     assert _tensor_equal(a.grad, torch.tensor([[0,0,0,0],[0,0,0,0],[0.2,0,0,-0.2]]))#, epsilon=1e-7)
     
-    #has__flag__input_gt_threshold
+    #any_of__flag__minor_element_gt_threshold
     a = torch.tensor( [[1.,0,0,0],[0,0,0,1]], requires_grad=True)
     target = torch.tensor([0,3])
     weight = None
     margin = torch.tensor(0.2)
-    reduction:Literal["none","mean","sum"] = "mean"
+    reduction__yagao_version:Literal["none","mean","sum"] = "mean"
     b:torch.Tensor
-    b, has__flag__input_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, margin,reduction)
-    assert _float_equal(b.item(), 1.)
-    assert has__flag__input_gt_threshold.item() == False
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                            target, weight, margin,reduction__yagao_version)
+    assert _float_equal(b.item(), 0.)
+    assert any_of__flag__minor_element_gt_threshold.item() == False
     b.backward(gradient=torch.ones_like(b), inputs=a)
     assert a.grad is not None
     assert _tensor_equal(a.grad, torch.tensor([[0,0,0,0],[0,0,0,0]]))#, epsilon=1e-7)
     
     #weight
-    a = torch.tensor( [[0.,0,0,0]], requires_grad=True)
+    a = torch.tensor( [[0.00001,0,0,0]], requires_grad=True)
     target = torch.tensor([0])
     weight = torch.tensor( [11.,12,13,14])
     margin = torch.tensor(2.)
-    reduction:Literal["none","mean","sum"] = "mean"
+    reduction__yagao_version:Literal["none","mean","sum"] = "mean"
     b:torch.Tensor
-    b, has__flag__input_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, margin,reduction)
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                        target, weight, margin,reduction__yagao_version)
     assert _float_equal(b.item(), 0.)
-    assert has__flag__input_gt_threshold
+    assert any_of__flag__minor_element_gt_threshold
     b.backward(gradient=torch.ones_like(b), inputs=a)
     assert a.grad is not None
-    assert _tensor_equal(a.grad, torch.tensor([[22.,24,26,28]]))#, epsilon=1e-7)
+    assert _tensor_equal(a.grad, torch.tensor([[-22.,24,26,28]]), epsilon=0.01)
     
     
     #margin
@@ -838,56 +850,54 @@ if '''CrossEntropyLoss_by_yagaodiracFunction''' and __DEBUG_ME__() and True:
     target = torch.tensor([0,0,0,0,0])
     weight = None
     margin = torch.tensor(1.)
-    reduction:Literal["none","mean","sum"] = "mean"
+    reduction__yagao_version:Literal["none","mean","sum"] = "mean"
     b:torch.Tensor
-    b, has__flag__input_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, margin,reduction)
-    assert _float_equal(b.item(), 0.8)
-    assert has__flag__input_gt_threshold
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                            target, weight, margin,reduction__yagao_version)
+    assert _float_equal(b.item(), 0.2)
+    assert any_of__flag__minor_element_gt_threshold
     b.backward(gradient=torch.ones_like(b), inputs=a)
     assert a.grad is not None
-    assert _tensor_equal(a.grad, torch.tensor([[-1,1,0.9],[-0.9,0.9,0.7],[-0.5,0.5,0.3],
+    assert _tensor_equal(a.grad, torch.tensor([[-1,1,0.8],[-0.9,0.9,0.7],[-0.5,0.5,0.3],
                                                 [-0.1,0.1,0],[0,0,0]]))#, epsilon=1e-7)
+    
     # no grad
-    a = torch.tensor([[0.,0,0],[0,0,0]])
+    a = torch.tensor([[0.00001,0,0],[0.00001,0,0]])
     target = torch.tensor([0,0])
     weight = None
     margin = torch.tensor(1.)
-    reduction:Literal["none","mean","sum"] = "mean"
+    reduction__yagao_version:Literal["none","mean","sum"] = "mean"
     assert a.requires_grad == False
-    b, has__flag__input_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, margin,reduction)
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                        target, weight, margin,reduction__yagao_version)
     assert b.grad_fn is None
+    assert any_of__flag__minor_element_gt_threshold is None
     
     #g_in, 
-    a = torch.tensor([[0.,0],[0,0],[0,0]], requires_grad=True)
+    a = torch.tensor([[0.00001,0],[0.00001,0],[0.00001,0]], requires_grad=True)
     target = torch.tensor([0,0,0])
     weight = None
     margin = torch.tensor(1.)
-    reduction:Literal["none","mean","sum"] = "mean"
+    reduction__yagao_version:Literal["none","mean","sum"] = "mean"
     b:torch.Tensor
-    b, has__flag__input_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, margin,reduction)
-    assert _float_equal(b.item(), 1.)
-    assert has__flag__input_gt_threshold.item() == False
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                            target, weight, margin,reduction__yagao_version)
+    assert _float_equal(b.item(), 0.)
+    assert any_of__flag__minor_element_gt_threshold#although the acc is 100%, but the margin is not met.
     g_in = torch.tensor(123.)
     b.backward(gradient=g_in, inputs=a)
     assert a.grad is not None
-    assert _tensor_equal(a.grad, torch.tensor([[-123.,123],[-123.,123],[-123.,123]]))#, epsilon=1e-7)
+    assert _tensor_equal(a.grad, torch.tensor([[-123.,123],[-123.,123],[-123.,123]]), epsilon=0.01)
     
-    a = torch.tensor([[0.,0],[0,0],[0,0]], requires_grad=True)
+    a = torch.tensor([[0.00001,0],[0.00001,0],[0.00001,0]], requires_grad=True)
     target = torch.tensor([0,0,0])
     weight = None
     margin = torch.tensor(1.)
-    reduction:Literal["none","mean","sum"] = "mean"
+    reduction__yagao_version:Literal["none","mean","sum"] = "none"
     b:torch.Tensor
-    b, has__flag__input_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, margin,reduction)
-    assert _float_equal(b.item(), 1.)
-    assert has__flag__input_gt_threshold.item() == False
-    g_in = torch.tensor([12., 23])
-    b.backward(gradient=g_in, inputs=a)
-    assert a.grad is not None
-    assert _tensor_equal(a.grad, torch.tensor([[-123.,23],[-123.,23],[-123.,23]]))#, epsilon=1e-7)
-    
-    
-    1w还没测
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                                target, weight, margin,reduction__yagao_version)
+    assert b.grad_fn is None
     
     for _ in range(15):
         a = torch.rand(size=[32,16])
@@ -896,51 +906,103 @@ if '''CrossEntropyLoss_by_yagaodiracFunction''' and __DEBUG_ME__() and True:
         target = torch.empty(size=[32], dtype = torch.int32).random_(16)
         weight = None
         margin = torch.tensor(1.)
-        reduction:Literal["none","mean","sum"] = "mean"
+        reduction__yagao_version:Literal["none","mean","sum"] = "mean"
         b:torch.Tensor
-        b, has__flag__input_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, margin,reduction)
+        b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                                target, weight, margin,reduction__yagao_version)
         assert b.ge(0.).all()# b is in range [0,1]
         assert b.le(1.).all()
         b.backward(inputs=a)#torch.ones_like(b))
         assert a.grad is not None
-        _a_ge_0 = a.grad.ge(0.)
-        assert _a_ge_0.ne(target).all()
-        _a_le_0 = a.grad.le(0.)
-        assert _a_le_0.eq(target).all()
+        assert a.grad.abs().le(margin).all()
+        assert a.grad.lt(0.).sum(dim=1).le(1).all()#at most 1 neg element per batch.
+        if any_of__flag__minor_element_gt_threshold:
+            assert a.grad.abs().sum().gt(0.)
+            assert a.grad.sum().ge(0.)
+            pass
+        # old code below. from the bce?
+        # _a_ge_0 = a.grad.ge(0.)
+        # assert _a_ge_0.ne(target).all()
+        # _a_le_0 = a.grad.le(0.)
+        # assert _a_le_0.eq(target).all()
         pass
     
     pass
 
 if '''dtype adaption.''' and __DEBUG_ME__() and True:
-    a = torch.tensor( [[0 ,0.1,0.2,0.9,1.]], requires_grad=True)
+    a = torch.tensor([[1.,0]], requires_grad=True)
     original_dtype = a.dtype
-    target = torch.zeros_like(a, dtype = torch.bool)
-    weight = torch.tensor([[11. , 12, 13,14,15]], dtype=torch.float64)
-    no_grad_zone_size = torch.tensor(0.1, dtype=torch.float64)
-    b = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, no_grad_zone_size)
+    target = torch.tensor([0])
+    weight = None
+    margin = torch.tensor(0.2)
+    reduction__yagao_version:Literal["none","mean","sum"] = "mean"
+    b:torch.Tensor
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                            target, weight, margin,reduction__yagao_version)
     assert b.dtype == torch.float64
-    g_in =  torch.tensor([123.], dtype=torch.float64)
-    b.backward(g_in)#inputs = ?
+    b.backward(gradient=torch.ones_like(b), inputs=a)
+    assert a.grad is not None
+    assert a.grad.dtype == original_dtype
+    
+    a = torch.tensor([[1.,0]], dtype=torch.float64, requires_grad=True)
+    #..........................^^^^^^^^^^^^^^^^^^^
+    original_dtype = a.dtype
+    target = torch.tensor([0])
+    weight = None
+    margin = torch.tensor(0.2)
+    reduction__yagao_version:Literal["none","mean","sum"] = "mean"
+    b:torch.Tensor
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                            target, weight, margin,reduction__yagao_version)
+    assert b.dtype == torch.float64
+    b.backward(gradient=torch.ones_like(b), inputs=a)
+    assert a.grad is not None
+    assert a.grad.dtype == original_dtype
+    
+    a = torch.tensor([[1.,0]], requires_grad=True)
+    original_dtype = a.dtype
+    target = torch.tensor([0])
+    weight = None
+    margin = torch.tensor(0.2, dtype=torch.float64)
+    #..........................^^^^^^^^^^^^^^^^^^^
+    reduction__yagao_version:Literal["none","mean","sum"] = "mean"
+    b:torch.Tensor
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                                target, weight, margin,reduction__yagao_version)
+    assert b.dtype == torch.float64
+    b.backward(gradient=torch.ones_like(b), inputs=a)
+    assert a.grad is not None
+    assert a.grad.dtype == original_dtype
+    
+    a = torch.tensor([[1.,0]], requires_grad=True)
+    original_dtype = a.dtype
+    target = torch.tensor([0])
+    weight = None
+    margin = torch.tensor(0.2, dtype=torch.float64)
+    reduction__yagao_version:Literal["none","mean","sum"] = "mean"
+    b:torch.Tensor
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                                    target, weight, margin,reduction__yagao_version)
+    assert b.dtype == torch.float64
+    b.backward(gradient=torch.ones_like(b, dtype=torch.float16), inputs=a)
+    #......................................^^^^^^^^^^^^^^^^^^^
     assert a.grad is not None
     assert a.grad.dtype == original_dtype
     pass
 
 if '''device adaption''' and __DEBUG_ME__() and True:
-    #torch.cuda.empty_cache()
-    a = torch.tensor([[0 ,0.2,0.9]], requires_grad=True).cuda()
-    a.grad = torch.tensor([[33.,44,55]], device='cuda')
-    target = torch.tensor([[True,False,True]]).cuda()
-    #assert a.shape == target.shape
-    weight = torch.tensor([[11., 12, 13]]).cuda()
-    no_grad_zone_size = torch.tensor(0.1).cuda()
-    b = CrossEntropyLoss_by_yagaodiracFunction.apply(a, target, weight, no_grad_zone_size)
-    assert _float_equal(b.item(), 1./3)
+    a = torch.tensor([[1.,0]], requires_grad=True).cuda()
+    target = torch.tensor([0]).cuda()
+    weight = None
+    margin = torch.tensor(0.2).cuda()
+    reduction__yagao_version:Literal["none","mean","sum"] = "mean"
+    b:torch.Tensor
+    b, any_of__flag__minor_element_gt_threshold = CrossEntropyLoss_by_yagaodiracFunction.apply(a, \
+                                                    target, weight, margin,reduction__yagao_version)
     assert b.grad_fn is not None
     assert b.device == torch.device('cuda', index=0)
     assert b.device.type == 'cuda'
-    #torch.Tensor.backward(b,g_in,inputs=a)
-    b.backward(inputs = a)
-    #torch.cuda.synchronize()
+    b.backward(gradient=torch.ones_like(b), inputs=a)
     assert a.grad is not None
     assert a.grad.device == torch.device('cuda', index=0)
     assert a.grad.device.type == 'cuda'
@@ -950,15 +1012,28 @@ if '''device adaption''' and __DEBUG_ME__() and True:
 
 class CrossEntropyLoss_by_yagaodirac(torch.nn.modules.loss._WeightedLoss):
     weight:torch.nn.parameter.Parameter|None
-    no_grad_zone_size:torch.nn.parameter.Parameter
+    margin:torch.nn.parameter.Parameter
+    reduction__yagao_version:Literal["none","mean","sum"]
     safety_check:bool
-    def __init__(self, no_grad_zone_size:float|torch.Tensor = 0.1, weight: Optional[torch.Tensor] = None,
-                    safety_check = True,) -> None:
+    def __init__(self, margin:float|torch.Tensor = 1., weight: Optional[torch.Tensor] = None,
+                    reduction__yagao_version:Literal["none","mean","sum"] = 'mean', safety_check = True,) -> None:
         #format first. copy pasted from torch.nn.BCELoss
         size_average = None
         reduce = None
-        reduction = None
-        super().__init__(size_average, reduce, reduction)
+        #reduction = None
+        super().__init__(size_average, reduce, None)
+        self.reduction = None
+        
+        
+        assert margin>=0.
+        if isinstance(margin, torch.Tensor):
+            self.margin = torch.nn.parameter.Parameter(margin.detach().clone(), requires_grad=False)
+            pass
+        elif isinstance(margin, float):
+            self.margin = torch.nn.parameter.Parameter(torch.tensor(margin), requires_grad=False)
+            pass
+        else:
+            assert False, "unreachable"
         
         if weight is not None:
             self.weight = torch.nn.parameter.Parameter(weight, requires_grad=False)
@@ -967,16 +1042,10 @@ class CrossEntropyLoss_by_yagaodirac(torch.nn.modules.loss._WeightedLoss):
             self.weight = None
             pass
         
-        assert no_grad_zone_size>=0.
-        assert no_grad_zone_size<=0.5
-        if isinstance(no_grad_zone_size, torch.Tensor):
-            self.no_grad_zone_size = torch.nn.parameter.Parameter(no_grad_zone_size.detach().clone(), requires_grad=False)
-            pass
-        elif isinstance(no_grad_zone_size, float):
-            self.no_grad_zone_size = torch.nn.parameter.Parameter(torch.tensor(no_grad_zone_size), requires_grad=False)
-            pass
-        else:
-            assert False, "unreachable"
+        assert reduction__yagao_version == "none" or\
+                reduction__yagao_version == "mean" or\
+                reduction__yagao_version == "sum"
+        self.reduction__yagao_version = reduction__yagao_version
         
         self.safety_check = safety_check
         pass
@@ -986,33 +1055,29 @@ class CrossEntropyLoss_by_yagaodirac(torch.nn.modules.loss._WeightedLoss):
         Runs the forward pass.
         """
         
-        assert False, "assert 拿过来。"
-        
-        #1w 分一下index mode
-        
         if self.safety_check:
-            assert self.no_grad_zone_size.shape == torch.Size([])
-            assert self.no_grad_zone_size.ge(0.)
-            assert input.le(1.).all()
-            assert input.ge(0.).all()
-            target_gt_0_5 = target.gt(0.5)
-            assert target[target_gt_0_5].eq(1.).all()
-            assert target[~target_gt_0_5].eq(0.).all()
+            #< check out the shape>
+            if "move to module":
+                _batch = input.shape[0]
+                assert target.shape[0] == _batch
+                if target.shape.__len__() == 2:
+                    assert target.shape[1] == 1
+                    target = target.reshape([-1])
+                    assert target.shape.__len__() == 1
+                    pass
+                pass
+            #</ check out the shape>
+            assert target.dtype == torch.int32 or target.dtype == torch.int64
+            
+            assert self.margin.shape == torch.Size([])
+            assert self.margin.ge(0.)
             pass
         
-        
-        if target.dtype == torch.bool:
-            target_for_inner = target
-            pass
-        elif target.dtype == torch.float:
-            target_for_inner = target.gt(0.5)
-            pass
-        else:
-            assert False, "target.dtype can only be bool or float"
-        
-        temp_result_tuple = CrossEntropyLoss_by_yagaodiracFunction.apply(
-                                input, target_for_inner, self.weight, self.no_grad_zone_size)
-        return temp_result_tuple
+        temp_result_tuple = CrossEntropyLoss_by_yagaodiracFunction.apply(input, target, \
+                                    self.weight, self.margin, self.reduction__yagao_version)
+        assert temp_result_tuple.__len__() == 2
+        #ignore the second element.
+        return temp_result_tuple[0]
     
     def set_weight(self, new_weight:torch.Tensor|None= None):
         if new_weight is None:
@@ -1028,19 +1093,25 @@ class CrossEntropyLoss_by_yagaodirac(torch.nn.modules.loss._WeightedLoss):
         assert False, "unreachable"
         pass#/function
     
-    def set_no_grad_zone_size(self, no_grad_zone_size:float|torch.Tensor):
-        assert no_grad_zone_size>=0.
-        assert no_grad_zone_size<=0.5
-        if isinstance(no_grad_zone_size, torch.Tensor):
-            self.no_grad_zone_size.data = no_grad_zone_size.detach().clone().requires_grad_(False)
-            self.no_grad_zone_size.requires_grad_(False)
+    def set_margin(self, margin:float|torch.Tensor):
+        assert margin>=0.
+        if isinstance(margin, torch.Tensor):
+            self.margin.data = margin.detach().clone().requires_grad_(False)
+            self.margin.requires_grad_(False)
             pass
-        elif isinstance(no_grad_zone_size, float):
-            self.no_grad_zone_size.data = torch.tensor(no_grad_zone_size)
-            self.no_grad_zone_size.requires_grad_(False)
+        elif isinstance(margin, float):
+            self.margin.data = torch.tensor(margin)
+            self.margin.requires_grad_(False)
             pass
         else:
             assert False, "unreachable"
+        pass#/function
+    
+    def set_reduction(self, reduction__yagao_version:Literal["none","mean","sum"] = 'mean'):
+        assert reduction__yagao_version == "none" or\
+                reduction__yagao_version == "mean" or\
+                reduction__yagao_version == "sum"
+        self.reduction__yagao_version = reduction__yagao_version
         pass#/function
     
     def set_safety_check(self, safety_check:bool):
@@ -1051,8 +1122,9 @@ class CrossEntropyLoss_by_yagaodirac(torch.nn.modules.loss._WeightedLoss):
 
 if '''all the setters''' and __DEBUG_ME__() and True:
     model_CrossEntropyLoss_outputs_real_probability = CrossEntropyLoss_by_yagaodirac()
+    assert model_CrossEntropyLoss_outputs_real_probability.reduction is None
     assert model_CrossEntropyLoss_outputs_real_probability.weight is None
-    assert model_CrossEntropyLoss_outputs_real_probability.no_grad_zone_size.requires_grad == False
+    assert model_CrossEntropyLoss_outputs_real_probability.margin.requires_grad == False
     assert isinstance(model_CrossEntropyLoss_outputs_real_probability.safety_check, bool)
     
     model_CrossEntropyLoss_outputs_real_probability.set_weight(torch.tensor([0.123, 0.234]))
@@ -1065,18 +1137,23 @@ if '''all the setters''' and __DEBUG_ME__() and True:
     model_CrossEntropyLoss_outputs_real_probability.set_weight(None)
     assert model_CrossEntropyLoss_outputs_real_probability.weight is None
     
-    model_CrossEntropyLoss_outputs_real_probability.set_no_grad_zone_size(0.345)
-    assert _float_equal(model_CrossEntropyLoss_outputs_real_probability.no_grad_zone_size.item(), 0.345)
-    assert model_CrossEntropyLoss_outputs_real_probability.no_grad_zone_size.requires_grad == False
+    model_CrossEntropyLoss_outputs_real_probability.set_margin(0.345)
+    assert _float_equal(model_CrossEntropyLoss_outputs_real_probability.margin.item(), 0.345)
+    assert model_CrossEntropyLoss_outputs_real_probability.margin.requires_grad == False
     
-    model_CrossEntropyLoss_outputs_real_probability.set_no_grad_zone_size(torch.tensor(0.456))
-    assert _float_equal(model_CrossEntropyLoss_outputs_real_probability.no_grad_zone_size.item(), 0.456)
-    assert model_CrossEntropyLoss_outputs_real_probability.no_grad_zone_size.requires_grad == False
+    model_CrossEntropyLoss_outputs_real_probability.set_margin(torch.tensor(0.456))
+    assert _float_equal(model_CrossEntropyLoss_outputs_real_probability.margin.item(), 0.456)
+    assert model_CrossEntropyLoss_outputs_real_probability.margin.requires_grad == False
+    
+    model_CrossEntropyLoss_outputs_real_probability.set_reduction("none")
+    assert model_CrossEntropyLoss_outputs_real_probability.reduction__yagao_version == "none"
+    model_CrossEntropyLoss_outputs_real_probability.set_reduction("sum")
+    assert model_CrossEntropyLoss_outputs_real_probability.reduction__yagao_version == "sum"
     pass
 
 if '''dtype adaption.''' and __DEBUG_ME__() and True:
-    input = torch.tensor([[1.]], requires_grad=True)
-    target = torch.tensor([[False]])
+    input = torch.tensor([[0.1,0]], requires_grad=True)
+    target = torch.tensor([[0]])
     model_CrossEntropyLoss_outputs_real_probability = CrossEntropyLoss_by_yagaodirac()
     model_CrossEntropyLoss_outputs_real_probability.to(torch.float64)#!!!!!!!!!!!!!!!!!!!!!!
     #model.to(torch.float16)
@@ -1090,11 +1167,11 @@ if '''dtype adaption.''' and __DEBUG_ME__() and True:
         one_minus_acc.backward(inputs = input)#inputs = ?
         #optimizer.param_groups[0]["lr"] = 0.01
         assert input.grad is not None
-        assert _float_equal(input.grad.item(), 0.9)
+        assert _tensor_equal(input.grad, [[-0.9,0.9]])
         assert input.grad.dtype == input.dtype
 
         optimizer.step()
-        assert _float_equal(input.item(), 0.91)#1- 0.9*0.1
+        assert _tensor_equal(input, [[0.19,-0.09]])
         
         model_CrossEntropyLoss_outputs_real_probability.eval()
         pass
@@ -1114,66 +1191,104 @@ if '''init test ???????????????????????????????????''' and __DEBUG_ME__() and Tr
     pass
 
 if "how is it different from the vanilla pytorch version?"and __DEBUG_ME__() and True:
-    "vanilla pytorch version"
-    celoss_no_reduction = torch.nn.CrossEntropyLoss(reduction="none")
-    assert False, "继续"
-    input = torch.tensor([0., 0.25, 0.5, 0.75, 1.], requires_grad=True)
-    target = torch.zeros_like(input)
-    loss = bceloss_no_reduction(input, target)
-    assert _tensor_equal(loss, torch.tensor([0, 0.2877, 0.6931, 1.3863, 100]))
-    loss.backward(torch.ones_like(loss), inputs = input)
-    assert input.grad is not None
-    assert _tensor_equal(input.grad, torch.tensor([0, 1.3333, 2, 4, 1e12]))
-    # Notice the last element in grad, it's 1e12. 
-    # Most elements are in range 0 to 10, but the wrongest one provides 1e12.
-    # What lr should you use?
-    # yagao be like:1e12 bro. Do you see you model flying in the universe?
+    # The real problem is the dynamics. Vanilla version of cross entropy stops when the top element results 
+    # more than 0.5 after softmax. I want it to push the boundary further.
     
-    assert False, "突出一下只有直接乘，没有1-的部分。"
-    
-    
-    _log_of_softmax__b_d = input.log_softmax()
-    if index_mode:
-        result = _log_of_softmax__b_d[target]
-        #result = _log_of_softmax__b_d[iota,target[iota]]???
+    "vanilla"
+    dim = 30000
+    input  = torch.zeros(size=[1,dim], requires_grad=True)
+    target = torch.zeros(size=[1,dim])
+    target[0,0] = 1.
+    #loss = torch.nn.CrossEntropyLoss(reduction="none",label_smoothing=0.)
+    vanilla_CrossEntropy_loss = torch.nn.CrossEntropyLoss()
+    optim = torch.optim.SGD(params=[input], lr=0.5)
+    for epoch in range(1,201):
+        #< add noise to mimic other data points>
+        with torch.no_grad():
+            input.add_(torch.randn_like(input)*1.)
+            pass
+        # input.requires_grad_()
+        assert input.requires_grad
+        #</ add noise to mimic other data points>
+        
+        output = vanilla_CrossEntropy_loss(input, target)
+        
+        if epoch% 10 == 0 or epoch<10:
+            print(f"epoch = {epoch}", end=", ")
+            _temp_list_input = input[0,:3].tolist()
+            print(f"input = {_temp_list_input[0]:.3f}, {_temp_list_input[1]:.3f}, {_temp_list_input[2]:.3f}", end=", ")
+            _temp_list_softmax = input.softmax(dim=1)[0,:3].tolist()
+            print(f"softmax = {_temp_list_softmax[0]:.3f}, {_temp_list_softmax[1]:.3f}, {_temp_list_softmax[2]:.3f}", end=", ")
+            _temp_list_output = output.tolist()
+            print(f"loss = {_temp_list_output:.3f}", end=", ")
+            pass
+        
+        optim.zero_grad()
+        output.backward(inputs = input)
+        
+        if epoch% 10 == 0 or epoch<10:
+            _temp_list_input_grad = input.grad[0].tolist()
+            print(f"input.grad = {_temp_list_input_grad[0]:.3f}, {_temp_list_input_grad[1]:.3f}, {_temp_list_input_grad[2]:.3f}", end=", ")
+            print(f"diff = {input[0,0]-input[0,1:].mean():.3f}({(input[0,0]-input[0,1:].mean())/input[0,0]:.4f})")
+            pass
+        
+        optim.step()
         pass
-    else:#full value mode.
-        result = _log_of_softmax__b_d*target
+    
+    
+    
+    
+    
+    "yagaodirac version."
+    the_margin = 10.#!!!!!!!!
+    # if margin=1., it provides basically the gradient as vanilla crossentropy, but locks a bit deeper.
+    # if margin is larger, it locks deeper if the measurement is still softmax.
+    # but, it's obvious it's a sharpened softmax. So if you scale it back to 1., it's the same as 1.
+    # but, if the rest part of the neural net doesn't adapt to a margin=1 loss function, my version
+    # at least provides some adjustment.
+    
+    dim = 30000
+    input  = torch.zeros(size=[1,dim], requires_grad=True)
+    target = torch.empty(size=[1,1],dtype=torch.int32).random_(dim)
+    target[0,0] = 0
+    YagaoDirac_CrossEntropy_loss = CrossEntropyLoss_by_yagaodirac(margin=the_margin)
+    optim = torch.optim.SGD(params=[input], lr=0.5)
+    for epoch in range(1,201):
+        with torch.no_grad():
+            input.add_(torch.randn_like(input)*1.)
+            pass
+        # input.requires_grad_()
+        assert input.requires_grad
+        
+        output = YagaoDirac_CrossEntropy_loss(input, target)
+        
+        if epoch% 10 == 0 or epoch<10:
+            print(f"epoch = {epoch}", end=", ")
+            _temp_list_input = input[0].tolist()
+            print(f"input = {_temp_list_input[0]:.3f}, {_temp_list_input[1]:.3f}, {_temp_list_input[2]:.3f}", end=", ")
+            _temp_list_softmax = input.softmax(dim=1)[0].tolist()
+            print(f"softmax = {_temp_list_softmax[0]:.3f}, {_temp_list_softmax[1]:.3f}, {_temp_list_softmax[2]:.3f}", end=", ")
+            _temp_list_output = output.tolist()
+            print(f"loss = {_temp_list_output:.3f}", end=", ")
+            pass
+        
+        optim.zero_grad()
+        output.backward(inputs = input)
+        
+        if epoch% 10 == 0 or epoch<10:
+            _temp_list_input_grad = input.grad[0].tolist()
+            print(f"input.grad = {_temp_list_input_grad[0]:.3f}, {_temp_list_input_grad[1]:.3f}, {_temp_list_input_grad[2]:.3f}", end=", ")
+            print(f"diff = {input[0,0]-input[0,1:].mean():.3f}({(input[0,0]-input[0,1:].mean())/input[0,0]:.4f})")
+            pass
+        
+        optim.step()
         pass
 
-    
-    
-    # bc this, I made my version.
-    "yagaodirac version(at least this version)"
-    layer_CrossEntropyLoss_outputs_real_probability = CrossEntropyLoss_by_yagaodirac()
-    input = torch.tensor([[0., 0.25, 0.5, 0.75, 1.]], requires_grad=True)
-    target = torch.zeros_like(input)
-    loss = layer_CrossEntropyLoss_outputs_real_probability(input, target)
-    assert _tensor_equal(loss, torch.tensor([0.5]), epsilon=0.1001)# 0.4 or 0.6. Trivial.
-    loss.backward(torch.ones_like(loss), inputs = input)
-    assert input.grad is not None
-    assert _tensor_equal(input.grad   , torch.tensor([[0, 0.15, 0.4, 0.65, 0.9]]))
-    assert _tensor_equal(input.grad*5., torch.tensor([[0, 0.75, 2  , 3.25, 4.5]]))
-    pass
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-assert False, '''todo list:
-I need a new softmax. 
-
-test new bce and softmax with real training case.
-'''
+assert False, '''Warning: these 2 loss functions are not tested in real case yet.'''
 
