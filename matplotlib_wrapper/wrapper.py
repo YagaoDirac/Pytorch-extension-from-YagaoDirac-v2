@@ -351,12 +351,13 @@ if "line chart and legend" and __DEBUG_ME__() and False:
 
 def image_show_simple_combined_style_1(data:data_list_2d, title:str="",
             x_tick_names:list[str]|None = None, y_tick_names:list[str]|None = None, 
-                the_axes = get_current_axes())-> tuple[image.AxesImage, list[axis.Tick]|None, list[axis.Tick]|None, 
+            vmin: float | None = None,vmax: float | None = None,
+            the_axes = get_current_axes())-> tuple[image.AxesImage, list[axis.Tick]|None, list[axis.Tick]|None, 
                                                 list[list[text.Text]], text.Text]:
     '''
     https://matplotlib.org/stable/gallery/images_contours_and_fields/image_annotated_heatmap.html
     '''
-    the_image = the_axes.imshow(data)
+    the_image = the_axes.imshow(data, vmin=vmin, vmax=vmax)
 
     # Show all ticks and label them with the respective list entries
     if x_tick_names is not None:
