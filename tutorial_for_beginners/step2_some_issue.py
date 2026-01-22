@@ -26,6 +26,10 @@ if "Does it require grad?" and True:
     assert param_a.requires_grad == False
     
     "also, if the dtype is int, bool, it's not allowed to require_grad."
+    
+    1w 类里面的情况。
+    数据类型的。
+    
     pass
     
     
@@ -73,6 +77,47 @@ if "Does it get grad?" and True:
     assert a.grad is not None
     
     pass
+
+
+
+
+how to add, remove, modify a param in module class.
+
+
+
+
+class param_test(torch.nn.Module):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.p11 = torch.nn.parameter.Parameter(torch.tensor([11.]))
+        self.register_parameter("p12", torch.nn.parameter.Parameter(torch.tensor([12.])))
+        
+        self.p21 = torch.nn.parameter.Parameter(torch.tensor([21.]))
+        self.register_parameter("p22", torch.nn.parameter.Parameter(torch.tensor([22.])))
+        self.p21 = None
+        self.p22 = None
+        
+        self.p31 = torch.nn.parameter.Parameter(torch.tensor([31.]))
+        self.register_parameter("p32", torch.nn.parameter.Parameter(torch.tensor([32.])))
+        self.register_parameter("p31", None)
+        self.register_parameter("p32", None)
+        
+        self.p41 = torch.nn.parameter.Parameter(torch.tensor([41.]))
+        self.register_parameter("p42", torch.nn.parameter.Parameter(torch.tensor([42.])))
+        self.p41 = torch.nn.parameter.Parameter(torch.tensor([41.1]))
+        self.p42 = torch.nn.parameter.Parameter(torch.tensor([42.1]))
+        
+        self.p51 = torch.nn.parameter.Parameter(torch.tensor([51.]))
+        self.register_parameter("p52", torch.nn.parameter.Parameter(torch.tensor([52.])))
+        self.p51.data = torch.tensor([51.1])
+        self.p52.data = torch.tensor([52.1])
+        
+        pass
+    pass
+
+pt = param_test()
+aaa = [x for x in pt.parameters()]
+
 
 
 
