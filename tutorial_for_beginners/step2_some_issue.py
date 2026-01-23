@@ -7,7 +7,7 @@ the best way is to know all the issues and not to run into it.
 '''
 import torch
 
-if "Does it require grad?" and True:
+def Does_it_require_grad():
     tensor_a = torch.tensor([42.])#default is false
     assert tensor_a.requires_grad == False
     tensor_a = torch.tensor([42.], requires_grad=True)
@@ -25,16 +25,27 @@ if "Does it require grad?" and True:
     param_a = torch.nn.parameter.Parameter(torch.tensor([42.], requires_grad=True), requires_grad=False)
     assert param_a.requires_grad == False
     
-    "also, if the dtype is int, bool, it's not allowed to require_grad."
     
-    1w 类里面的情况。
-    数据类型的。
+    "Only Tensors of floating point and complex dtype can require gradients"
+    #param_a = torch.tensor([42], requires_grad=True) this doesn't work.
     
-    pass
+    "mode doesn't affect."
+    with torch.no_grad():
+        tensor_a = torch.tensor([42.], requires_grad=True)
+        assert tensor_a.requires_grad == True
+        pass
     
+    with torch.inference_mode():
+        tensor_a = torch.tensor([42.], requires_grad=True)
+        assert tensor_a.requires_grad == True
+        pass
     
-    
-if "Does it get grad?" and True:
+    return 
+Does_it_require_grad()
+
+
+
+def Does_it_get_grad():
     "if it's cuda, the inputs= must be specified."
     
     a = torch.tensor([42.], requires_grad=True)
@@ -77,46 +88,45 @@ if "Does it get grad?" and True:
     assert a.grad is not None
     
     pass
+Does_it_get_grad()
 
 
-
-
-how to add, remove, modify a param in module class.
-
-
-
-
-class param_test(torch.nn.Module):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.p11 = torch.nn.parameter.Parameter(torch.tensor([11.]))
-        self.register_parameter("p12", torch.nn.parameter.Parameter(torch.tensor([12.])))
-        
-        self.p21 = torch.nn.parameter.Parameter(torch.tensor([21.]))
-        self.register_parameter("p22", torch.nn.parameter.Parameter(torch.tensor([22.])))
-        self.p21 = None
-        self.p22 = None
-        
-        self.p31 = torch.nn.parameter.Parameter(torch.tensor([31.]))
-        self.register_parameter("p32", torch.nn.parameter.Parameter(torch.tensor([32.])))
-        self.register_parameter("p31", None)
-        self.register_parameter("p32", None)
-        
-        self.p41 = torch.nn.parameter.Parameter(torch.tensor([41.]))
-        self.register_parameter("p42", torch.nn.parameter.Parameter(torch.tensor([42.])))
-        self.p41 = torch.nn.parameter.Parameter(torch.tensor([41.1]))
-        self.p42 = torch.nn.parameter.Parameter(torch.tensor([42.1]))
-        
-        self.p51 = torch.nn.parameter.Parameter(torch.tensor([51.]))
-        self.register_parameter("p52", torch.nn.parameter.Parameter(torch.tensor([52.])))
-        self.p51.data = torch.tensor([51.1])
-        self.p52.data = torch.tensor([52.1])
-        
+#not very clear, but set some key to None is ok.
+def how_to__add_remove_modify__a_param_in_module_class():
+    class param_test(torch.nn.Module):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.p11 = torch.nn.parameter.Parameter(torch.tensor([11.]))
+            self.register_parameter("p12", torch.nn.parameter.Parameter(torch.tensor([12.])))
+            
+            self.p21 = torch.nn.parameter.Parameter(torch.tensor([21.]))
+            self.register_parameter("p22", torch.nn.parameter.Parameter(torch.tensor([22.])))
+            self.p21 = None
+            self.p22 = None
+            
+            self.p31 = torch.nn.parameter.Parameter(torch.tensor([31.]))
+            self.register_parameter("p32", torch.nn.parameter.Parameter(torch.tensor([32.])))
+            self.register_parameter("p31", None)
+            self.register_parameter("p32", None)
+            
+            self.p41 = torch.nn.parameter.Parameter(torch.tensor([41.]))
+            self.register_parameter("p42", torch.nn.parameter.Parameter(torch.tensor([42.])))
+            self.p41 = torch.nn.parameter.Parameter(torch.tensor([41.1]))
+            self.p42 = torch.nn.parameter.Parameter(torch.tensor([42.1]))
+            
+            self.p51 = torch.nn.parameter.Parameter(torch.tensor([51.]))
+            self.register_parameter("p52", torch.nn.parameter.Parameter(torch.tensor([52.])))
+            self.p51.data = torch.tensor([51.1])
+            self.p52.data = torch.tensor([52.1])
+            
+            pass
         pass
-    pass
 
-pt = param_test()
-aaa = [x for x in pt.parameters()]
+    pt = param_test()
+    aaa = [x for x in pt.parameters()]
+    assert False,"unfinished. but not very important."
+    return 
+how_to__add_remove_modify__a_param_in_module_class()
 
 
 
