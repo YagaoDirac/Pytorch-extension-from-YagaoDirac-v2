@@ -39,6 +39,12 @@ if "test" and __DEBUG_ME__() and True:
     assert _float_equal(1., 1.0000001)
     assert _float_equal(1., 1.01) == False
     assert _float_equal(1., 1.01, 0.1) 
+    def ____test_____float_equal():
+        a = torch.tensor(1.)
+        assert _float_equal(a, 1.) 
+        assert isinstance(a, torch.Tensor)
+        return 
+    ____test_____float_equal()
     pass
 def _tensor_equal(  a:torch.Tensor|list[float]|list[list[float]], \
                     b:torch.Tensor|list[float]|list[list[float]], \
@@ -49,8 +55,18 @@ def _tensor_equal(  a:torch.Tensor|list[float]|list[list[float]], \
     if not isinstance(b, torch.Tensor):
         b = torch.tensor(b)
         pass
+    #check the shape.
+    if a.shape == torch.Size([]):
+        assert b.shape == torch.Size([]) or b.shape == torch.Size([1])
+        pass
+    elif b.shape == torch.Size([]):#a is not Size([])
+        assert a.shape == torch.Size([1])
+        pass
+    else:#no Size([]), a normal check.
+        assert a.shape == b.shape
+        pass
     
-    assert a.shape == b.shape
+    
     with torch.inference_mode():
         diff = a-b
         abs_of_diff = diff.abs()
@@ -69,6 +85,26 @@ if "test" and __DEBUG_ME__() and True:
     assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.000001]))
     assert _tensor_equal(torch.tensor([1.]), torch.tensor([0.99999]))
     assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.001])) == False
+    
+    #shape
+    assert _tensor_equal(torch.tensor([0.]), torch.tensor([0.]))
+    assert _tensor_equal(torch.tensor([0.]), torch.tensor(0.))
+    assert _tensor_equal(torch.tensor(0.), torch.tensor([0.]))
+    assert _tensor_equal(torch.tensor(0.), torch.tensor(0.))
+    pass
+
+def is_square_matrix(matrix:torch.Tensor)->bool:
+    if matrix.shape.__len__() != 2:
+        return False
+    if matrix.shape[0] != matrix.shape[1]:
+        return False
+    return True
+if "test" and __DEBUG_ME__() and True:
+    assert is_square_matrix(torch.randn(size=(2,2)))
+    assert is_square_matrix(torch.randn(size=(3,3)))
+    assert is_square_matrix(torch.randn(size=(2,3))) == False
+    assert is_square_matrix(torch.randn(size=(2,))) == False
+    assert is_square_matrix(torch.randn(size=(2,3,3))) == False
     pass
 
 from typing import TypeAlias,Literal
@@ -596,7 +632,7 @@ def get_mask_of_top_element__rough(input__b_i:torch.Tensor, top_ratio = 0.9, err
     if shape is too small, this may not work. Valid code uses 3 or 5 elements/batch, but this function is design 
         to process >10 elements/batch input.
     '''
-    assert input.shape.__len__() == 2
+    assert input__b_i.shape.__len__() == 2
     assert top_ratio>0.
     assert top_ratio<1.
     assert error_of_ratio__at_least>=0.

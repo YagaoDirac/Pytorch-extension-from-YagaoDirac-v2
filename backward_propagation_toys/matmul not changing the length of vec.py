@@ -24,11 +24,111 @@ import datetime
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, avg_log10_safe, get_mask_of_top_element__rough
-from pytorch_yagaodirac_v2.Util import iota
+from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, avg_log10_safe, \
+    get_mask_of_top_element__rough, iota, is_square_matrix
 from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1
 
 import torch
+
+
+
+
+
+
+
+def measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(matrix:torch.Tensor,
+                                    test_time = 10, cap = 2.)->tuple[torch.Tensor,torch.Tensor]:
+    '''    return all_score.mean(),all_score
+    The result is always >=0. The smaller the better.'''
+    assert is_square_matrix(matrix)
+    assert test_time>=1
+    assert cap>1.#at least >0
+    
+    the_device = matrix.device
+    all_score = torch.empty([test_time], device = the_device)
+    for epoch in range(test_time):
+        vec = torch.randn(size=[matrix.shape[0]], device = the_device)
+        while True:
+            ori_len_sqr = vec.dot(vec)
+            #too small or too large, reroll.
+            if ori_len_sqr<0.001 or ori_len_sqr>10000.:
+                vec = torch.randn(size=[matrix.shape[0]])
+                continue
+            break
+            pass#/while
+        __mul_me = ori_len_sqr.pow(-0.5)
+        vec.mul_(__mul_me)
+        assert _tensor_equal(vec.dot(vec), torch.tensor([1.], device=vec.device))
+        
+        #vec = vec.reshape(shape=[1,-1])
+        after_matmul = vec@matrix
+        new_len_sqr = after_matmul.dot(after_matmul)
+        
+        score_of_this_epoch = new_len_sqr.log10().abs()/2.
+        all_score[epoch] = score_of_this_epoch
+        pass#/ for
+    all_score = all_score.clamp_max_(cap)
+    all_score = all_score.clamp_min_(-cap)
+    all_score = all_score.cpu()
+    return all_score.mean(),all_score
+if "____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10" and False:
+    def ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10():
+        #eye should be perfect.
+        if False:
+            for size in range(3, 15):
+                for _ in range(5):
+                    _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(torch.eye(n=size),test_time=100)
+                    assert _tensor_equal(_result_tuple[1], torch.zeros(size=[100]), epsilon=1e-6)
+                    pass
+                pass
+            for size in range(3, 15):
+                for _ in range(5):
+                    _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(torch.eye(n=size)*10. ,test_time=100)
+                    assert _tensor_equal(_result_tuple[1], torch.ones(size=[100]))
+                    pass
+                pass
+            for size in range(3, 15):
+                for _ in range(5):
+                    _to_the_power = torch.rand(size=[1])*3.
+                    assert _to_the_power>=0.
+                    _factor = torch.pow(10, _to_the_power)
+                    _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(torch.eye(n=size)*_factor, 
+                                                                                                test_time=100, cap=5.)
+                    assert _tensor_equal(_result_tuple[1], torch.ones(size=[100])*_to_the_power)
+                    pass
+                pass
+            for size in range(3, 15):
+                for _ in range(5):
+                    _to_the_power = torch.rand(size=[1])*-3.
+                    assert _to_the_power<=0.
+                    _factor = torch.pow(10, _to_the_power)
+                    _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(torch.eye(n=size)*_factor, 
+                                                                                                test_time=100, cap=5.)
+                    assert _tensor_equal(_result_tuple[1], torch.ones(size=[100])*-_to_the_power)
+                    pass
+                pass
+        
+        
+        #rotation should also be perfect. This test is done in the rand_basic_ratation_matrix's test
+        
+        
+        #some affine matrix.
+        for _ in range(55):
+            mat = torch.eye(n=100)
+            mat[0,1] = 1.
+            _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat,test_time=100)
+            result_for_1 = _result_tuple[0]
+            mat = torch.eye(n=100)
+            mat[0,1] = 10.
+            _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat,test_time=100)
+            result_for_2 = _result_tuple[0]
+            assert result_for_2.gt(result_for_1) #theoretically unstable. But mostly cases it holds.
+            pass
+        return 
+    ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10()
+    pass
+
+
 
 
 
@@ -42,6 +142,7 @@ import torch
 # doesn't affect the other direction much.
 # but basicall, when the factor is 0.28 to 0.3 or 0.36 to 0.38, it's slightly a bit better.
 # To what I know, I decide to use 0.28 for now.
+
 
 def length_protection_test(DIM:int, correction_factor = 0.25, correction_factor_for_pre_protect = 0.2)->tuple[torch.Tensor,torch.Tensor]:
     '''
@@ -141,129 +242,85 @@ def length_protection_test(DIM:int, correction_factor = 0.25, correction_factor_
         #</ test>
         pass#no grad
     return better__value, better_amount
-def ____protection_hyper_param_scan():
-    #file name
-    _time = datetime.datetime.now()
-    _time_str = _time.isoformat(sep=" ")
-    _time_str = _time_str[0:19]
-    _time_str = _time_str.replace(":","-")
-    _file_name = f"{Path(__file__).parent/"test result"/"protection_hyper_param_scan"} {_time_str}.txt"
-    with open(_file_name, mode = "a", encoding="utf-8") as file:#maybe the mode should be "a"
-        file.write("method: protection_hyper_param_scan\n\n")
-        file.write(f"{_time_str}\n\n")
-        pass#open
-    
-    #<param>
-    for DIM in [10,100,1000]:#,10000]:#dont try more.
-        assert DIM <= 20000
-    #</ param>
-        if DIM<1000:
-            _test_time = 50
-            pass
-        elif DIM<10000:
-            _test_time = 10
-            pass
-        else:
-            _test_time = 5
-            pass
-        with open(_file_name, mode = "a", encoding="utf-8") as file:
-            DIM_DIM_DIM_str = f"{DIM}  "*18
-            file.write(f"DIM   {DIM_DIM_DIM_str}\n")
-            file.write(f"test time {_test_time}\n\n")
-            pass
+if "____protection_hyper_param_scan" and False:
+    def ____protection_hyper_param_scan():
+        #file name
+        _time = datetime.datetime.now()
+        _time_str = _time.isoformat(sep=" ")
+        _time_str = _time_str[0:19]
+        _time_str = _time_str.replace(":","-")
+        _file_name = f"{Path(__file__).parent/"test result"/"protection_hyper_param_scan"} {_time_str}.txt"
+        with open(_file_name, mode = "a", encoding="utf-8") as file:#maybe the mode should be "a"
+            file.write("method: protection_hyper_param_scan\n\n")
+            file.write(f"{_time_str}\n\n")
+            pass#open
         
         #<param>
-        #for correction_factor in [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.7]:
-        for _correction_factor in range(20,41):#[0.25,0.4]:
-            correction_factor = _correction_factor/100.
+        for DIM in [10,100,1000]:#,10000]:#dont try more.
+            assert DIM <= 20000
         #</ param>
-            #<init>
-            better__value_list = torch.empty(size=[_test_time], dtype=torch.float32)
-            better_amount_list = torch.empty(size=[_test_time], dtype=torch.float32)
-            #</ init>
-            
-            #<test
-            for _iter_count in range(_test_time):
-                better__value, better_amount = length_protection_test(DIM=DIM, correction_factor=correction_factor)
-                better__value_list[_iter_count] = better__value
-                better_amount_list[_iter_count] = better_amount
+            if DIM<1000:
+                _test_time = 50
                 pass
-                
-            #log out.
+            elif DIM<10000:
+                _test_time = 10
+                pass
+            else:
+                _test_time = 5
+                pass
             with open(_file_name, mode = "a", encoding="utf-8") as file:
-                file.write(f"correction_factor: {correction_factor}\n")
-                file.write(f"test time: {_test_time}\n")
-                better__value_to_save = better__value.mean().item()
-                if better__value_to_save>1:
-                    file.write(f"better__value: {better__value_to_save:.4f}\n")
-                    pass
-                else:#bad
-                    file.write(f"better__value: {better__value_to_save:.4f}    BAD   BAD   BAD\n")
-                    pass
+                DIM_DIM_DIM_str = f"{DIM}  "*18
+                file.write(f"DIM   {DIM_DIM_DIM_str}\n")
+                file.write(f"test time {_test_time}\n\n")
+                pass
+            
+            #<param>
+            #for correction_factor in [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6, 0.7]:
+            for _correction_factor in range(20,41):#[0.25,0.4]:
+                correction_factor = _correction_factor/100.
+            #</ param>
+                #<init>
+                better__value_list = torch.empty(size=[_test_time], dtype=torch.float32)
+                better_amount_list = torch.empty(size=[_test_time], dtype=torch.float32)
+                #</ init>
                 
-                better_amount_to_save = better_amount.mean().item()
-                if better_amount_to_save>0.5:
-                    file.write(f"       better_amount: {better_amount_to_save:.3f}\n")
+                #<test
+                for _iter_count in range(_test_time):
+                    better__value, better_amount = length_protection_test(DIM=DIM, correction_factor=correction_factor)
+                    better__value_list[_iter_count] = better__value
+                    better_amount_list[_iter_count] = better_amount
                     pass
-                else:
-                    file.write(f"       better_amount: {better_amount_to_save:.3f}    BAD   BAD   BAD\n")
-                    pass
-                file.write("\n\n")
-                pass# open
-            pass# for correction_factor in range
-        pass#for DIM
-    return
-if False:
+                    
+                #log out.
+                with open(_file_name, mode = "a", encoding="utf-8") as file:
+                    file.write(f"correction_factor: {correction_factor}\n")
+                    file.write(f"test time: {_test_time}\n")
+                    better__value_to_save = better__value.mean().item()
+                    if better__value_to_save>1:
+                        file.write(f"better__value: {better__value_to_save:.4f}\n")
+                        pass
+                    else:#bad
+                        file.write(f"better__value: {better__value_to_save:.4f}    BAD   BAD   BAD\n")
+                        pass
+                    
+                    better_amount_to_save = better_amount.mean().item()
+                    if better_amount_to_save>0.5:
+                        file.write(f"       better_amount: {better_amount_to_save:.3f}\n")
+                        pass
+                    else:
+                        file.write(f"       better_amount: {better_amount_to_save:.3f}    BAD   BAD   BAD\n")
+                        pass
+                    file.write("\n\n")
+                    pass# open
+                pass# for correction_factor in range
+            pass#for DIM
+        return
     ____protection_hyper_param_scan()
     pass
 
 
 
 
-
-
-
-def check_how_much_the_matmul_keeps_the_length_of_vec(matrix:torch.Tensor,
-                                    test_time = 10)->tuple[torch.Tensor,torch.Tensor]:
-    assert matrix.shape.__len__() == 2
-    assert matrix.shape[0] == matrix.shape[1]
-    the_device = matrix.device
-    all_score = torch.empty([test_time], device = the_device)
-    for epoch in range(test_time):
-        vec = torch.randn(size=[matrix.shape[0]], device = the_device)
-        while True:
-            #check and maybe break
-            ori_len_sqr = vec.dot(vec)
-            if ori_len_sqr>2.:
-                break
-            
-            #too small, reroll.
-            if ori_len_sqr<0.01:
-                vec = torch.randn(size=[matrix.shape[0]])
-                continue
-            
-            #still ok, but let's make it larger.
-            vec.mul_(torch.rand(size=[])*0.4+1.2)
-            pass
-        
-        #vec = vec.reshape(shape=[1,-1])
-        after_matmul = vec@matrix
-        new_len_sqr = after_matmul.dot(after_matmul)
-        
-        score_of_this_epoch = ori_len_sqr.log10().abs() - new_len_sqr.log10().abs()
-        all_score[epoch] = score_of_this_epoch
-        pass#/ for
-    return all_score.mean(),all_score
-def ____test____check_how_much_the_matmul_keeps_the_length_of_vec():
-    for size in range(3, 15):
-        _result_tuple = check_how_much_the_matmul_keeps_the_length_of_vec(torch.eye(n=size),test_time=100)
-        assert _tensor_equal(_result_tuple[1], torch.zeros(size=[100]), epsilon=1e-10)
-        pass
-    #another test is done in the rand_basic_ratation_matrix's test
-    return 
-if False:
-    ____test____check_how_much_the_matmul_keeps_the_length_of_vec()
-    pass
 
 
 
@@ -283,37 +340,31 @@ def rand_basic_ratation_matrix(dim:int)->torch.Tensor:
     mat[dim2,dim1] = -sin_of_rand
     mat[dim2,dim2] =  cos_of_rand
     return mat
-def ____test____rand_basic_ratation_matrix():
-    for dim in range(3,14):
-        for _ in range(11):
-            mat = rand_basic_ratation_matrix(dim)
-            _result_tuple = check_how_much_the_matmul_keeps_the_length_of_vec(mat, test_time=100)
-            assert _tensor_equal(_result_tuple[1], torch.zeros(size=[100]))
-            pass#for _
-        pass# for dim
-    
-    for dim in range(3,14):
-        for _test_time in range(11):
-            mat = rand_basic_ratation_matrix(dim)
-            for _rotating_time in range(dim*5):
-                new_mat = rand_basic_ratation_matrix(dim)
-                mat = mat.matmul(new_mat)
-                pass
-                
-            _result_tuple = check_how_much_the_matmul_keeps_the_length_of_vec(mat, test_time=100)
-            assert _tensor_equal(_result_tuple[1], torch.zeros(size=[100]))
-            pass#for _
-        pass# for dim
-    
-    return 
 if False:
+    def ____test____rand_basic_ratation_matrix():
+        for dim in range(3,14):
+            for _ in range(11):
+                mat = rand_basic_ratation_matrix(dim)
+                _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat, test_time=100)
+                assert _tensor_equal(_result_tuple[1], torch.zeros(size=[100]))
+                pass#for _
+            pass# for dim
+        
+        for dim in range(3,14):
+            for _test_time in range(11):
+                mat = rand_basic_ratation_matrix(dim)
+                for _rotating_time in range(dim*5):
+                    new_mat = rand_basic_ratation_matrix(dim)
+                    mat = mat.matmul(new_mat)
+                    pass
+                    
+                _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat, test_time=100)
+                assert _tensor_equal(_result_tuple[1], torch.zeros(size=[100]))
+                pass#for _
+            pass# for dim
+        return 
     ____test____rand_basic_ratation_matrix()
     pass
-
-
-
-
-
 
 
 
@@ -362,23 +413,18 @@ if "some old code " and False:
 
 
 
-方阵的可以直接计算出来的长度指标，和用一个dummy vec乘上去观察长度变化，得出的指标，之间的关系是什么。是否有可能推测正交性。
-1w 继续。
+#方阵的可以直接计算出来的长度指标，和用一个dummy vec乘上去观察长度变化，得出的指标，之间的关系是什么。是否有可能推测正交性。
+#1w 继续。
 # 一些特殊的mat可能不行。
 # 主对角线可能无法被优化。可能需要额外的保护。
 def correct_the_matrix(matrix:torch.Tensor, lr = 0.3,correction_factor = 0.15, iter_count = 1,
-                        dont_correct_length_with_error_prapagation = False)->torch.Tensor:
-    assert matrix.shape.__len__() == 2
-    assert matrix.shape[0] == matrix.shape[1]
+                        dont_correct_length_with_error_prapagation = False, __debug__need_log = False)->tuple[torch.Tensor, list]:
+    '''this function removes the grad stored on the param:matrix'''
+    assert is_square_matrix(matrix)
+    dim = matrix.shape[0]
     does_matrix_require_grad = matrix.requires_grad
     matrix.requires_grad_()
-    
-    if dont_correct_length_with_error_prapagation:
-        iota_of_dim = iota(matrix.shape[0])
-        pass
-    else:
-        iota_of_dim = None
-        pass
+    matrix.grad = None
     
     the_device = matrix.device
     correction_factor_tensor = torch.tensor(-correction_factor, device=the_device)#0.25 to 0.4. safe range is 0 to 0.5
@@ -391,11 +437,21 @@ def correct_the_matrix(matrix:torch.Tensor, lr = 0.3,correction_factor = 0.15, i
     optim = torch.optim.SGD(params=train_them, lr=lr)
     loss_func = torch.nn.MSELoss()
     #<  the main protection >
+    if __debug__need_log:
+        _log = []
+        pass
+    else:
+        _log = None
+        pass
+    
     for epoch in range(iter_count):
         with torch.no_grad():
             #<  add some noise >
             if "add noise" and False:
                 matrix+=torch.randn_like(matrix)*lr*0.1
+                if __debug__need_log:
+                    _log.append("noise added !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    pass
                 pass
             #</ add some noise >
             
@@ -403,13 +459,13 @@ def correct_the_matrix(matrix:torch.Tensor, lr = 0.3,correction_factor = 0.15, i
             if "correct the length" and True:
                 # row?
                 _temp_len_sqr = matrix.mul(matrix).mean(dim=1)#mul and then sum, it's a dot.
-                if "check it a lil bit" and False:
-                    _temp_len_sqr__ref = matrix[0].dot(matrix[0]).div(DIM)
+                if "check it a lil bit" and True:
+                    _temp_len_sqr__ref = matrix[0].dot(matrix[0]).div(dim)
                     assert _tensor_equal(_temp_len_sqr[0], _temp_len_sqr__ref)
                     pass
                 #0.25 to 0.5 power
                 mul_me = _temp_len_sqr.pow(correction_factor_tensor)
-                matrix.mul_(mul_me.reshape([-1,1]).expand([-1,matrix.shape[0]]))
+                matrix.mul_(mul_me.reshape([-1,1]).expand([-1,dim]))
                 if "check it after modifying":
                     _temp_len_sqr__after_modifying = matrix.mul(matrix).mean(dim=1)#mul and then sum, it's a dot.
                     abs_log10__of_ori = _temp_len_sqr.log10().abs()
@@ -418,16 +474,19 @@ def correct_the_matrix(matrix:torch.Tensor, lr = 0.3,correction_factor = 0.15, i
                     assert better.to(torch.float32).mean()>0.9
                     pass
                 
+                if __debug__need_log:
+                    _log.append(("Length corrected by row", matrix.detach().clone()))
+                    pass
                 
                 # column?
                 _temp_len_sqr = matrix.mul(matrix).mean(dim=0)#mul and then sum, it's a dot.
-                if "check it a lil bit" and False:
-                    _temp_len_sqr__ref = matrix[:,0].dot(matrix[:,0]).div(DIM)
+                if "check it a lil bit" and True:
+                    _temp_len_sqr__ref = matrix[:,0].dot(matrix[:,0]).div(dim)
                     assert _tensor_equal(_temp_len_sqr[0], _temp_len_sqr__ref)
                     pass
                 #0.25 to 0.5 power
                 mul_me = _temp_len_sqr.pow(correction_factor_tensor)
-                matrix.mul_(mul_me.reshape([1,-1]).expand([matrix.shape[0],-1]))
+                matrix.mul_(mul_me.reshape([1,-1]).expand([dim,-1]))
                 if "check it after modifying":
                     _temp_len_sqr__after_modifying = matrix.mul(matrix).mean(dim=0)#mul and then sum, it's a dot.
                     abs_log10__of_ori = _temp_len_sqr.log10().abs()
@@ -435,27 +494,42 @@ def correct_the_matrix(matrix:torch.Tensor, lr = 0.3,correction_factor = 0.15, i
                     better = abs_log10__of_ori.ge(abs_log10__of_after)
                     assert better.to(torch.float32).mean()>0.9
                     pass
-                pass#for "pre protect"
                 
-                pass
+                if __debug__need_log:
+                    _log.append(("Length corrected by column", matrix.detach().clone()))
+                    pass
+                
+                pass#for "pre protect"
             #</ correct the length>
             
             pass
         assert matrix.requires_grad
         
         #<  correct the direction>
-        mat_after_gramo = gramo(matrix.reshape([1,-1])).reshape([-1])
-        
+        mat_after_gramo:torch.Tensor = gramo(matrix.reshape([1,-1])).reshape([dim,dim])
+        assert is_square_matrix(mat_after_gramo)
         #should_be_eye = mat@(mat.T)
         should_be_eye = mat_after_gramo@(mat_after_gramo.T)
+        
+        if __debug__need_log:
+            _log.append(("should_be_eye", should_be_eye.detach().clone()))
+            pass
+        
         if dont_correct_length_with_error_prapagation:
-            should_be_eye[iota, iota] = 0.#this op also cuts the grad chain.
+            _iota_of_dim = iota(dim)
+            should_be_eye[_iota_of_dim, _iota_of_dim] = 0.#this op also cuts the grad chain.
             loss = loss_func(should_be_eye, torch.zeros_like(matrix))
+            if __debug__need_log:
+                _log.append(("should_be_eye after diagonal elements into 0.", should_be_eye.detach().clone()))
+                pass
+            
             #   ^^^^^   optimizable   ^^^^^
             pass
         else:
-            loss = loss_func(should_be_eye, torch.eye(n=matrix.shape[0], device=the_device))
+            loss = loss_func(should_be_eye, torch.eye(n=dim, device=the_device))
             pass
+        
+        
         
         optim.zero_grad()
         loss.backward(inputs = train_them)
@@ -468,6 +542,13 @@ def correct_the_matrix(matrix:torch.Tensor, lr = 0.3,correction_factor = 0.15, i
             assert matrix.grad is not None
             print(f"                               grad grad : {matrix.grad[0]}")
             pass
+        
+        if __debug__need_log:
+            _log.append(("loss", loss.item()))
+            assert matrix.grad
+            _log.append(("grad", matrix.grad.detach().clone()))
+            pass
+        
         optim.step()
         #</ correct the direction>
         
@@ -490,20 +571,113 @@ def correct_the_matrix(matrix:torch.Tensor, lr = 0.3,correction_factor = 0.15, i
     # print(f"                               grad grad : {mat.grad[0]}")
     #</ print after finish>
     matrix.requires_grad_(does_matrix_require_grad)
-    return matrix
-def ____test____correct_the_matrix():
-    DIM = 100
-    mat = torch.randn(size=[DIM,DIM])
-    for _ in range(100):
-        _result_tuple = check_how_much_the_matmul_keeps_the_length_of_vec(mat)
-        score_before = _result_tuple[0]
-        mat = correct_the_matrix(mat,lr = 0.1, correction_factor = 0.01, iter_count=1)
-        _result_tuple = check_how_much_the_matmul_keeps_the_length_of_vec(mat)
-        score_after = _result_tuple[0]
-        pass
-    return 
-____test____correct_the_matrix()
-if False:
+    return matrix, _log
+if "test" and True:
+    def ____test____correct_the_matrix():
+        import math
+        if False:
+            mat = torch.tensor([[16.,16],[1,1]])
+            mat = correct_the_matrix(mat,lr = 0., correction_factor = 0.25, iter_count=1, 
+                                        dont_correct_length_with_error_prapagation = True)[0]
+            _div_me = math.sqrt(16.)*math.pow(17/2., 0.25)
+            _ref_tensor = torch.empty(size=[2,2])
+            _ref_tensor[0].fill_(16/math.pow(16*16, 0.25)/math.pow((4*4+1*1)/2., 0.25))
+            _ref_tensor[1].fill_(1/math.pow((4*4+1*1)/2., 0.25))
+            assert _tensor_equal(mat, _ref_tensor)
+            
+            # correction_factor = 0.5, this is a bit overshoot.
+            mat = torch.tensor([[16.,16],[1,1]])
+            mat = correct_the_matrix(mat,lr = 0., correction_factor = 0.5, iter_count=1, 
+                                        dont_correct_length_with_error_prapagation = True)[0]
+            assert _tensor_equal(mat, torch.ones(size=[2,2]))
+            for _ in range(11):
+                _rand_1 = (torch.rand(size=[1])+0.3).item()
+                _rand_2 = (torch.rand(size=[1])+0.3).item()
+                mat = torch.tensor([[_rand_1, _rand_1],[_rand_2, _rand_2]])
+                mat = correct_the_matrix(mat,lr = 0., correction_factor = 0.5, iter_count=1, 
+                                            dont_correct_length_with_error_prapagation = True)[0]
+                assert _tensor_equal(mat, torch.ones(size=[2,2]))
+                pass
+            for _ in range(11):
+                mat = torch.empty(size=[5,5])
+                for ii in range(5):
+                    mat[ii].fill_(torch.rand(size=[])+0.3)
+                    pass
+                mat = correct_the_matrix(mat,lr = 0., correction_factor = 0.5, iter_count=1, 
+                                            dont_correct_length_with_error_prapagation = True)[0]
+                assert _tensor_equal(mat, torch.ones(size=[5,5]))
+                pass
+        
+        
+        1w 看看这个角度修正的实际行为。进去读。
+        mat = torch.tensor([[1.,0.1],[1.,-0.1]])
+        _result_tuple_tl = correct_the_matrix(mat,lr = 0.01, correction_factor = 0., iter_count=1, dont_correct_length_with_error_prapagation = True)
+        mat = _result_tuple_tl[0]
+        _add_them_up = mat[0]+mat[1]
+        assert _add_them_up.shape.__len__() == 1
+        assert _add_them_up.shape == torch.Size([2])
+        assert _tensor_equal(_add_them_up[1], [0.])
+        
+        
+        
+        
+        mat = torch.tensor([[1.,0.1],[1.,-0.1]])
+        _result_tuple_tt = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
+        _score_before = _result_tuple_tt[0]
+        _result_tuple_tl = correct_the_matrix(mat,lr = 0.01, correction_factor = 0., iter_count=1, dont_correct_length_with_error_prapagation = True)
+        mat = _result_tuple_tl[0]
+        _result_tuple_tt = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
+        _score_after = _result_tuple_tt[0]
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        DIM = 5
+        mat = torch.randn(size=[DIM,DIM], device='cuda')
+        mat = correct_the_matrix(mat,lr = 1., correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#1.3
+            
+        fds=432
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        DIM = 100
+        mat = torch.randn(size=[DIM,DIM], device='cuda')
+        for _ in range(100):
+            _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
+            score_before = _result_tuple[0]
+            #1w 前几个测试好像是错的。重新跑。
+            #进去读一遍所有过程。
+            #mat = correct_the_matrix(mat,lr = 0.03, correction_factor = 0.01, iter_count=1)
+            #mat = correct_the_matrix(mat,lr = 0., correction_factor = 0.25, iter_count=1)#goes to 1.
+            #mat = correct_the_matrix(mat,lr = 0.01, correction_factor = 0., iter_count=1)#goes to 1.99
+            #mat = correct_the_matrix(mat,lr = 0.1, correction_factor = 0., iter_count=10)#lt 1., unstable
+            #mat = correct_the_matrix(mat,lr = 0.01, correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#0.78
+            #mat = correct_the_matrix(mat,lr = 0.1, correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#0.15
+            mat = correct_the_matrix(mat,lr = 1., correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#1.3
+            _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
+            score_after = _result_tuple[0]
+            pass
+        return 
+    ____test____correct_the_matrix()
     pass
 
 
