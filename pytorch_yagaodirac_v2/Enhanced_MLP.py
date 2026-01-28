@@ -62,7 +62,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 #from pytorch_yagaodirac_v2.Util import debug_avg_log10, data_gen_from_random_teacher, Print_Timing
 sys.path.append(str(Path(__file__).parent))
 
-from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1, ReLU_with_offset
+from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_element_to_1, ReLU_with_offset
 from pytorch_yagaodirac_v2.Util import avg_log10_safe, data_gen_from_random_teacher, Print_Timing
 #they both work.
 
@@ -129,12 +129,12 @@ class FCL_from_yagaodirac(torch.nn.Module):
         self.in_features = in_features
         self.out_features = out_features
         self.weight_o_i = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
-        self.gramo_for_weight = GradientModification_v2_mean_abs_to_1(scaling_factor_for_weight, epsilon,mul_me_when_g_too_small, **factory_kwargs)
+        self.gramo_for_weight = GradientModification__mean_len_of_element_to_1(scaling_factor_for_weight, epsilon,mul_me_when_g_too_small, **factory_kwargs)
         
         if bias:
             self.bias_o = torch.nn.Parameter(torch.empty(out_features, **factory_kwargs))
             if __debug___extra_gramo_for_bias:
-                self.gramo_for_bias = GradientModification_v2_mean_abs_to_1(__debug___scaling_factor_for_bias, epsilon,mul_me_when_g_too_small, **factory_kwargs)
+                self.gramo_for_bias = GradientModification__mean_len_of_element_to_1(__debug___scaling_factor_for_bias, epsilon,mul_me_when_g_too_small, **factory_kwargs)
                 pass
             else:
                 #self.gramo_for_bias = None
@@ -147,7 +147,7 @@ class FCL_from_yagaodirac(torch.nn.Module):
             pass
         self.__reset_parameters()
 
-        self.out_gramo = GradientModification_v2_mean_abs_to_1(scaling_factor_for_grad_path, epsilon,mul_me_when_g_too_small, **factory_kwargs)
+        self.out_gramo = GradientModification__mean_len_of_element_to_1(scaling_factor_for_grad_path, epsilon,mul_me_when_g_too_small, **factory_kwargs)
         pass
     #end of function.
 
@@ -224,33 +224,69 @@ class FCL_from_yagaodirac(torch.nn.Module):
 
 if '''basic avg log10 test.(with set numbers) 可能有错。。''' and __DEBUG_ME__() and True:
     #batch = 1
-    
     "init log10 test"
+    "out dimention"
+    # out_dim=100  : avg  log_w=-1.8278, log_b=-1.8171  std  log_w=0.0077, log_b=0.0472
+    # out_dim=1000 : avg  log_w=-1.8228, log_b=-1.8195  std  log_w=0.0054, log_b=0.0096
+    # out_dim=10000: avg  log_w=-1.8506, log_b=-1.8261  std  log_w=0.0473, log_b=0.0084
+    # out dim doesn't affect the log10.
     in_features = 1000
     for out_features in [100, 1000, 10000]:
-        result_list_w = []
-        result_list_b = []
-        for test_index in range(5):
+        test_time = 5
+        result_list_w = torch.empty(size=[test_time])
+        result_list_b = torch.empty(size=[test_time])
+        for test_index in range(test_time):
             layer = torch.nn.Linear(in_features, out_features, True, device='cuda')
-            _log_w = avg_log10_safe(layer.weight).mean().cpu().item()
-            result_list_w.append(_log_w)
-            _log_b = avg_log10_safe(layer.weight).cpu().item()
-            result_list_b.append(_log_b)
-            print(f"_log_w={_log_w:.4f}, _log_b={_log_b:.4f}")
+            _log_w = avg_log10_safe(layer.weight.reshape([1,-1])).mean().cpu()
+            result_list_w[test_index] = _log_w
+            _log_b = avg_log10_safe(layer.bias.reshape([1,-1])).cpu().item()
+            result_list_b[test_index] = _log_b
+            #print(f"_log_w={_log_w:.4f}, _log_b={_log_b:.4f}")
             # if test_index == 0:
             #     pass
             # else:
             #     pass
             pass#test_index
-        print(f"avg _log_w={torch.tensor(result_list_w).mean().cpu().item():.4f}, _log_b={\
-                            torch.tensor(result_list_b).mean().cpu().item():.4f}")
-        print(f"std _log_w={torch.tensor(result_list_w).std().cpu().item():.4f}, _log_b={\
-                            torch.tensor(result_list_b).std().cpu().item():.4f}")
+        print(f"out_dim={out_features:5}: ", end="")
+        print(f"avg  log_w={result_list_w.mean().cpu().item():.4f}, log_b={\
+                            result_list_b.mean().cpu().item():.4f}  ", end="")
+        print(f"std  log_w={result_list_w.std().cpu().item():.4f}, log_b={\
+                            result_list_b.std().cpu().item():.4f}")
         pass
-        
-        
     
     
+    1w
+    "in dimention"
+    in_features = 1000
+    for out_features in [100, 1000, 10000]:
+        test_time = 5
+        result_list_w = torch.empty(size=[test_time])
+        result_list_b = torch.empty(size=[test_time])
+        for test_index in range(test_time):
+            layer = torch.nn.Linear(in_features, out_features, True, device='cuda')
+            _log_w = avg_log10_safe(layer.weight.reshape([1,-1])).mean().cpu()
+            result_list_w[test_index] = _log_w
+            _log_b = avg_log10_safe(layer.bias.reshape([1,-1])).cpu().item()
+            result_list_b[test_index] = _log_b
+            #print(f"_log_w={_log_w:.4f}, _log_b={_log_b:.4f}")
+            # if test_index == 0:
+            #     pass
+            # else:
+            #     pass
+            pass#test_index
+        print(f"out_dim={out_features:5}: ", end="")
+        print(f"avg  log_w={result_list_w.mean().cpu().item():.4f}, log_b={\
+                            result_list_b.mean().cpu().item():.4f}  ", end="")
+        print(f"std  log_w={result_list_w.std().cpu().item():.4f}, log_b={\
+                            result_list_b.std().cpu().item():.4f}")
+        pass
+    
+    
+    
+    
+    
+
+
     
     
     assert False

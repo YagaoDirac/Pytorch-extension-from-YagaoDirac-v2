@@ -26,7 +26,7 @@ import sys
 sys.path.append(str(Path(__file__).parent.parent))
 from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, avg_log10_safe, \
     get_mask_of_top_element__rough, iota, is_square_matrix, vector_length_norm
-from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1
+from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_element_to_1
 
 import torch
 
@@ -433,7 +433,7 @@ def ____old_code____correct_the_matrix___version_1(matrix:torch.Tensor, lr = 0.3
     #matrix:torch.Tensor = torch.randn(size=[DIM,DIM],requires_grad=True, device = device)
     # DIM = 2
     # mat:torch.Tensor = torch.tensor([[16.,16],[1,1]], requires_grad=True)
-    gramo = GradientModification_v2_mean_abs_to_1().to(the_device)
+    gramo = GradientModification__mean_len_of_element_to_1().to(the_device)
     train_them = [matrix]
 
     optim = torch.optim.SGD(params=train_them, lr=lr)
@@ -693,7 +693,7 @@ if "test" and False:
 
 def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_factor = 0.15, 
                             iter_count = 1, dont_correct_length_with_error_prapagation = False, 
-                            __debug__need_log = False, 
+                            __debug__need_log = False, __debug__ckeck_alone_the_way = False, 
                             the_length_multiplies_at_most:float|torch.Tensor = 100.)->tuple[torch.Tensor, list|None]:
     '''this function removes the grad stored on the param:matrix'''
     assert is_square_matrix(matrix)
@@ -703,11 +703,12 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
     matrix.grad = None
     
     the_device = matrix.device
-    correction_factor_tensor = torch.tensor(-correction_factor, device=the_device)#0.25 to 0.4. safe range is 0 to 0.5
+    the_dtype = matrix.dtype
+    correction_factor_tensor = torch.tensor(-correction_factor, device=the_device, dtype=the_dtype)#0.25 to 0.4. safe range is 0 to 0.5
     
     #dtype adaption
     if isinstance(the_length_multiplies_at_most, float):
-        the_length_multiplies_at_most = torch.tensor(the_length_multiplies_at_most, device=the_device)
+        the_length_multiplies_at_most = torch.tensor(the_length_multiplies_at_most, device=the_device, dtype=the_dtype)
         pass
     
     #init the iota (if needed)
@@ -728,34 +729,39 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
     
     #<  the main protection >
     for _epoch in range(iter_count):
+        
         #<  correct the length for row>
+        if _log is not None:
+            _log.append(("ready to correct by row", matrix.detach().clone()))
+            pass
         with torch.no_grad():
-            _temp_len_sqr = matrix.mul(matrix).mean(dim=1)#mul and then sum, it's a dot.
-            if "check it a lil bit" and True:
-                _temp_len_sqr__ref = matrix[0].dot(matrix[0]).div(dim)
+            _temp_len_sqr = matrix.mul(matrix).sum(dim=1)#mean(dim=1)#mul and then sum, it's a dot.
+            if "check it a lil bit" and __debug__ckeck_alone_the_way:
+                _temp_len_sqr__ref = matrix[0].dot(matrix[0])
                 assert _tensor_equal(_temp_len_sqr[0], _temp_len_sqr__ref)
                 pass
             #0.25 to 0.5 power
-            mul_me___to_get_unit_length = (_temp_len_sqr*dim).pow(-0.5)
+            mul_me___to_get_unit_length = (_temp_len_sqr).pow(-0.5)
             mul_me___to_get_unit_length = mul_me___to_get_unit_length.minimum(the_length_multiplies_at_most)
             matrix_of_unit_vec_as_rows = matrix * (mul_me___to_get_unit_length.reshape([-1,1]).expand([-1,dim]))
             #^^^^^ optimizable ^^^^^
-            if "check it a lil bit" and True:
+            if "check it a lil bit" and __debug__ckeck_alone_the_way:
                 assert _tensor_equal((matrix_of_unit_vec_as_rows*matrix_of_unit_vec_as_rows).sum(dim=1), [1.]*dim)
                 pass
             
             mul_me_to_correct_length = _temp_len_sqr.pow(correction_factor_tensor)
             mul_me_to_correct_length = mul_me_to_correct_length.minimum(the_length_multiplies_at_most)
             matrix.mul_(mul_me_to_correct_length.reshape([-1,1]).expand([-1,dim]))
-            if "check it after modifying":
-                _temp_len_sqr__after_modifying = matrix.mul(matrix).mean(dim=1)#mul and then sum, it's a dot.
-                abs_log10__of_ori = _temp_len_sqr.log10().abs()
-                abs_log10__of_after = _temp_len_sqr__after_modifying.log10().abs()
-                better = abs_log10__of_ori.ge(abs_log10__of_after)
+            if "check it after modifying" and __debug__ckeck_alone_the_way:
+                _temp_len_sqr__after_modifying = matrix.mul(matrix).sum(dim=1)#mul and then sum, it's a dot.
+                abs_log10_of_element__of_ori = (_temp_len_sqr*dim).log10().abs()
+                abs_log10_of_element__of_after = (_temp_len_sqr__after_modifying*dim).log10().abs()
+                better = abs_log10_of_element__of_ori.ge(abs_log10_of_element__of_after)
                 assert better.to(torch.float32).mean()>0.9
                 pass
             
             if _log is not None:
+                _log.append(("mul_me_to_correct_length", mul_me_to_correct_length.detach().clone()))
                 _log.append(("Length corrected by row", matrix.detach().clone()))
                 pass
             pass#no grad
@@ -765,8 +771,8 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
         if "only to fold the lines" and True:
             assert matrix.requires_grad
             #<  neural net infra>
-            gramo = GradientModification_v2_mean_abs_to_1().to(the_device)
-
+            gramo = GradientModification__mean_len_of_element_to_1(protect_accuracy=False, device=the_device, dtype=the_dtype)
+            
             train_them = [matrix]
             optim = torch.optim.SGD(params=train_them, lr=lr)
             loss_func = torch.nn.MSELoss()
@@ -790,7 +796,7 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
                 #   ^^^^^   optimizable   ^^^^^
                 pass
             else:
-                loss = loss_func(should_be_eye, torch.eye(n=dim, device=the_device))
+                loss = loss_func(should_be_eye, torch.eye(n=dim, device=the_device, dtype=the_dtype))
                 pass
             
             optim.zero_grad()
@@ -809,34 +815,38 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
         
         
         #<  correct the length for column>
+        if _log is not None:
+            _log.append(("ready to correct by column", matrix.detach().clone()))
+            pass
         with torch.no_grad():
             # column?
-            _temp_len_sqr = matrix.mul(matrix).mean(dim=0)#mul and then sum, it's a dot.
-            if "check it a lil bit" and True:
-                _temp_len_sqr__ref = matrix[:,0].dot(matrix[:,0]).div(dim)
+            _temp_len_sqr = matrix.mul(matrix).sum(dim=0)#mul and then sum, it's a dot.
+            if "check it a lil bit" and __debug__ckeck_alone_the_way:
+                _temp_len_sqr__ref = matrix[:,0].dot(matrix[:,0])
                 assert _tensor_equal(_temp_len_sqr[0], _temp_len_sqr__ref)
                 pass
             #0.25 to 0.5 power
-            mul_me___to_get_unit_length = (_temp_len_sqr*dim).pow(-0.5)
+            mul_me___to_get_unit_length = (_temp_len_sqr).pow(-0.5)
             mul_me___to_get_unit_length = mul_me___to_get_unit_length.minimum(the_length_multiplies_at_most)
             matrix_of_unit_vec_as_columns = matrix * (mul_me___to_get_unit_length.reshape([1,-1]).expand([dim,-1]))
             #^^^^^ optimizable ^^^^^
-            if "check it a lil bit" and True:
+            if "check it a lil bit" and __debug__ckeck_alone_the_way:
                 assert _tensor_equal((matrix_of_unit_vec_as_columns*matrix_of_unit_vec_as_columns).sum(dim=0), [1.]*dim)
                 pass
             
             mul_me_to_correct_length = _temp_len_sqr.pow(correction_factor_tensor)
             mul_me_to_correct_length = mul_me_to_correct_length.minimum(the_length_multiplies_at_most)
             matrix.mul_(mul_me_to_correct_length.reshape([1,-1]).expand([dim,-1]))
-            if "check it after modifying":
+            if "check it after modifying" and __debug__ckeck_alone_the_way:
                 _temp_len_sqr__after_modifying = matrix.mul(matrix).mean(dim=0)#mul and then sum, it's a dot.
-                abs_log10__of_ori = _temp_len_sqr.log10().abs()
-                abs_log10__of_after = _temp_len_sqr__after_modifying.log10().abs()
-                better = abs_log10__of_ori.ge(abs_log10__of_after)
+                abs_log10_of_element__of_ori = (_temp_len_sqr*dim).log10().abs()
+                abs_log10_of_element__of_after = (_temp_len_sqr__after_modifying*dim).log10().abs()
+                better = abs_log10_of_element__of_ori.ge(abs_log10_of_element__of_after)
                 assert better.to(torch.float32).mean()>0.9
                 pass
             
             if _log is not None:
+                _log.append(("mul_me_to_correct_length", mul_me_to_correct_length.detach().clone()))
                 _log.append(("Length corrected by column", matrix.detach().clone()))
                 pass
             
@@ -848,8 +858,8 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
         if "only to fold the lines" and True:
             assert matrix.requires_grad
             #<  neural net infra>
-            gramo = GradientModification_v2_mean_abs_to_1().to(the_device)
-
+            gramo = GradientModification__mean_len_of_element_to_1(protect_accuracy=False, device=the_device, dtype=the_dtype)
+            
             train_them = [matrix]
             optim = torch.optim.SGD(params=train_them, lr=lr)
             loss_func = torch.nn.MSELoss()
@@ -873,7 +883,7 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
                 #   ^^^^^   optimizable   ^^^^^
                 pass
             else:
-                loss = loss_func(should_be_eye, torch.eye(n=dim, device=the_device))
+                loss = loss_func(should_be_eye, torch.eye(n=dim, device=the_device, dtype=the_dtype))
                 pass
             
             optim.zero_grad()
@@ -898,41 +908,110 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
 if "test" and True:
     def ____test____correct_the_matrix___version_2():
         import math
-        #if False:
-        mat = torch.tensor([[16.,16],[1,1]])
-        _result_tuple_tl = correct_the_matrix___version_2(mat,lr = 0., correction_factor = 0.25, iter_count=1, 
-                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-        mat = _result_tuple_tl[0]
-        _div_me = math.sqrt(16.)*math.pow(17/2., 0.25)
-        _ref_tensor = torch.empty(size=[2,2])
-        _ref_tensor[0].fill_(16/math.pow(16*16, 0.25)/math.pow((4*4+1*1)/2., 0.25))
-        _ref_tensor[1].fill_(1/math.pow((4*4+1*1)/2., 0.25))
-        assert _tensor_equal(mat, _ref_tensor)
-        
-        1w 继续
-        
-        # correction_factor = 0.5, this is a bit overshoot.
-        mat = torch.tensor([[16.,16],[1,1]])
-        mat = correct_the_matrix___version_2(mat,lr = 0., correction_factor = 0.5, iter_count=1, 
-                                    dont_correct_length_with_error_prapagation = True)[0]
-        assert _tensor_equal(mat, torch.ones(size=[2,2]))
-        for _ in range(11):
-            _rand_1 = (torch.rand(size=[1])+0.3).item()
-            _rand_2 = (torch.rand(size=[1])+0.3).item()
-            mat = torch.tensor([[_rand_1, _rand_1],[_rand_2, _rand_2]])
+        if "length correction" and False:
+            _one_over_sqrt_2 = 1/math.sqrt(2.)
+            mat = torch.empty(size=[2,2],dtype=torch.float64)
+            mat.fill_(_one_over_sqrt_2)
+            mat[0] *= 4.
+            assert _tensor_equal(mat, [[4*0.7071,  4*0.7071],
+                                        [ 0.7071,    0.7071]])
+            _result_tuple_tl = correct_the_matrix___version_2(mat,lr = 0., correction_factor = 0.25, iter_count=1, 
+                                dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            mat = _result_tuple_tl[0]
+            
+            # tensor([[1.4142, 1.4142],
+            # [0.7071, 0.7071]])
+            
+            # tensor([0.7953, 0.7953])
+            
+            
+            #_a1 = 1.4142*0.7953
+            assert _float_equal(1.4142*0.7953, 1.1247)
+            #_a2 = 0.7071*0.7953
+            assert _float_equal(0.7071*0.7953, 0.5623)
+            #_a3 = math.pow(2.5, -0.25)
+            assert _float_equal(math.pow(2.5, -0.25), 0.7953)
+            
+            _temp_length_sqr = 2*2*0.5+1*1*0.5
+            assert _temp_length_sqr == 2.5
+            _div_me = math.pow(_temp_length_sqr, 0.25)
+            __some_ref = math.pow(2.5, -0.25)
+            assert _float_equal(1/_div_me, __some_ref)
+            _element_for_row_0 = 0.7071 *2. /_div_me
+            assert _float_equal(_element_for_row_0, 1.1247, epsilon=0.05)
+            _element_for_row_1 = 0.7071     /_div_me
+            assert _float_equal(_element_for_row_1, 0.5623)
+            _ref_tensor = torch.empty(size=[2,2])
+            _ref_tensor[0].fill_(_element_for_row_0)
+            _ref_tensor[1].fill_(_element_for_row_1)
+            assert _tensor_equal(mat, _ref_tensor, epsilon=1e-2)
+            
+            # correction_factor = 0.5, this is a bit overshoot.
+            mat = torch.tensor([[16.,16],[1,1]])
             mat = correct_the_matrix___version_2(mat,lr = 0., correction_factor = 0.5, iter_count=1, 
-                                        dont_correct_length_with_error_prapagation = True)[0]
-            assert _tensor_equal(mat, torch.ones(size=[2,2]))
-            pass
-        for _ in range(11):
-            mat = torch.empty(size=[5,5])
-            for ii in range(5):
-                mat[ii].fill_(torch.rand(size=[])+0.3)
+                                                        dont_correct_length_with_error_prapagation = True)[0]
+            assert _tensor_equal(mat, torch.ones(size=[2,2])*math.sqrt(0.5))
+            
+            for _ in range(11):
+                _rand_1 = (torch.rand(size=[1])+0.3).item()
+                _rand_2 = (torch.rand(size=[1])+0.3).item()
+                mat = torch.tensor([[_rand_1, _rand_1],[_rand_2, _rand_2]])
+                mat = correct_the_matrix___version_2(mat,lr = 0., correction_factor = 0.5, iter_count=1, 
+                                dont_correct_length_with_error_prapagation = True)[0]
+                assert _tensor_equal(mat, torch.ones(size=[2,2])*math.sqrt(1/2.))
                 pass
-            mat = correct_the_matrix___version_2(mat,lr = 0., correction_factor = 0.5, iter_count=1, 
-                                        dont_correct_length_with_error_prapagation = True)[0]
-            assert _tensor_equal(mat, torch.ones(size=[5,5]))
-            pass
+            for _ in range(11):
+                mat = torch.empty(size=[5,5])
+                for ii in range(5):
+                    mat[ii].fill_(torch.rand(size=[])+0.3)
+                    pass
+                mat = correct_the_matrix___version_2(mat,lr = 0., correction_factor = 0.5, iter_count=1, 
+                                dont_correct_length_with_error_prapagation = True)[0]
+                assert _tensor_equal(mat, torch.ones(size=[5,5])*math.sqrt(1/5.))
+                pass
+            
+            
+            pass# length correction part.
+        
+        if "direction correction" and True:
+            # mat = torch.tensor([[1.,0],[0,1]])
+            # _result_tuple_tl = correct_the_matrix___version_2(mat,lr = 0.1, correction_factor = 0., iter_count=1, 
+            #             dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            # mat_after = _result_tuple_tl[0]
+            # assert _tensor_equal(mat_after, mat)
+            
+            mat = torch.tensor([[1.,0],[1,0]])
+            _result_tuple_tl = correct_the_matrix___version_2(mat,lr = 0.1, correction_factor = 0., iter_count=1, 
+                        dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            mat = _result_tuple_tl[0]
+            
+            v1 = torch.tensor([1., 0], requires_grad=True)
+            v2 = torch.tensor([1., 0], requires_grad=True)
+            _temp = torch.zeros(size=[2,2])
+            _temp[0,1] = v1.dot(v2)
+            _temp[1,0] = v2.dot(v1)
+            _temp.backward(inputs=[v1,v2], gradient=_temp.detach().clone()*2.)
+            
+            #               nelement
+            #ori - lr * grad ( only the by-row works in this case.)
+            # 1. - 0.1 * 2. * 2
+            1w 继续。
+            
+            assert _tensor_equal(mat, [[0.8,0],[0.8,0]])
+        
+            mat = torch.tensor([[1.,0],[1,0]])
+            _result_tuple_tl = correct_the_matrix___version_2(mat,lr = 0.1, correction_factor = 0., iter_count=1, 
+                        dont_correct_length_with_error_prapagation = False, __debug__need_log = True)
+            mat = _result_tuple_tl[0]
+            #ori - lr * grad ()
+            # 1. - 0.1 * 2. * 2
+            assert _tensor_equal(mat, [[0.8,0],[0.8,0]])
+        
+        
+        
+        # 后面要测试的。同角度的。0长度。
+        # 确认小角度。
+        
         
         assert False,'''
         1w 看看这个角度修正的实际行为。进去读。
@@ -949,7 +1028,7 @@ if "test" and True:
         
         mat = torch.tensor([[1.,0.1],[1.,-0.1]])
         _result_tuple_tl = correct_the_matrix(mat,lr = 0.01, correction_factor = 0., iter_count=1, 
-                                                dont_correct_length_with_error_prapagation = True)
+                            __debug__ckeck_alone_the_way = True,                    dont_correct_length_with_error_prapagation = True)
         mat = _result_tuple_tl[0]
         _add_them_up = mat[0]+mat[1]
         assert _add_them_up.shape.__len__() == 1
@@ -962,7 +1041,7 @@ if "test" and True:
         mat = torch.tensor([[1.,0.1],[1.,-0.1]])
         _result_tuple_tt = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
         _score_before = _result_tuple_tt[0]
-        _result_tuple_tl = correct_the_matrix(mat,lr = 0.01, correction_factor = 0., iter_count=1, dont_correct_length_with_error_prapagation = True)
+        _result_tuple_tl = correct_the_matrix(mat,lr = 0.01, correction_factor = 0., iter_count=1, __debug__ckeck_alone_the_way = True,dont_correct_length_with_error_prapagation = True)
         mat = _result_tuple_tl[0]
         _result_tuple_tt = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
         _score_after = _result_tuple_tt[0]
@@ -980,7 +1059,7 @@ if "test" and True:
         
         DIM = 5
         mat = torch.randn(size=[DIM,DIM], device='cuda')
-        mat = correct_the_matrix(mat,lr = 1., correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#1.3
+        mat = correct_the_matrix(mat,lr = 1., correction_factor = 0., iter_count=10, __debug__ckeck_alone_the_way = True,dont_correct_length_with_error_prapagation = True)#1.3
             
         fds=432
         
@@ -1010,7 +1089,7 @@ if "test" and True:
             #mat = correct_the_matrix(mat,lr = 0.1, correction_factor = 0., iter_count=10)#lt 1., unstable
             #mat = correct_the_matrix(mat,lr = 0.01, correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#0.78
             #mat = correct_the_matrix(mat,lr = 0.1, correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#0.15
-            mat = correct_the_matrix(mat,lr = 1., correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#1.3
+            mat = correct_the_matrix(mat,lr = 1., correction_factor = 0., iter_count=10, __debug__ckeck_alone_the_way = True,dont_correct_length_with_error_prapagation = True)#1.3
             _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
             score_after = _result_tuple[0]
             pass
@@ -1033,7 +1112,7 @@ def does_back_prapagation_work_for__a_vector_dot_itself():
     lr = 0.1
     DIM = 5
     vec_main = torch.randn(size=[DIM],requires_grad=True)
-    gramo_main = GradientModification_v2_mean_abs_to_1()
+    gramo_main = GradientModification__mean_len_of_element_to_1()
     train_them = [vec_main]
 
     optim = torch.optim.SGD(params=train_them, lr=lr)
@@ -1067,9 +1146,9 @@ def does_back_prapagation_work_for__2__vector_dot_themselves():
     lr = 0.1
     DIM = 5
     vec_1 = torch.randn(size=[DIM],requires_grad=True)
-    gramo_1 = GradientModification_v2_mean_abs_to_1()
+    gramo_1 = GradientModification__mean_len_of_element_to_1()
     vec_2 = torch.randn(size=[DIM],requires_grad=True)
-    gramo2 = GradientModification_v2_mean_abs_to_1()
+    gramo2 = GradientModification__mean_len_of_element_to_1()
     train_them = [vec_1, vec_2]
 
     optim = torch.optim.SGD(params=train_them, lr=lr)
@@ -1108,9 +1187,9 @@ def does_1_self_dot_with_1_cross_dot_work():
     lr = 0.1
     DIM = 5
     vec_main = torch.randn(size=[DIM],requires_grad=True)
-    gramo_main = GradientModification_v2_mean_abs_to_1()
+    gramo_main = GradientModification__mean_len_of_element_to_1()
     vec_1 = torch.randn(size=[DIM],requires_grad=True)
-    gramo_1 = GradientModification_v2_mean_abs_to_1()
+    gramo_1 = GradientModification__mean_len_of_element_to_1()
     train_them = [vec_main, vec_1]
 
     optim = torch.optim.SGD(params=train_them, lr=lr)

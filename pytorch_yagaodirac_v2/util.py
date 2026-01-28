@@ -111,7 +111,7 @@ from typing import TypeAlias,Literal
 DeviceLikeType: TypeAlias = str|torch.device|int
 def iota(how_many:int, dtype_is_int64=False,\
             device: DeviceLikeType|None = None)->torch.Tensor:
-    dtype = torch.uint64
+    dtype = torch.int64
     if not dtype_is_int64 and how_many<(1<<31):
         dtype = torch.int32
         pass
@@ -200,10 +200,26 @@ def vector_length_norm(input:torch.Tensor, epi = 0.000001)->torch.Tensor:
         raise Exception("The shape must be [batch, dim]")
     with torch.no_grad():
         
+        # if not transform:
+        #     length_of_input_b_1 = input.mul(input).sum(dim=1,keepdim=True).sqrt()
+        #     pass
+        # else:
+        #     length_of_input_b_1 = input.mul(input).sum(dim=0,keepdim=True).sqrt()
+        #     pass
         length_of_input_b_1 = input.mul(input).sum(dim=1,keepdim=True).sqrt()
+        
         epi_tensor = torch.tensor([epi], device=length_of_input_b_1.device, dtype=length_of_input_b_1.dtype)
         length_of_input_safe_b = length_of_input_b_1.maximum(epi_tensor)
-        result = input/length_of_input_safe_b#.unsqueeze(dim=1)
+        
+        # if not transform:
+        #     result = input/length_of_input_safe_b.expand([-1,input.shape[1]])
+        #     pass
+        # else:
+        #     result = input/length_of_input_safe_b.expand([input.shape[0],-1])
+        #     pass
+        result = input/length_of_input_safe_b.expand([-1,input.shape[1]])
+        
+        
         return result
     #end of function.
 if '''some basic test.''' and __DEBUG_ME__() and True:
@@ -213,6 +229,16 @@ if '''some basic test.''' and __DEBUG_ME__() and True:
     _vector_len = output.mul(output).sum(dim=1)
     assert _tensor_equal(_vector_len[0], torch.zeros_like(_vector_len[0]), 0.05)
     assert _tensor_equal(_vector_len[1:], torch.ones_like(_vector_len[1:]), 0.05)
+    
+    #transform
+    # input = torch.tensor([[1.,1],[0.1,0.1]])
+    # output = vector_length_norm(input, transform=True)
+    # assert _tensor_equal(output,   [[0.9950, 0.9950],
+    #                                 [0.0995, 0.0995]], epsilon=0.001)
+    input = torch.tensor([[1.,1],[0.1,0.1]])
+    output = vector_length_norm(input.T).T
+    assert _tensor_equal(output,   [[0.9950, 0.9950],
+                                    [0.0995, 0.0995]], epsilon=0.001)
     pass
 
 

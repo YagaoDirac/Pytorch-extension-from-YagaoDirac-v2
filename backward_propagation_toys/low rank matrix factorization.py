@@ -7,7 +7,7 @@ import torch
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 
-from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1 as Gramo
+from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_element_to_1 as Gramo
 
 import test_tool.simple_data_analysis as sda #also my tool.
 
