@@ -973,45 +973,209 @@ if "test" and True:
             
             pass# length correction part.
         
-        if "direction correction" and True:
-            # mat = torch.tensor([[1.,0],[0,1]])
-            # _result_tuple_tl = correct_the_matrix___version_2(mat,lr = 0.1, correction_factor = 0., iter_count=1, 
-            #             dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-            # mat_after = _result_tuple_tl[0]
-            # assert _tensor_equal(mat_after, mat)
+        if "direction correction" and False:
+            "orthogonal"
+            mat = torch.tensor([[1.,0],[0,1]])
+            _result_tuple_tl = correct_the_matrix___version_2(mat.detach().clone(),lr = 0.1, correction_factor = 0., iter_count=1, 
+                        dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            mat_after = _result_tuple_tl[0]
+            assert _tensor_equal(mat_after, mat)
             
+            "slightly optimizes the direction."
+            import random
+            
+            for dont_correct_length_with_error_prapagation in [True, False]:
+                for _ in range(15):
+                    _angle = (torch.rand([]))*0.1+0.05
+                    if random.random()<0.5:
+                        _angle *= -1.
+                        pass
+                    _angle += torch.pi/4.
+                    
+                    mat = torch.tensor([[_angle.sin().item(),_angle.cos().item()],
+                                        [1./math.sqrt(2.), -1./math.sqrt(2.)]])#trigonometric func in rad
+                    _result_tuple_tl = correct_the_matrix___version_2(mat.detach().clone(),lr = 0.01, correction_factor = 0., iter_count=1, 
+                            dont_correct_length_with_error_prapagation = dont_correct_length_with_error_prapagation, __debug__need_log = True)
+                    mat_after = _result_tuple_tl[0]
+                    _ref = torch.tensor([1./math.sqrt(2.), 1./math.sqrt(2.)])
+                    assert _tensor_equal(mat[0].dot(mat[0]), [1.], epsilon=1e-4)
+                    _before_score = mat[0].dot(_ref)
+                    assert _before_score.lt(0.9988)
+                    
+                    _mat_after___index_0 = mat_after[0]
+                    _len_of__mat_after___index_1 = _mat_after___index_0.dot(_mat_after___index_0).sqrt()
+                    assert _tensor_equal(_len_of__mat_after___index_1, [1.], epsilon=0.02)
+                    mat_after___index_0___with_len_of_1 = _mat_after___index_0/_len_of__mat_after___index_1
+                    assert _tensor_equal(mat_after___index_0___with_len_of_1.dot(mat_after___index_0___with_len_of_1), [1.], epsilon=1e-4)
+                    _after_score = mat_after___index_0___with_len_of_1.dot(_ref)
+                    assert _after_score.ge(_before_score)
+                    pass# for _
+                pass# for param
+            
+            
+            "the same direction, the length optimizes."
+            lr = 0.1
             mat = torch.tensor([[1.,0],[1,0]])
-            _result_tuple_tl = correct_the_matrix___version_2(mat,lr = 0.1, correction_factor = 0., iter_count=1, 
+            _result_tuple_tl = correct_the_matrix___version_2(mat,lr = lr, correction_factor = 0., iter_count=1, 
                         dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
             mat = _result_tuple_tl[0]
-            
-            v1 = torch.tensor([1., 0], requires_grad=True)
-            v2 = torch.tensor([1., 0], requires_grad=True)
-            _temp = torch.zeros(size=[2,2])
-            _temp[0,1] = v1.dot(v2)
-            _temp[1,0] = v2.dot(v1)
-            _temp.backward(inputs=[v1,v2], gradient=_temp.detach().clone()*2.)
-            
-            #               nelement
+            assert _tensor_equal(mat, [[1-lr*1.4142, 0],[1-lr*1.4142, 0]])
+            # the equition is: 2*grad*grad == nelement == 4, grad*grad == 2
             #ori - lr * grad ( only the by-row works in this case.)
-            # 1. - 0.1 * 2. * 2
-            1w 继续。
+            # 1. - 0.1 * sqrt(2.)
+            if " a bit ref":
+                _ref_mat__no_gramo = torch.tensor( [[1.,0],
+                                                    [1 ,0]], requires_grad=True)
+                _temp = torch.zeros(size=[2,2])
+                _temp[0,1] = _ref_mat__no_gramo[0].dot(_ref_mat__no_gramo[1])
+                _temp[1,0] = _ref_mat__no_gramo[1].dot(_ref_mat__no_gramo[0])
+                _temp.backward(inputs=[_ref_mat__no_gramo], gradient=_temp.detach().clone()*2.)
+                assert _ref_mat__no_gramo.grad is not None
+                assert _tensor_equal(_ref_mat__no_gramo.grad,  [[4., 0.],
+                                                                [4., 0.]])
+                
+                _ref_mat = torch.tensor(   [[1.,0],
+                                            [1 ,0]], requires_grad=True)
+                gramo = GradientModification__mean_len_of_element_to_1(protect_accuracy=False)
+                _ref_mat__after_gramo = gramo(_ref_mat)
+                _temp = torch.zeros(size=[2,2])
+                _temp[0,1] = _ref_mat__after_gramo[0].dot(_ref_mat__after_gramo[1])
+                _temp[1,0] = _ref_mat__after_gramo[1].dot(_ref_mat__after_gramo[0])
+                _temp.backward(inputs=[_ref_mat], gradient=_temp.detach().clone()*2.)
+                assert _ref_mat.grad is not None
+                assert _tensor_equal(_ref_mat.grad,    [[1.4142, 0.0000],
+                                                        [1.4142, 0.0000]])
+                pass
             
-            assert _tensor_equal(mat, [[0.8,0],[0.8,0]])
-        
+            lr = 0.1
             mat = torch.tensor([[1.,0],[1,0]])
-            _result_tuple_tl = correct_the_matrix___version_2(mat,lr = 0.1, correction_factor = 0., iter_count=1, 
+            _result_tuple_tl = correct_the_matrix___version_2(mat,lr = lr, correction_factor = 0., iter_count=1, 
                         dont_correct_length_with_error_prapagation = False, __debug__need_log = True)
             mat = _result_tuple_tl[0]
-            #ori - lr * grad ()
-            # 1. - 0.1 * 2. * 2
-            assert _tensor_equal(mat, [[0.8,0],[0.8,0]])
+            assert _tensor_equal(mat, [[1-lr*1.4142*2, 0],[1-lr*1.4142*2, 0]])
+            # the equition is: 2*grad*grad == nelement == 4, grad*grad == 2
+            # ori - lr  * grad ( only the by-row works in this case.)
+            #  1. - 0.1 * sqrt(2.), this is 0.85858
+            # when corrected by column, the "should_be_eye" is [[0.85858*0.85858, 0],[0,0]].
+            # the grad should be -0.9027 if without gramo. But with gramo, it's another 1.4142
+            # then, the final result is 1. - 0.1 * sqrt(2.) * 2(2 for twice), around 0.715
+            if "a bit ref":
+                x = torch.tensor(0.7071, requires_grad=True)
+                pred = 2.*x*x
+                Loss = (pred-1)*(pred-1)
+                Loss.backward(inputs=x)
+                assert x.grad is not None
+                assert _tensor_equal(x.grad, [0], epsilon=1e-3)
+                
+                x = torch.tensor(-0.7071, requires_grad=True)
+                pred = 2.*x*x
+                Loss = (pred-1)*(pred-1)
+                Loss.backward(inputs=x)
+                assert x.grad is not None
+                assert _tensor_equal(x.grad, [0], epsilon=1e-3)
+                
+                x = torch.tensor(0., requires_grad=True)
+                pred = 2.*x*x
+                Loss = (pred-1)*(pred-1)
+                Loss.backward(inputs=x)
+                assert x.grad is not None
+                assert _tensor_equal(x.grad, [0], epsilon=1e-3)
+                
+                x = torch.tensor(0.85858, requires_grad=True)
+                pred = 2.*x*x
+                Loss = (pred-1)*(pred-1)
+                Loss.backward(inputs=x)
+                assert x.grad is not None
+                assert _tensor_equal(x.grad, [3.2579], epsilon=1e-3)
+                assert _tensor_equal(2*(2*x*x-1)*4*x, [3.2579], epsilon=1e-3)
+            
+                x = torch.tensor(0.85858, requires_grad=True)
+                gramo = GradientModification__mean_len_of_element_to_1(protect_accuracy=False)
+                x_after_gramo = gramo(x.reshape([1,-1])).reshape([])
+                pred = 2.*x_after_gramo*x_after_gramo
+                Loss = (pred-1)*(pred-1)
+                Loss.backward(inputs=x)
+                assert x.grad is not None
+                assert _tensor_equal(x.grad, [1.])
+                pass
+            
+            pass
         
         
         
-        # 后面要测试的。同角度的。0长度。
-        # 确认小角度。
+        "let's scan param a bit."
+        # 0.005    0   a:0.006   l:0.002        both smaller better
+        # 0.006    0   a:0.006   l:0.004        both smaller better
+        # 0.0065   0   a:0.007   l:0.004        both smaller better
+        # 0.007    0   a:0.008   l:0.004        both smaller better
+        # 0.0075   0   a:0.009   l:0.005        both smaller better
+        # 0.008    0   a:0.011   l:0.005        both smaller better
+        # 0.0085   0   a:0.011   l:0.005        both smaller better
+        # 0.009    0   a:0.009   l:0.006        both smaller better
+        # 0.0095   0   a:0.011   l:0.007        both smaller better
+        # 0.01     0   a:0.014   l:0.007    
         
+        
+        #   dim    lr
+        #   1000   200
+        #   300    1
+        #   100    0.01
+        
+        
+        
+        the_device = 'cpu'
+        
+        dim = 300
+        iota_of_dim = iota(dim, device=the_device)
+        
+        #for iter_count in [1,2,3,4,5,6,7,8,10,20,30]:#4 or 5 is enough.
+        iter_count = 7
+        #for lr in [0.1, 1.,10,15,22,33,47,56,68,100,150,220,330,470,560,680,1000,10000]:#0.02,0.03,0.035, 0.04,0.045,0.05,0.055,0.06]:
+        for lr in [0, 0.0001, 0.001,0.003, 0.004, 0.005, 0.006, 0.0065, 0.007, 0.0075,0.008,0.0085,0.009,0.0095,  0.01,0.1, 0.3, 1.,100,10000]:#0.02,0.03,0.035, 0.04,0.045,0.05,0.055,0.06]:
+            #lr = 0.008#???
+            #lr = 200.# this is the best??????
+        #for correction_factor in [0.3,0.35,0.4,0.45,0.5,0.6,0.65,0.7,0.75,0.8]:#这个真的很抽象。。。。。
+            correction_factor = 0.7#best?
+            #correction_factor = 0.
+        #if True:
+            test_time = 10
+            angle_score_tensor = torch.empty(size=[test_time], device=the_device)
+            length_score_tensor = torch.empty(size=[test_time], device=the_device)
+            measure_score_tensor = torch.empty(size=[test_time], device=the_device)
+            1w 加一个和原来的相似度。
+            
+            for test_count in range(test_time):
+                mat = torch.randn(size=[dim, dim], device=the_device)
+                
+                _result_tuple_tl = correct_the_matrix___version_2(mat,lr = lr, correction_factor = correction_factor, iter_count=iter_count, 
+                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                mat = _result_tuple_tl[0]
+                
+                measure_score = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat,test_time=50)[0]
+                measure_score_tensor[test_count] = measure_score
+                
+                _temp___all_should_near_0 = mat@(mat.T)-torch.eye(n=dim, device=the_device)
+                ___temp = _temp___all_should_near_0[iota_of_dim, iota_of_dim]
+                ___temp = ___temp.abs()
+                ___temp = ___temp.mean()
+                length_score_tensor[test_count] = _temp___all_should_near_0[iota_of_dim, iota_of_dim].abs().mean()
+                
+                _temp___all_should_near_0[iota_of_dim, iota_of_dim] = 0.
+                angle_score = _temp___all_should_near_0.abs().mean()
+                angle_score_tensor[test_count] = angle_score*dim/(dim-1)
+                pass
+            print(f"{iter_count:2}   {lr:.4f}   {correction_factor:.2f}   m:{measure_score_tensor.mean().item():.5f} a:{angle_score_tensor.mean().item():.5f}   l:{length_score_tensor.mean().item():.6f}        both smaller better")
+            pass#for param
+        fds=432
+        
+        
+        
+        
+        
+        
+        # 后面要测试的。0长度。
+        # 确认小角度，且高维度。
+        # 是否和某些训练冲突？？
         
         assert False,'''
         1w 看看这个角度修正的实际行为。进去读。
