@@ -18,7 +18,7 @@ from pytorch_yagaodirac_v2.Util import bitwise_acc, data_gen_for_directly_stacki
 from pytorch_yagaodirac_v2.Util import data_gen_for_directly_stacking_test_same_dim_no_duplicated
 from pytorch_yagaodirac_v2.Util import debug_strong_grad_ratio, make_grad_noisy
 from pytorch_yagaodirac_v2.Util import Print_Timing
-from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1
+from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_element_to_1
 from pytorch_yagaodirac_v2.training_ended_sound import play_noise
 #from Binarize import Binarize
 
@@ -352,8 +352,8 @@ class DigitalMapper_v2_5(torch.nn.Module):
         self.epi_for_float_eq = torch.nn.Parameter(torch.tensor([0.00001]), requires_grad=False)
         self.small_number = torch.nn.Parameter(torch.tensor([0.00003]), requires_grad=False)
         
-        self.gramo_for_raw_weight = GradientModification_v2_mean_abs_to_1()
-        self.out_gramo = GradientModification_v2_mean_abs_to_1()
+        self.gramo_for_raw_weight = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
+        self.out_gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=?)
         
         pass
 

@@ -129,12 +129,12 @@ class FCL_from_yagaodirac(torch.nn.Module):
         self.in_features = in_features
         self.out_features = out_features
         self.weight_o_i = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
-        self.gramo_for_weight = GradientModification__mean_len_of_element_to_1(scaling_factor_for_weight, epsilon,mul_me_when_g_too_small, **factory_kwargs)
+        self.gramo_for_weight = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False 1w, scaling_factor_for_weight, epsilon,mul_me_when_g_too_small, **factory_kwargs)
         
         if bias:
             self.bias_o = torch.nn.Parameter(torch.empty(out_features, **factory_kwargs))
             if __debug___extra_gramo_for_bias:
-                self.gramo_for_bias = GradientModification__mean_len_of_element_to_1(__debug___scaling_factor_for_bias, epsilon,mul_me_when_g_too_small, **factory_kwargs)
+                self.gramo_for_bias = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False 1w,__debug___scaling_factor_for_bias, epsilon,mul_me_when_g_too_small, **factory_kwargs)
                 pass
             else:
                 #self.gramo_for_bias = None
@@ -147,7 +147,7 @@ class FCL_from_yagaodirac(torch.nn.Module):
             pass
         self.__reset_parameters()
 
-        self.out_gramo = GradientModification__mean_len_of_element_to_1(scaling_factor_for_grad_path, epsilon,mul_me_when_g_too_small, **factory_kwargs)
+        self.out_gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False 1w or true?,scaling_factor_for_grad_path, epsilon,mul_me_when_g_too_small, **factory_kwargs)
         pass
     #end of function.
 

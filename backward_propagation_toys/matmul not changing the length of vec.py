@@ -433,7 +433,7 @@ def ____old_code____correct_the_matrix___version_1(matrix:torch.Tensor, lr = 0.3
     #matrix:torch.Tensor = torch.randn(size=[DIM,DIM],requires_grad=True, device = device)
     # DIM = 2
     # mat:torch.Tensor = torch.tensor([[16.,16],[1,1]], requires_grad=True)
-    gramo = GradientModification__mean_len_of_element_to_1().to(the_device)
+    gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False).to(the_device) 1w the gramo api updated
     train_them = [matrix]
 
     optim = torch.optim.SGD(params=train_them, lr=lr)
@@ -771,7 +771,8 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
         if "only to fold the lines" and True:
             assert matrix.requires_grad
             #<  neural net infra>
-            gramo = GradientModification__mean_len_of_element_to_1(protect_accuracy=False, device=the_device, dtype=the_dtype)
+            gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False, device=the_device, dtype=the_dtype)
+            1w sum?
             
             train_them = [matrix]
             optim = torch.optim.SGD(params=train_them, lr=lr)
@@ -858,7 +859,8 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
         if "only to fold the lines" and True:
             assert matrix.requires_grad
             #<  neural net infra>
-            gramo = GradientModification__mean_len_of_element_to_1(protect_accuracy=False, device=the_device, dtype=the_dtype)
+            gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False, device=the_device, dtype=the_dtype)
+            1w sum?
             
             train_them = [matrix]
             optim = torch.optim.SGD(params=train_them, lr=lr)
@@ -1036,7 +1038,7 @@ if "test" and True:
                 
                 _ref_mat = torch.tensor(   [[1.,0],
                                             [1 ,0]], requires_grad=True)
-                gramo = GradientModification__mean_len_of_element_to_1(protect_accuracy=False)
+                gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
                 _ref_mat__after_gramo = gramo(_ref_mat)
                 _temp = torch.zeros(size=[2,2])
                 _temp[0,1] = _ref_mat__after_gramo[0].dot(_ref_mat__after_gramo[1])
@@ -1090,7 +1092,7 @@ if "test" and True:
                 assert _tensor_equal(2*(2*x*x-1)*4*x, [3.2579], epsilon=1e-3)
             
                 x = torch.tensor(0.85858, requires_grad=True)
-                gramo = GradientModification__mean_len_of_element_to_1(protect_accuracy=False)
+                gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
                 x_after_gramo = gramo(x.reshape([1,-1])).reshape([])
                 pred = 2.*x_after_gramo*x_after_gramo
                 Loss = (pred-1)*(pred-1)
@@ -1117,7 +1119,7 @@ if "test" and True:
         
         
         #   dim    lr
-        #   1000   200
+           1000   200  检查一下  1w 
         #   300    1
         #   100    0.01
         
@@ -1276,7 +1278,7 @@ def does_back_prapagation_work_for__a_vector_dot_itself():
     lr = 0.1
     DIM = 5
     vec_main = torch.randn(size=[DIM],requires_grad=True)
-    gramo_main = GradientModification__mean_len_of_element_to_1()
+    gramo_main = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
     train_them = [vec_main]
 
     optim = torch.optim.SGD(params=train_them, lr=lr)
@@ -1310,9 +1312,9 @@ def does_back_prapagation_work_for__2__vector_dot_themselves():
     lr = 0.1
     DIM = 5
     vec_1 = torch.randn(size=[DIM],requires_grad=True)
-    gramo_1 = GradientModification__mean_len_of_element_to_1()
+    gramo_1 = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
     vec_2 = torch.randn(size=[DIM],requires_grad=True)
-    gramo2 = GradientModification__mean_len_of_element_to_1()
+    gramo2 = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
     train_them = [vec_1, vec_2]
 
     optim = torch.optim.SGD(params=train_them, lr=lr)
@@ -1351,9 +1353,9 @@ def does_1_self_dot_with_1_cross_dot_work():
     lr = 0.1
     DIM = 5
     vec_main = torch.randn(size=[DIM],requires_grad=True)
-    gramo_main = GradientModification__mean_len_of_element_to_1()
+    gramo_main = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
     vec_1 = torch.randn(size=[DIM],requires_grad=True)
-    gramo_1 = GradientModification__mean_len_of_element_to_1()
+    gramo_1 = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
     train_them = [vec_main, vec_1]
 
     optim = torch.optim.SGD(params=train_them, lr=lr)

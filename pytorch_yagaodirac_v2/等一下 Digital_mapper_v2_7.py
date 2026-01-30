@@ -12,7 +12,7 @@ from pytorch_yagaodirac_v2.Util import bitwise_acc, data_gen_for_directly_stacki
 from pytorch_yagaodirac_v2.Util import data_gen_for_directly_stacking_test_same_dim_no_duplicated
 from pytorch_yagaodirac_v2.Util import debug_strong_grad_ratio, make_grad_noisy
 from pytorch_yagaodirac_v2.Util import Print_Timing,softmax_dim_1_from_yagaodirac
-from pytorch_yagaodirac_v2.ParamMo import GradientModification_v2_mean_abs_to_1
+from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_element_to_1
 from pytorch_yagaodirac_v2.training_ended_sound import play_noise
 from pytorch_yagaodirac_v2.torch_vec import torch_vec
 #from Binarize import Binarize
@@ -318,8 +318,8 @@ class DigitalMapper_v2_6(torch.nn.Module):
     
             #这两个暂时没有用上。
         
-        self.gramo_for_raw_weight = GradientModification_v2_mean_abs_to_1()
-        self.out_gramo = GradientModification_v2_mean_abs_to_1()
+        self.gramo_for_raw_weight = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
+        self.out_gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=?)
         
         #self.raw_weight_max = torch.nn.Parameter(torch.tensor([1.]), requires_grad=False)#not used now???
         self.raw_weight_min = torch.nn.Parameter(torch.tensor([raw_weight_min]), requires_grad=False)#to test. This is a hyperparam. Test it.
