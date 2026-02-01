@@ -117,7 +117,6 @@ def iota(how_many:int, dtype_is_int64=False,\
         pass
     return torch.linspace(start=0,end=how_many-1,steps=how_many ,dtype=dtype, device=device)
 
-
 if "torch linspace dtype test" and __DEBUG_ME__() and True:
     for device in ["cpu", "cuda"]:
         for dtype in [torch.int8,torch.int16,torch.int32,torch.int64,torch.int,torch.uint8,torch.long]:
@@ -241,6 +240,40 @@ if '''some basic test.''' and __DEBUG_ME__() and True:
                                     [0.0995, 0.0995]], epsilon=0.001)
     pass
 
+def get_vector_length(input:torch.Tensor, result_dtype = torch.float64)->torch.Tensor:
+    _temp = input*input
+    #if input.shape.__len__() == 2:
+    _temp = _temp.sum(dim=-1, dtype=result_dtype)
+    _temp.sqrt_()
+    return _temp
+if "test get_vector_length" and __DEBUG_ME__() and True:
+    def ____test____get_vector_length():
+        input = torch.tensor([1.,1])
+        output = get_vector_length(input)
+        assert output.shape == torch.Size([])
+        assert output.dtype == torch.float64
+        assert _tensor_equal(output, [1.4142])
+        
+        input = torch.tensor([[1.,1],[1,2]])
+        output = get_vector_length(input)
+        assert output.shape == torch.Size([2])
+        assert _tensor_equal(output, [1.4142,2.2361])
+        
+        input = torch.tensor([[[1.,1],[1,2]],[[2,1],[2,2]],[[3,1],[3,2]]])
+        output = get_vector_length(input)
+        assert output.shape == torch.Size([3,2])
+        assert _tensor_equal(output, [[1.4142,2.2361],[2.2361, 2.8284],[3.1623,3.6056]])
+        
+        "dtype"
+        input = torch.tensor([1.,1])
+        output = get_vector_length(input, result_dtype=torch.float16)
+        assert output.dtype == torch.float16
+        
+        return 
+    ____test____get_vector_length()
+    pass
+    
+    
 
 
 
@@ -2191,18 +2224,14 @@ def __line__str():
 #print('This is line', __line__())
 
 
-
-def debug_Rank_1_parameter_to_List_float(input:torch.nn.parameter.Parameter)->List[float]:
-    result : List[float] = []
-    for i in range(input.shape[0]):
-        result.append(input[i].item())
-        pass
-    return result
-# p = torch.nn.Parameter(torch.tensor([1., 2., 3.]))
-# l = debug_Rank_1_parameter_to_List_float(p)
-# print(p)
-# print(l)
-# fds=432
+if "oops. Use tolist() instead. Tensor has it." and False:
+    def debug_Rank_1_parameter_to_List_float(input:torch.nn.parameter.Parameter)->List[float]:
+        result : List[float] = []
+        for i in range(input.shape[0]):
+            result.append(input[i].item())
+            pass
+        return result
+    pass
 
 
 

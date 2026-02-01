@@ -230,6 +230,11 @@ Maybe the Mirror withOUT gramo is the best.. I expect the last one to be the bes
 from typing import Any, Optional, Literal
 #import math
 import torch
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+from pytorch_yagaodirac_v2.Util import get_vector_length
+
 
 def __DEBUG_ME__()->bool:
     return __name__ == "__main__"
@@ -1483,17 +1488,17 @@ class GradientModificationFunction__mean_len_of_element_to_1(torch.autograd.Func
             if mode__mean_true_sum_false:#"mean"
                 avg_length_per_element__or_depends_on_mode__b_1 = avg_length_per_element__or_depends_on_mode__b_1.mean(
                                                                                                 dim=1,keepdim = True)
-                real_epsilon = epsilon
-                real_mul_me__when_g_too_small__s = mul_me__when_g_too_small__s
+                #real_epsilon = epsilon
+                #real_mul_me__when_g_too_small__s = mul_me__when_g_too_small__s
                 pass
             else:#"sum"
                 avg_length_per_element__or_depends_on_mode__b_1 = avg_length_per_element__or_depends_on_mode__b_1.sum(
                                                                                                 dim=1,keepdim = True)
-                ____temp_sqrt_of_dim = dim__s.detach().clone()
-                ____temp_sqrt_of_dim = ____temp_sqrt_of_dim.to(torch.float64)
-                ____temp_sqrt_of_dim.sqrt_()
-                real_epsilon = epsilon                                        *____temp_sqrt_of_dim
-                real_mul_me__when_g_too_small__s = mul_me__when_g_too_small__s/____temp_sqrt_of_dim
+                # ____temp_sqrt_of_dim = dim__s.detach().clone()
+                # ____temp_sqrt_of_dim = ____temp_sqrt_of_dim.to(torch.float64)
+                # ____temp_sqrt_of_dim.sqrt_()
+                #real_epsilon = epsilon#                                        *____temp_sqrt_of_dim
+                #real_mul_me__when_g_too_small__s = mul_me__when_g_too_small__s#/____temp_sqrt_of_dim
                 pass
             avg_length_per_element__or_depends_on_mode__b_1.sqrt_()
             #</ avg_length_per_element__b_1>
@@ -1515,13 +1520,13 @@ class GradientModificationFunction__mean_len_of_element_to_1(torch.autograd.Func
             #                             flag__not_too_big__b_1.logical_not()*real_mul_me__when_g_too_small__s#this is input, 1e-3 by default
             
             # too_small_b_1:torch.Tensor
-            flag__length_too_small__b_1 = avg_length_per_element__or_depends_on_mode__b_1.le(real_epsilon)#*dim__s)
+            flag__length_too_small__b_1 = avg_length_per_element__or_depends_on_mode__b_1.lt(epsilon)#*dim__s)
             
             #flag__needs_default_value__b_1 = flag__too_big__b_1.logical_and(flag__too_small__b_1)
             
             
             mul_me__b_1=flag__length_too_small__b_1.logical_not() * mul_me__when_g_is_ok__raw__b_1 + \
-                        flag__length_too_small__b_1               * real_mul_me__when_g_too_small__s#this is input, 1e-3 by default
+                        flag__length_too_small__b_1               * mul_me__when_g_too_small__s#this is input, 1e-3 by default
             mul_me__b_1 = mul_me__b_1.to(g_in__b_o.dtype)
             #</ mul_me>
             
@@ -1544,9 +1549,9 @@ class GradientModificationFunction__mean_len_of_element_to_1(torch.autograd.Func
 if '''dim adaptive gramo''' and __DEBUG_ME__() and True:
     def dim_adaptive_gramo___GradientModificationFunction__mean_len_of_element_to_1():
         import math
-        scaling_factor = torch.tensor([1.], dtype=torch.float64)
-        epsilon=torch.tensor([1e-3], dtype=torch.float32)
-        mul_me_when_g_too_small = torch.tensor([10], dtype=torch.float16)
+        scaling_factor = torch.tensor([1.])
+        epsilon=torch.tensor([1e-3])
+        mul_me_when_g_too_small = torch.tensor([10.])#the new default is 100. this is only for test.
         protect_accuracy = torch.tensor(False)
         mode__mean = torch.tensor(True)
         
@@ -1563,7 +1568,7 @@ if '''dim adaptive gramo''' and __DEBUG_ME__() and True:
                                                         [1.0014e-04, 2.0027e-04]], dtype=torch.float16), epsilon=1e-7)
         
         
-        a = torch.zeros([5,1], requires_grad=True, dtype=torch.float16)
+        a = torch.zeros([5,1], requires_grad=True)
         b = GradientModificationFunction__mean_len_of_element_to_1.apply(a,scaling_factor,epsilon,
                                         mul_me_when_g_too_small,protect_accuracy,mode__mean)
         g_in = torch.tensor([[0.1],[0.01],[0.001],[1e-4],[1e-5]], dtype=torch.float16)
@@ -1571,53 +1576,66 @@ if '''dim adaptive gramo''' and __DEBUG_ME__() and True:
         assert a.grad is not None
         assert _tensor_equal(a.grad[:3], torch.tensor( [[1.],
                                                         [1.],
-                                                        [0.9931]], dtype=torch.float16), epsilon=1e-3)
-        assert _tensor_equal(a.grad[3:], torch.tensor( [[1.0004e-03],
-                                                        [1.0014e-04]], dtype=torch.float16), epsilon=1e-7)
+                                                        [1.]], dtype=torch.float16), epsilon=1e-3)
+        assert _tensor_equal(a.grad[3:], torch.tensor( [[1.0002e-03],
+                                                        [1.0014e-04]], dtype=torch.float16), epsilon=1e-6)
         
         
         
-        #dim mean
-        a = torch.zeros([3,10000], requires_grad=True, dtype=torch.float16)
-        b = GradientModificationFunction__mean_len_of_element_to_1.apply(a,scaling_factor,epsilon,
-                                        mul_me_when_g_too_small,protect_accuracy,mode__mean)
-        g_in = torch.ones_like(a)
-        g_in[0] *= 0.01
-        g_in[1] *= 0.001
-        g_in[2] *= 0.0001
-        torch.autograd.backward(b, g_in,inputs= a)
-        assert a.grad is not None
-        _first_row_of_grad = a.grad[:,1]
-        _ref_grad = torch.tensor([1.,0.9932,0.001])
-        assert _tensor_equal(_first_row_of_grad, _ref_grad, epsilon=1e-4)
         
-        #dim sum
+        "mean mode has nothing to do with dimention."
+        scaling_factor = torch.tensor([1.])
+        epsilon=torch.tensor([1e-3])
+        mul_me_when_g_too_small = torch.tensor([10.])#the new default is 100. this is only for test.
+        protect_accuracy = torch.tensor(False)
+        mode__mean = torch.tensor(True)
+        
+        for dim in [2,5,11,5555]:#1 doesn't work.
+            a = torch.empty([3,dim], requires_grad=True)
+            b = GradientModificationFunction__mean_len_of_element_to_1.apply(a,scaling_factor,epsilon,
+                                            mul_me_when_g_too_small,protect_accuracy,mode__mean)
+            g_in = torch.tensor([[0.0011],[0.001],[0.0009]]).repeat([1,dim])
+            torch.autograd.backward(b, g_in,inputs= a)
+            assert a.grad is not None
+            _first_row_of_grad = a.grad[:,1]
+            _ref_grad = torch.tensor([1.,1.,0.0009*10])
+            assert _tensor_equal(_first_row_of_grad, _ref_grad, epsilon=1e-4)
+            pass
+        
+        "sum mode is the per-vector mode."
         mode__sum = torch.tensor(False)
-        dim = 100
-        a = torch.zeros([3,dim], requires_grad=True, dtype=torch.float16)
-        b = GradientModificationFunction__mean_len_of_element_to_1.apply(a,scaling_factor,epsilon,
-                                        mul_me_when_g_too_small,protect_accuracy,mode__sum)
-        g_in = torch.tensor([[0.01],[0.001],[0.0001]]).repeat([1,dim])
-        
-        torch.autograd.backward(b, g_in,inputs= a)
-        assert a.grad is not None
-        _first_row_of_grad = a.grad[:,1]
-        _ref_grad = torch.tensor([1.,0.9942,0.001])/math.sqrt(dim)
-        assert _tensor_equal(_first_row_of_grad, _ref_grad, epsilon=1e-4)
-        
-        dim = 10000
-        a = torch.zeros([3,dim], requires_grad=True, dtype=torch.float16)
-        b = GradientModificationFunction__mean_len_of_element_to_1.apply(a,scaling_factor,epsilon,
-                                        mul_me_when_g_too_small,protect_accuracy,mode__sum)
-        g_in = torch.ones_like(a)
-        g_in[0] *= 0.01
-        g_in[1] *= 0.001
-        g_in[2] *= 0.0001
-        torch.autograd.backward(b, g_in,inputs= a)
-        assert a.grad is not None
-        _first_row_of_grad = a.grad[:,1]
-        _ref_grad = torch.tensor([1.,0.9942,0.001])/math.sqrt(dim)
-        assert _tensor_equal(_first_row_of_grad, _ref_grad, epsilon=1e-4)
+        for dim in [2,5,11,5555]:#1 doesn't work.
+            a = torch.empty([3,dim], requires_grad=True, dtype=torch.float32)
+            b = GradientModificationFunction__mean_len_of_element_to_1.apply(a,scaling_factor,epsilon,
+                                            mul_me_when_g_too_small,protect_accuracy,mode__sum)
+            g_in = (torch.tensor([[0.0011],[0.0010],[0.0009]])/math.sqrt(dim)).repeat([1,dim])
+            
+            torch.autograd.backward(b, g_in,inputs= a)
+            assert a.grad is not None 
+            _first_row_of_grad = a.grad[:,1]
+            _ref_grad = torch.tensor([1., 1, -42424242])/math.sqrt(dim)
+            _ref_grad[2] = 0.0009/math.sqrt(dim) * 10
+            assert _ref_grad[0] == _ref_grad[1]
+            assert _ref_grad[0] > _ref_grad[2]#discontinuous.
+            assert _tensor_equal(_first_row_of_grad, _ref_grad, epsilon=1e-4)
+            pass
+            
+            
+        "when the g_in maybe too small."
+        import math, random
+        for _ in range(116):
+            dim = int(math.pow(10, random.random()*3.+0.9))
+            assert dim >=7 and dim <10000
+            a = torch.empty(size=[1,dim], requires_grad=True)
+            b = GradientModificationFunction__mean_len_of_element_to_1.apply(a,scaling_factor,epsilon,
+                                            mul_me_when_g_too_small,protect_accuracy,mode__sum)
+            g_in = torch.randn_like(b)*0.0001
+            torch.autograd.backward(b, g_in,inputs= a)
+            assert a.grad is not None
+            grad_length = (a.grad*a.grad).sum(dim=1).sqrt()
+            assert grad_length.shape == torch.Size([1])
+            assert _tensor_equal(grad_length, [1.]) or grad_length.lt(0.011)
+            pass
         
         return
     dim_adaptive_gramo___GradientModificationFunction__mean_len_of_element_to_1()
@@ -1667,8 +1685,8 @@ if '''device adaption''' and __DEBUG_ME__() and True:
     device_adaption___GradientModificationFunction__mean_len_of_element_to_1()
     pass
 
-if "the new acc protection." and __DEBUG_ME__() and True:
-    def the_new_acc_protection___GradientModificationFunction__mean_len_of_element_to_1():
+if "acc protection feature." and __DEBUG_ME__() and True:
+    def acc_protection_feature___GradientModificationFunction__mean_len_of_element_to_1():
         scaling_factor = torch.tensor([1.], dtype=torch.float64)
         epsilon=torch.tensor([1e-3], dtype=torch.float32)
         mul_me_when_g_too_small = torch.tensor([10], dtype=torch.float16)
@@ -1695,14 +1713,72 @@ if "the new acc protection." and __DEBUG_ME__() and True:
                                                                     [  8.,   8.]], dtype=torch.float16))
         
         return 
-    the_new_acc_protection___GradientModificationFunction__mean_len_of_element_to_1()
+    acc_protection_feature___GradientModificationFunction__mean_len_of_element_to_1()
+    pass
+
+if "protection behavior" and __DEBUG_ME__() and True:
+    def protection_behavior____GradientModificationFunction__mean_len_of_element_to_1():
+        #0.1, 10
+        scaling_factor = torch.tensor([1.])
+        epsilon=torch.tensor([0.1])
+        mul_me_when_g_too_small = torch.tensor([10.])
+        protect_accuracy = torch.tensor(False)
+        mode__mean = torch.tensor(True)
+        
+        a = torch.empty(size=[5,1], requires_grad=True)
+        b = GradientModificationFunction__mean_len_of_element_to_1.apply(a,scaling_factor,epsilon,
+                                        mul_me_when_g_too_small,protect_accuracy,mode__mean)
+        g_in = torch.tensor([[0.12],[0.11],[0.1],[0.09],[0.08]])
+        torch.autograd.backward(b, g_in,inputs= a)
+        assert a.grad is not None
+        assert _tensor_equal(a.grad, torch.tensor([[1.],[1.],[1.],[0.9],[0.8]]))
+        
+        #0.1, 2
+        scaling_factor = torch.tensor([1.])
+        epsilon=torch.tensor([0.1])
+        mul_me_when_g_too_small = torch.tensor([2.])
+        protect_accuracy = torch.tensor(False)
+        mode__mean = torch.tensor(True)
+        
+        a = torch.empty(size=[5,1], requires_grad=True)
+        b = GradientModificationFunction__mean_len_of_element_to_1.apply(a,scaling_factor,epsilon,
+                                        mul_me_when_g_too_small,protect_accuracy,mode__mean)
+        g_in = torch.tensor([[0.12],[0.11],[0.1],[0.09],[0.08]])
+        torch.autograd.backward(b, g_in,inputs= a)
+        assert a.grad is not None
+        assert _tensor_equal(a.grad, torch.tensor([[1.],[1.],[1.],[0.18],[0.16]]))
+        #                                      discontinuous  ^^^^ ^^^^^
+        
+        
+        #0.1, 2
+        scaling_factor = torch.tensor([1.])
+        epsilon=torch.tensor([0.1*3])
+        mul_me_when_g_too_small = torch.tensor([2.])
+        protect_accuracy = torch.tensor(False)
+        mode__sum = torch.tensor(False)
+        
+        dim = 3*3
+        a = torch.empty(size=[5,1], requires_grad=True).repeat([1,dim])
+        b = GradientModificationFunction__mean_len_of_element_to_1.apply(a,scaling_factor,epsilon,
+                                        mul_me_when_g_too_small,protect_accuracy,mode__sum)
+        g_in = torch.tensor([[0.12],[0.11],[0.1],[0.09],[0.08]]).repeat([1,dim])
+        torch.autograd.backward(b, g_in,inputs= a)
+        assert a.grad is not None
+        grad_length = (a.grad*a.grad).sum(dim=1).sqrt()
+        assert _tensor_equal(grad_length, torch.tensor([1., 1, 1, 0.54,0.48]))
+        #                                     discontinuous    ^  ^^^^
+        #ref
+        ori_grad_length = (g_in*g_in).sum(dim=1).sqrt()
+        assert _tensor_equal(ori_grad_length, [0.12*3,0.11*3,0.1*3,0.09*3,0.08*3])
+        
+        return 
+    protection_behavior____GradientModificationFunction__mean_len_of_element_to_1()
     pass
 
 
 
 
-
-class GradientModification__mean_len_of_element_to_1(torch.nn.Module):
+class GradientModification__mean_len_of_something_to_1(torch.nn.Module):
     r"""Oh, yeah, first thing first. I call this layer the gramo. This tool is the beginning of my ai career.
     
     This autograd function scale grad to have a sqrt([mode](square)) to specified number(1 by default).
@@ -1727,19 +1803,21 @@ class GradientModification__mean_len_of_element_to_1(torch.nn.Module):
     vector are all of length 1.), scaling_factor = dim.
     """
     protect_binary_accuracy:torch.nn.Parameter
-    mode:Literal["mean", "sum"]
+    per_what:Literal["element", "vector"]
     
     scaling_factor:torch.nn.Parameter
     epsilon:torch.nn.Parameter 
     mul_me_when_g_too_small:torch.nn.Parameter
-    def __init__(self, protect_binary_accuracy:bool, mode:Literal["mean", "sum"] = "mean",\
-                    scaling_factor:float = 1., epsilon=1e-5, \
-                    mul_me_when_g_too_small = 1e3, 
-                            device=None,dtype=None,*args, **kwargs):
+    def __init__(self, protect_binary_accuracy:bool, per_what:Literal["element", "vector"] = "element",\
+                    scaling_factor:float = 1., 
+                    epsilon=1e-3, #it was 1e-5
+                    mul_me_when_g_too_small = 1e2, #it was 1e3
+                        device=None,dtype=None,*args, **kwargs):
         super().__init__(*args, **kwargs)
         assert isinstance(protect_binary_accuracy, bool), "the api is updated."
         self.protect_binary_accuracy = torch.nn.Parameter(torch.tensor(protect_binary_accuracy, device=device, dtype=torch.bool), requires_grad=False)
-        self.mode = mode
+        assert per_what in ["element", "vector"]
+        self.per_what = per_what
         
         dtype = dtype_upgrade(dtype)
         self.scaling_factor          = torch.nn.Parameter(torch.tensor(scaling_factor,          device=device, dtype=dtype), requires_grad=False)
@@ -1750,20 +1828,22 @@ class GradientModification__mean_len_of_element_to_1(torch.nn.Module):
         # If you know how pytorch works, you can comment this checking out.
         assert_param_shape__batch_dim(x)
         
-        _mode__mean_true_sum_false  = torch.tensor(self.mode == "mean", device=x.device)
+        _mode__mean_true_sum_false  = torch.tensor(self.per_what == "element", device=x.device)
         
         #forward(ctx, x:torch.Tensor, scaling_factor:torch.Tensor, epsilon=torch.Tensor, \
         #div_me_when_g_too_small:torch.Tensor)->torch.Tensor:
         return GradientModificationFunction__mean_len_of_element_to_1.apply(x, self.scaling_factor,\
                 self.epsilon, self.mul_me_when_g_too_small, self.protect_binary_accuracy, _mode__mean_true_sum_false)
+    
     def set_scaling_factor(self, scaling_factor:float)->None:
         the_device = self.scaling_factor.device
         the_dtype = self.scaling_factor.dtype
         self.scaling_factor.data = torch.tensor(scaling_factor, device=the_device, dtype=the_dtype, requires_grad=False)
         pass
-    def scale_scaling_factor(self, by:float)->None:
-        self.set_scaling_factor((self.scaling_factor*by).item())
-        pass
+    #old code. I wrote this probably before the dim adaption. 
+    # def scale_scaling_factor(self, by:float)->None:
+    #     self.set_scaling_factor((self.scaling_factor*by).item())
+    #     pass
     def set_epsilon(self, epsilon:float)->None:
         the_device = self.epsilon.device
         the_dtype = self.epsilon.dtype
@@ -1779,23 +1859,22 @@ class GradientModification__mean_len_of_element_to_1(torch.nn.Module):
         the_dtype = self.protect_binary_accuracy.dtype
         self.protect_binary_accuracy.data = torch.tensor(protect_accuracy, device=the_device, dtype=the_dtype, requires_grad=False)
         pass
-    def set_mode(self, mode:Literal["mean", "sum"])->None:
-        assert mode in ["mean", "sum"]
-        self.mode = mode
+    def set_mode(self, per_what:Literal["element", "vector"])->None:
+        assert per_what in ["element", "vector"]
+        self.per_what = per_what
         pass
     
-
     def extra_repr(self) -> str:
         return f'scaling_factor={self.scaling_factor.item():.4e}, epsilon={self.epsilon.item():.4e}, mul_me_when_g_too_small={self.mul_me_when_g_too_small.item():.4e}'
 
 if '''all the setters''' and __DEBUG_ME__() and True:
     def all_the_setters____GradientModification__mean_len_of_element_to_1():
-        model_GradientModification_v2_mean_abs_to_1 = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
+        model_GradientModification_v2_mean_abs_to_1 = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False)
         assert model_GradientModification_v2_mean_abs_to_1.scaling_factor.requires_grad == False
         assert model_GradientModification_v2_mean_abs_to_1.epsilon.requires_grad == False
         assert model_GradientModification_v2_mean_abs_to_1.mul_me_when_g_too_small.requires_grad == False
         assert model_GradientModification_v2_mean_abs_to_1.protect_binary_accuracy == False
-        assert model_GradientModification_v2_mean_abs_to_1.mode == 'mean'
+        assert model_GradientModification_v2_mean_abs_to_1.per_what == 'element'
         model_GradientModification_v2_mean_abs_to_1.set_scaling_factor(0.123)
         #1w 为什么不对啊？64吗？
         assert _float_equal(model_GradientModification_v2_mean_abs_to_1.scaling_factor.item(), 0.123)
@@ -1809,8 +1888,8 @@ if '''all the setters''' and __DEBUG_ME__() and True:
         model_GradientModification_v2_mean_abs_to_1.set_protect_accuracy(False)
         assert model_GradientModification_v2_mean_abs_to_1.protect_binary_accuracy == False
         assert model_GradientModification_v2_mean_abs_to_1.protect_binary_accuracy.requires_grad == False
-        model_GradientModification_v2_mean_abs_to_1.set_mode('sum')
-        assert model_GradientModification_v2_mean_abs_to_1.mode == 'sum'
+        model_GradientModification_v2_mean_abs_to_1.set_mode('vector')
+        assert model_GradientModification_v2_mean_abs_to_1.per_what == 'vector'
         return 
     all_the_setters____GradientModification__mean_len_of_element_to_1()
     pass
@@ -1819,7 +1898,7 @@ if '''dtype adaption.''' and __DEBUG_ME__() and True:
     def dtype_adaption____GradientModification__mean_len_of_element_to_1():
         input = torch.tensor([[1.]], requires_grad=True)
         target = torch.tensor([[0.]])
-        model_GradientModification_v2_mean_abs_to_1 = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
+        model_GradientModification_v2_mean_abs_to_1 = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False)
         model_GradientModification_v2_mean_abs_to_1.to(torch.float64)
         #model.to(torch.float16)
 
@@ -1851,14 +1930,14 @@ if '''dtype adaption.''' and __DEBUG_ME__() and True:
 
 if '''init test''' and __DEBUG_ME__() and True:
     def _init_test____GradientModification__mean_len_of_element_to_1():
-        layer_GradientModification_v2_mean_abs_to_1 = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False, device='cuda')
+        layer_GradientModification_v2_mean_abs_to_1 = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False, device='cuda')
         assert layer_GradientModification_v2_mean_abs_to_1.scaling_factor.device == torch.device('cuda', index=0)
         assert layer_GradientModification_v2_mean_abs_to_1.scaling_factor.dtype == torch.float32
-        layer_GradientModification_v2_mean_abs_to_1 = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False, dtype=torch.float64)
+        layer_GradientModification_v2_mean_abs_to_1 = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False, dtype=torch.float64)
         assert layer_GradientModification_v2_mean_abs_to_1.scaling_factor.dtype == torch.float64
-        layer_GradientModification_v2_mean_abs_to_1 = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False, dtype=torch.float32)
+        layer_GradientModification_v2_mean_abs_to_1 = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False, dtype=torch.float32)
         assert layer_GradientModification_v2_mean_abs_to_1.scaling_factor.dtype == torch.float32
-        layer_GradientModification_v2_mean_abs_to_1 = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False, dtype=torch.float16)
+        layer_GradientModification_v2_mean_abs_to_1 = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False, dtype=torch.float16)
         assert layer_GradientModification_v2_mean_abs_to_1.scaling_factor.dtype == torch.float32
         
         return
@@ -1868,7 +1947,7 @@ if '''init test''' and __DEBUG_ME__() and True:
 if "some extra use case test" and __DEBUG_ME__() and True:
     def _some_extra_use_case_test____GradientModification__mean_len_of_element_to_1():
         mat = torch.empty(size=[2,3], requires_grad=True)
-        gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy = True)
+        gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy = True)
         mat_gramo = gramo(mat.reshape([1,-1])).reshape([2,3])
         assert mat.shape == mat_gramo.shape
         mat_gramo.backward(inputs = mat, gradient = torch.ones_like(mat_gramo)*2.)
@@ -1877,7 +1956,7 @@ if "some extra use case test" and __DEBUG_ME__() and True:
         
         #<  protect_binary_accuracy>
         mat = torch.empty(size=[2,3], requires_grad=True)
-        gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy = True)
+        gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy = True)
         mat_gramo = gramo(mat.reshape([1,-1])).reshape([2,3])
         assert mat.shape == mat_gramo.shape
         _grad = torch.tensor([[1.,1,1],[0,0,0]])
@@ -1887,7 +1966,7 @@ if "some extra use case test" and __DEBUG_ME__() and True:
                                                     [ 0 ,0,0]]), epsilon=1e-3)
         
         mat = torch.empty(size=[2,3], requires_grad=True)
-        gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy = False)
+        gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy = False)
         mat_gramo = gramo(mat.reshape([1,-1])).reshape([2,3])
         assert mat.shape == mat_gramo.shape
         _grad = torch.tensor([[1.,1,1],[0,0,0]])
@@ -1897,9 +1976,19 @@ if "some extra use case test" and __DEBUG_ME__() and True:
                                                         [0,0,0]]), epsilon=1e-3)
         #</ protect_binary_accuracy>
         
-        "for the standard orthogonal matrix"
+        "transpose? ofc."
         mat = torch.empty(size=[2,2], requires_grad=True)
-        gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy = False, mode="sum")
+        gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy = False, per_what="vector")
+        mat_gramo_by_column = gramo(mat.T).T
+        assert mat.shape == mat_gramo_by_column.shape
+        _grad = torch.tensor([[1.,1],[2,3]])
+        mat_gramo_by_column.backward(inputs = mat, gradient = _grad)
+        assert mat.grad is not None
+        assert _tensor_equal(mat.grad, torch.tensor(   [[0.4472, 0.3162],
+                                                        [0.8944, 0.9487]]), epsilon=1e-4)
+        "_ref"
+        mat = torch.empty(size=[2,2], requires_grad=True)
+        gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy = False, per_what="vector")
         mat_gramo_by_row = gramo(mat)
         assert mat.shape == mat_gramo_by_row.shape
         _grad = torch.tensor([[1.,2],[1,3]])
@@ -1908,55 +1997,76 @@ if "some extra use case test" and __DEBUG_ME__() and True:
         assert _tensor_equal(mat.grad, torch.tensor(   [[0.4472, 0.8944],
                                                         [0.3162, 0.9487]]), epsilon=1e-4)
         
-        mat = torch.empty(size=[2,2], requires_grad=True)
-        gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy = False, mode="sum")
-        mat_gramo_by_column = gramo(mat.T).T
-        assert mat.shape == mat_gramo_by_column.shape
-        _grad = torch.tensor([[1.,1],[2,3]])
-        mat_gramo_by_column.backward(inputs = mat, gradient = _grad)
-        assert mat.grad is not None
-        assert _tensor_equal(mat.grad, torch.tensor(   [[0.4472, 0.3162],
-                                                        [0.8944, 0.9487]]), epsilon=1e-4)
         
-        "big dim"
-        #dim1, scale 0.0001 works.
-        #dim10000, scale 0.0001 works.
-        for dim in [100,1000,10000]:
-        #dim = 10000
-            for grad_scale in [0.01, 0.0001]:
-        #grad_scale = 0.0001
+        if "old test" and False:
+            "big dim"
+            import math, random
+            #dim1, scale 0.0001 works.
+            #dim10000, scale 0.0001 works.
+            
+            "per element, when grad is not too small."
+            for _ in range(8):
+                dim = int(math.pow(10,random.random()*3+0.9))#basically 10 to 10000
+                assert dim>=7 and dim <10000
+                grad_scale = math.pow(10,random.random()*-2.-1.)
+                assert grad_scale<=0.1 and grad_scale>=0.001
+                
                 mat = torch.empty(size=[dim,dim], requires_grad=True)
-                gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy = False)
+                gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy = False,
+                                                                            per_what="element")
+                assert grad_scale>=gramo.epsilon
+                
                 mat_gramo = gramo(mat.reshape([1,-1])).reshape([dim,dim])
                 assert mat.shape == mat_gramo.shape
                 mat_gramo.backward(inputs = mat, gradient = torch.ones_like(mat_gramo)*grad_scale)
                 assert mat.grad is not None
                 assert _tensor_equal(mat.grad, torch.ones_like(mat_gramo))
                 pass
+            
+            
+            
+            "per vector"
+            for _ in range(118):
+                dim = int(math.pow(10,random.random()*3+0.9))#basically 10 to 10000
+                assert dim>7 and dim <10000
+                grad_scale = math.pow(10,random.random()*-2.-2.)
+                assert grad_scale<=0.01 and grad_scale>=0.0001
+            
+                mat = torch.empty(size=[1,dim], requires_grad=True)
+                gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy = False,
+                                                                        per_what = "vector")################
+                mat_gramo = gramo(mat)
+                assert mat.shape == mat_gramo.shape
+                mat_gramo.backward(inputs = mat, gradient = torch.ones_like(mat_gramo)*grad_scale)
+                assert mat.grad is not None
+                length_of_grad = (mat.grad*mat.grad).sum(dim=1).sqrt()
+                assert _tensor_equal(length_of_grad, [1.], epsilon=1e-4)
+                pass
+            
             pass
-
-        dim = 10000
-        grad_scale = 0.0001
-        mat = torch.empty(size=[dim,dim], requires_grad=True)
-        gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy = False,mode="sum")
-        mat_gramo = gramo(mat.reshape([1,-1])).reshape([dim,dim])
-        assert mat.shape == mat_gramo.shape
-        mat_gramo.backward(inputs = mat, gradient = torch.ones_like(mat_gramo)*grad_scale)
-        assert mat.grad is not None
-        assert _tensor_equal(mat.grad, torch.ones_like(mat_gramo)/torch.tensor(dim, dtype=torch.float64))
-
-        dim = 10000
-        grad_scale = 0.0001
-        mat = torch.empty(size=[dim,dim], requires_grad=True)
-        gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy = False,mode="sum")
-        mat_gramo_by_row = gramo(mat)
-        assert mat.shape == mat_gramo_by_row.shape
-        mat_gramo_by_row.backward(inputs = mat, gradient = torch.ones_like(mat_gramo_by_row)*grad_scale)
-        assert mat.grad is not None
-        assert _tensor_equal(mat.grad, torch.ones_like(mat_gramo_by_row)/torch.sqrt(torch.tensor(dim, dtype=torch.float64)))
-        fds=432
         
-        #很大的dim
+        #old code.
+        # dim = 10000
+        # grad_scale = 0.0001
+        # mat = torch.empty(size=[dim,dim], requires_grad=True)
+        # gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy = False,per_what="vector")
+        # mat_gramo = gramo(mat.reshape([1,-1])).reshape([dim,dim])
+        # assert mat.shape == mat_gramo.shape
+        # mat_gramo.backward(inputs = mat, gradient = torch.ones_like(mat_gramo)*grad_scale)
+        # assert mat.grad is not None
+        # assert _tensor_equal(mat.grad, torch.ones_like(mat_gramo)/torch.tensor(dim, dtype=torch.float64))
+
+        # dim = 10000
+        # grad_scale = 0.0001
+        # mat = torch.empty(size=[dim,dim], requires_grad=True)
+        # gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy = False,per_what="vector")
+        # mat_gramo_by_row = gramo(mat)
+        # assert mat.shape == mat_gramo_by_row.shape
+        # mat_gramo_by_row.backward(inputs = mat, gradient = torch.ones_like(mat_gramo_by_row)*grad_scale)
+        # assert mat.grad is not None
+        # assert _tensor_equal(mat.grad, torch.ones_like(mat_gramo_by_row)/torch.sqrt(torch.tensor(dim, dtype=torch.float64)))
+        
+        
         
         return 
     _some_extra_use_case_test____GradientModification__mean_len_of_element_to_1()
@@ -2110,8 +2220,6 @@ class GradientModificationFunction_v2_abs_to_less_than_1(torch.autograd.Function
         return grad_for_x_b_o, None, None
 
     pass  # class
-
-
 
 if '''dim irrelated gramo''' and __DEBUG_ME__() and True:
     grad_expansion_factor = torch.tensor(0.3, dtype=torch.float64)

@@ -25,8 +25,8 @@ from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, avg_log10_safe, \
-    get_mask_of_top_element__rough, iota, is_square_matrix, vector_length_norm
-from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_element_to_1
+    get_mask_of_top_element__rough, iota, is_square_matrix, vector_length_norm, get_vector_length
+from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_something_to_1
 
 import torch
 
@@ -433,7 +433,8 @@ def ____old_code____correct_the_matrix___version_1(matrix:torch.Tensor, lr = 0.3
     #matrix:torch.Tensor = torch.randn(size=[DIM,DIM],requires_grad=True, device = device)
     # DIM = 2
     # mat:torch.Tensor = torch.tensor([[16.,16],[1,1]], requires_grad=True)
-    gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False).to(the_device) 1w the gramo api updated
+    assert False, "1w the gramo api updated"
+    gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False).to(the_device)
     train_them = [matrix]
 
     optim = torch.optim.SGD(params=train_them, lr=lr)
@@ -771,15 +772,18 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
         if "only to fold the lines" and True:
             assert matrix.requires_grad
             #<  neural net infra>
-            gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False, device=the_device, dtype=the_dtype)
-            1w sum?
+            gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False,
+                                                per_what="vector", device=the_device, dtype=the_dtype)
             
+            #1w sum?
             train_them = [matrix]
             optim = torch.optim.SGD(params=train_them, lr=lr)
             loss_func = torch.nn.MSELoss()
             #</ neural net infra>
             
-            mat_after_gramo:torch.Tensor = gramo(matrix.reshape([1,-1])).reshape([dim,dim])
+            #old mat_after_gramo:torch.Tensor = gramo(matrix.reshape([1,-1])).reshape([dim,dim])
+            #1w
+            mat_after_gramo:torch.Tensor = gramo(matrix)#no .T, this is row.
             assert is_square_matrix(mat_after_gramo)
             #should_be_eye = mat@(mat.T)
             should_be_eye = mat_after_gramo@(matrix_of_unit_vec_as_rows.T)#.T is on the right
@@ -806,12 +810,35 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
             if _log is not None:
                 _log.append(("loss", loss.item()))
                 assert matrix.grad is not None
-                _log.append(("grad", matrix.grad.detach().clone()))
+                _log.append(("ori grad", matrix.grad.detach().clone()))
                 pass
+            
+            #1w modify the grad
+            vector_length_in_matrix = get_vector_length(matrix)#row
+            vector_length_in_matrix = vector_length_in_matrix.reshape([-1,1]).expand([-1,dim])
+            assert is_square_matrix(vector_length_in_matrix)
+            assert matrix.grad is not None
+            1w dtype
+            matrix.grad = matrix.grad.mul(vector_length_in_matrix, dtype = matrix.dtype)
+            if "some check" and __debug__ckeck_alone_the_way:
+                _grad_length = get_vector_length(matrix.grad)
+                for ii in range(dim):
+                    assert _tensor_equal(_grad_length[ii], vector_length_in_matrix[ii]) or \
+                        _grad_length[ii]<gramo.epsilon*gramo.mul_me_when_g_too_small*1.01
+                    pass
+                pass
+            
+            if _log is not None:
+                _log.append(("scaled grad", matrix.grad.detach().clone()))
+                pass
+            
             
             optim.step()
             matrix.grad = None
         #</ correct the direction for row>
+        
+        
+        
         
         
         
@@ -859,15 +886,19 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
         if "only to fold the lines" and True:
             assert matrix.requires_grad
             #<  neural net infra>
-            gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False, device=the_device, dtype=the_dtype)
-            1w sum?
+            #1w 
+            gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False,
+                                                    per_what="vector", device=the_device, dtype=the_dtype)
+            
             
             train_them = [matrix]
             optim = torch.optim.SGD(params=train_them, lr=lr)
             loss_func = torch.nn.MSELoss()
             #</ neural net infra>
             
-            mat_after_gramo:torch.Tensor = gramo(matrix.reshape([1,-1])).reshape([dim,dim])
+            #old mat_after_gramo:torch.Tensor = gramo(matrix.reshape([1,-1])).reshape([dim,dim])
+            #1w
+            mat_after_gramo:torch.Tensor = gramo(matrix.T).T#column.
             assert is_square_matrix(mat_after_gramo)
             #should_be_eye = mat@(mat.T)
             should_be_eye = matrix_of_unit_vec_as_columns.T@mat_after_gramo#.T is on the left
@@ -894,7 +925,26 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
             if _log is not None:
                 _log.append(("loss", loss.item()))
                 assert matrix.grad is not None
-                _log.append(("grad", matrix.grad.detach().clone()))
+                _log.append(("ori grad", matrix.grad.detach().clone()))
+                pass
+            
+            #1w modify the grad
+            vector_length_in_matrix = get_vector_length(matrix.T)#column
+            vector_length_in_matrix = vector_length_in_matrix.reshape([1,-1]).expand([dim,-1])
+            assert is_square_matrix(vector_length_in_matrix)
+            assert matrix.grad is not None
+            1w dtype
+            matrix.grad = matrix.grad.mul(vector_length_in_matrix, dtype = matrix.dtype)
+            if "some check" and __debug__ckeck_alone_the_way:
+                _grad_length = get_vector_length(matrix.grad)
+                for ii in range(dim):
+                    assert _tensor_equal(_grad_length[ii], vector_length_in_matrix[ii]) or \
+                        _grad_length[ii]<gramo.epsilon*gramo.mul_me_when_g_too_small*1.01
+                    pass
+                pass
+            
+            if _log is not None:
+                _log.append(("scaled grad", matrix.grad.detach().clone()))
                 pass
             
             optim.step()
@@ -910,7 +960,7 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
 if "test" and True:
     def ____test____correct_the_matrix___version_2():
         import math
-        if "length correction" and False:
+        if "length correction" and True:
             _one_over_sqrt_2 = 1/math.sqrt(2.)
             mat = torch.empty(size=[2,2],dtype=torch.float64)
             mat.fill_(_one_over_sqrt_2)
@@ -948,6 +998,39 @@ if "test" and True:
             _ref_tensor[1].fill_(_element_for_row_1)
             assert _tensor_equal(mat, _ref_tensor, epsilon=1e-2)
             
+            
+            #the column.
+            _one_over_sqrt_2 = 1/math.sqrt(2.)
+            mat = torch.empty(size=[2,2],dtype=torch.float64)
+            mat.fill_(_one_over_sqrt_2)
+            mat[:,0] *= 4.
+            assert _tensor_equal(mat,  [[4*0.7071,  0.7071],
+                                        [4*0.7071,  0.7071]])
+            _result_tuple_tl = correct_the_matrix___version_2(mat,lr = 0., correction_factor = 0.25, iter_count=1, 
+                                dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            mat = _result_tuple_tl[0]
+            
+            _ref_tensor = torch.empty(size=[2,2])
+            _element_for_column_0 = _element_for_row_0
+            _element_for_column_1 = _element_for_row_1
+            _ref_tensor[:,0].fill_(_element_for_column_0)
+            _ref_tensor[:,1].fill_(_element_for_column_1)
+            assert _tensor_equal(mat, _ref_tensor, epsilon=1e-2)
+            
+            
+            1w
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             # correction_factor = 0.5, this is a bit overshoot.
             mat = torch.tensor([[16.,16],[1,1]])
             mat = correct_the_matrix___version_2(mat,lr = 0., correction_factor = 0.5, iter_count=1, 
@@ -975,7 +1058,7 @@ if "test" and True:
             
             pass# length correction part.
         
-        if "direction correction" and False:
+        if "direction correction" and True:
             "orthogonal"
             mat = torch.tensor([[1.,0],[0,1]])
             _result_tuple_tl = correct_the_matrix___version_2(mat.detach().clone(),lr = 0.1, correction_factor = 0., iter_count=1, 
@@ -1038,7 +1121,7 @@ if "test" and True:
                 
                 _ref_mat = torch.tensor(   [[1.,0],
                                             [1 ,0]], requires_grad=True)
-                gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
+                gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False)
                 _ref_mat__after_gramo = gramo(_ref_mat)
                 _temp = torch.zeros(size=[2,2])
                 _temp[0,1] = _ref_mat__after_gramo[0].dot(_ref_mat__after_gramo[1])
@@ -1092,7 +1175,7 @@ if "test" and True:
                 assert _tensor_equal(2*(2*x*x-1)*4*x, [3.2579], epsilon=1e-3)
             
                 x = torch.tensor(0.85858, requires_grad=True)
-                gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
+                gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False)
                 x_after_gramo = gramo(x.reshape([1,-1])).reshape([])
                 pred = 2.*x_after_gramo*x_after_gramo
                 Loss = (pred-1)*(pred-1)
@@ -1119,7 +1202,7 @@ if "test" and True:
         
         
         #   dim    lr
-           1000   200  检查一下  1w 
+        assert False, "1000   200  检查一下  1w "
         #   300    1
         #   100    0.01
         
@@ -1144,7 +1227,7 @@ if "test" and True:
             angle_score_tensor = torch.empty(size=[test_time], device=the_device)
             length_score_tensor = torch.empty(size=[test_time], device=the_device)
             measure_score_tensor = torch.empty(size=[test_time], device=the_device)
-            1w 加一个和原来的相似度。
+            assert False, "1w 加一个和原来的相似度。"
             
             for test_count in range(test_time):
                 mat = torch.randn(size=[dim, dim], device=the_device)
@@ -1278,7 +1361,7 @@ def does_back_prapagation_work_for__a_vector_dot_itself():
     lr = 0.1
     DIM = 5
     vec_main = torch.randn(size=[DIM],requires_grad=True)
-    gramo_main = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
+    gramo_main = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False)
     train_them = [vec_main]
 
     optim = torch.optim.SGD(params=train_them, lr=lr)
@@ -1312,9 +1395,9 @@ def does_back_prapagation_work_for__2__vector_dot_themselves():
     lr = 0.1
     DIM = 5
     vec_1 = torch.randn(size=[DIM],requires_grad=True)
-    gramo_1 = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
+    gramo_1 = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False)
     vec_2 = torch.randn(size=[DIM],requires_grad=True)
-    gramo2 = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
+    gramo2 = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False)
     train_them = [vec_1, vec_2]
 
     optim = torch.optim.SGD(params=train_them, lr=lr)
@@ -1353,9 +1436,9 @@ def does_1_self_dot_with_1_cross_dot_work():
     lr = 0.1
     DIM = 5
     vec_main = torch.randn(size=[DIM],requires_grad=True)
-    gramo_main = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
+    gramo_main = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False)
     vec_1 = torch.randn(size=[DIM],requires_grad=True)
-    gramo_1 = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
+    gramo_1 = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False)
     train_them = [vec_main, vec_1]
 
     optim = torch.optim.SGD(params=train_them, lr=lr)
