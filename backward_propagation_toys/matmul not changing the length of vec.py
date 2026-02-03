@@ -40,9 +40,10 @@ def _line_():
 
 
 
-def measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(matrix:torch.Tensor,
+def LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(matrix:torch.Tensor,
                                     test_time = 10, cap = 2.)->tuple[torch.Tensor,torch.Tensor]:
     '''    return all_score.mean(),all_score
+    
     The result is always >=0. The smaller the better.'''
     assert is_square_matrix(matrix)
     assert test_time>=1
@@ -75,19 +76,19 @@ def measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(matrix
     all_score = all_score.clamp_min_(-cap)
     all_score = all_score.cpu()
     return all_score.mean(),all_score
-if "____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10" and False:
+if "test" and False:
     def ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10():
         #eye should be perfect.
         if False:
             for size in range(3, 15):
                 for _ in range(5):
-                    _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(torch.eye(n=size),test_time=100)
+                    _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size),test_time=100)
                     assert _tensor_equal(_result_tuple[1], torch.zeros(size=[100]), epsilon=1e-6)
                     pass
                 pass
             for size in range(3, 15):
                 for _ in range(5):
-                    _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(torch.eye(n=size)*10. ,test_time=100)
+                    _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size)*10. ,test_time=100)
                     assert _tensor_equal(_result_tuple[1], torch.ones(size=[100]))
                     pass
                 pass
@@ -96,7 +97,7 @@ if "____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_
                     _to_the_power = torch.rand(size=[1])*3.
                     assert _to_the_power>=0.
                     _factor = torch.pow(10, _to_the_power)
-                    _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(torch.eye(n=size)*_factor, 
+                    _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size)*_factor, 
                                                                                                 test_time=100, cap=5.)
                     assert _tensor_equal(_result_tuple[1], torch.ones(size=[100])*_to_the_power)
                     pass
@@ -106,7 +107,7 @@ if "____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_
                     _to_the_power = torch.rand(size=[1])*-3.
                     assert _to_the_power<=0.
                     _factor = torch.pow(10, _to_the_power)
-                    _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(torch.eye(n=size)*_factor, 
+                    _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size)*_factor, 
                                                                                                 test_time=100, cap=5.)
                     assert _tensor_equal(_result_tuple[1], torch.ones(size=[100])*-_to_the_power)
                     pass
@@ -120,17 +121,265 @@ if "____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_
         for _ in range(55):
             mat = torch.eye(n=100)
             mat[0,1] = 1.
-            _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat,test_time=100)
+            _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat,test_time=100)
             result_for_1 = _result_tuple[0]
             mat = torch.eye(n=100)
             mat[0,1] = 10.
-            _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat,test_time=100)
+            _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat,test_time=100)
             result_for_2 = _result_tuple[0]
             assert result_for_2.gt(result_for_1) #theoretically unstable. But mostly cases it holds.
             pass
         return 
     ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10()
     pass
+
+def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor)->tuple[torch.Tensor,torch.Tensor]:
+    '''return length_score, angle_score
+    
+    The result is always >=0. The smaller the better.'''
+    assert is_square_matrix(matrix)
+    
+    dim = matrix.shape[0]
+    _temp___all_should_near_0 = matrix@(matrix.T)-torch.eye(n=dim, device=matrix.device)
+    iota_of_dim = iota(dim, device=matrix.device)
+    ___temp = _temp___all_should_near_0[iota_of_dim, iota_of_dim]
+    ___temp = ___temp.abs()
+    ___temp = ___temp.mean()
+    length_score = _temp___all_should_near_0[iota_of_dim, iota_of_dim].abs().mean()
+    
+    _temp___all_should_near_0[iota_of_dim, iota_of_dim] = 0.
+    angle_score = _temp___all_should_near_0.abs().mean()
+    angle_score = angle_score*dim/(dim-1)
+    return length_score, angle_score
+if "test" and __DEBUG_ME__() and False:
+    def ____test____LOSS__the_mat_is_standard_orthogonal():
+        import math, random
+        "eye is perfect in this test."
+        for dim in [2,3,5,10,100,1000]:
+            mat = torch.eye(n=dim)
+            length_score, angle_score = LOSS__the_mat_is_standard_orthogonal(mat)
+            assert _tensor_equal(length_score, [0])
+            assert _tensor_equal(angle_score, [0])
+            pass
+        
+        #                        vvv
+        mat1 = torch.tensor([[1.,0.1],[0,1]])
+        mat2 = torch.tensor([[1.,0.2],[0,1]])
+        #                        ^^^
+        bad___length_score, bad___angle_score = LOSS__the_mat_is_standard_orthogonal(mat1)
+        worse_length_score, worse_angle_score = LOSS__the_mat_is_standard_orthogonal(mat2)
+        assert bad___length_score<worse_length_score
+        assert bad___angle_score <worse_angle_score
+        
+        for _ in range(6):
+            rand = random.random()+0.001# >0.
+            #                        vvvvvvvv
+            mat1 = torch.tensor([[1.,rand    ],[0,1]])
+            mat2 = torch.tensor([[1.,rand*1.1],[0,1]])
+            #                        ^^^^^^^^
+            bad___length_score, bad___angle_score = LOSS__the_mat_is_standard_orthogonal(mat1)
+            worse_length_score, worse_angle_score = LOSS__the_mat_is_standard_orthogonal(mat2)
+            assert bad___length_score<worse_length_score
+            assert bad___angle_score <worse_angle_score
+            pass
+        
+        for _ in range(6):
+            rand = random.random()+0.001# >0.
+            dim = random.randint(2, 300)
+            #<  init>
+            mat1 = torch.eye(n=dim)
+            mat2 = torch.eye(n=dim)
+            #           vvvvvvvv
+            mat1[0,1] = rand
+            mat2[0,1] = rand*1.1
+            #           ^^^^^^^^
+            bad___length_score, bad___angle_score = LOSS__the_mat_is_standard_orthogonal(mat1)
+            worse_length_score, worse_angle_score = LOSS__the_mat_is_standard_orthogonal(mat2)
+            #</ init>
+            assert bad___length_score<worse_length_score
+            assert bad___angle_score <worse_angle_score
+            pass
+        
+        return
+    ____test____LOSS__the_mat_is_standard_orthogonal()
+    pass
+
+def LOSS__angle_similarity(input:torch.Tensor, target:torch.Tensor)->torch.Tensor:
+    '''return score
+    
+    The result is always >=0. The smaller the better.
+    
+    The score between 2 random matrix is 1.85 to 2.3, for any dimention. Tests below.
+    
+    If any length of any row or column is too small, it's not measured, 
+    and it's a fake good score for that detail.
+    '''
+    assert is_square_matrix(input)
+    assert is_square_matrix(target)
+    with torch.no_grad():
+        
+        norm_ed_by_row_mat_1 = vector_length_norm(input)
+        norm_ed_by_row_mat_2 = vector_length_norm(target)
+        ___temp = norm_ed_by_row_mat_1*norm_ed_by_row_mat_2
+        ___temp = ___temp.sum(dim=1)
+        ___temp = ___temp.mean()
+        score_part_1 = 1.-___temp
+        
+        norm_ed_by_column_mat_1 = vector_length_norm(input.T)
+        norm_ed_by_column_mat_2 = vector_length_norm(target.T)
+        ___temp = norm_ed_by_column_mat_1*norm_ed_by_column_mat_2
+        ___temp = ___temp.sum(dim=1)
+        ___temp = ___temp.mean()
+        score_part_2 = 1.-___temp
+        
+        return (score_part_1+score_part_2).mean()
+    pass#/function
+if "test" and __DEBUG_ME__() and False:
+    def ____test____LOSS__angle_similarity():
+        "The score between 2 random matrix is 1.85 to 2.3, for any dimention. Tests below."
+        for dim in [10,100,1000,10000]:
+            mat1 = torch.randn(size=[dim,dim])
+            mat2 = torch.randn(size=[dim,dim])
+            score = LOSS__angle_similarity(mat1,mat2)
+            print(dim, score)
+            pass
+        
+        import math, random
+        for _ in range(166):
+            dim = random.randint(2,300)
+            mat1 = torch.randn(size=[dim,dim])
+            mat2 = mat1.detach().clone().mul(1.3)
+            score = LOSS__angle_similarity(mat1,mat2)
+            assert _tensor_equal(score, [0.])
+            pass
+        
+        mat0 = torch.tensor([[1.,0],[0,1]])
+        mat1 = torch.tensor([[1.,0.1],[0,1]])
+        mat2 = torch.tensor([[1.,0.2],[0,1]])
+        score_small = LOSS__angle_similarity(mat0,mat1)
+        score_large = LOSS__angle_similarity(mat0,mat2)
+        assert score_small<score_large
+        
+        for _ in range(116):
+            rand = random.random()+0.001# >0.
+            dim = random.randint(2,300)
+            mat0 = torch.eye(n=dim)
+            mat0[0,1] = rand
+            mat1 = torch.eye(n=dim)
+            mat1[0,1] = rand*1.1
+            mat2 = torch.eye(n=dim)
+            mat2[0,1] = rand*1.2
+            score_small = LOSS__angle_similarity(mat0,mat1)
+            score_large = LOSS__angle_similarity(mat0,mat2)
+            assert score_small<=score_large
+            pass
+        return
+    ____test____LOSS__angle_similarity()
+    pass
+
+
+
+def LOSS__behavior_similarity(input:torch.Tensor, target:torch.Tensor, test_time = 10)->torch.Tensor:
+    
+    
+    ''' ??????????????   return all_score.mean(),all_score
+    
+    The result is always >=0. The smaller the better.'''
+    assert is_square_matrix(input)
+    assert is_square_matrix(target)
+    assert test_time>=1
+    
+    the_device = input.device
+    all_score = torch.empty([test_time], device = the_device)
+    for epoch in range(test_time):
+        vec = torch.randn(size=[input.shape[0]], device = the_device)
+        while True:
+            ori_len_sqr = vec.dot(vec)
+            #too small or too large, reroll.
+            if ori_len_sqr<0.001 or ori_len_sqr>10000.:
+                vec = torch.randn(size=[input.shape[0]])
+                continue
+            break
+            pass#/while
+        __mul_me = ori_len_sqr.pow(-0.5)
+        vec.mul_(__mul_me)
+        assert _tensor_equal(vec.dot(vec), torch.tensor([1.], device=vec.device))
+        
+        
+        1w 两个分别乘，然后看方向和长度的相似性。分别返回。
+        
+        #vec = vec.reshape(shape=[1,-1])
+        after_matmul = vec@input
+        new_len_sqr = after_matmul.dot(after_matmul)
+        
+        score_of_this_epoch = new_len_sqr.log10().abs()/2.
+        all_score[epoch] = score_of_this_epoch
+        pass#/ for
+    all_score = all_score.clamp_max_(cap)
+    all_score = all_score.clamp_min_(-cap)
+    all_score = all_score.cpu()
+    return all_score.mean(),all_score
+    
+    
+    
+    
+    
+    
+    pass#/function
+if "test" and __DEBUG_ME__() and False:
+    def ____test____LOSS__angle_similarity():
+        1w 改
+        "The score between 2 random matrix is 1.85 to 2.3, for any dimention. Tests below."
+        for dim in [10,100,1000,10000]:
+            mat1 = torch.randn(size=[dim,dim])
+            mat2 = torch.randn(size=[dim,dim])
+            score = LOSS__angle_similarity(mat1,mat2)
+            print(dim, score)
+            pass
+        
+        import math, random
+        for _ in range(166):
+            dim = random.randint(2,300)
+            mat1 = torch.randn(size=[dim,dim])
+            mat2 = mat1.detach().clone().mul(1.3)
+            score = LOSS__angle_similarity(mat1,mat2)
+            assert _tensor_equal(score, [0.])
+            pass
+        
+        mat0 = torch.tensor([[1.,0],[0,1]])
+        mat1 = torch.tensor([[1.,0.1],[0,1]])
+        mat2 = torch.tensor([[1.,0.2],[0,1]])
+        score_small = LOSS__angle_similarity(mat0,mat1)
+        score_large = LOSS__angle_similarity(mat0,mat2)
+        assert score_small<score_large
+        
+        for _ in range(116):
+            rand = random.random()+0.001# >0.
+            dim = random.randint(2,300)
+            mat0 = torch.eye(n=dim)
+            mat0[0,1] = rand
+            mat1 = torch.eye(n=dim)
+            mat1[0,1] = rand*1.1
+            mat2 = torch.eye(n=dim)
+            mat2[0,1] = rand*1.2
+            score_small = LOSS__angle_similarity(mat0,mat1)
+            score_large = LOSS__angle_similarity(mat0,mat2)
+            assert score_small<=score_large
+            pass
+        return
+    ____test____LOSS__angle_similarity()
+    pass
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -349,7 +598,7 @@ if False:
         for dim in range(3,14):
             for _ in range(11):
                 mat = rand_basic_ratation_matrix(dim)
-                _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat, test_time=100)
+                _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat, test_time=100)
                 assert _tensor_equal(_result_tuple[1], torch.zeros(size=[100]))
                 pass#for _
             pass# for dim
@@ -362,7 +611,7 @@ if False:
                     mat = mat.matmul(new_mat)
                     pass
                     
-                _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat, test_time=100)
+                _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat, test_time=100)
                 assert _tensor_equal(_result_tuple[1], torch.zeros(size=[100]))
                 pass#for _
             pass# for dim
@@ -632,11 +881,11 @@ if "test" and False:
         
         
         mat = torch.tensor([[1.,0.1],[1.,-0.1]])
-        _result_tuple_tt = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
+        _result_tuple_tt = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat)
         _score_before = _result_tuple_tt[0]
         _result_tuple_tl = ____old_code____correct_the_matrix___version_1(mat,lr = 0.01, correction_factor = 0., iter_count=1, dont_correct_length_with_error_prapagation = True)
         mat = _result_tuple_tl[0]
-        _result_tuple_tt = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
+        _result_tuple_tt = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat)
         _score_after = _result_tuple_tt[0]
         
         
@@ -672,7 +921,7 @@ if "test" and False:
         DIM = 100
         mat = torch.randn(size=[DIM,DIM], device='cuda')
         for _ in range(100):
-            _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
+            _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat)
             score_before = _result_tuple[0]
             #1w 前几个测试好像是错的。重新跑。
             #进去读一遍所有过程。
@@ -683,7 +932,7 @@ if "test" and False:
             #mat = correct_the_matrix(mat,lr = 0.01, correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#0.78
             #mat = correct_the_matrix(mat,lr = 0.1, correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#0.15
             mat = correct_the_matrix(mat,lr = 1., correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#1.3
-            _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
+            _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat)
             score_after = _result_tuple[0]
             pass
         return 
@@ -975,6 +1224,7 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
     #set the param back before return.
     matrix.requires_grad_(does_matrix_require_grad)
     return matrix, _log
+
 if "____test____correct_the_matrix___version_2____length_correction" and __DEBUG_ME__() and False:
     import random, math
     def ____test____correct_the_matrix___version_2____length_correction():
@@ -1080,7 +1330,7 @@ if "____test____correct_the_matrix___version_2____length_correction" and __DEBUG
         return 
     ____test____correct_the_matrix___version_2____length_correction()
     pass
-    
+
 if "____test____correct_the_matrix___version_2____angle_correction" and __DEBUG_ME__() and True:
     def ____test____correct_the_matrix___version_2____angle_correction():
         import random, math
@@ -1137,8 +1387,8 @@ if "____test____correct_the_matrix___version_2____angle_correction" and __DEBUG_
             mat = _result_tuple_tl[0]
             assert _tensor_equal(mat, [[1-lr, 0],[1-lr, 0]])
             #the grad is 0.7071, but the grad is scaled up by sqrt(2), so the grad is 1 eventually.
-            # ori - lr * grad ( only the by-row works in this case.)
-            #  1. - 0.1 * sqrt(2.)
+            # ori - lr  * grad * vec_length( only the by-row works in this case.)
+            #  1. - 0.1 * 1    * 1
             if "old code, the old ref" and False:
                 _ref_mat__no_gramo = torch.tensor( [[1.,0],
                                                     [1 ,0]], requires_grad=True)
@@ -1164,86 +1414,52 @@ if "____test____correct_the_matrix___version_2____angle_correction" and __DEBUG_
                 pass
             
             
+            lr = 0.1
+            mat = torch.tensor([[1.1111111111,0],[1.1111111111,0]]) #1w 改成了1.1看看。
+            _result_tuple_tl = correct_the_matrix___version_2(mat,lr = lr, correction_factor = 0., iter_count=1, 
+                        dont_correct_length_with_error_prapagation = False, __debug__need_log = True)
+            #           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this flag.
+            mat, _log= _result_tuple_tl
+            assert _tensor_equal(_log[12][1] ,[[1.,0],[1.,0]])
+            assert _tensor_equal(mat, [[1-lr, 0],[1-lr, 0]])
+            # in the "by-row angle", the formula is the same as uppon, 
+            # ori    - lr  * grad * vec_length
+            # 1.1111 - 0.1 * 1    * 1.1111
+            #this results in a [[1.,0],[1.,0]], so the rest is similar to the last test uppon.
+            # ori    - lr  * grad * vec_length
+            #  1.    - 0.1 * 1    * 1
+            #the second column is 0, so it doesn't do anything. The formula also shows the same conclusion.
+            if "old ref, a bit ref" and False:
+                x = torch.tensor(0.7071, requires_grad=True)
+                pred = 2.*x*x
+                Loss = (pred-1)*(pred-1)
+                Loss.backward(inputs=x)
+                assert x.grad is not None
+                assert _tensor_equal(x.grad, [0], epsilon=1e-3)
+                
+                x = torch.tensor(-0.7071, requires_grad=True)
+                pred = 2.*x*x
+                Loss = (pred-1)*(pred-1)
+                Loss.backward(inputs=x)
+                assert x.grad is not None
+                assert _tensor_equal(x.grad, [0], epsilon=1e-3)
+                
+                x = torch.tensor(0., requires_grad=True)
+                pred = 2.*x*x
+                Loss = (pred-1)*(pred-1)
+                Loss.backward(inputs=x)
+                assert x.grad is not None
+                assert _tensor_equal(x.grad, [0], epsilon=1e-3)
+                pass
             
-            
-        lr = 0.1
-        mat = torch.tensor([[1.1,0],[1.1,0]]) 1w 改成了1.1看看。
-        _result_tuple_tl = correct_the_matrix___version_2(mat,lr = lr, correction_factor = 0., iter_count=1, 
-                    dont_correct_length_with_error_prapagation = False, __debug__need_log = True)
-        #           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this flag.
-        mat = _result_tuple_tl[0]
-        assert _tensor_equal(mat, [[1-lr*1.4142*2, 0],[1-lr*1.4142*2, 0]])
-        # in the "by-row angle", the formula is the same as uppon, 
-        # ori - lr * grad, it's 0.9
-        # in the "by-column angle", the (0.9, 0)dot(0.9, 0), is 0.81, the flag is set to false, so, 
-        # 2*(0.81-1)*2*0.9, <0, so it should be 0.9+lr, and it's 1 again???
         
-        #old
-        # the equition is: 2*grad*grad == nelement == 4, grad*grad == 2
-        # ori - lr  * grad ( only the by-row works in this case.)
-        #  1. - 0.1 * sqrt(2.), this is 0.85858
-        # when corrected by column, the "should_be_eye" is [[0.85858*0.85858, 0],[0,0]].
-        # the grad should be -0.9027 if without gramo. But with gramo, it's another 1.4142
-        # then, the final result is 1. - 0.1 * sqrt(2.) * 2(2 for twice), around 0.715
-        if "old ref, a bit ref" and False:
-            x = torch.tensor(0.7071, requires_grad=True)
-            pred = 2.*x*x
-            Loss = (pred-1)*(pred-1)
-            Loss.backward(inputs=x)
-            assert x.grad is not None
-            assert _tensor_equal(x.grad, [0], epsilon=1e-3)
-            
-            x = torch.tensor(-0.7071, requires_grad=True)
-            pred = 2.*x*x
-            Loss = (pred-1)*(pred-1)
-            Loss.backward(inputs=x)
-            assert x.grad is not None
-            assert _tensor_equal(x.grad, [0], epsilon=1e-3)
-            
-            x = torch.tensor(0., requires_grad=True)
-            pred = 2.*x*x
-            Loss = (pred-1)*(pred-1)
-            Loss.backward(inputs=x)
-            assert x.grad is not None
-            assert _tensor_equal(x.grad, [0], epsilon=1e-3)
-            
-            x = torch.tensor(0.85858, requires_grad=True)
-            pred = 2.*x*x
-            Loss = (pred-1)*(pred-1)
-            Loss.backward(inputs=x)
-            assert x.grad is not None
-            assert _tensor_equal(x.grad, [3.2579], epsilon=1e-3)
-            assert _tensor_equal(2*(2*x*x-1)*4*x, [3.2579], epsilon=1e-3)
+        return 
+    ____test____correct_the_matrix___version_2____angle_correction()
         
-            x = torch.tensor(0.85858, requires_grad=True)
-            gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False)
-            x_after_gramo = gramo(x.reshape([1,-1])).reshape([])
-            pred = 2.*x_after_gramo*x_after_gramo
-            Loss = (pred-1)*(pred-1)
-            Loss.backward(inputs=x)
-            assert x.grad is not None
-            assert _tensor_equal(x.grad, [1.])
-            pass
-        
-        pass
-        
-        
-        
+    def ____test____correct_the_matrix___version_2____param_scan():
         "let's scan param a bit."
-        # 0.005    0   a:0.006   l:0.002        both smaller better
-        # 0.006    0   a:0.006   l:0.004        both smaller better
-        # 0.0065   0   a:0.007   l:0.004        both smaller better
-        # 0.007    0   a:0.008   l:0.004        both smaller better
-        # 0.0075   0   a:0.009   l:0.005        both smaller better
-        # 0.008    0   a:0.011   l:0.005        both smaller better
-        # 0.0085   0   a:0.011   l:0.005        both smaller better
-        # 0.009    0   a:0.009   l:0.006        both smaller better
-        # 0.0095   0   a:0.011   l:0.007        both smaller better
-        # 0.01     0   a:0.014   l:0.007    
-        
-        
         #   dim    lr
-        assert False, "1000   200  检查一下  1w "
+        #assert False, "1000   200  检查一下  1w "
         #   300    1
         #   100    0.01
         
@@ -1252,46 +1468,63 @@ if "____test____correct_the_matrix___version_2____angle_correction" and __DEBUG_
         the_device = 'cpu'
         
         dim = 300
-        iota_of_dim = iota(dim, device=the_device)
+        
+        dont_correct_length_with_error_prapagation = True
+        
         
         #for iter_count in [1,2,3,4,5,6,7,8,10,20,30]:#4 or 5 is enough.
-        iter_count = 7
+        iter_count = 1
         #for lr in [0.1, 1.,10,15,22,33,47,56,68,100,150,220,330,470,560,680,1000,10000]:#0.02,0.03,0.035, 0.04,0.045,0.05,0.055,0.06]:
-        for lr in [0, 0.0001, 0.001,0.003, 0.004, 0.005, 0.006, 0.0065, 0.007, 0.0075,0.008,0.0085,0.009,0.0095,  0.01,0.1, 0.3, 1.,100,10000]:#0.02,0.03,0.035, 0.04,0.045,0.05,0.055,0.06]:
-            #lr = 0.008#???
+        #for lr in [0, 0.0001, 0.001,0.003, 0.004, 0.005, 0.006, 0.0065, 0.007, 0.0075,0.008,0.0085,0.009,0.0095,0.01,0.1, 0.3, 1.,10,100,10000]:#0.02,0.03,0.035, 0.04,0.045,0.05,0.055,0.06]:
+        for lr in [1.,2.2,4.7,10,22,47,100]:#0.02,0.03,0.035, 0.04,0.045,0.05,0.055,0.06]:
+        #lr = 5.
+        #lr = 0.008#???
             #lr = 200.# this is the best??????
-        #for correction_factor in [0.3,0.35,0.4,0.45,0.5,0.6,0.65,0.7,0.75,0.8]:#这个真的很抽象。。。。。
-            correction_factor = 0.7#best?
-            #correction_factor = 0.
+        #for correction_factor in [0.1,0.15, 0.2, 0.25,0.3,0.35,0.4,0.45,0.5,0.6,0.65,0.7,0.75,0.8]:#这个真的很抽象。。。。。
+        #for correction_factor in [0.4,0.42, 0.44,0.45,0.46,0.48,0.5,0.52,0.55,0.57,0.6,0.62]:#这个真的很抽象。。。。。
+        #for correction_factor in [0.48,0.49,0.5,0.51,0.52,0.53,0.54]:#这个真的很抽象。。。。。
+            #correction_factor = 0.7#best?
+            correction_factor = 0.52#iter_count = 1
         #if True:
+        
+            #<  init test group>
             test_time = 10
             angle_score_tensor = torch.empty(size=[test_time], device=the_device)
             length_score_tensor = torch.empty(size=[test_time], device=the_device)
             measure_score_tensor = torch.empty(size=[test_time], device=the_device)
-            assert False, "1w 加一个和原来的相似度。"
-            
+            angle_similarity_tensor = torch.empty(size=[test_time], device=the_device)
+            #</ init test group>
             for test_count in range(test_time):
-                mat = torch.randn(size=[dim, dim], device=the_device)
-                
-                _result_tuple_tl = correct_the_matrix___version_2(mat,lr = lr, correction_factor = correction_factor, iter_count=iter_count, 
-                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-                mat = _result_tuple_tl[0]
-                
-                measure_score = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat,test_time=50)[0]
+                #<  init  />
+                mat_ori = torch.randn(size=[dim, dim], device=the_device)
+                #<  calc>
+                _result_tuple_tl = correct_the_matrix___version_2(mat_ori.detach().clone(),
+                                lr = lr, correction_factor = correction_factor, iter_count=iter_count, 
+                                dont_correct_length_with_error_prapagation = dont_correct_length_with_error_prapagation)
+                mat_after = _result_tuple_tl[0]
+                #</ calc>
+                #<  measure>
+                measure_score = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat_after,test_time=50)[0]
                 measure_score_tensor[test_count] = measure_score
                 
-                _temp___all_should_near_0 = mat@(mat.T)-torch.eye(n=dim, device=the_device)
-                ___temp = _temp___all_should_near_0[iota_of_dim, iota_of_dim]
-                ___temp = ___temp.abs()
-                ___temp = ___temp.mean()
-                length_score_tensor[test_count] = _temp___all_should_near_0[iota_of_dim, iota_of_dim].abs().mean()
+                angle_similarity_tensor[test_count] = LOSS__angle_similarity(mat_after, mat_ori)
                 
-                _temp___all_should_near_0[iota_of_dim, iota_of_dim] = 0.
-                angle_score = _temp___all_should_near_0.abs().mean()
-                angle_score_tensor[test_count] = angle_score*dim/(dim-1)
+                length_score, angle_score = LOSS__the_mat_is_standard_orthogonal(mat_after)
+                length_score_tensor[test_count] = length_score
+                angle_score_tensor[test_count] = angle_score
+                #</ measure>
                 pass
-            print(f"{iter_count:2}   {lr:.4f}   {correction_factor:.2f}   m:{measure_score_tensor.mean().item():.5f} a:{angle_score_tensor.mean().item():.5f}   l:{length_score_tensor.mean().item():.6f}        both smaller better")
+            
+            print(f"{dim:4}   {iter_count:2}  {lr:.4f}  {correction_factor:.2f}  {dont_correct_length_with_error_prapagation
+                    }   meas {measure_score_tensor.mean().item():.5f}   simi {angle_similarity_tensor.mean().item():.5f
+                    }   ang:{angle_score_tensor.mean().item():.5f}   len:{length_score_tensor.mean().item():.6f
+                    }   (all smaller better)")
             pass#for param
+        
+        print(f"dim  iter_count  lr  correction_factor  flag")
+        
+        assert False, "继续扫。"
+        
         fds=432
         
         
@@ -1329,11 +1562,11 @@ if "____test____correct_the_matrix___version_2____angle_correction" and __DEBUG_
         
         
         mat = torch.tensor([[1.,0.1],[1.,-0.1]])
-        _result_tuple_tt = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
+        _result_tuple_tt = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat)
         _score_before = _result_tuple_tt[0]
         _result_tuple_tl = correct_the_matrix(mat,lr = 0.01, correction_factor = 0., iter_count=1, __debug__ckeck_alone_the_way = True,dont_correct_length_with_error_prapagation = True)
         mat = _result_tuple_tl[0]
-        _result_tuple_tt = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
+        _result_tuple_tt = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat)
         _score_after = _result_tuple_tt[0]
         
         
@@ -1369,7 +1602,7 @@ if "____test____correct_the_matrix___version_2____angle_correction" and __DEBUG_
         DIM = 100
         mat = torch.randn(size=[DIM,DIM], device='cuda')
         for _ in range(100):
-            _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
+            _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat)
             score_before = _result_tuple[0]
             #1w 前几个测试好像是错的。重新跑。
             #进去读一遍所有过程。
@@ -1380,11 +1613,34 @@ if "____test____correct_the_matrix___version_2____angle_correction" and __DEBUG_
             #mat = correct_the_matrix(mat,lr = 0.01, correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#0.78
             #mat = correct_the_matrix(mat,lr = 0.1, correction_factor = 0., iter_count=10, dont_correct_length_with_error_prapagation = True)#0.15
             mat = correct_the_matrix(mat,lr = 1., correction_factor = 0., iter_count=10, __debug__ckeck_alone_the_way = True,dont_correct_length_with_error_prapagation = True)#1.3
-            _result_tuple = measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10(mat)
+            _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat)
             score_after = _result_tuple[0]
             pass
         return 
-    ____test____correct_the_matrix___version_2____angle_correction()
+    ____test____correct_the_matrix___version_2____param_scan()
+    
+    
+    if "also scan this in angle test.":
+        assert False
+    # "high dim case."
+    #     dim = 2
+    #     lr = 0.1
+    #     mat = torch.eye(n=dim)
+    #     mat[0,1] = 0.1
+    #     _result_tuple_tl = correct_the_matrix___version_2(mat,lr = lr, correction_factor = 0., iter_count=1, 
+    #                 dont_correct_length_with_error_prapagation = False, __debug__need_log = True)
+    #     #           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this flag.
+    #     mat, _log= _result_tuple_tl
+        
+    #     fds=432
+        pass
+    
+    
+    
+    
+    
+    
+    
     pass
 
 
