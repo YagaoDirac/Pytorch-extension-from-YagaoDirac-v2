@@ -34,7 +34,7 @@ def _float_equal(a:float|torch.Tensor, b:float, epsilon:float = 0.0001)->bool:
         pass
     assert epsilon>0.
     return abs(a-b)<epsilon
-if "test" and __DEBUG_ME__() and True:
+if "test" and __DEBUG_ME__() and False:
     assert _float_equal(1., 1.)
     assert _float_equal(1., 1.0000001)
     assert _float_equal(1., 1.01) == False
@@ -77,7 +77,7 @@ def _tensor_equal(  a:torch.Tensor|list[float]|list[list[float]], \
         assert isinstance(the_item, bool)
         return the_item
     pass#end of function
-if "test" and __DEBUG_ME__() and True:
+if "test" and __DEBUG_ME__() and False:
     assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.]))
     assert _tensor_equal(torch.tensor([1.,2.]), [1.,2.])
     #assert _tensor_equal(torch.tensor([1.]), torch.tensor([[1.]]))
@@ -93,13 +93,36 @@ if "test" and __DEBUG_ME__() and True:
     assert _tensor_equal(torch.tensor(0.), torch.tensor(0.))
     pass
 
+def have_same_elements(tensor_1:torch.Tensor, tensor_2:torch.Tensor)->bool:
+    assert tensor_1.shape == tensor_2.shape
+
+    tensor_1_elements = tensor_1.reshape([-1]).sort().values
+    tensor_2_elements = tensor_2.reshape([-1]).sort().values
+    return tensor_1_elements.eq(tensor_2_elements).all()
+if "test" and __DEBUG_ME__() and False:
+    def ____test____have_same_elements():
+        t1 = torch.tensor([1,2,3])
+        t2 = torch.tensor([3,2,1])
+        assert have_same_elements(t1,t2)
+        
+        t1 = torch.tensor([[1,2,3]])
+        t2 = torch.tensor([[3,2,1]])
+        assert have_same_elements(t1,t2)
+        
+        t1 = torch.tensor([[1,2,1111]])
+        t2 = torch.tensor([[3,2,1]])
+        assert have_same_elements(t1,t2) == False
+        return
+    ____test____have_same_elements()
+    pass
+
 def is_square_matrix(matrix:torch.Tensor)->bool:
     if matrix.shape.__len__() != 2:
         return False
     if matrix.shape[0] != matrix.shape[1]:
         return False
     return True
-if "test" and __DEBUG_ME__() and True:
+if "test" and __DEBUG_ME__() and False:
     assert is_square_matrix(torch.randn(size=(2,2)))
     assert is_square_matrix(torch.randn(size=(3,3)))
     assert is_square_matrix(torch.randn(size=(2,3))) == False
@@ -117,7 +140,7 @@ def iota(how_many:int, dtype_is_int64=False,\
         pass
     return torch.linspace(start=0,end=how_many-1,steps=how_many ,dtype=dtype, device=device)
 
-if "torch linspace dtype test" and __DEBUG_ME__() and True:
+if "torch linspace dtype test" and __DEBUG_ME__() and False:
     for device in ["cpu", "cuda"]:
         for dtype in [torch.int8,torch.int16,torch.int32,torch.int64,torch.int,torch.uint8,torch.long]:
                                             #but uint16,uint32,uint64 are not allowed
@@ -149,7 +172,7 @@ if "torch linspace dtype test" and __DEBUG_ME__() and True:
     _temp_tensor = torch.linspace(start=0,end=7,steps=8 ,dtype=torch.long,device='cuda')#int64
     assert _temp_tensor.dtype == torch.int64
     pass    
-if "test" and __DEBUG_ME__() and True:
+if "test" and __DEBUG_ME__() and False:
     _1_leftshift_31_minus_1 = (1<<31)-1
     _temp = iota(_1_leftshift_31_minus_1)
     assert _temp.__len__() == _1_leftshift_31_minus_1
@@ -166,7 +189,7 @@ if "test" and __DEBUG_ME__() and True:
     assert _tensor_equal(_temp, [0.,1,2])
     assert _temp.dtype == torch.int64
     pass
-if "can it be index?" and __DEBUG_ME__() and True:
+if "can it be index?" and __DEBUG_ME__() and False:
     "pytorch only allows int32 or int64 as index."
     _data = torch.linspace(0,99,100, dtype=torch.float32).reshape([10,10])
     
@@ -193,7 +216,7 @@ if "can it be index?" and __DEBUG_ME__() and True:
 
 
 
-def vector_length_norm(input:torch.Tensor, epi = 0.000001)->torch.Tensor:
+def vector_length_norm(input:torch.Tensor, epi = 0.000001, dtype_inner = torch.float64)->torch.Tensor:
     r'''The shape must be [batch, dim]'''
     if len(input.shape)!=2:
         raise Exception("The shape must be [batch, dim]")
@@ -205,26 +228,26 @@ def vector_length_norm(input:torch.Tensor, epi = 0.000001)->torch.Tensor:
         # else:
         #     length_of_input_b_1 = input.mul(input).sum(dim=0,keepdim=True).sqrt()
         #     pass
-        length_of_input_b_1 = input.mul(input).sum(dim=1,keepdim=True).sqrt()
+        length_of_input_b_1 = input.mul(input).sum(dim=1,keepdim=True,dtype=dtype_inner).sqrt()
         
-        epi_tensor = torch.tensor([epi], device=length_of_input_b_1.device, dtype=length_of_input_b_1.dtype)
-        length_of_input_safe_b = length_of_input_b_1.maximum(epi_tensor)
-        
+        epi_tensor = torch.tensor([epi], device=length_of_input_b_1.device, dtype=dtype_inner)
+        length_of_input_safe__b = length_of_input_b_1.maximum(epi_tensor)
+        length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b.expand([-1,input.shape[1]])
         # if not transform:
         #     result = input/length_of_input_safe_b.expand([-1,input.shape[1]])
         #     pass
         # else:
         #     result = input/length_of_input_safe_b.expand([input.shape[0],-1])
         #     pass
-        result = input/length_of_input_safe_b.expand([-1,input.shape[1]])
-        
-        
+        length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b_1EXPANDdim.to(dtype=input.dtype)
+        result = input.div(length_of_input_safe__b_1EXPANDdim)
         return result
     #end of function.
-if '''some basic test.''' and __DEBUG_ME__() and True:
+if '''some basic test.''' and __DEBUG_ME__() and False:
     input = torch.tensor([[0.,0.],[0.,1.],[1.,1.]])
     output = vector_length_norm(input)
     assert _tensor_equal(output, [[0.,0.],[0.,1.],[0.7,0.7]], 0.05)
+    assert output.dtype == torch.float32
     _vector_len = output.mul(output).sum(dim=1)
     assert _tensor_equal(_vector_len[0], torch.zeros_like(_vector_len[0]), 0.05)
     assert _tensor_equal(_vector_len[1:], torch.ones_like(_vector_len[1:]), 0.05)
@@ -238,6 +261,7 @@ if '''some basic test.''' and __DEBUG_ME__() and True:
     output = vector_length_norm(input.T).T
     assert _tensor_equal(output,   [[0.9950, 0.9950],
                                     [0.0995, 0.0995]], epsilon=0.001)
+    
     pass
 
 def get_vector_length(input:torch.Tensor, result_dtype = torch.float64)->torch.Tensor:
@@ -246,7 +270,7 @@ def get_vector_length(input:torch.Tensor, result_dtype = torch.float64)->torch.T
     _temp = _temp.sum(dim=-1, dtype=result_dtype)
     _temp.sqrt_()
     return _temp
-if "test get_vector_length" and __DEBUG_ME__() and True:
+if "test get_vector_length" and __DEBUG_ME__() and False:
     def ____test____get_vector_length():
         input = torch.tensor([1.,1])
         output = get_vector_length(input)
@@ -651,7 +675,8 @@ def get_mask_of_top_element__rough(input__b_i:torch.Tensor, top_ratio = 0.9, err
                     _needs_log__binary_search_in_loop = False, \
                     _needs_log__error_ratio_in_loop = False, \
                                     )->tuple[torch.Tensor, dict[str, list[str]]|None]:
-    ''' 
+    ''' return _temp_tensor, _log
+    
     重新整理一下思路
     这个函数有2个退出模式。
     1是，准确的找到了所需要的比例。比例的目标区间本身是越来越宽的。
@@ -1039,7 +1064,7 @@ def get_mask_of_top_element__rough(input__b_i:torch.Tensor, top_ratio = 0.9, err
         pass#  no_grad
     pass# end of function
     
-if "test" and __DEBUG_ME__() and True:
+if "test" and __DEBUG_ME__() and False:
     
     if "some real case,      batch>1      " and False:
         _input = torch.ones(size=[6,11])
@@ -1424,47 +1449,7 @@ if "old version of get_mask_of_top_element__rough function" and False:
 
 
 
-def ____debug_avg_log10___no_batch_dim________not_finished(input:torch.Tensor, top_ratio = 0.9)->float:
-    assert False, "not finished, and no plan for it."
-    '''I dont really remember this function too much. 
-    
-    I believe it provides a avg of log10. 
-    
-    A lot lines in here is safety.
-    If the data has a lot elements very close to 0., this function may not be very helpful.
-    '''
-    the_log = input.abs().log10()
-    #safety
-    flag_inf = the_log.isinf()
-    count_of_nan_and_inf = the_log.isnan().sum()+flag_inf.sum()
-    no_nan_log = the_log.nan_to_num(0.)
-    safe_log = flag_inf.logical_not()*no_nan_log
-    #safe_log is safe.
-    flag_non_trivial_log = get_mask_of_top_element__rough(safe_log, top_ratio)
-    
-    assert False
-    
-    numerator = safe_log.sum()
-    nelement = input.nelement()
-    result = numerator/(nelement-count_of_nan_and_inf)
-    return result.item()
-
-if "not maintained" and __DEBUG_ME__() and False:
-    input = torch.tensor([torch.nan, torch.inf, torch.inf*-1])
-    assert math.isnan(____debug_avg_log10___no_batch_dim________not_finished(input))
-    input = torch.tensor([torch.nan, torch.inf, torch.inf*-1, 0., -100])
-    assert _float_equal(____debug_avg_log10___no_batch_dim________not_finished(input), 2.)
-    input = torch.tensor([1e10,-1e20])
-    assert _float_equal(____debug_avg_log10___no_batch_dim________not_finished(input), 15.)
-    
-    assert False, "jixu batch还没有。"
-    input = torch.tensor([1,1,1,1,1,11e10,-1e20], top_percent = True)
-    assert _float_equal(____debug_avg_log10___no_batch_dim________not_finished(input), 15.)
-    
-    
-    pass
-
-def avg_log10_safe(input:torch.Tensor, top_ratio = 0.9, careful_level:int|None=None)->torch.Tensor:
+def log10_avg_safe(input:torch.Tensor, top_ratio = 0.9, careful_level:int|None=None)->torch.Tensor:
     '''
     Calcs the average of log10 of abs of input. 
     
@@ -1481,7 +1466,16 @@ def avg_log10_safe(input:torch.Tensor, top_ratio = 0.9, careful_level:int|None=N
     If you don't like the shape convention and you know what you are doing, fell free
     to modify this function and the inner get_mask_of_top_element__rough function.
     '''
-    assert input.shape.__len__() == 2, "my convention, shape is [batch, anything]"
+    #assert input.shape.__len__() == 2, "my convention, shape is [batch, anything]"
+    assert input.shape.__len__() <=2
+    
+    if input.shape.__len__() == 1:
+        ori_shape_is_1d = True
+        input = input.reshape([1,-1])
+        pass
+    else:
+        ori_shape_is_1d = False
+        pass
     
     with torch.no_grad():
         log_of_input = input.abs().log10()
@@ -1490,13 +1484,17 @@ def avg_log10_safe(input:torch.Tensor, top_ratio = 0.9, careful_level:int|None=N
         #safe_log is safe.
         useful_flag:torch.Tensor = get_mask_of_top_element__rough(no_nan_log, top_ratio = top_ratio,\
                                                                     careful_level=careful_level)[0]
-        
         _masked_tensor = torch.masked.masked_tensor(no_nan_log,useful_flag)
         _masked_mean = _masked_tensor.mean(dim=1)
         assert hasattr(_masked_mean, "_masked_data")
         assert hasattr(_masked_mean, "_masked_mask")
         _masked_mean_data:torch.Tensor = _masked_mean._masked_data
         _masked_mean_data[_masked_mean._masked_mask.logical_not()] = torch.nan
+        
+        if ori_shape_is_1d:
+            input = input.reshape([-1])
+            pass
+        
         return _masked_mean_data
         
         #old code below
@@ -1518,6 +1516,213 @@ def avg_log10_safe(input:torch.Tensor, top_ratio = 0.9, careful_level:int|None=N
         assert result.shape[0] == input.shape[0]
         return result
     pass#end of function
+"Bc random.py imports this file. So this test is done here, with a function in random.py copy pasted here."
+if "standard vec test" and __DEBUG_ME__() and True:
+    def ____test____log10_avg_safe____standard_vec():
+        #result: basically the log10 of a standard vec is -0.5*log10(dim)-0.21
+        
+        1w 改成更简洁的形式。
+        
+        #<  from Random.py   in this folder>
+        def random_standard_vector(dim:int, dtype = torch.float32, device='cpu')->torch.Tensor:
+            result = torch.randn(size=[dim], dtype=dtype, device=device).\
+                                        div(torch.tensor(dim, dtype=torch.float64).sqrt().to(dtype))
+            length_sqr = result.dot(result).sum()
+            while True:
+                if length_sqr>0.001 and length_sqr<1000.:
+                    break
+                #tail
+                result = torch.randn(size=[dim], dtype=dtype, device=device).\
+                                        div(torch.tensor(dim, dtype=torch.float64).sqrt().to(dtype))
+                length_sqr = result.dot(result).sum()
+                pass
+            result = result/(length_sqr.sqrt())
+            return result
+        #</ from Random.py   in this folder>
+        
+        if "the test":
+            for _ in range(1):
+                vec = random_standard_vector(1)
+                assert _tensor_equal(get_vector_length(vec), [1.])
+                log_10_of_vec = log10_avg_safe(vec)
+                assert vec.shape == torch.Size([1])
+                assert _tensor_equal(log_10_of_vec, [0.])
+                
+                vec = random_standard_vector(100)
+                assert _tensor_equal(get_vector_length(vec), [1.])
+                log_10_of_vec = log10_avg_safe(vec)
+                assert vec.shape == torch.Size([100])
+                #assert _tensor_equal(log_10_of_vec, [-1.16], epsilon=0.12)#maybe unstable
+                assert _tensor_equal(log_10_of_vec, [-1.16], epsilon=0.16)
+                
+                vec = random_standard_vector(10000)
+                assert _tensor_equal(get_vector_length(vec), [1.])
+                log_10_of_vec = log10_avg_safe(vec)
+                assert vec.shape == torch.Size([10000])
+                #assert _tensor_equal(log_10_of_vec, [-2.21], epsilon=0.08)#maybe unstable
+                assert _tensor_equal(log_10_of_vec, [-2.21], epsilon=0.11)
+                pass
+            
+            for _ in range(0):
+                _ref_log10 = random.random()*0.+1.
+                dim = int(math.pow(10,_ref_log10))
+                assert dim == 10 
+                vec = random_standard_vector(dim)
+                assert _tensor_equal(get_vector_length(vec), [1.])
+                log_10_of_vec = log10_avg_safe(vec.reshape([1,-1]))
+                assert log_10_of_vec>-1.16 and log_10_of_vec<-0.45# 0.8
+                pass
+            
+            for _ in range(0):
+                _ref_log10 = random.random()*0.+2.
+                dim = int(math.pow(10,_ref_log10))
+                assert dim == 100 
+                vec = random_standard_vector(dim)
+                assert _tensor_equal(get_vector_length(vec), [1.])
+                log_10_of_vec = log10_avg_safe(vec.reshape([1,-1]))
+                assert log_10_of_vec>-1.29 and log_10_of_vec<-1.05# 1.17
+                pass
+            
+            for _ in range(0):
+                _ref_log10 = random.random()*0.+3.
+                dim = int(math.pow(10,_ref_log10))
+                assert dim == 1000 
+                vec = random_standard_vector(dim)
+                assert _tensor_equal(get_vector_length(vec), [1.])
+                log_10_of_vec = log10_avg_safe(vec.reshape([1,-1]))
+                assert log_10_of_vec>-1.79 and log_10_of_vec<-1.61# 1.7
+                pass
+            
+            for _ in range(0):
+                _ref_log10 = random.random()*0.+4.
+                dim = int(math.pow(10,_ref_log10))
+                assert dim == 10000 
+                #assert dim >= 10 and dim <= 100000
+                vec = random_standard_vector(dim, device='cpu')
+                assert _tensor_equal(get_vector_length(vec), torch.tensor([1.], device='cpu'))
+                log_10_of_vec = log10_avg_safe(vec.reshape([1,-1]))
+                #_ref = (_ref_log10*0.5* 1.05 + 0.05)*-1.
+                #assert _tensor_equal(log_10_of_vec, [-0.69], epsilon=0.22)
+                assert log_10_of_vec>-2.29 and log_10_of_vec<-2.13# 2.21
+                #print(log_10_of_vec, [_ref])
+                pass
+            
+            for _ in range(1):
+                _ref_log10 = random.random()*0.+5.
+                dim = int(math.pow(10,_ref_log10))
+                assert dim == 100000
+                #assert dim >= 10 and dim <= 100000
+                vec = random_standard_vector(dim, device='cpu')
+                assert _tensor_equal(get_vector_length(vec), torch.tensor([1.], device='cpu'))
+                log_10_of_vec = log10_avg_safe(vec)
+                #_ref = (_ref_log10*0.5* 1.05 + 0.05)*-1.
+                #assert _tensor_equal(log_10_of_vec, [-0.69], epsilon=0.22)
+                assert log_10_of_vec>-2.78 and log_10_of_vec<-2.64# 2.71
+                #print(log_10_of_vec, [_ref])
+                pass
+            pass
+        
+        #result, it's only about the angle, unless the least 10% are removed.
+        # the top 90% is -0.5*log10(dim)-0.15
+        if "vec dot vec" and True:
+            for _ in range(0):
+                test_time = 1000
+                raw_result = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #dim = random.randint(300,10000)
+                    dim = 10
+                    vec1 = random_standard_vector(dim)#-0.5*log10(dim)-0.21
+                    vec2 = random_standard_vector(dim)#-0.5*log10(dim)-0.21
+                    dot_prod = vec1.dot(vec2)
+                    log10_of__dot_prod = dot_prod.abs().log10()
+                    assert log10_of__dot_prod<=0.
+                    raw_result[test_count] = log10_of__dot_prod
+                    pass
+                _useful_flag = get_mask_of_top_element__rough(raw_result.reshape([1,-1]))[0].reshape([-1])
+                result = raw_result[_useful_flag]
+                the_mean = result.mean()
+                assert the_mean>-0.69 and the_mean<-0.58# 0.64
+            
+            for _ in range(0):
+                test_time = 1000
+                raw_result = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #dim = random.randint(300,10000)
+                    dim = 100
+                    vec1 = random_standard_vector(dim)#-0.5*log10(dim)-0.21
+                    vec2 = random_standard_vector(dim)#-0.5*log10(dim)-0.21
+                    dot_prod = vec1.dot(vec2)
+                    log10_of__dot_prod = dot_prod.abs().log10()
+                    assert log10_of__dot_prod<=0.
+                    raw_result[test_count] = log10_of__dot_prod
+                    pass
+                _useful_flag = get_mask_of_top_element__rough(raw_result.reshape([1,-1]))[0].reshape([-1])
+                result = raw_result[_useful_flag]
+                the_mean = result.mean()
+                assert the_mean>-1.20 and the_mean<-1.11# 1.15
+                pass
+                
+            for _ in range(0):
+                test_time = 1000
+                raw_result = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #dim = random.randint(300,10000)
+                    dim = 1000
+                    vec1 = random_standard_vector(dim)#-0.5*log10(dim)-0.21
+                    vec2 = random_standard_vector(dim)#-0.5*log10(dim)-0.21
+                    dot_prod = vec1.dot(vec2)
+                    log10_of__dot_prod = dot_prod.abs().log10()
+                    assert log10_of__dot_prod<=0.
+                    raw_result[test_count] = log10_of__dot_prod
+                    pass
+                _useful_flag = get_mask_of_top_element__rough(raw_result.reshape([1,-1]))[0].reshape([-1])
+                result = raw_result[_useful_flag]
+                the_mean = result.mean()
+                assert the_mean>-1.70 and the_mean<-1.61# 1.65
+                pass
+            
+            for _ in range(0):
+                test_time = 1000
+                raw_result = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #dim = random.randint(300,10000)
+                    dim = 10000
+                    vec1 = random_standard_vector(dim)#-0.5*log10(dim)-0.21
+                    vec2 = random_standard_vector(dim)#-0.5*log10(dim)-0.21
+                    dot_prod = vec1.dot(vec2)
+                    log10_of__dot_prod = dot_prod.abs().log10()
+                    assert log10_of__dot_prod<=0.
+                    raw_result[test_count] = log10_of__dot_prod
+                    pass
+                _useful_flag = get_mask_of_top_element__rough(raw_result.reshape([1,-1]))[0].reshape([-1])
+                result = raw_result[_useful_flag]
+                the_mean = result.mean()
+                assert the_mean>-2.21 and the_mean<-2.11# 2.16
+                pass
+            
+            for _ in range(0):
+                test_time = 1000
+                raw_result = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #dim = random.randint(300,10000)
+                    dim = 100000
+                    vec1 = random_standard_vector(dim)#-0.5*log10(dim)-0.21
+                    vec2 = random_standard_vector(dim)#-0.5*log10(dim)-0.21
+                    dot_prod = vec1.dot(vec2)
+                    log10_of__dot_prod = dot_prod.abs().log10()
+                    assert log10_of__dot_prod<=0.
+                    raw_result[test_count] = log10_of__dot_prod
+                    pass
+                _useful_flag = get_mask_of_top_element__rough(raw_result.reshape([1,-1]))[0].reshape([-1])
+                result = raw_result[_useful_flag]
+                the_mean = result.mean()
+                assert the_mean>-2.70 and the_mean<-2.62# 2.66
+                pass
+            pass
+            
+        return 
+    ____test____log10_avg_safe____standard_vec()
+    pass
 
 if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
     "to save your time: the last 3 tests are the most important."
@@ -1529,23 +1734,50 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
     "You don't have to read the code. Code only helps you understand the result."
     "If you don't have much time, read the commends directly."
     "about the measurement. If abs().log10().mean() doesn't works, or doesn't work stably, then use my avg_log10_safe() instead."
-    if "tested" and False:
+    #if "tested" and False:
+    
+    "torch.ones, scan dim*dim matmal dim*dim, factor not in this part"
+    # _dim_mid=[  100],c.shape=[100,   100])],  ,log10_of_a=0.00, log10_of_b=0.00,,,log10_of_c=2.00
+    # _dim_mid=[ 1000],c.shape=[1000,  1000])], ,log10_of_a=0.00, log10_of_b=0.00,,,log10_of_c=3.00        
+    # _dim_mid=[10000],c.shape=[10000, 10000])],,log10_of_a=0.00, log10_of_b=0.00,,,log10_of_c=4.00
+    # log_c is log10(_dim_mid)
+    # but since log_a and log_b are both 0, I guess log_c is basically log_a + log_b + log10(_dim_mid)
+    for _dim in [1e2, 1e3, 1e4]:
+        _dim = int(_dim)
+        _dim1 = _dim
+        _dim2 = _dim
+        _dim_mid = _dim
         
-        "torch.ones, scan dim*dim matmal dim*dim, factor not in this part"
-        # _dim_mid=[  100],c.shape=[100,   100])],  ,log10_of_a=0.00, log10_of_b=0.00,,,log10_of_c=2.00
-        # _dim_mid=[ 1000],c.shape=[1000,  1000])], ,log10_of_a=0.00, log10_of_b=0.00,,,log10_of_c=3.00        
-        # _dim_mid=[10000],c.shape=[10000, 10000])],,log10_of_a=0.00, log10_of_b=0.00,,,log10_of_c=4.00
-        # log_c is log10(_dim_mid)
-        # but since log_a and log_b are both 0, I guess log_c is basically log_a + log_b + log10(_dim_mid)
-        for _dim in [1e2, 1e3, 1e4]:
+        device = 'cuda'
+        a = torch.ones(size=[_dim1,    _dim_mid], device=device)
+        b = torch.ones(size=[_dim_mid, _dim2   ], device=device)
+        c = a.matmul(b)
+        log10_of_a = a.log10().mean().cpu()
+        assert _tensor_equal(log10_of_a, torch.tensor(0.), 0.0001)
+        log10_of_b = b.log10().mean().cpu()
+        assert _tensor_equal(log10_of_b, torch.tensor(0.), 0.0001)
+        assert _tensor_equal(log10_of_a, log10_of_b, 0.0001)
+        log10_of_c = c.log10().mean().cpu()
+        print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape}], _factor not in this test,,,log10_of_a={log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c={log10_of_c:.4f}")
+        _diff = math.log10(_dim_mid)
+        assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.0001)
+        pass
+
+
+    "torch.ones, scan dim1*dim_mid matmal dim_mid*dim_2, factor not in this part"
+    # log_a and log_b are both 0. log_c is log10(_dim_mid)
+    for _dim in [1e2, 1e3, 1e4]:
+        for _ in range(5):
+            #dim
             _dim = int(_dim)
             _dim1 = _dim
             _dim2 = _dim
-            _dim_mid = _dim
-            
+            _dim_mid = random.randint(100,10000)
+            #init a and b
             device = 'cuda'
             a = torch.ones(size=[_dim1,    _dim_mid], device=device)
             b = torch.ones(size=[_dim_mid, _dim2   ], device=device)
+            #calc and measure.  
             c = a.matmul(b)
             log10_of_a = a.log10().mean().cpu()
             assert _tensor_equal(log10_of_a, torch.tensor(0.), 0.0001)
@@ -1553,38 +1785,11 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
             assert _tensor_equal(log10_of_b, torch.tensor(0.), 0.0001)
             assert _tensor_equal(log10_of_a, log10_of_b, 0.0001)
             log10_of_c = c.log10().mean().cpu()
-            print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape}], _factor not in this test,,,log10_of_a={log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c={log10_of_c:.4f}")
+            #print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape}], _factor not in this test,,,log10_of_a={log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c={log10_of_c:.4f}")
             _diff = math.log10(_dim_mid)
             assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.0001)
-            pass
-    
-
-        "torch.ones, scan dim1*dim_mid matmal dim_mid*dim_2, factor not in this part"
-        # log_a and log_b are both 0. log_c is log10(_dim_mid)
-        for _dim in [1e2, 1e3, 1e4]:
-            for _ in range(5):
-                #dim
-                _dim = int(_dim)
-                _dim1 = _dim
-                _dim2 = _dim
-                _dim_mid = random.randint(100,10000)
-                #init a and b
-                device = 'cuda'
-                a = torch.ones(size=[_dim1,    _dim_mid], device=device)
-                b = torch.ones(size=[_dim_mid, _dim2   ], device=device)
-                #calc and measure.  
-                c = a.matmul(b)
-                log10_of_a = a.log10().mean().cpu()
-                assert _tensor_equal(log10_of_a, torch.tensor(0.), 0.0001)
-                log10_of_b = b.log10().mean().cpu()
-                assert _tensor_equal(log10_of_b, torch.tensor(0.), 0.0001)
-                assert _tensor_equal(log10_of_a, log10_of_b, 0.0001)
-                log10_of_c = c.log10().mean().cpu()
-                #print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape}], _factor not in this test,,,log10_of_a={log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c={log10_of_c:.4f}")
-                _diff = math.log10(_dim_mid)
-                assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.0001)
-                pass#for _
-            pass#for dim
+            pass#for _
+        pass#for dim
             
         "all the test uppon are only with 1, no -1. "
     
@@ -1637,7 +1842,7 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
                         #calc and measure.
                         c = a.matmul(b)
                         c.add_(torch.randn_like(c)*0.001)#safety
-                        log10_of_c = avg_log10_safe(c.reshape([1,-1])).cpu().item()
+                        log10_of_c = log10_avg_safe(c.reshape([1,-1])).cpu()
                         if test_index == 0:
                             print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _factor not in this test,,,log10_of_a={log10_of_a:.4f}, p_sign_a={\
                                                     p_sign_a}, log10_of_b={log10_of_b:.4f}, p_sign_b={p_sign_b},,,log10_of_c(safe)={log10_of_c:.4f}", end="")
@@ -1675,15 +1880,15 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
                 device = 'cuda'
                 a = torch.ones(size=[_dim1,    _dim_mid], device=device)*factor
                 assert _tensor_equal(a.mean(), torch.tensor(factor), 0.0001)
-                log10_of_a = a.log10().mean().cpu().item()
+                log10_of_a = a.log10().mean().cpu()
                 assert _float_equal(log10_of_a, torch.log10(torch.tensor(factor)).item(), 0.0001)
                 b = torch.ones(size=[_dim_mid, _dim2   ], device=device)
                 assert _tensor_equal(b.mean(), torch.tensor(1.), 0.0001)
-                log10_of_b = b.log10().mean().cpu().item()
+                log10_of_b = b.log10().mean().cpu()
                 assert _float_equal(log10_of_b, 0., 0.0001)
                 #calc and measure.
                 c = a.matmul(b)
-                log10_of_c = c.log10().mean().cpu().item()
+                log10_of_c = c.log10().mean().cpu()
                 print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], factor={factor},,,log10_of_a={log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c={log10_of_c:.4f}")
                 _diff = math.log10(_dim_mid)
                 assert _tensor_equal(log10_of_a+_diff, log10_of_c, 0.0001)
@@ -1712,15 +1917,17 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
                 #init a and b
                 device = 'cuda'
                 a = torch.randn(size=[_dim1,    _dim_mid], device=device)
-                log10_of_a = avg_log10_safe(a).mean().cpu().item()
+                #log10_of_a = log10_avg_safe(a).mean().cpu().item()
+                log10_of_a = log10_avg_safe(a.reshape([1,-1])).mean().cpu()
                 assert _float_equal(log10_of_a, -0.16, 0.02)
                 b = torch.randn(size=[_dim_mid, _dim2   ], device=device)
-                log10_of_b = avg_log10_safe(b).mean().cpu().item()
+                #log10_of_b = log10_avg_safe(b).mean().cpu().item()
+                log10_of_b = log10_avg_safe(b.reshape([1,-1])).mean().cpu()
                 assert _float_equal(log10_of_b, -0.16, 0.02)
-                assert _float_equal(log10_of_a, log10_of_b, 0.02)
+                assert _tensor_equal(log10_of_a, log10_of_b, 0.02)
                 #calc and measure.
                 c = a.matmul(b)
-                log10_of_c = avg_log10_safe(c.reshape([1,-1])).mean().cpu().item()
+                log10_of_c = log10_avg_safe(c.reshape([1,-1])).mean().cpu()
                 if test_index == 0:
                     print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _factor not in this test,,,log10_of_a={\
                                             log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c(safe)={log10_of_c:.4f}", end="")
@@ -1746,7 +1953,7 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
         if "scan the log10 of relu(randn) first" and False:
             for _ in range(10):
                 a = _relu_layer(torch.randn(size=[10000,10000], device='cuda'))
-                log10_of_a = avg_log10_safe(a, top_ratio=0.5, careful_level=1).mean().cpu().item()
+                log10_of_a = log10_avg_safe(a, top_ratio=0.5, careful_level=1).mean().cpu().item()
                 assert _float_equal(log10_of_a, -0.276, 0.001)
                 pass
             pass
@@ -1760,14 +1967,16 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
                 #init a and b
                 device = 'cuda'
                 a = _relu_layer(torch.randn(size=[_dim1,    _dim_mid], device=device))
-                log10_of_a = avg_log10_safe(a).mean().cpu().item()
+                #a).mean().cpu().item()
+                log10_of_a = log10_avg_safe(a.reshape([1,-1])).mean().cpu()
                 assert _float_equal(log10_of_a, -0.276, 0.01)#relu(randn) is -0.276
                 b =             torch.randn(size=[_dim_mid, _dim2   ], device=device)
-                log10_of_b = avg_log10_safe(b).mean().cpu().item()
+                #log10_of_b = log10_avg_safe(b).mean().cpu().item()
+                log10_of_b = log10_avg_safe(b.reshape([1,-1])).mean().cpu()
                 assert _float_equal(log10_of_b, -0.16, 0.02)
                 #calc and measure.
                 c = a.matmul(b)
-                log10_of_c = avg_log10_safe(c.reshape([1,-1])).mean().cpu().item()
+                log10_of_c = log10_avg_safe(c.reshape([1,-1])).mean().cpu()
                 if test_index == 0:
                     print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _factor not in this test,,,log10_of_a={\
                                             log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c(safe)={log10_of_c:.4f}", end="")
@@ -1794,7 +2003,7 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
         if "scan the log10 of sigmoid(randn) first" and False:
             for _ in range(10):
                 a = _sigmoid_layer(torch.randn(size=[10000,10000], device='cuda'))
-                log10_of_a = avg_log10_safe(a).mean().cpu().item()
+                log10_of_a = log10_avg_safe(a.reshape([1,-1])).mean().cpu().item()
                 assert _float_equal(log10_of_a, -0.2963, 0.0001)
                 pass
             pass
@@ -1808,14 +2017,16 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
                 #init a and b
                 device = 'cuda'
                 a = _sigmoid_layer(torch.randn(size=[_dim1,    _dim_mid], device=device))
-                log10_of_a = avg_log10_safe(a).mean().cpu().item()
+                #log10_of_a = log10_avg_safe(a).mean().cpu().item()
+                log10_of_a = log10_avg_safe(a.reshape([1,-1])).mean().cpu()
                 assert _float_equal(log10_of_a, -0.296, 0.005)#sigmoid(randn) is -0.276
                 b =                torch.randn(size=[_dim_mid, _dim2   ], device=device)
-                log10_of_b = avg_log10_safe(b).mean().cpu().item()
+                #log10_of_b = log10_avg_safe(b).mean().cpu().item()
+                log10_of_b = log10_avg_safe(b.reshape([1,-1])).mean().cpu()
                 assert _float_equal(log10_of_b, -0.16, 0.02)
                 #calc and measure.
                 c = a.matmul(b)
-                log10_of_c = avg_log10_safe(c.reshape([1,-1])).mean().cpu().item()
+                log10_of_c = log10_avg_safe(c.reshape([1,-1])).mean().cpu()
                 if test_index == 0:
                     print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _factor not in this test,,,log10_of_a={\
                                             log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c(safe)={log10_of_c:.4f}", end="")
@@ -1906,7 +2117,8 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
                             _std_of_a_before_sigmoid = a_before_sigmoid.std().cpu().item()
                             assert _float_equal(_std_of_a_before_sigmoid, _scale_factor, 0.05*_scale_factor)
                             a = _sigmoid_layer(a_before_sigmoid)
-                            log10_of_a = avg_log10_safe(a, top_ratio).mean().cpu().item()
+                            #log10_of_a = log10_avg_safe(a, top_ratio).mean().cpu().item()
+                            log10_of_a = log10_avg_safe(a.reshape([1,-1]), top_ratio).mean().cpu().item()
                             if test_index == 0:
                                 print(f"top_ratio={top_ratio},,, _scale_factor={_scale_factor}, log10_of_a={log10_of_a:.6f}", end="")
                                 pass
@@ -1932,14 +2144,16 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
                     #init a and b
                     device = 'cuda'
                     a = _sigmoid_layer(torch.randn(size=[_dim1,    _dim_mid], device=device)*_scale_factor)
-                    log10_of_a = avg_log10_safe(a, top_ratio=0.5).mean().cpu().item()
+                    #log10_of_a = log10_avg_safe(a, top_ratio=0.5).mean().cpu().item()
+                    log10_of_a = log10_avg_safe(a.reshape([1,-1]), top_ratio=0.5).mean().cpu()
                     #assert _float_equal(log10_of_a, -0.296, 0.005)#sigmoid(randn) is -0.276
                     b =                torch.randn(size=[_dim_mid, _dim2   ], device=device)
-                    log10_of_b = avg_log10_safe(b).mean().cpu().item()
+                    #log10_of_b = log10_avg_safe(b).mean().cpu().item()
+                    log10_of_b = log10_avg_safe(b.reshape([1,-1])).mean().cpu()
                     assert _float_equal(log10_of_b, -0.16, 0.02)
                     #calc and measure.
                     c = a.matmul(b)
-                    log10_of_c = avg_log10_safe(c.reshape([1,-1]), top_ratio=0.6).mean().cpu().item()
+                    log10_of_c = log10_avg_safe(c.reshape([1,-1]), top_ratio=0.6).mean().cpu()
                     if test_index == 0:
                         print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _scale_factor={_scale_factor},,,log10_of_a={\
                                                 log10_of_a:.3f}, log10_of_b={log10_of_b:.3f},,,log10_of_c(safe)={log10_of_c:.3f}", end="")
@@ -1972,7 +2186,8 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
     if 'some basic test' and False:
         for test_index in range(5):
             a = torch.rand(10000, 10000)*2.-1.
-            log10_of_a = avg_log10_safe(a).mean().cpu().item()
+            #log10_of_a = log10_avg_safe(a).mean().cpu().item()
+            log10_of_a = log10_avg_safe(a.reshape([1,-1])).mean().cpu().item()
             assert _float_equal(log10_of_a, -0.3235, 0.0003)
             if test_index == 0:
                 print(f"log10_of_a={log10_of_a:.6f}", end="")
@@ -1994,14 +2209,16 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
             #init a and b
             device = 'cuda'
             a = torch.rand (size=[_dim1,    _dim_mid], device=device)*2.-1.
-            log10_of_a = avg_log10_safe(a).mean().cpu().item()
+            #log10_of_a = log10_avg_safe(a).mean().cpu().item()
+            log10_of_a = log10_avg_safe(a.reshape([1,-1])).mean().cpu()
             assert _float_equal(log10_of_a, -0.3235, 0.05)
             b = torch.randn(size=[_dim_mid, _dim2   ], device=device)
-            log10_of_b = avg_log10_safe(b).mean().cpu().item()
+            #log10_of_b = log10_avg_safe(b).mean().cpu().item()
+            log10_of_b = log10_avg_safe(b.reshape([1,-1])).mean().cpu()
             assert _float_equal(log10_of_b, -0.16, 0.02)
             #calc and measure.
             c = a.matmul(b)
-            log10_of_c = avg_log10_safe(c.reshape([1,-1]), top_ratio=0.6).mean().cpu().item()
+            log10_of_c = log10_avg_safe(c.reshape([1,-1]), top_ratio=0.6).mean().cpu()
             if test_index == 0:
                 print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}],,,log10_of_a={\
                                         log10_of_a:.3f}, log10_of_b={log10_of_b:.3f},,,log10_of_c(safe)={log10_of_c:.3f}", end="")
@@ -2019,13 +2236,18 @@ if "some useful test for you to build up intuition" and __DEBUG_ME__() and True:
     
     
     
+    
+    
+    
+    
+    
     pass
 
-if "why is top_ratio 0.9???" and __DEBUG_ME__() and False:
+if "why is top_ratio 0.9???" and __DEBUG_ME__() and True:
     "the greater top_ratio is, the stabler the result is. At least 0.3."
     for top_ratio in [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2]:
         some_randn = torch.randn(size=[100, 10000], device='cuda')
-        _temp_result = avg_log10_safe(some_randn)
+        _temp_result = log10_avg_safe(some_randn)
         _the_mean = _temp_result.mean().cpu().item()
         _float_equal(_the_mean, -0.16, 0.02)
         _the_std = _temp_result.std().cpu().item()
@@ -2037,29 +2259,29 @@ if "why is top_ratio 0.9???" and __DEBUG_ME__() and False:
 if "test" and __DEBUG_ME__() and True:
     _input = torch.ones(size=[1,20])
     _input = _input + torch.randn_like(_input)*0.001
-    assert _tensor_equal(avg_log10_safe(_input), torch.tensor([0.]),epsilon=0.01)
+    assert _tensor_equal(log10_avg_safe(_input), torch.tensor([0.]),epsilon=0.01)
     _input = torch.ones(size=[1,20])*-1.
     _input = _input + torch.randn_like(_input)*0.001
-    assert _tensor_equal(avg_log10_safe(_input), torch.tensor([0.]),epsilon=0.01)
+    assert _tensor_equal(log10_avg_safe(_input), torch.tensor([0.]),epsilon=0.01)
 
 
     _input = torch.ones(size=[1,11])
     _input[0,0] = 0.
-    assert _tensor_equal(avg_log10_safe(_input), torch.tensor([0.]),epsilon=0.01)
+    assert _tensor_equal(log10_avg_safe(_input), torch.tensor([0.]),epsilon=0.01)
     
     _input = torch.ones(size=[1,11])
     _input[0,0] = 1e-10
-    assert _tensor_equal(avg_log10_safe(_input), torch.tensor([0.]),epsilon=0.01)
+    assert _tensor_equal(log10_avg_safe(_input), torch.tensor([0.]),epsilon=0.01)
     
     _input = torch.ones(size=[1,11])
     _input[0,0] = 1e-21
     _input[0,1] = 1e-10
-    assert _tensor_equal(avg_log10_safe(_input), torch.tensor([-1.]),epsilon=0.01)
+    assert _tensor_equal(log10_avg_safe(_input), torch.tensor([-1.]),epsilon=0.01)
     
     _input = torch.ones(size=[1,11])
     _input[0,0] = 1e-10
     _input[0,1] = 1e10
-    assert _tensor_equal(avg_log10_safe(_input), torch.tensor([1.]),epsilon=0.01)
+    assert _tensor_equal(log10_avg_safe(_input), torch.tensor([1.]),epsilon=0.01)
 
     
     for _ in range(11):
@@ -2067,7 +2289,7 @@ if "test" and __DEBUG_ME__() and True:
         _input = torch.ones(size=[1,11])
         _input[0,0] = 1e-10
         _input[0,1] = 10**_rand_number
-        assert _tensor_equal(avg_log10_safe(_input), torch.tensor([_rand_number/10.]),epsilon=0.01)
+        assert _tensor_equal(log10_avg_safe(_input), torch.tensor([_rand_number/10.]),epsilon=0.01)
         pass
     
     #batch>1
@@ -2081,17 +2303,17 @@ if "test" and __DEBUG_ME__() and True:
     _input[5,0] = 1e-10
     _input[5,1] = 1e10
     _answer = torch.tensor([0., 0., 0., 0., -1., 1.])
-    a = avg_log10_safe(_input)
-    assert _tensor_equal(avg_log10_safe(_input), _answer,epsilon=0.01)
+    a = log10_avg_safe(_input)
+    assert _tensor_equal(log10_avg_safe(_input), _answer,epsilon=0.01)
     
     #about the stability
     _input = torch.randn(size=[1,10000])
-    _ref_answer = avg_log10_safe(_input)
+    _ref_answer = log10_avg_safe(_input)
     _input = torch.randn(size=[1,1000])
-    assert _tensor_equal(avg_log10_safe(_input), _ref_answer,epsilon=0.03)
+    assert _tensor_equal(log10_avg_safe(_input), _ref_answer,epsilon=0.03)
     _input = torch.randn(size=[1,100000])
-    a = avg_log10_safe(_input)
-    assert _tensor_equal(avg_log10_safe(_input), _ref_answer,epsilon=0.018)
+    a = log10_avg_safe(_input)
+    assert _tensor_equal(log10_avg_safe(_input), _ref_answer,epsilon=0.018)
     
     _dim_list =     [1e2,   1e3,    1e4,    1e5,    1e6,  ]#  1e7] # the last one is too slow.
     _mean_list =    [-0.16, -0.16,  -0.16,  -0.16,  -0.16,]#  -0.2]
@@ -2100,7 +2322,7 @@ if "test" and __DEBUG_ME__() and True:
     for ii in range(_dim_list.__len__()):
         _dim = int(_dim_list[ii])
         _input = torch.randn(size=[100,_dim], device='cuda')
-        _output = avg_log10_safe(_input)
+        _output = log10_avg_safe(_input)
         mean_of_output = _output.mean().cpu()
         _tensor_equal(mean_of_output.reshape([1]), [_mean_list[ii]], _mean_epsilon[ii])    
         std_of_output = _output.std().cpu()

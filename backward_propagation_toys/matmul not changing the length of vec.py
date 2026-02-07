@@ -24,9 +24,12 @@ import datetime
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, avg_log10_safe, \
-    get_mask_of_top_element__rough, iota, is_square_matrix, vector_length_norm, get_vector_length
+from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, \
+    iota, is_square_matrix, \
+    vector_length_norm, get_vector_length,\
+    log10_avg_safe, get_mask_of_top_element__rough
 from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_something_to_1
+from pytorch_yagaodirac_v2.Random import random_standard_vector, random_permutate, random_rotate
 
 import torch
 
@@ -38,60 +41,86 @@ def _line_():
     assert caller_s_line_number is not None
     return caller_s_line_number#######
 
+# 1w 所有测试里面把没有abs的结果也输出出来。读一下。
+# 1w 所有测试里面把没有abs的结果也输出出来。读一下。
+# 1w 所有测试里面把没有abs的结果也输出出来。读一下。
+# 1w 所有测试里面把没有abs的结果也输出出来。读一下。
+# 1w 所有测试里面把没有abs的结果也输出出来。读一下。
+# 1w 所有测试里面把没有abs的结果也输出出来。读一下。
+# randn出来的方阵的具体值，读一下。
+# randn出来的方阵的具体值，读一下。
+# randn出来的方阵的具体值，读一下。
+# randn出来的方阵的具体值，读一下。
+# randn出来的方阵的具体值，读一下。
+# randn出来的方阵的具体值，读一下。
+
 
 
 def LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(matrix:torch.Tensor,
-                                    test_time = 10, cap = 2.)->tuple[torch.Tensor,torch.Tensor]:
-    '''    return all_score.mean(),all_score
+                    test_time:int|None = None, cap = 2., filter_ratio = 0.9)->tuple[torch.Tensor,torch.Tensor]:
+    '''return score__len_sqr,score_log10_div2,score_log10_div2_abs
     
     The result is always >=0. The smaller the better.'''
     assert is_square_matrix(matrix)
+    dim = matrix.shape[0]
+    if test_time is None:
+        test_time=dim+30
+        pass
     assert test_time>=1
     assert cap>1.#at least >0
-    
-    the_device = matrix.device
-    all_score = torch.empty([test_time], device = the_device)
-    for epoch in range(test_time):
-        vec = torch.randn(size=[matrix.shape[0]], device = the_device)
-        while True:
-            ori_len_sqr = vec.dot(vec)
-            #too small or too large, reroll.
-            if ori_len_sqr<0.001 or ori_len_sqr>10000.:
-                vec = torch.randn(size=[matrix.shape[0]])
-                continue
-            break
-            pass#/while
-        __mul_me = ori_len_sqr.pow(-0.5)
-        vec.mul_(__mul_me)
-        assert _tensor_equal(vec.dot(vec), torch.tensor([1.], device=vec.device))
+    with torch.no_grad():
+        the_device = matrix.device
+        raw_score__len_sqr = torch.empty([test_time], device = the_device)
+        for epoch in range(test_time):
+            vec = torch.randn(size=[dim], device = the_device)
+            while True:
+                ori_len_sqr = vec.dot(vec)
+                #too small or too large, reroll.
+                if ori_len_sqr<0.001 or ori_len_sqr>10000.:
+                    vec = torch.randn(size=[dim])
+                    continue
+                break
+                pass#/while
+            __mul_me = ori_len_sqr.pow(-0.5)
+            vec.mul_(__mul_me)
+            assert _tensor_equal(vec.dot(vec), torch.tensor([1.], device=vec.device))
+            
+            #vec = vec.reshape(shape=[1,-1])
+            after_matmul = vec@matrix
+            new_len_sqr = after_matmul.dot(after_matmul)
+            
+            raw_score__len_sqr[epoch] = new_len_sqr
+            
+            #old
+            #score_of_this_epoch = new_len_sqr.log10().abs()/2.
+            #all_score[epoch] = score_of_this_epoch
+            pass#/ for
         
-        #vec = vec.reshape(shape=[1,-1])
-        after_matmul = vec@matrix
-        new_len_sqr = after_matmul.dot(after_matmul)
+        the_flag = get_mask_of_top_element__rough(raw_score__len_sqr.reshape([1,-1]),top_ratio=filter_ratio)
+        score__len_sqr = raw_score__len_sqr[the_flag]
+        score_log10_div2 = score__len_sqr.log10()/2.
+        score_log10_div2_abs = score_log10_div2.abs()
         
-        score_of_this_epoch = new_len_sqr.log10().abs()/2.
-        all_score[epoch] = score_of_this_epoch
-        pass#/ for
-    all_score = all_score.clamp_max_(cap)
-    all_score = all_score.clamp_min_(-cap)
-    all_score = all_score.cpu()
-    return all_score.mean(),all_score
-if "test" and False:
+        #old
+        # all_score = all_score.clamp_max_(cap)
+        # all_score = all_score.clamp_min_(-cap)
+        #all_score = all_score.cpu()
+        #return all_score.mean(),all_score
+        
+        return score__len_sqr,score_log10_div2,score_log10_div2_abs
+    pass#/function
+if "test" and __DEBUG_ME__() and True:
     def ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10():
-        #eye should be perfect.
-        if False:
+        import random,math
+        if "tested???" and False:
+            "eye is perfect"
             for size in range(3, 15):
                 for _ in range(5):
                     _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size),test_time=100)
                     assert _tensor_equal(_result_tuple[1], torch.zeros(size=[100]), epsilon=1e-6)
                     pass
                 pass
-            for size in range(3, 15):
-                for _ in range(5):
-                    _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size)*10. ,test_time=100)
-                    assert _tensor_equal(_result_tuple[1], torch.ones(size=[100]))
-                    pass
-                pass
+            "positive scale"
             for size in range(3, 15):
                 for _ in range(5):
                     _to_the_power = torch.rand(size=[1])*3.
@@ -102,6 +131,7 @@ if "test" and False:
                     assert _tensor_equal(_result_tuple[1], torch.ones(size=[100])*_to_the_power)
                     pass
                 pass
+            "negative scale"
             for size in range(3, 15):
                 for _ in range(5):
                     _to_the_power = torch.rand(size=[1])*-3.
@@ -112,25 +142,169 @@ if "test" and False:
                     assert _tensor_equal(_result_tuple[1], torch.ones(size=[100])*-_to_the_power)
                     pass
                 pass
+            
+            #rotation should also be perfect. This test is done in the rand_basic_ratation_matrix's test
         
         
-        #rotation should also be perfect. This test is done in the rand_basic_ratation_matrix's test
         
+        
+        
+        dim = 5
+        rand = 0.1
+        rand_mat = torch.randn(size=[dim,dim])*rand
+        _log10_of__rand_mat = log10_avg_safe(rand_mat.reshape([1,-1]))#-0.16
+        vec = random_standard_vector(dim)
+        _log10_of__vec = log10_avg_safe(vec)#-0.5*log10(dim)-0.21
+        result_for_1 = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat1,test_time=100)[0]
+        assert result_for_1 < result_for_2
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        "unstable. idk why...."
+        accumulate_score = torch.tensor([0.])
+        for _ in range(116):
+            dim = random.randint(2,300)
+            rand = random.random()*0.1+0.1
+            rand_mat = torch.randn(size=[dim,dim])*rand
+            mat1 = torch.eye(n=dim)*math.cos(0.1)+rand_mat*math.sin(0.1)
+            mat2 = torch.eye(n=dim)*math.cos(0.2)+rand_mat*math.sin(0.2)
+            result_for_1 = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat1,test_time=100)[0]
+            result_for_2 = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat2,test_time=100)[0]
+            assert result_for_1 < result_for_2
+            accumulate_score += result_for_2 - result_for_1
+            pass
+        
+        1w
         
         #some affine matrix.
-        for _ in range(55):
-            mat = torch.eye(n=100)
-            mat[0,1] = 1.
-            _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat,test_time=100)
-            result_for_1 = _result_tuple[0]
-            mat = torch.eye(n=100)
-            mat[0,1] = 10.
-            _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat,test_time=100)
-            result_for_2 = _result_tuple[0]
-            assert result_for_2.gt(result_for_1) #theoretically unstable. But mostly cases it holds.
+        "unstable. idk why...."
+        for _ in range(155):
+            dim = random.randint(2,300)
+            rand = random.random()*0.1+0.1
+            mat1 = torch.eye(n=dim)
+            mat2 = torch.eye(n=dim)
+            mat1[0,1] = rand
+            mat2[0,1] = rand*1.1
+            result_for_1 = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat1,test_time=100)[0]
+            result_for_2 = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat2,test_time=100)[0]
+            assert result_for_1<result_for_2
             pass
         return 
     ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10()
+    pass
+
+def LOSS__behavior_similarity(input:torch.Tensor, target:torch.Tensor,
+                            test_time:int|None = None, cap = 2.)->torch.Tensor:
+    '''return angle_score, length_score_log_10
+    
+    The result is always >=0. The smaller the better.'''
+    assert is_square_matrix(input)
+    assert is_square_matrix(target)
+    dim = input.shape[0]
+    assert target.shape[0] == dim
+    if test_time is None:
+        test_time=dim+30
+        pass
+    assert test_time>=1
+    assert cap>1.#at least >0
+    with torch.no_grad():
+        the_device = input.device
+        angle_score = torch.empty([test_time], device = the_device)
+        length_score_log_10 = torch.empty([test_time], device = the_device)
+        for epoch in range(test_time):
+            vec = torch.randn(size=[dim], device = the_device)
+            while True:
+                ori_len_sqr = vec.dot(vec)
+                #too small or too large, reroll.
+                if ori_len_sqr<0.001 or ori_len_sqr>10000.:
+                    vec = torch.randn(size=[dim])
+                    continue
+                break
+                pass#/while
+            __mul_me = ori_len_sqr.pow(-0.5)
+            vec.mul_(__mul_me)
+            assert _tensor_equal(vec.dot(vec), torch.tensor([1.], device=vec.device))
+            
+            to_test = vec@input
+            as_ref = vec@target
+            
+            length_of_test = get_vector_length(to_test)
+            length_of_ref = get_vector_length(as_ref)
+            
+            ____temp = length_of_test.log10() - length_of_ref.log10()
+            length_score_log_10[epoch] = ____temp.abs()
+            
+            to_test.div_(length_of_test)
+            as_ref.div_(length_of_ref)
+            assert _tensor_equal(get_vector_length(to_test), [1.])
+            assert _tensor_equal(get_vector_length(as_ref), [1.])
+            
+            ____temp = to_test.dot(as_ref)
+            angle_score[epoch] = 1.-____temp
+            
+            pass#/ for
+        length_score_log_10 = length_score_log_10.clamp_max_(cap)
+        length_score_log_10 = length_score_log_10.clamp_min_(-cap)
+        #all_score = all_score.cpu()
+        return angle_score.mean(),length_score_log_10.mean()
+    pass#/function
+if "test" and __DEBUG_ME__() and True:
+    def ____test____LOSS__behavior_similarity():
+        
+        mat = torch.randn(size=[100,100])
+        angle_score, length_score_log_10 = LOSS__behavior_similarity(mat.detach().clone(), mat.detach().clone())
+        assert _tensor_equal(angle_score, [0.])
+        assert _tensor_equal(length_score_log_10, [0.])
+        "The score between 2 random matrix is 1.85 to 2.3, for any dimention. Tests below."
+        for dim in [10,100,1000,10000]:
+            mat1 = torch.randn(size=[dim,dim])
+            mat2 = torch.randn(size=[dim,dim])
+            angle_score, length_score_log_10 = LOSS__behavior_similarity(mat1,mat2)
+            print(dim, angle_score, length_score_log_10)
+            pass
+        
+        import math, random
+        for _ in range(166):
+            rand = random.random()-0.5
+            dim = random.randint(2,300)
+            mat1 = torch.randn(size=[dim,dim])
+            mat2 = mat1.detach().clone().mul(math.pow(10., rand))
+            angle_score, length_score_log_10 = LOSS__behavior_similarity(mat1,mat2)
+            assert _tensor_equal(angle_score, [0.])
+            assert _tensor_equal(length_score_log_10, [abs(rand)])
+            pass
+        
+        mat0 = torch.tensor([[1.,0],[0,1]])
+        mat1 = torch.tensor([[1.,0.1],[0,1]])
+        mat2 = torch.tensor([[1.,0.2],[0,1]])
+        bad___angle_score, bad___length_score_log_10 = LOSS__behavior_similarity(mat0,mat1)
+        worse_angle_score, worse_length_score_log_10 = LOSS__behavior_similarity(mat0,mat2)
+        assert bad___angle_score<worse_angle_score
+        assert bad___length_score_log_10<worse_length_score_log_10
+        
+        for _ in range(116):
+            rand = random.random()+0.001# >0.
+            dim = random.randint(2,300)
+            mat0 = torch.eye(n=dim)
+            mat0[0,1] = rand
+            mat1 = torch.eye(n=dim)
+            mat1[0,1] = rand*1.1
+            mat2 = torch.eye(n=dim)
+            mat2[0,1] = rand*1.2
+            bad___angle_score, bad___length_score_log_10 = LOSS__behavior_similarity(mat0,mat1)
+            worse_angle_score, worse_length_score_log_10 = LOSS__behavior_similarity(mat0,mat2)
+            assert bad___angle_score<=worse_angle_score
+            assert bad___length_score_log_10<worse_length_score_log_10
+            pass
+        return
+    ____test____LOSS__behavior_similarity()
     pass
 
 def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor)->tuple[torch.Tensor,torch.Tensor]:
@@ -151,9 +325,18 @@ def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor)->tuple[torch.Tenso
     angle_score = _temp___all_should_near_0.abs().mean()
     angle_score = angle_score*dim/(dim-1)
     return length_score, angle_score
-if "test" and __DEBUG_ME__() and False:
+if "test" and __DEBUG_ME__() and True:
     def ____test____LOSS__the_mat_is_standard_orthogonal():
         import math, random
+        "i dont remember the name, but it's orthogonal."
+        mat = torch.tensor([[1., 1, 1, 1],
+                            [1 , 1,-1,-1],
+                            [1 ,-1,-1, 1],
+                            [1 ,-1, 1,-1],])
+        _length_score, angle_score = LOSS__the_mat_is_standard_orthogonal(mat)
+        assert _tensor_equal(angle_score, [0])
+        
+        
         "eye is perfect in this test."
         for dim in [2,3,5,10,100,1000]:
             mat = torch.eye(n=dim)
@@ -276,112 +459,6 @@ if "test" and __DEBUG_ME__() and False:
         return
     ____test____LOSS__angle_similarity()
     pass
-
-
-
-def LOSS__behavior_similarity(input:torch.Tensor, target:torch.Tensor, test_time = 10)->torch.Tensor:
-    
-    
-    ''' ??????????????   return all_score.mean(),all_score
-    
-    The result is always >=0. The smaller the better.'''
-    assert is_square_matrix(input)
-    assert is_square_matrix(target)
-    assert test_time>=1
-    
-    the_device = input.device
-    all_score = torch.empty([test_time], device = the_device)
-    for epoch in range(test_time):
-        vec = torch.randn(size=[input.shape[0]], device = the_device)
-        while True:
-            ori_len_sqr = vec.dot(vec)
-            #too small or too large, reroll.
-            if ori_len_sqr<0.001 or ori_len_sqr>10000.:
-                vec = torch.randn(size=[input.shape[0]])
-                continue
-            break
-            pass#/while
-        __mul_me = ori_len_sqr.pow(-0.5)
-        vec.mul_(__mul_me)
-        assert _tensor_equal(vec.dot(vec), torch.tensor([1.], device=vec.device))
-        
-        
-        1w 两个分别乘，然后看方向和长度的相似性。分别返回。
-        
-        #vec = vec.reshape(shape=[1,-1])
-        after_matmul = vec@input
-        new_len_sqr = after_matmul.dot(after_matmul)
-        
-        score_of_this_epoch = new_len_sqr.log10().abs()/2.
-        all_score[epoch] = score_of_this_epoch
-        pass#/ for
-    all_score = all_score.clamp_max_(cap)
-    all_score = all_score.clamp_min_(-cap)
-    all_score = all_score.cpu()
-    return all_score.mean(),all_score
-    
-    
-    
-    
-    
-    
-    pass#/function
-if "test" and __DEBUG_ME__() and False:
-    def ____test____LOSS__angle_similarity():
-        1w 改
-        "The score between 2 random matrix is 1.85 to 2.3, for any dimention. Tests below."
-        for dim in [10,100,1000,10000]:
-            mat1 = torch.randn(size=[dim,dim])
-            mat2 = torch.randn(size=[dim,dim])
-            score = LOSS__angle_similarity(mat1,mat2)
-            print(dim, score)
-            pass
-        
-        import math, random
-        for _ in range(166):
-            dim = random.randint(2,300)
-            mat1 = torch.randn(size=[dim,dim])
-            mat2 = mat1.detach().clone().mul(1.3)
-            score = LOSS__angle_similarity(mat1,mat2)
-            assert _tensor_equal(score, [0.])
-            pass
-        
-        mat0 = torch.tensor([[1.,0],[0,1]])
-        mat1 = torch.tensor([[1.,0.1],[0,1]])
-        mat2 = torch.tensor([[1.,0.2],[0,1]])
-        score_small = LOSS__angle_similarity(mat0,mat1)
-        score_large = LOSS__angle_similarity(mat0,mat2)
-        assert score_small<score_large
-        
-        for _ in range(116):
-            rand = random.random()+0.001# >0.
-            dim = random.randint(2,300)
-            mat0 = torch.eye(n=dim)
-            mat0[0,1] = rand
-            mat1 = torch.eye(n=dim)
-            mat1[0,1] = rand*1.1
-            mat2 = torch.eye(n=dim)
-            mat2[0,1] = rand*1.2
-            score_small = LOSS__angle_similarity(mat0,mat1)
-            score_large = LOSS__angle_similarity(mat0,mat2)
-            assert score_small<=score_large
-            pass
-        return
-    ____test____LOSS__angle_similarity()
-    pass
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -571,12 +648,6 @@ if "____protection_hyper_param_scan" and False:
     ____protection_hyper_param_scan()
     pass
 
-
-
-
-
-
-
 def rand_basic_ratation_matrix(dim:int)->torch.Tensor:
     mat = torch.eye(n=dim)
     rand_deg = (torch.rand(size=[1])-0.5)*321.
@@ -619,48 +690,6 @@ if False:
     ____test____rand_basic_ratation_matrix()
     pass
 
-
-
-
-
-
-
-
-
-# if "some old code " and False:
-#     # row?
-#     _temp_len_sqr = matrix.mul(matrix).mean(dim=1)#mul and then sum, it's a dot.
-#     if "check it a lil bit":
-#         _temp_len_sqr__ref = matrix[0].dot(matrix[0]).div(DIM)
-#         assert _temp_len_sqr[0].eq(_temp_len_sqr__ref)
-#         pass
-#     #0.25 to 0.5 power
-#     mul_me = _temp_len_sqr.pow(-0.25)
-#     matrix.mul_(mul_me.reshape([-1,1]).expand([-1,DIM]))
-#     if "check it after modifying":
-#         _temp_len_sqr__after_modifying = matrix.mul(matrix).mean(dim=1)#mul and then sum, it's a dot.
-#         abs_log10__of_ori = _temp_len_sqr.log10().abs()
-#         abs_log10__of_after = _temp_len_sqr__after_modifying.log10().abs()
-#         better = abs_log10__of_ori.ge(abs_log10__of_after)
-#         assert better.to(torch.float32).mean()>0.9
-#         pass
-    
-#     # column?
-#     _temp_len_sqr = matrix.mul(matrix).mean(dim=0)#mul and then sum, it's a dot.
-#     if "check it a lil bit":
-#         _temp_len_sqr__ref = matrix[:,0].dot(matrix[:,0]).div(DIM)
-#         assert _temp_len_sqr[0].eq(_temp_len_sqr__ref)
-#         pass
-#     #0.25 to 0.5 power
-#     mul_me = _temp_len_sqr.pow(-0.25)
-#     matrix.mul_(mul_me.reshape([1,-1]).expand([DIM,-1]))
-#     if "check it after modifying":
-#         _temp_len_sqr__after_modifying = matrix.mul(matrix).mean(dim=0)#mul and then sum, it's a dot.
-#         abs_log10__of_ori = _temp_len_sqr.log10().abs()
-#         abs_log10__of_after = _temp_len_sqr__after_modifying.log10().abs()
-#         better = abs_log10__of_ori.ge(abs_log10__of_after)
-#         assert better.to(torch.float32).mean()>0.9
-#         pass
 
 
 
@@ -938,9 +967,6 @@ if "test" and False:
         return 
     ____test________old_code____correct_the_matrix___version_1()
     pass
-
-
-
 
 #matrix:torch.Tensor, lr = 0.3,correction_factor = 0.15, iter_count = 1,
 #dont_correct_length_with_error_prapagation = False, __debug__need_log = False)->tuple[torch.Tensor, list]:
@@ -1224,6 +1250,36 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, lr = 0.3,correction_fact
     #set the param back before return.
     matrix.requires_grad_(does_matrix_require_grad)
     return matrix, _log
+if "test" and __DEBUG_ME__() and True:
+    def ____test____correct_the_matrix___version_2():
+        dim = 3
+        better_count = 0
+        total_count = 0
+        for lr in [0.0001,0.0003,0.001,0.003,0.01,0.03,0.1,0.3,1,3,10,30,100,300]:
+            for cf in [0.01,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]:
+                for flag in [True, False]:
+                    mat_ori = torch.randn(size=[dim,dim])
+                    ori_measure = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat_after)[0]
+                    ori_length_score, ori_angle_score = LOSS__the_mat_is_standard_orthogonal(mat_after)
+                    
+                    _result_tuple_tl = correct_the_matrix___version_2(mat_ori.detach().clone(),
+                            lr = lr, correction_factor = cf, dont_correct_length_with_error_prapagation = flag)
+                    mat_after = _result_tuple_tl[0]
+                    after_measure = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat_after)[0]
+                    after_length_score, after_angle_score = LOSS__the_mat_is_standard_orthogonal(mat_after)
+                    if after_measure < ori_measure and \
+                        after_angle_score < ori_angle_score and \
+                        after_length_score < ori_length_score:
+                        better_count+=1
+                        pass
+                    total_count +=1
+                    pass#/for flag
+                pass#/for cf
+            pass#/for lr
+        print(better_count, total_count)
+        return 
+    ____test____correct_the_matrix___version_2()
+    pass
 
 if "____test____correct_the_matrix___version_2____length_correction" and __DEBUG_ME__() and False:
     import random, math
@@ -1330,7 +1386,6 @@ if "____test____correct_the_matrix___version_2____length_correction" and __DEBUG
         return 
     ____test____correct_the_matrix___version_2____length_correction()
     pass
-
 if "____test____correct_the_matrix___version_2____angle_correction" and __DEBUG_ME__() and True:
     def ____test____correct_the_matrix___version_2____angle_correction():
         import random, math
@@ -1452,10 +1507,10 @@ if "____test____correct_the_matrix___version_2____angle_correction" and __DEBUG_
                 assert _tensor_equal(x.grad, [0], epsilon=1e-3)
                 pass
             
-        
         return 
     ____test____correct_the_matrix___version_2____angle_correction()
         
+if "____test____correct_the_matrix___version_2____param_scan" and __DEBUG_ME__() and True:
     def ____test____correct_the_matrix___version_2____param_scan():
         "let's scan param a bit."
         #   dim    lr
