@@ -57,8 +57,11 @@ def _line_():
 
 
 def LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(matrix:torch.Tensor,
-                    test_time:int|None = None, cap = 2., filter_ratio = 0.9)->tuple[torch.Tensor,torch.Tensor]:
-    '''return score__len_sqr,score_log10_div2,score_log10_div2_abs
+                                        test_time:int|None = None, cap = 2., filter_ratio = 0.9)\
+                                                ->tuple[torch.Tensor,torch.Tensor,torch.Tensor]:
+    '''return score__len_sqr, score_log10_div2, score_log10_div2__abs
+    
+    the output size is smaller than input bc the filter_ratio.
     
     The result is always >=0. The smaller the better.'''
     assert is_square_matrix(matrix)
@@ -96,10 +99,10 @@ def LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(ma
             #all_score[epoch] = score_of_this_epoch
             pass#/ for
         
-        the_flag = get_mask_of_top_element__rough(raw_score__len_sqr.reshape([1,-1]),top_ratio=filter_ratio)
+        the_flag = get_mask_of_top_element__rough(raw_score__len_sqr.reshape([1,-1]),top_ratio=filter_ratio)[0].reshape([-1])
         score__len_sqr = raw_score__len_sqr[the_flag]
         score_log10_div2 = score__len_sqr.log10()/2.
-        score_log10_div2_abs = score_log10_div2.abs()
+        score_log10_div2__abs = score_log10_div2.abs()
         
         #old
         # all_score = all_score.clamp_max_(cap)
@@ -107,16 +110,16 @@ def LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(ma
         #all_score = all_score.cpu()
         #return all_score.mean(),all_score
         
-        return score__len_sqr,score_log10_div2,score_log10_div2_abs
+        return score__len_sqr,score_log10_div2,score_log10_div2__abs
     pass#/function
 if "test" and __DEBUG_ME__() and True:
     def ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10():
         import random,math
-        if "tested???" and False:
+        if "tested???" and True:
             "eye is perfect"
             for size in range(3, 15):
                 for _ in range(5):
-                    _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size),test_time=100)
+                    score__len_sqr, score_log10_div2, score_log10_div2__abs = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size),test_time=100)
                     assert _tensor_equal(_result_tuple[1], torch.zeros(size=[100]), epsilon=1e-6)
                     pass
                 pass
@@ -142,9 +145,18 @@ if "test" and __DEBUG_ME__() and True:
                     assert _tensor_equal(_result_tuple[1], torch.ones(size=[100])*-_to_the_power)
                     pass
                 pass
-            
+            "rotation and permutation are all perfect"
+            for size in range(3, 15):
+                for _ in range(5):
+                    _to_the_power = torch.rand(size=[1])*-3.
+                    assert _to_the_power<=0.
+                    _factor = torch.pow(10, _to_the_power)
+                    _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size)*_factor, 
+                                                                                                test_time=100, cap=5.)
+                    assert _tensor_equal(_result_tuple[1], torch.ones(size=[100])*-_to_the_power)
+                    pass
+                pass
             #rotation should also be perfect. This test is done in the rand_basic_ratation_matrix's test
-        
         
         
         
@@ -181,7 +193,21 @@ if "test" and __DEBUG_ME__() and True:
             accumulate_score += result_for_2 - result_for_1
             pass
         
-        1w
+        #1w
+        #1w
+        #1w
+        #1w
+        #1w
+        #1w
+        #1w
+        #1w
+        #1w
+        #1w
+        #1w
+        #1w
+        #1w
+        #1w
+        #1w
         
         #some affine matrix.
         "unstable. idk why...."

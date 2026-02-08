@@ -11,6 +11,85 @@ def __DEBUG_ME__()->bool:
     return __name__ == "__main__"
 
 
+
+
+"rand sign"
+
+def rand_sign(size:list[int], dtype = torch.float32, device = 'cpu')->torch.Tensor:
+    '''
+    >>> for bool: true/false
+    >>> for signed int: -1/1
+    >>> for unsigned int: 0/1
+    >>> for fp : -1./1.
+    '''
+    if dtype == torch.bool:
+        result = torch.randint(low=0, high=2, dtype=torch.int8, size=size, device=device).eq(0)
+        return result
+    elif dtype in [torch.uint8, torch.uint16, torch.uint32, torch.uint64]:#uint, 0 or 1
+        result = torch.randint(low=0, high=2, dtype=dtype, size=size, device=device)
+        return result
+    elif dtype in [torch.int, torch.int8, torch.int16, torch.int32, torch.int64, torch.long]:#int, -1 or 1
+        result = torch.randint(low=0, high=2, dtype=torch.int8, size=size, device=device)*2-1
+        return result.to(dtype)
+    else:#float, -1. or 1.
+        result = torch.randint(low=0, high=2, dtype=torch.int8, size=size, device=device)*2-1
+        return result.to(dtype)
+    pass#/function
+if "test" and __DEBUG_ME__() and True:
+    def ____test____rand_sign():
+        size = torch.Size([1,2,3,4,5])
+        result = rand_sign(size=size)
+        assert result.shape == size
+        assert result.dtype == torch.float32
+        assert result.eq(1.).sum() + result.eq(-1.).sum() == 120
+        
+        result = rand_sign(size=[], dtype=torch.bool)
+        assert result.dtype == torch.bool
+        assert result.shape == torch.Size([])
+        
+        result = rand_sign(size=size, dtype=torch.uint16)
+        assert result.dtype == torch.uint16
+        assert result.eq(1).sum() + result.eq(0).sum() == 120
+        
+        result = rand_sign(size=size, dtype=torch.int64)
+        assert result.dtype == torch.int64
+        assert result.eq(1).sum() + result.eq(-1).sum() == 120
+        
+        return
+    ____test____rand_sign()
+    pass
+
+"randn safe"
+
+def randn_safe(size:list[int], dtype = torch.float32, device = 'cpu')->torch.Tensor:
+    '''step1 provides 68% as a randn but only the [-1,1] elements.
+    step2 minus the abs of elements with abs in (1,2] with 1 and push them back into [-1,1], 13%.
+    step3 re random the last 18% elements with a uniform distribution in [-1,1].'''
+    result = torch.randn(size=size, dtype=dtype, device=device)
+    flag__abs_gt_1 = result.abs().gt(1.)
+    #aaa = flag__abs_gt_1.sum()
+    result[flag__abs_gt_1] = result[flag__abs_gt_1]-1.
+    flag__abs_gt_1 = result.abs().gt(1.)
+    #bbb = flag__abs_gt_1.sum()
+    _this_shape = result[flag__abs_gt_1].shape
+    result[flag__abs_gt_1] = torch.rand(size=_this_shape, dtype=dtype)*2.-1
+    return result
+if "test" and __DEBUG_ME__() and True:
+    def ____test____randn_safe():
+        size = torch.Size([2,3,4])
+        result = randn_safe(size=size)
+        assert result.shape == size
+        assert result.le(1.).logical_or(result.ge(-1.)).all()
+        
+        result = randn_safe(size=[100000])
+        assert result.le(1.).logical_or(result.ge(-1.)).all()
+        
+        return
+    ____test____randn_safe()
+    pass
+
+
+
 "random vector"
 
 def random_standard_vector(dim:int, dtype = torch.float32, device='cpu')->torch.Tensor:
