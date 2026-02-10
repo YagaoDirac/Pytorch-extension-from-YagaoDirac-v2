@@ -96,6 +96,29 @@ if "test" and __DEBUG_ME__() and False:
     assert _tensor_equal(torch.tensor(0.), torch.tensor(0.))
     pass
 
+def str_the_list(the_list:list, precision = 3)->str:
+    result = "["
+    command_str = "{:."+str(precision)+"f}"
+    all_the_sub_strings = [command_str.format(the_number) for the_number in the_list]
+    for ii in range(all_the_sub_strings.__len__()):
+        sub_str = all_the_sub_strings[ii]
+        if sub_str[0]!='-':
+            all_the_sub_strings[ii] = " "+all_the_sub_strings[ii]
+            pass
+        pass
+            
+    mid_str = ", ".join(all_the_sub_strings)
+    result = f"[{mid_str}]"
+    return result
+if "test":
+    def ____test____str_the_list():
+        the_str = str_the_list([1.23467,-2.23467], 3)
+        assert the_str == "[ 1.235, -2.235]"
+        
+        return
+    ____test____str_the_list()
+    pass
+
 def have_same_elements(tensor_1:torch.Tensor, tensor_2:torch.Tensor)->bool:
     assert tensor_1.shape == tensor_2.shape
 
