@@ -2608,7 +2608,8 @@ if "K He init" and True:
 
 
 
-
+if "uniform distribution matrix test          come back later" and __DEBUG_ME__() and False:
+    pass
 
 
 
@@ -2689,7 +2690,7 @@ if "log10 standard vec related test          come back later" and __DEBUG_ME__()
                 assert dim == _assert_dim_eq
                 vec = random_standard_vector(dim)
                 assert _tensor_equal(get_vector_length(vec), [1.])#length always 1.
-                log_10_of_vec = _raw_log10_avg_safe(vec)
+                log_10_of_vec = log10_avg_safe(vec)
                 assert log_10_of_vec>_low_bound and log_10_of_vec<_high_bound
                 pass
             
@@ -2904,7 +2905,7 @@ if "log10 standard vec related test          come back later" and __DEBUG_ME__()
                 # assert _log10_of__mat>-0.3 and _log10_of__mat<-0.14#basically -0.16, trust me.
                 #assert _tensor_equal(_log10_of__mat, [-0.16], epsilon=0.02)
                 prod_vec = vec@mat
-                log10_of__prod_vec = _raw_log10_avg_safe(prod_vec)
+                log10_of__prod_vec = log10_avg_safe(prod_vec)
                 raw_result[test_count] = log10_of__prod_vec
                 pass
             _useful_flag = get_mask_of_top_element__rough(raw_result.reshape([1,-1]))[0].reshape([-1])
@@ -2934,7 +2935,7 @@ if "uniform distribution matrix test          come back later" and __DEBUG_ME__(
             raw_result = torch.empty(size=[test_time])
             for test_count in range(test_time):
                 mat = torch.rand(size=[dim,dim])
-                raw_result[test_count] = _raw_log10_avg_safe(mat.reshape([1,-1]))#.reshape([-1])
+                raw_result[test_count] = log10_avg_safe(mat.reshape([1,-1]))#.reshape([-1])
                 pass
             #prin("0,1",dim,raw_result.max(),raw_result.min(),raw_result.mean())
             the_mean = raw_result.mean()
@@ -2954,7 +2955,7 @@ if "uniform distribution matrix test          come back later" and __DEBUG_ME__(
             raw_result = torch.empty(size=[test_time])
             for test_count in range(test_time):
                 mat = torch.rand(size=[dim,dim])-0.5
-                raw_result[test_count] = _raw_log10_avg_safe(mat.reshape([1,-1]))#.reshape([-1])
+                raw_result[test_count] = log10_avg_safe(mat.reshape([1,-1]))#.reshape([-1])
                 pass
             #prin("-0.5,0.5",dim,raw_result.max(),raw_result.min(),raw_result.mean())
             the_mean = raw_result.mean()
@@ -2975,7 +2976,7 @@ if "uniform distribution matrix test          come back later" and __DEBUG_ME__(
             raw_result = torch.empty(size=[test_time])
             for test_count in range(test_time):
                 mat = (torch.rand(size=[dim,dim])-0.5)*2.
-                raw_result[test_count] = _raw_log10_avg_safe(mat.reshape([1,-1]))#.reshape([-1])
+                raw_result[test_count] = log10_avg_safe(mat.reshape([1,-1]))#.reshape([-1])
                 pass
             #prin("-1,1",dim,raw_result.max(),raw_result.min(),raw_result.mean())
             the_mean = raw_result.mean()
@@ -3102,7 +3103,7 @@ if "some useful test for you to build up intuition    slow and prin" and __DEBUG
                         #calc and measure.
                         c = a.matmul(b)
                         c.add_(torch.randn_like(c)*0.001)#safety
-                        log10_of_c = _raw_log10_avg_safe(c.reshape([1,-1])).cpu()
+                        log10_of_c = log10_avg_safe(c.reshape([1,-1])).cpu()
                         if test_index == 0:
                             print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _factor not in this test,,,log10_of_a={log10_of_a:.4f}, p_sign_a={\
                                                     p_sign_a}, log10_of_b={log10_of_b:.4f}, p_sign_b={p_sign_b},,,log10_of_c(safe)={log10_of_c:.4f}", end="")
@@ -3178,16 +3179,16 @@ if "some useful test for you to build up intuition    slow and prin" and __DEBUG
                 device = 'cuda'
                 a = torch.randn(size=[_dim1,    _dim_mid], device=device)
                 #log10_of_a = log10_avg_safe(a).mean().cpu().item()
-                log10_of_a = _raw_log10_avg_safe(a.reshape([1,-1])).mean().cpu()
+                log10_of_a = log10_avg_safe(a.reshape([1,-1])).mean().cpu()
                 assert _float_equal(log10_of_a, -0.16, 0.02)
                 b = torch.randn(size=[_dim_mid, _dim2   ], device=device)
                 #log10_of_b = log10_avg_safe(b).mean().cpu().item()
-                log10_of_b = _raw_log10_avg_safe(b.reshape([1,-1])).mean().cpu()
+                log10_of_b = log10_avg_safe(b.reshape([1,-1])).mean().cpu()
                 assert _float_equal(log10_of_b, -0.16, 0.02)
                 assert _tensor_equal(log10_of_a, log10_of_b, 0.02)
                 #calc and measure.
                 c = a.matmul(b)
-                log10_of_c = _raw_log10_avg_safe(c.reshape([1,-1])).mean().cpu()
+                log10_of_c = log10_avg_safe(c.reshape([1,-1])).mean().cpu()
                 if test_index == 0:
                     print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _factor not in this test,,,log10_of_a={\
                                             log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c(safe)={log10_of_c:.4f}", end="")
@@ -3213,7 +3214,7 @@ if "some useful test for you to build up intuition    slow and prin" and __DEBUG
         if "scan the log10 of relu(randn) first" and False:
             for _ in range(10):
                 a = _relu_layer(torch.randn(size=[10000,10000], device='cuda'))
-                log10_of_a = _raw_log10_avg_safe(a, top_ratio=0.5, careful_level=1).mean().cpu().item()
+                log10_of_a = log10_avg_safe(a, top_ratio=0.5, careful_level=1).mean().cpu().item()
                 assert _float_equal(log10_of_a, -0.276, 0.001)
                 pass
             pass
@@ -3228,15 +3229,15 @@ if "some useful test for you to build up intuition    slow and prin" and __DEBUG
                 device = 'cuda'
                 a = _relu_layer(torch.randn(size=[_dim1,    _dim_mid], device=device))
                 #a).mean().cpu().item()
-                log10_of_a = _raw_log10_avg_safe(a.reshape([1,-1])).mean().cpu()
+                log10_of_a = log10_avg_safe(a.reshape([1,-1])).mean().cpu()
                 assert _float_equal(log10_of_a, -0.276, 0.01)#relu(randn) is -0.276
                 b =             torch.randn(size=[_dim_mid, _dim2   ], device=device)
                 #log10_of_b = log10_avg_safe(b).mean().cpu().item()
-                log10_of_b = _raw_log10_avg_safe(b.reshape([1,-1])).mean().cpu()
+                log10_of_b = log10_avg_safe(b.reshape([1,-1])).mean().cpu()
                 assert _float_equal(log10_of_b, -0.16, 0.02)
                 #calc and measure.
                 c = a.matmul(b)
-                log10_of_c = _raw_log10_avg_safe(c.reshape([1,-1])).mean().cpu()
+                log10_of_c = log10_avg_safe(c.reshape([1,-1])).mean().cpu()
                 if test_index == 0:
                     print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _factor not in this test,,,log10_of_a={\
                                             log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c(safe)={log10_of_c:.4f}", end="")
@@ -3263,7 +3264,7 @@ if "some useful test for you to build up intuition    slow and prin" and __DEBUG
         if "scan the log10 of sigmoid(randn) first" and False:
             for _ in range(10):
                 a = _sigmoid_layer(torch.randn(size=[10000,10000], device='cuda'))
-                log10_of_a = _raw_log10_avg_safe(a.reshape([1,-1])).mean().cpu().item()
+                log10_of_a = log10_avg_safe(a.reshape([1,-1])).mean().cpu().item()
                 assert _float_equal(log10_of_a, -0.2963, 0.0001)
                 pass
             pass
@@ -3278,15 +3279,15 @@ if "some useful test for you to build up intuition    slow and prin" and __DEBUG
                 device = 'cuda'
                 a = _sigmoid_layer(torch.randn(size=[_dim1,    _dim_mid], device=device))
                 #log10_of_a = log10_avg_safe(a).mean().cpu().item()
-                log10_of_a = _raw_log10_avg_safe(a.reshape([1,-1])).mean().cpu()
+                log10_of_a = log10_avg_safe(a.reshape([1,-1])).mean().cpu()
                 assert _float_equal(log10_of_a, -0.296, 0.005)#sigmoid(randn) is -0.276
                 b =                torch.randn(size=[_dim_mid, _dim2   ], device=device)
                 #log10_of_b = log10_avg_safe(b).mean().cpu().item()
-                log10_of_b = _raw_log10_avg_safe(b.reshape([1,-1])).mean().cpu()
+                log10_of_b = log10_avg_safe(b.reshape([1,-1])).mean().cpu()
                 assert _float_equal(log10_of_b, -0.16, 0.02)
                 #calc and measure.
                 c = a.matmul(b)
-                log10_of_c = _raw_log10_avg_safe(c.reshape([1,-1])).mean().cpu()
+                log10_of_c = log10_avg_safe(c.reshape([1,-1])).mean().cpu()
                 if test_index == 0:
                     print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _factor not in this test,,,log10_of_a={\
                                             log10_of_a:.4f}, log10_of_b={log10_of_b:.4f},,,log10_of_c(safe)={log10_of_c:.4f}", end="")
@@ -3378,7 +3379,7 @@ if "some useful test for you to build up intuition    slow and prin" and __DEBUG
                             assert _float_equal(_std_of_a_before_sigmoid, _scale_factor, 0.05*_scale_factor)
                             a = _sigmoid_layer(a_before_sigmoid)
                             #log10_of_a = log10_avg_safe(a, top_ratio).mean().cpu().item()
-                            log10_of_a = _raw_log10_avg_safe(a.reshape([1,-1]), top_ratio).mean().cpu().item()
+                            log10_of_a = log10_avg_safe(a.reshape([1,-1]), top_ratio).mean().cpu().item()
                             if test_index == 0:
                                 print(f"top_ratio={top_ratio},,, _scale_factor={_scale_factor}, log10_of_a={log10_of_a:.6f}", end="")
                                 pass
@@ -3405,15 +3406,15 @@ if "some useful test for you to build up intuition    slow and prin" and __DEBUG
                     device = 'cuda'
                     a = _sigmoid_layer(torch.randn(size=[_dim1,    _dim_mid], device=device)*_scale_factor)
                     #log10_of_a = log10_avg_safe(a, top_ratio=0.5).mean().cpu().item()
-                    log10_of_a = _raw_log10_avg_safe(a.reshape([1,-1]), top_ratio=0.5).mean().cpu()
+                    log10_of_a = log10_avg_safe(a.reshape([1,-1]), top_ratio=0.5).mean().cpu()
                     #assert _float_equal(log10_of_a, -0.296, 0.005)#sigmoid(randn) is -0.276
                     b =                torch.randn(size=[_dim_mid, _dim2   ], device=device)
                     #log10_of_b = log10_avg_safe(b).mean().cpu().item()
-                    log10_of_b = _raw_log10_avg_safe(b.reshape([1,-1])).mean().cpu()
+                    log10_of_b = log10_avg_safe(b.reshape([1,-1])).mean().cpu()
                     assert _float_equal(log10_of_b, -0.16, 0.02)
                     #calc and measure.
                     c = a.matmul(b)
-                    log10_of_c = _raw_log10_avg_safe(c.reshape([1,-1]), top_ratio=0.6).mean().cpu()
+                    log10_of_c = log10_avg_safe(c.reshape([1,-1]), top_ratio=0.6).mean().cpu()
                     if test_index == 0:
                         print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}], _scale_factor={_scale_factor},,,log10_of_a={\
                                                 log10_of_a:.3f}, log10_of_b={log10_of_b:.3f},,,log10_of_c(safe)={log10_of_c:.3f}", end="")
@@ -3447,7 +3448,7 @@ if "some useful test for you to build up intuition    slow and prin" and __DEBUG
         for test_index in range(5):
             a = torch.rand(10000, 10000)*2.-1.
             #log10_of_a = log10_avg_safe(a).mean().cpu().item()
-            log10_of_a = _raw_log10_avg_safe(a.reshape([1,-1])).mean().cpu().item()
+            log10_of_a = log10_avg_safe(a.reshape([1,-1])).mean().cpu().item()
             assert _float_equal(log10_of_a, -0.3235, 0.0003)
             if test_index == 0:
                 print(f"log10_of_a={log10_of_a:.6f}", end="")
@@ -3470,15 +3471,15 @@ if "some useful test for you to build up intuition    slow and prin" and __DEBUG
             device = 'cuda'
             a = torch.rand (size=[_dim1,    _dim_mid], device=device)*2.-1.
             #log10_of_a = log10_avg_safe(a).mean().cpu().item()
-            log10_of_a = _raw_log10_avg_safe(a.reshape([1,-1])).mean().cpu()
+            log10_of_a = log10_avg_safe(a.reshape([1,-1])).mean().cpu()
             assert _float_equal(log10_of_a, -0.3235, 0.05)
             b = torch.randn(size=[_dim_mid, _dim2   ], device=device)
             #log10_of_b = log10_avg_safe(b).mean().cpu().item()
-            log10_of_b = _raw_log10_avg_safe(b.reshape([1,-1])).mean().cpu()
+            log10_of_b = log10_avg_safe(b.reshape([1,-1])).mean().cpu()
             assert _float_equal(log10_of_b, -0.16, 0.02)
             #calc and measure.
             c = a.matmul(b)
-            log10_of_c = _raw_log10_avg_safe(c.reshape([1,-1]), top_ratio=0.6).mean().cpu()
+            log10_of_c = log10_avg_safe(c.reshape([1,-1]), top_ratio=0.6).mean().cpu()
             if test_index == 0:
                 print(f"_dim_mid=[{_dim_mid:5}],c.shape=[{c.shape[0]:5},{c.shape[1]:5}],,,log10_of_a={\
                                         log10_of_a:.3f}, log10_of_b={log10_of_b:.3f},,,log10_of_c(safe)={log10_of_c:.3f}", end="")
