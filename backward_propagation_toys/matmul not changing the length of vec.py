@@ -20,6 +20,14 @@
 # 但是正交本身的保护就很麻烦，尤其矩阵很大的时候。如果保护得不是很好，对效果的影响有多大？
 
 
+# 1w
+# 1w
+# 1w
+# 1w
+# 1w
+# 1w继续。我记得是当时写的测量方法有问题，回来改测量方法，然后才是继续去测当时那个东西的有效性。
+
+
 import datetime
 from pathlib import Path
 import sys
@@ -27,9 +35,11 @@ sys.path.append(str(Path(__file__).parent.parent))
 from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, \
     iota, is_square_matrix, \
     vector_length_norm, get_vector_length,\
-    log10_avg_safe, get_mask_of_top_element__rough
+    log10_avg_safe, get_mask_of_top_element__rough,\
+    str_the_list
 from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_something_to_1
 from pytorch_yagaodirac_v2.Random import random_standard_vector, random_permutate, random_rotate
+    
 
 import torch
 
@@ -57,128 +67,181 @@ def _line_():
 
 
 def LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(matrix:torch.Tensor,
-                                        test_time:int|None = None, cap = 2., filter_ratio = 0.9)\
-                                                ->tuple[torch.Tensor,torch.Tensor,torch.Tensor]:
-    '''return score__len_sqr, score_log10_div2, score_log10_div2__abs
+                        test_time:int|None = None, at_least = -10.)->tuple[torch.Tensor,torch.Tensor,torch.Tensor]:
+    '''return score__len_sqr,score_log10_div2,score_log10_div2__abs
     
-    the output size is smaller than input bc the filter_ratio.
+    the 2nd and 3rd output size can be smaller than the 1st one if any of them is smaller than the at_least
     
     The result is always >=0. The smaller the better.'''
     assert is_square_matrix(matrix)
     dim = matrix.shape[0]
     if test_time is None:
-        test_time=dim+30
+        test_time=int((dim+30)*1.2)
         pass
     assert test_time>=1
-    assert cap>1.#at least >0
+    assert at_least<0.
+    
     with torch.no_grad():
         the_device = matrix.device
-        raw_score__len_sqr = torch.empty([test_time], device = the_device)
+        score__len_sqr = torch.empty([test_time], device = the_device)
         for epoch in range(test_time):
-            vec = torch.randn(size=[dim], device = the_device)
-            while True:
-                ori_len_sqr = vec.dot(vec)
-                #too small or too large, reroll.
-                if ori_len_sqr<0.001 or ori_len_sqr>10000.:
-                    vec = torch.randn(size=[dim])
-                    continue
-                break
-                pass#/while
-            __mul_me = ori_len_sqr.pow(-0.5)
-            vec.mul_(__mul_me)
-            assert _tensor_equal(vec.dot(vec), torch.tensor([1.], device=vec.device))
+            vec = random_standard_vector(dim=dim, dtype=matrix.dtype, device=the_device)
             
             #vec = vec.reshape(shape=[1,-1])
             after_matmul = vec@matrix
             new_len_sqr = after_matmul.dot(after_matmul)
             
-            raw_score__len_sqr[epoch] = new_len_sqr
+            score__len_sqr[epoch] = new_len_sqr
             
             #old
             #score_of_this_epoch = new_len_sqr.log10().abs()/2.
             #all_score[epoch] = score_of_this_epoch
             pass#/ for
         
-        the_flag = get_mask_of_top_element__rough(raw_score__len_sqr.reshape([1,-1]),top_ratio=filter_ratio)[0].reshape([-1])
-        score__len_sqr = raw_score__len_sqr[the_flag]
-        score_log10_div2 = score__len_sqr.log10()/2.
+        raw_score_log10_div2 = score__len_sqr.log10()/2.
+        score_log10_div2 = raw_score_log10_div2[raw_score_log10_div2>=at_least]
         score_log10_div2__abs = score_log10_div2.abs()
-        
-        #old
-        # all_score = all_score.clamp_max_(cap)
-        # all_score = all_score.clamp_min_(-cap)
-        #all_score = all_score.cpu()
-        #return all_score.mean(),all_score
         
         return score__len_sqr,score_log10_div2,score_log10_div2__abs
     pass#/function
-if "test" and __DEBUG_ME__() and True:
+if "basic test" and __DEBUG_ME__() and False:
     def ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10():
         import random,math
-        if "tested???" and True:
-            "eye is perfect"
-            for size in range(3, 15):
-                for _ in range(5):
-                    score__len_sqr, score_log10_div2, score_log10_div2__abs = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size),test_time=100)
-                    assert _tensor_equal(_result_tuple[1], torch.zeros(size=[100]), epsilon=1e-6)
+        if "eye is perfect" and True:
+            for dim in range(3, 15):
+                test_time = 1000
+                for _ in range(test_time):
+                    vec = torch.eye(n=dim)
+                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                                LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(vec,test_time=100)
+                    assert _tensor_equal(score__len_sqr, torch.zeros(size=[100]), epsilon=1e-6)
                     pass
-                pass
-            "positive scale"
-            for size in range(3, 15):
+                pass#for dim
+            pass#/test
+        if "scaled a lil bit" and True:
+            for dim in range(3, 15):
                 for _ in range(5):
-                    _to_the_power = torch.rand(size=[1])*3.
-                    assert _to_the_power>=0.
+                    _to_the_power = (torch.rand(size=[])*2-1)*3.
                     _factor = torch.pow(10, _to_the_power)
-                    _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size)*_factor, 
-                                                                                                test_time=100, cap=5.)
-                    assert _tensor_equal(_result_tuple[1], torch.ones(size=[100])*_to_the_power)
+                    vec = torch.eye(n=dim)*_factor
+                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                                LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(vec, test_time=100)
+                    assert _tensor_equal(score__len_sqr, torch.ones(size=[100])*_to_the_power)
                     pass
-                pass
-            "negative scale"
-            for size in range(3, 15):
-                for _ in range(5):
-                    _to_the_power = torch.rand(size=[1])*-3.
-                    assert _to_the_power<=0.
+                pass#for dim
+            pass#/test
+        
+        if "rotation and permutation are all perfect" and True:
+            for dim in range(3, 15):
+                for test_count in range(5):
+                    vec = torch.eye(n=dim)
+                    for _ in range(5):
+                        vec = random_permutate(vec)
+                        vec = random_rotate(vec)
+                        pass
+                    _to_the_power = (torch.rand(size=[])*2.-1.)*3.
                     _factor = torch.pow(10, _to_the_power)
-                    _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size)*_factor, 
-                                                                                                test_time=100, cap=5.)
-                    assert _tensor_equal(_result_tuple[1], torch.ones(size=[100])*-_to_the_power)
+                    vec = vec*_factor
+                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                                LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(vec, test_time=100)
+                    assert _tensor_equal(score__len_sqr, torch.ones(size=[100])*_to_the_power)
                     pass
-                pass
-            "rotation and permutation are all perfect"
-            for size in range(3, 15):
-                for _ in range(5):
-                    _to_the_power = torch.rand(size=[1])*-3.
-                    assert _to_the_power<=0.
-                    _factor = torch.pow(10, _to_the_power)
-                    _result_tuple = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(torch.eye(n=size)*_factor, 
-                                                                                                test_time=100, cap=5.)
-                    assert _tensor_equal(_result_tuple[1], torch.ones(size=[100])*-_to_the_power)
-                    pass
-                pass
+                pass#for dim
+            pass#/test
             #rotation should also be perfect. This test is done in the rand_basic_ratation_matrix's test
         
+    ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10()
+    
+if "measure the random init" and __DEBUG_ME__() and True:
+    
+    def ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10___2():
+        import math
+        dim = 10
+        rand_mat = torch.randn(size=[dim,dim])/math.sqrt(10)
+        score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                    LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(rand_mat, test_time=10)
+        aaaaa = score__len_sqr.sort().values
+        bbbbb = log10_avg_safe(aaaaa)
+        1wwwwwwwwwwww
+        1wwwwwwwwwwww
+        1wwwwwwwwwwww
+        1wwwwwwwwwwww
+        1wwwwwwwwwwww
+        1wwwwwwwwwwww
+        1wwwwwwwwwwww
+        1wwwwwwwwwwww
+        1wwwwwwwwwwww
+        
+        
+        if "randn[dim,dim]" and True:
+            print("randn[dim,dim]")
+            device = 'cuda'
+            
+            #--------------------#--------------------#--------------------
+            dim_list = [100,1000,10000]
+            test_time_list = [10000,3000,500]
+            #--------------------#--------------------#--------------------
+            for macro_iter_count in range(dim_list.__len__()):
+                dim = dim_list[macro_iter_count]
+                test_time = test_time_list[macro_iter_count]
+                print(test_time_list)
+                the_min_gt_this_list =  []#don't modify here.
+                the_max_lt_this_list =  []
+                the_mean_eq_this_list = []
+                epsilon_list =          []
+            
+                _raw_result = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #--------------------#--------------------#--------------------
+                    rand_mat = torch.randn(size=[dim,dim], device=device)
+                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                                LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(rand_mat)
+                    
+                    _this_result = log10_avg_safe(score__len_sqr.mean())
+                    #--------------------#--------------------#--------------------
+                    _raw_result[test_count] = _this_result
+                    pass
+                the_min = _raw_result.min()
+                the_max = _raw_result.max()
+                the_mean = _raw_result.mean()
+                the_min_gt_this_list.append(the_min.item()-0.01)
+                the_max_lt_this_list.append(the_max.item()+0.01)
+                the_mean_eq_this_list.append(the_mean.item())
+                _delta_1 = the_mean - the_min  +0.02
+                _delta_2 = the_max  - the_mean +0.02
+                epsilon = max(_delta_1, _delta_2)
+                epsilon_list.append(epsilon.item())    
+                print(f"dim:{dim}  ///  {the_min-0.01:.3f}   {the_max+0.01:.3f}   {the_mean:.3f}   ")
+                pass# for macro_iter_count
+            print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+            print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+            print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+            print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
+            pass#/test
         
         
         
-        dim = 5
-        rand = 0.1
-        rand_mat = torch.randn(size=[dim,dim])*rand
-        _log10_of__rand_mat = log10_avg_safe(rand_mat.reshape([1,-1]))#-0.16
-        vec = random_standard_vector(dim)
-        _log10_of__vec = log10_avg_safe(vec)#-0.5*log10(dim)-0.21
-        result_for_1 = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat1,test_time=100)[0]
-        assert result_for_1 < result_for_2
         
         
         
         
         
         
+        # dim = 100
+        # rand_mat = torch.randn(size=)
+        return 
+        
+        
+    ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10___2()
+    pass
         
         
         
         
+if True:
+    if True:
+        
+        assert False,"继续"
         "unstable. idk why...."
         accumulate_score = torch.tensor([0.])
         for _ in range(116):
@@ -222,7 +285,7 @@ if "test" and __DEBUG_ME__() and True:
             result_for_2 = LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat2,test_time=100)[0]
             assert result_for_1<result_for_2
             pass
-        return 
+        #return 
     ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10()
     pass
 
