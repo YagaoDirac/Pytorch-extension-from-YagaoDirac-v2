@@ -38,7 +38,7 @@ from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, \
     log10_avg_safe, get_mask_of_top_element__rough,\
     str_the_list
 from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_something_to_1
-from pytorch_yagaodirac_v2.Random import random_standard_vector, random_permutate, random_rotate
+from pytorch_yagaodirac_v2.Random import random_standard_vector, random_permutate, random_rotate_this_matrix
     
 
 import torch
@@ -137,7 +137,7 @@ if "basic test" and __DEBUG_ME__() and False:
                     vec = torch.eye(n=dim)
                     for _ in range(5):
                         vec = random_permutate(vec)
-                        vec = random_rotate(vec)
+                        vec = random_rotate_this_matrix(vec)
                         pass
                     _to_the_power = (torch.rand(size=[])*2.-1.)*3.
                     _factor = torch.pow(10, _to_the_power)
@@ -151,44 +151,48 @@ if "basic test" and __DEBUG_ME__() and False:
             #rotation should also be perfect. This test is done in the rand_basic_ratation_matrix's test
         
     ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10()
-    
+    pass
+
+
+
+# All the measurement are for square matrix. So, [dim] means [dim,dim]
+# randn[dim,dim] >>> 0.5*log10(dim)
+# rand [dim,dim] >>> 0.5*log10(dim) -0.245
+# randn@randn >>> 1.*log10(dim)
+
 if "measure the random init" and __DEBUG_ME__() and True:
-    
     def ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10___2():
         import math
-        dim = 10
-        rand_mat = torch.randn(size=[dim,dim])/math.sqrt(10)
-        score__len_sqr,score_log10_div2,score_log10_div2__abs = \
-                    LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(rand_mat, test_time=10)
-        aaaaa = score__len_sqr.sort().values
-        bbbbb = log10_avg_safe(aaaaa)
-        1wwwwwwwwwwww
-        1wwwwwwwwwwww
-        1wwwwwwwwwwww
-        1wwwwwwwwwwww
-        1wwwwwwwwwwww
-        1wwwwwwwwwwww
-        1wwwwwwwwwwww
-        1wwwwwwwwwwww
-        1wwwwwwwwwwww
+        if "small example" and False:
+            # dim = 10
+            # rand_mat = torch.randn(size=[dim,dim])#/math.sqrt(10)
+            # score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+            #             LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(rand_mat, test_time=10)
+            # aaaaa = score__len_sqr.sort().values
+            # bbbbb = log10_avg_safe(aaaaa)/2.
+            pass
         
-        
-        if "randn[dim,dim]" and True:
+        if "measure the randn[dim,dim]" and False:
+            # output:
+            # the_min_gt_this_list =[ 0.405,  0.989,  1.499]
+            # the_max_lt_this_list =[ 0.596,  1.009,  1.501]
+            # the_mean_eq_this_list=[ 0.500,  1.000,  1.500]
+            # epsilon_list       =[ 0.096,  0.010,  0.001]
+            # 0.5 log10(dim)
             print("randn[dim,dim]")
             device = 'cuda'
-            
             #--------------------#--------------------#--------------------
-            dim_list = [100,1000,10000]
-            test_time_list = [10000,3000,500]
+            dim_list = [10,100,1000]
+            test_time_list = [300,100,30]
             #--------------------#--------------------#--------------------
-            for macro_iter_count in range(dim_list.__len__()):
-                dim = dim_list[macro_iter_count]
-                test_time = test_time_list[macro_iter_count]
-                print(test_time_list)
-                the_min_gt_this_list =  []#don't modify here.
-                the_max_lt_this_list =  []
-                the_mean_eq_this_list = []
-                epsilon_list =          []
+            the_min_gt_this_list =  []#don't modify here.
+            the_max_lt_this_list =  []
+            the_mean_eq_this_list = []
+            epsilon_list =          []
+            for inner_iter_count in range(dim_list.__len__()):
+                dim = dim_list[inner_iter_count]
+                test_time = test_time_list[inner_iter_count]
+                print(test_time)
             
                 _raw_result = torch.empty(size=[test_time])
                 for test_count in range(test_time):
@@ -197,21 +201,73 @@ if "measure the random init" and __DEBUG_ME__() and True:
                     score__len_sqr,score_log10_div2,score_log10_div2__abs = \
                                 LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(rand_mat)
                     
-                    _this_result = log10_avg_safe(score__len_sqr.mean())
+                    _this_result = log10_avg_safe(score__len_sqr.mean())/2.
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
                     pass
                 the_min = _raw_result.min()
                 the_max = _raw_result.max()
                 the_mean = _raw_result.mean()
-                the_min_gt_this_list.append(the_min.item()-0.01)
-                the_max_lt_this_list.append(the_max.item()+0.01)
+                the_min_gt_this_list.append(the_min.item())
+                the_max_lt_this_list.append(the_max.item())
                 the_mean_eq_this_list.append(the_mean.item())
-                _delta_1 = the_mean - the_min  +0.02
-                _delta_2 = the_max  - the_mean +0.02
+                _delta_1 = the_mean - the_min 
+                _delta_2 = the_max  - the_mean
                 epsilon = max(_delta_1, _delta_2)
                 epsilon_list.append(epsilon.item())    
-                print(f"dim:{dim}  ///  {the_min-0.01:.3f}   {the_max+0.01:.3f}   {the_mean:.3f}   ")
+                print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
+                pass# for macro_iter_count
+            print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+            print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+            print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+            print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
+            pass#/test
+        
+        if "measure the randn@randn" and False:
+            # output:
+            # the_min_gt_this_list =[ 0.841,  1.984,  2.999]
+            # the_max_lt_this_list =[ 1.165,  2.018,  3.001]
+            # the_mean_eq_this_list=[ 0.996,  1.999,  3.000]
+            # epsilon_list       =[ 0.169,  0.020,  0.002]
+            # 1.*log10(dim)
+            print("randn[dim,dim]")
+            device = 'cuda'
+            #--------------------#--------------------#--------------------
+            dim_list = [10,100,1000]
+            test_time_list = [300,100,30]
+            #--------------------#--------------------#--------------------
+            the_min_gt_this_list =  []#don't modify here.
+            the_max_lt_this_list =  []
+            the_mean_eq_this_list = []
+            epsilon_list =          []
+            for inner_iter_count in range(dim_list.__len__()):
+                dim = dim_list[inner_iter_count]
+                test_time = test_time_list[inner_iter_count]
+                print(test_time)
+            
+                _raw_result = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #--------------------#--------------------#--------------------
+                    rand_mat = torch.randn(size=[dim,dim], device=device)
+                    rand_mat = rand_mat@torch.randn(size=[dim,dim], device=device)
+                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                                LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(rand_mat)
+                    
+                    _this_result = log10_avg_safe(score__len_sqr.mean())/2.
+                    #--------------------#--------------------#--------------------
+                    _raw_result[test_count] = _this_result
+                    pass
+                the_min = _raw_result.min()
+                the_max = _raw_result.max()
+                the_mean = _raw_result.mean()
+                the_min_gt_this_list.append(the_min.item())
+                the_max_lt_this_list.append(the_max.item())
+                the_mean_eq_this_list.append(the_mean.item())
+                _delta_1 = the_mean - the_min 
+                _delta_2 = the_max  - the_mean
+                epsilon = max(_delta_1, _delta_2)
+                epsilon_list.append(epsilon.item())    
+                print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
                 pass# for macro_iter_count
             print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
             print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
@@ -220,15 +276,105 @@ if "measure the random init" and __DEBUG_ME__() and True:
             pass#/test
         
         
+        1w
+        if "measure the randn[dim,dim]/sqrt(dim)" and True:
+            # output:
+            print("randn[dim,dim]")
+            device = 'cuda'
+            #--------------------#--------------------#--------------------
+            dim_list = [10,100,1000]
+            test_time_list = [300,100,30]
+            #--------------------#--------------------#--------------------
+            the_min_gt_this_list =  []#don't modify here.
+            the_max_lt_this_list =  []
+            the_mean_eq_this_list = []
+            epsilon_list =          []
+            for inner_iter_count in range(dim_list.__len__()):
+                dim = dim_list[inner_iter_count]
+                test_time = test_time_list[inner_iter_count]
+                print(test_time)
+            
+                _raw_result = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #--------------------#--------------------#--------------------
+                    rand_mat = torch.randn(size=[dim,dim], device=device)/math.sqrt(dim)
+                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                                LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(rand_mat)
+                    
+                    _this_result = log10_avg_safe(score__len_sqr.mean())/2.
+                    #--------------------#--------------------#--------------------
+                    _raw_result[test_count] = _this_result
+                    pass
+                the_min = _raw_result.min()
+                the_max = _raw_result.max()
+                the_mean = _raw_result.mean()
+                the_min_gt_this_list.append(the_min.item())
+                the_max_lt_this_list.append(the_max.item())
+                the_mean_eq_this_list.append(the_mean.item())
+                _delta_1 = the_mean - the_min 
+                _delta_2 = the_max  - the_mean
+                epsilon = max(_delta_1, _delta_2)
+                epsilon_list.append(epsilon.item())    
+                print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
+                pass# for macro_iter_count
+            print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+            print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+            print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+            print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
+            pass#/test
         
         
+        if "measure the rand [dim,dim]" and False:
+            # output:
+            # the_min_gt_this_list =[ 0.146,  0.702,  1.249]
+            # the_max_lt_this_list =[ 0.380,  0.798,  1.273]
+            # the_mean_eq_this_list=[ 0.255,  0.759,  1.261]
+            # epsilon_list       =[ 0.124,  0.056,  0.012]
+            # 0.5*log10(dim)-0.245
+            print("rand [dim,dim]")
+            device = 'cuda'
+            #--------------------#--------------------#--------------------
+            dim_list = [10,100,1000]
+            test_time_list = [300,100,30]
+            #--------------------#--------------------#--------------------
+            the_min_gt_this_list =  []#don't modify here.
+            the_max_lt_this_list =  []#don't modify here.
+            the_mean_eq_this_list = []#don't modify here.
+            epsilon_list =          []#don't modify here.
+            for inner_iter_count in range(dim_list.__len__()):
+                dim = dim_list[inner_iter_count]
+                test_time = test_time_list[inner_iter_count]
+                print(test_time)
+            
+                _raw_result = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #--------------------#--------------------#--------------------
+                    rand_mat = torch.rand (size=[dim,dim], device=device)
+                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                                LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(rand_mat)
+                    
+                    _this_result = log10_avg_safe(score__len_sqr.mean())/2.
+                    #--------------------#--------------------#--------------------
+                    _raw_result[test_count] = _this_result
+                    pass
+                the_min = _raw_result.min()
+                the_max = _raw_result.max()
+                the_mean = _raw_result.mean()
+                the_min_gt_this_list.append(the_min.item())
+                the_max_lt_this_list.append(the_max.item())
+                the_mean_eq_this_list.append(the_mean.item())
+                _delta_1 = the_mean - the_min 
+                _delta_2 = the_max  - the_mean
+                epsilon = max(_delta_1, _delta_2)
+                epsilon_list.append(epsilon.item())    
+                print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
+                pass# for macro_iter_count
+            print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+            print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+            print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+            print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
+            pass#/test
         
-        
-        
-        
-        
-        # dim = 100
-        # rand_mat = torch.randn(size=)
         return 
         
         

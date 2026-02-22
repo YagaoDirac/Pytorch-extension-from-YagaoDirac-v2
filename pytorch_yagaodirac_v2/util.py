@@ -292,7 +292,6 @@ if '''some basic test.''' and __DEBUG_ME__() and False:
 
 def get_vector_length(input:torch.Tensor, result_dtype = torch.float64)->torch.Tensor:
     _temp = input*input
-    #if input.shape.__len__() == 2:
     _temp = _temp.sum(dim=-1, dtype=result_dtype)
     _temp.sqrt_()
     return _temp
