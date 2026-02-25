@@ -1776,7 +1776,6 @@ if "with activation functions" and False:
     pass
 
 
-
 # randn_vec @ relu   (randn) >>> -0.275 and -0.576*, into  0.5*log10(mid dim)-0.426
 
 # randn_vec @ gelu(randn*sf) >>>       sf < 0.1 >>> -0.275 and log10(sf) -0.577 (< -1.58)    into  +0.5*log10(dim) + 1.*log10(sf) -0.572
@@ -1800,7 +1799,7 @@ if "with activation functions" and False:
 
 # gauss is not tested. Maybe later?
 
-if "matmul after activation functions" and False:
+if "randn matmul after activation functions" and False:
     def matmul_after_activation_functions():
         
         if "relu(randn[dim]) @ randn[dim,dim]" and False:
@@ -2409,6 +2408,703 @@ if "matmul after activation functions" and False:
                     print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
                     print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
                     print(f"#scaling_factor_list ={str_the_list(scaling_factor_list,         3)}")    
+                    pass
+                pass# for dim
+            pass#/test
+        
+        return 
+    matmul_after_activation_functions()
+    pass
+
+
+
+
+
+
+# rand_vec @ relu   (randn) >>> -0.422 and -0.576*, into  1.*log10(dim) -0.701
+
+# rand_vec @ gelu(randn*sf) >>>       sf < 0.01 to 0.05 >>> -0.422 and log10(sf) -0.577 (< -1.58)  into  1.*log10(sf) +0.53*log10(dim) -0.9
+#                                    dim is 100    10000
+# rand_vec @ gelu(randn*sf) >>> 0.0?< sf < 1.6 >>> -0.422 and between -1.58 and -0.82  into (in between anyway.)
+# rand_vec @ gelu(randn*sf) >>> 1.6 < sf       >>> -0.422 and 1.9*log10(sf) -2.1 (> -0.82)         into  1.*log10(sf) +1.*log10(dim) -0.70
+
+# rand_vec @ sigmoid(randn) >>> for any sf >>> -0.422 and -0.301, into  1.*log10(dim) -0.60
+
+# rand_vec @ tanh   (randn) >>> sf < 0.35 >>> -0.422 and log10(sf)-0.275 (<-1.277), into       0.5*log10(dim) + 1.*log10(sf) -0.51
+# rand_vec @ tanh   (randn) >>> 5 < sf >>> -0.422 and between -1.277 to 0      ,    into       0.5*log10(dim) - 0.49
+# bc when x is very close to 0, tanh(x) is basically x. When sf < 0.1, it's basically a randn @ randn.
+
+# rand_vec @ sin(randn*scale_factor) >>>       sf < 0.5 >>> -0.422 and 1.*log10(sf) -0.275    , into  0.5*log10(dim) + 1.*log10(sf) -0.52, the same as randn@rand
+# rand_vec @ sin(randn*scale_factor) >>> 0.1 < sf < 1.6 >>> -0.422 and (from -1.276 to -0.277), into  0.5*log10(dim) - some_function(sf) but basically between log10(sf)-0.16 to -0.31
+# rand_vec @ sin(randn*scale_factor) >>> 1.6 < sf       >>> -0.422 and -0.277                 , into  0.5*log10(dim) -0.67
+
+# rand_vec @ cos(randn*scale_factor) >>> it feels like a 1.*log10(dim) + something(between -2 and -0.5)
+
+#old result:
+# rand_vec @ cos(randn*scale_factor) >>>        sf < 0.05 >>> -0.422 and 0            , into  xxxxxxxx   0.5 log10(dim) -0.276 (similar to a randn@constant[dim])
+# rand_vec @ cos(randn*scale_factor) >>> 0.05 < sf < 1.8  >>> -0.422 and (0 to -0.277), into  xxxxxxxx   in between ^^^ and vvv
+# rand_vec @ cos(randn*scale_factor) >>> 1.8  < sf        >>> -0.422 and -0.277       , into  xxxxxxxx   0.5 log10(dim) -0.426
+
+# gauss is not tested. Maybe later?
+
+
+if "rand matmul after activation functions" and False:
+    def matmul_after_activation_functions():
+        
+        if "relu(randn[dim]) @ rand [dim,dim]" and False:
+            TESTING = True
+            if TESTING:
+                print("relu(randn[dim]) @ rand[dim,dim]")
+                pass
+            device = 'cuda'
+            #--------------------#--------------------#--------------------
+            dim_list = [100,1000,10000]
+            if TESTING:
+                test_time_list = [20000,5000,500]
+                pass
+            else:
+                test_time_list = [100,30,5]
+                pass
+            #--------------------#--------------------#--------------------
+            if TESTING:
+                print(test_time_list)
+                the_min_gt_this_list =  []#don't modify here.
+                the_max_lt_this_list =  []
+                the_mean_eq_this_list = []
+                epsilon_list =          []
+                pass
+            else:
+                ###########################################  result paste to here.
+                the_min_gt_this_list =[ 0.975,  2.215,  3.271]
+                the_max_lt_this_list =[ 1.522,  2.374,  3.329]
+                the_mean_eq_this_list=[ 1.289,  2.298,  3.299]
+                epsilon_list         =[ 0.324,  0.093,  0.039]
+                pass
+            
+            
+            for param_set_count in range(dim_list.__len__()):
+                test_time = test_time_list[param_set_count]
+                dim = dim_list[param_set_count]
+                if not TESTING:
+                    the_min_gt_this = the_min_gt_this_list  [param_set_count]
+                    the_max_lt_this = the_max_lt_this_list  [param_set_count]
+                    the_mean_eq_this = the_mean_eq_this_list[param_set_count]
+                    epsilon = epsilon_list  [param_set_count]
+                    pass
+                
+                _raw_result = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #--------------------#--------------------#--------------------
+                    vec = torch.randn(size=[dim],device=device)
+                    loss_layer = torch.nn.ReLU()
+                    vec = loss_layer(vec)
+                    mat = torch.rand (size=[dim, dim],device=device)#rand
+                    prod = vec@mat
+                    _this_result = log10_avg_safe(prod)
+                    #--------------------#--------------------#--------------------
+                    _raw_result[test_count] = _this_result
+                    pass#for test_count
+                the_min = _raw_result.min()
+                the_max = _raw_result.max()
+                the_mean = _raw_result.mean()
+                if TESTING:
+                    the_min_gt_this_list.append(the_min.item()-0.01)
+                    the_max_lt_this_list.append(the_max.item()+0.01)
+                    the_mean_eq_this_list.append(the_mean.item())
+                    _delta_1 = the_mean - the_min  +0.02
+                    _delta_2 = the_max  - the_mean +0.02
+                    epsilon = max(_delta_1, _delta_2)
+                    epsilon_list.append(epsilon.item())    
+                    print(f"dim:{dim},   {the_min-0.01:.3f}   {the_max+0.01:.3f}   {the_mean:.3f}   ")
+                    pass
+                else:
+                    assert the_min>the_min_gt_this
+                    assert the_max<the_max_lt_this
+                    assert _tensor_equal(the_mean, [the_mean_eq_this], epsilon = epsilon)
+                    pass
+                pass#for param_set_count
+            if TESTING:
+                print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+                print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+                print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+                print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
+                pass
+            pass#/test
+        
+        if "gelu(randn[dim]*sf) @ rand [dim,dim]" and False:
+            print("gelu(randn[dim]) @ rand [dim,dim]")
+            TESTING = True
+            device = 'cuda'
+            
+            #--------------------#--------------------#--------------------
+            dim_list = [100,1000,10000]
+            #dim_list = [10000]
+            if TESTING:
+                test_time_list = [2000,2000,200]
+                #test_time_list = [20]
+                pass
+            else:
+                test_time_list = [100,30,5]
+                pass
+            for macro_iter_count in range(dim_list.__len__()):
+                dim = dim_list[macro_iter_count]
+                test_time = test_time_list[macro_iter_count]
+                
+                #scaling_factor_list = [0.0005,0.001,0.002,0.005,0.01, 0.02, 0.1,0.2, 0.5,   1.,  3.16,4,5,10,31.6,40,50, 100.]
+                ____temp = torch.linspace(start=0.,end=0.9, steps=10,)
+                ____temp = torch.pow(10.,____temp)
+                scaling_factor_list = (____temp*0.001).tolist()
+                scaling_factor_list.extend((____temp*0.01).tolist())
+                scaling_factor_list.extend((____temp*0.1).tolist())
+                scaling_factor_list.extend((____temp*1).tolist())
+                scaling_factor_list.extend((____temp*10).tolist())
+                scaling_factor_list.append(100.)
+                #scaling_factor_list = [1., 1.78, 3.16, 5.62,,   1., 1.78, 3.16, 5.62, 10., 17.8, 31.6, 56.2, ]
+                #                            0.1                           4
+            #--------------------#--------------------#--------------------
+                if TESTING:
+                    print(test_time)
+                    the_min_gt_this_list =  []#don't modify here.
+                    the_max_lt_this_list =  []
+                    the_mean_eq_this_list = []
+                    epsilon_list =          []
+                    pass
+                else:
+                    ###########################################  result paste to here.
+                    
+                    if dim == 100:
+                        the_min_gt_this_list =[-3.320, -2.616, -2.548, -2.431, -2.300, -2.223, -2.098, -1.970, -1.881, -1.787, -1.683, -1.603, -1.277, -0.965, -0.504,  0.517,  0.919,  1.123,  1.258,  1.385,  1.514,  1.615,  2.918]
+                        the_max_lt_this_list =[-2.089, -1.366, -1.256, -1.066, -1.001, -0.971, -0.865, -0.745, -0.577, -0.539, -0.348, -0.242,  0.025,  0.407,  1.053,  1.404,  1.519,  1.626,  1.744,  1.906,  1.975,  2.073,  3.403]
+                        the_mean_eq_this_list=[-2.814, -2.114, -1.999, -1.901, -1.810, -1.716, -1.607, -1.509, -1.404, -1.301, -1.195, -1.088, -0.721, -0.195,  0.609,  1.131,  1.277,  1.411,  1.537,  1.654,  1.766,  1.875,  3.189]
+                        epsilon_list         =[ 0.735,  0.757,  0.753,  0.845,  0.818,  0.755,  0.753,  0.775,  0.837,  0.772,  0.857,  0.856,  0.756,  0.780,  1.123,  0.624,  0.368,  0.299,  0.288,  0.279,  0.262,  0.270,  0.281]
+                        #scaling_factor_list =[ 0.001,  0.005,  0.006,  0.008,  0.010,  0.013,  0.016,  0.020,  0.025,  0.032,  0.040,  0.050,  0.100,  0.200,  0.501,  1.000,  1.259,  1.585,  1.995,  2.512,  3.162,  3.981,  79.43]
+                        #                                                                                                               ^^^^^                                   ^^^^^
+                        pass
+                    if dim == 1000:
+                        the_min_gt_this_list =[-2.679, -1.967, -1.878, -1.776, -1.667, -1.568, -1.471, -1.377, -1.278, -1.166, -1.060, -0.967, -0.679,  0.322,  1.431,  2.040,  2.180,  2.325,  2.439,  2.570,  2.698,  2.791,  4.120]
+                        the_max_lt_this_list =[-1.496, -0.811, -0.755, -0.625, -0.502, -0.484, -0.323, -0.121, -0.064,  0.040,  0.116,  0.251,  0.667,  1.173,  1.779,  2.244,  2.384,  2.505,  2.627,  2.754,  2.863,  2.962,  4.266]
+                        the_mean_eq_this_list=[-2.304, -1.608, -1.505, -1.399, -1.295, -1.196, -1.079, -0.977, -0.857, -0.708, -0.567, -0.391,  0.226,  0.873,  1.646,  2.146,  2.292,  2.425,  2.549,  2.667,  2.777,  2.884,  4.197]
+                        epsilon_list         =[ 0.818,  0.807,  0.760,  0.784,  0.803,  0.722,  0.767,  0.867,  0.803,  0.758,  0.693,  0.652,  0.915,  0.561,  0.226,  0.116,  0.122,  0.111,  0.120,  0.107,  0.096,  0.103,  0.087]
+                        #scaling_factor_list =[ 0.001,  0.005,  0.006,  0.008,  0.010,  0.013,  0.016,  0.020,  0.025,  0.032,  0.040,  0.050,  0.100,  0.200,  0.501,  1.000,  1.259,  1.585,  1.995,  2.512,  3.162,  3.981,  79.43]
+                        #                                                                                       ^^^^^                                                                           ^^^^^                                                                                        
+                        pass
+                    if dim == 10000:
+                        the_min_gt_this_list =[-2.133, -1.435, -1.343, -1.232, -1.129, -1.033, -0.941, -0.825, -0.730, -0.592, -0.353, -0.085,  1.099,  1.794,  2.606,  3.115,  3.255,  3.394,  3.526,  3.633,  3.747,  3.858,  5.174]
+                        the_max_lt_this_list =[-1.085, -0.431, -0.311, -0.228, -0.088,  0.054,  0.294,  0.333,  0.471,  0.610,  0.788,  0.940,  1.458,  1.971,  2.695,  3.190,  3.326,  3.463,  3.579,  3.697,  3.807,  3.912,  5.227]
+                        the_mean_eq_this_list=[-1.785, -1.096, -0.971, -0.852, -0.704, -0.544, -0.403, -0.199,  0.008,  0.231,  0.452,  0.673,  1.287,  1.892,  2.650,  3.149,  3.293,  3.426,  3.551,  3.668,  3.778,  3.886,  5.200]
+                        epsilon_list         =[ 0.710,  0.675,  0.670,  0.633,  0.626,  0.608,  0.707,  0.635,  0.748,  0.834,  0.815,  0.767,  0.198,  0.107,  0.055,  0.051,  0.048,  0.046,  0.038,  0.045,  0.042,  0.039,  0.038]
+                        #scaling_factor_list =[ 0.001,  0.005,  0.006,  0.008,  0.010,  0.013,  0.016,  0.020,  0.025,  0.032,  0.040,  0.050,  0.100,  0.200,  0.501,  1.000,  1.259,  1.585,  1.995,  2.512,  3.162,  3.981,  79.43]
+                        #                                                       ^^^^^                                                                                                   ^^^^^
+                        pass
+                    pass
+                
+                for param_set_count in range(scaling_factor_list.__len__()):
+                    scaling_factor = scaling_factor_list[param_set_count]
+                    if not TESTING:
+                        the_min_gt_this = the_min_gt_this_list  [param_set_count]
+                        the_max_lt_this = the_max_lt_this_list  [param_set_count]
+                        the_mean_eq_this = the_mean_eq_this_list[param_set_count]
+                        epsilon = epsilon_list  [param_set_count]
+                        pass
+                    
+                    _raw_result = torch.empty(size=[test_time])
+                    for test_count in range(test_time):
+                        #--------------------#--------------------#--------------------
+                        vec = torch.randn(size=[dim],device=device)*scaling_factor
+                        loss_layer = torch.nn.GELU()
+                        vec = loss_layer(vec)
+                        mat = torch.rand (size=[dim, dim],device=device)#rand
+                        prod = vec@mat
+                        _this_result = log10_avg_safe(prod)
+                        #--------------------#--------------------#--------------------
+                        _raw_result[test_count] = _this_result
+                        pass
+                    the_min = _raw_result.min()
+                    the_max = _raw_result.max()
+                    the_mean = _raw_result.mean()
+                    if TESTING:
+                        the_min_gt_this_list.append(the_min.item()-0.01)
+                        the_max_lt_this_list.append(the_max.item()+0.01)
+                        the_mean_eq_this_list.append(the_mean.item())
+                        _delta_1 = the_mean - the_min  +0.02
+                        _delta_2 = the_max  - the_mean +0.02
+                        epsilon = max(_delta_1, _delta_2)
+                        epsilon_list.append(epsilon.item())    
+                        #print(f"dim:{dim}   sf{scaling_factor}  ///  {the_min-0.01:.3f}   {the_max+0.01:.3f}   {the_mean:.3f}   ")
+                        pass
+                    else:
+                        assert the_min>the_min_gt_this
+                        assert the_max<the_max_lt_this
+                        assert _tensor_equal(the_mean, [the_mean_eq_this], epsilon = epsilon)
+                        pass
+                    pass#for param_set_count
+                if TESTING:
+                    print(f"if dim == {dim}:")
+                    print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+                    print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+                    print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+                    print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
+                    print(f"#scaling_factor_list ={str_the_list(scaling_factor_list,         3)}")    
+                    print("pass")
+                    pass
+                pass# for dim
+            pass#/test
+        
+        if "sigmoid(randn[dim]*sf) @ rand [dim,dim]" and False:
+            print("sigmoid(randn[dim]) @ rand [dim,dim]")
+            TESTING = True
+            device = 'cuda'
+            
+            #--------------------#--------------------#--------------------
+            dim_list = [100,1000,10000]
+            #dim_list = [10000]
+            if TESTING:
+                test_time_list = [2000,2000,200]
+                #test_time_list = [20]
+                pass
+            else:
+                test_time_list = [100,30,5]
+                pass
+            for macro_iter_count in range(dim_list.__len__()):
+                dim = dim_list[macro_iter_count]
+                test_time = test_time_list[macro_iter_count]
+                
+                #scaling_factor_list = [0.0005,0.001,0.002,0.005,0.01, 0.02, 0.1,0.2, 0.5,   1.,  2,3,4,5,7,10,20,30,40,50,70,100]
+                ____temp = torch.linspace(start=0.,end=0.9, steps=10,)
+                ____temp = torch.pow(10.,____temp)
+                scaling_factor_list = (____temp*0.001).tolist()
+                scaling_factor_list.extend((____temp*0.01).tolist())
+                scaling_factor_list.extend((____temp*0.1).tolist())
+                scaling_factor_list.extend((____temp*1).tolist())
+                scaling_factor_list.extend((____temp*10).tolist())
+                scaling_factor_list.append(100.)
+            #--------------------#--------------------#--------------------
+                if TESTING:
+                    print(test_time)
+                    the_min_gt_this_list =  []#don't modify here.
+                    the_max_lt_this_list =  []
+                    the_mean_eq_this_list = []
+                    epsilon_list =          []
+                    pass
+                else:
+                    ###########################################  result paste to here.
+                    
+                    if dim == 100:
+                        the_min_gt_this_list =[ 1.377,  1.377,  1.374,  1.368,  1.363,  1.360,  1.353,  1.347,  1.312,  1.263, 1.234,  1.213,  1.220]
+                        the_max_lt_this_list =[ 1.414,  1.414,  1.418,  1.426,  1.424,  1.430,  1.434,  1.435,  1.462,  1.499, 1.518,  1.536,  1.526]
+                        the_mean_eq_this_list=[ 1.395,  1.395,  1.395,  1.395,  1.395,  1.395,  1.394,  1.395,  1.395,  1.394, 1.391,  1.391,  1.390]
+                        epsilon_list         =[ 0.029,  0.029,  0.033,  0.041,  0.042,  0.046,  0.051,  0.058,  0.093,  0.142, 0.168,  0.188,  0.180]
+                        #scaling_factor_list =[ 0.001,  0.010,  0.100,  0.200,  0.251,  0.316,  0.398,  0.501,  1.000,  5.012, 10.00,  50.1,    100.]
+                        #                                                               ^^^^^
+                        pass
+                    if dim == 1000:
+                        the_min_gt_this_list =[ 2.386,  2.386,  2.385,  2.367,  2.358,  2.350,  2.347,  2.343,  2.343,  2.342,  2.331,  2.340]
+                        the_max_lt_this_list =[ 2.408,  2.408,  2.409,  2.428,  2.435,  2.436,  2.446,  2.443,  2.444,  2.444,  2.458,  2.450]
+                        the_mean_eq_this_list=[ 2.397,  2.397,  2.397,  2.397,  2.397,  2.397,  2.397,  2.396,  2.397,  2.397,  2.397,  2.397]
+                        epsilon_list         =[ 0.021,  0.021,  0.022,  0.041,  0.049,  0.057,  0.060,  0.063,  0.064,  0.065,  0.076,  0.067]
+                        #scaling_factor_list =[ 0.001,  0.010,  0.100,  1.000,  1.995,  3.162,  3.981,  5.012,  10.00,  12.58,  50.12,  100.]
+                        #                                                               ^^^^^
+                        pass
+                    if dim == 10000:
+                        the_min_gt_this_list =[ 3.388,  3.388,  3.387,  3.382,  3.377,  3.377,  3.373,  3.378,  3.375,  3.374]
+                        the_max_lt_this_list =[ 3.408,  3.408,  3.408,  3.412,  3.416,  3.417,  3.420,  3.418,  3.418,  3.418]
+                        the_mean_eq_this_list=[ 3.398,  3.398,  3.398,  3.398,  3.398,  3.398,  3.398,  3.397,  3.398,  3.397]
+                        epsilon_list         =[ 0.020,  0.020,  0.021,  0.025,  0.030,  0.031,  0.035,  0.030,  0.033,  0.033]
+                        #scaling_factor_list =[ 0.001,  0.010,  0.100,  1.000,  5.012,  7.943,  10.00,  12.59,  50.12,  100.]
+                        #                                                                       ^^^^^
+                        pass
+
+                    pass
+                
+                for param_set_count in range(scaling_factor_list.__len__()):
+                    scaling_factor = scaling_factor_list[param_set_count]
+                    if not TESTING:
+                        the_min_gt_this = the_min_gt_this_list  [param_set_count]
+                        the_max_lt_this = the_max_lt_this_list  [param_set_count]
+                        the_mean_eq_this = the_mean_eq_this_list[param_set_count]
+                        epsilon = epsilon_list  [param_set_count]
+                        pass
+                    
+                    _raw_result = torch.empty(size=[test_time])
+                    for test_count in range(test_time):
+                        #--------------------#--------------------#--------------------
+                        vec = torch.randn(size=[dim],device=device)*scaling_factor
+                        loss_layer = torch.nn.Sigmoid()
+                        vec = loss_layer(vec)
+                        mat = torch.rand (size=[dim, dim],device=device)#rand
+                        prod = vec@mat
+                        _this_result = log10_avg_safe(prod)
+                        #--------------------#--------------------#--------------------
+                        _raw_result[test_count] = _this_result
+                        pass
+                    the_min = _raw_result.min()
+                    the_max = _raw_result.max()
+                    the_mean = _raw_result.mean()
+                    if TESTING:
+                        the_min_gt_this_list.append(the_min.item()-0.01)
+                        the_max_lt_this_list.append(the_max.item()+0.01)
+                        the_mean_eq_this_list.append(the_mean.item())
+                        _delta_1 = the_mean - the_min  +0.02
+                        _delta_2 = the_max  - the_mean +0.02
+                        epsilon = max(_delta_1, _delta_2)
+                        epsilon_list.append(epsilon.item())    
+                        print(f"dim:{dim}   sf{scaling_factor}  ///  {the_min-0.01:.3f}   {the_max+0.01:.3f}   {the_mean:.3f}   ")
+                        pass
+                    else:
+                        assert the_min>the_min_gt_this
+                        assert the_max<the_max_lt_this
+                        assert _tensor_equal(the_mean, [the_mean_eq_this], epsilon = epsilon)
+                        pass
+                    pass#for param_set_count
+                if TESTING:
+                    print(f"if dim == {dim}:")
+                    print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+                    print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+                    print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+                    print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
+                    print(f"#scaling_factor_list ={str_the_list(scaling_factor_list,         3)}")    
+                    print("pass")
+                    pass
+                pass# for dim
+            pass#/test
+        
+        if "tanh(randn[dim]*sf) @ rand [dim,dim]" and False:
+            print("tanh(randn[dim]) @ rand [dim,dim]")
+            TESTING = True
+            device = 'cuda'
+            
+            #--------------------#--------------------#--------------------
+            dim_list = [100,1000,10000]
+            #dim_list = [10000]
+            if TESTING:
+                test_time_list = [2000,2000,200]
+                #test_time_list = [20]
+                pass
+            else:
+                test_time_list = [100,30,5]
+                pass
+            for macro_iter_count in range(dim_list.__len__()):
+                dim = dim_list[macro_iter_count]
+                test_time = test_time_list[macro_iter_count]
+                
+                #scaling_factor_list = [0.0005,0.001,0.002,0.005,0.01, 0.02, 0.1,0.2, 0.5,   1.,  2,3,4,5,7,10,20,30,40,50,70,100]
+                ____temp = torch.linspace(start=0.,end=0.9, steps=10,)
+                ____temp = torch.pow(10.,____temp)
+                scaling_factor_list = (____temp*0.001).tolist()
+                scaling_factor_list.extend((____temp*0.01).tolist())
+                scaling_factor_list.extend((____temp*0.1).tolist())
+                scaling_factor_list.extend((____temp*1).tolist())
+                scaling_factor_list.extend((____temp*10).tolist())
+                scaling_factor_list.append(100.)
+                #                                                           0.1                      4
+            #--------------------#--------------------#--------------------
+                if TESTING:
+                    print(test_time)
+                    the_min_gt_this_list =  []#don't modify here.
+                    the_max_lt_this_list =  []
+                    the_mean_eq_this_list = []
+                    epsilon_list =          []
+                    pass
+                else:
+                    ###########################################  result paste to here.
+                    if dim == 100:
+                        the_min_gt_this_list =[-2.992, -2.030, -1.038, 0.710, -0.616, -0.533, -0.424, -0.372, -0.346, -0.220, -0.075, -0.075, -0.041,  0.011, -0.007,  0.010, -0.019,  0.000,  0.026,  0.033]
+                        the_max_lt_this_list =[-1.782, -0.742,  0.265, 0.500,  0.604,  0.723,  0.724,  0.861,  0.963,  1.067,  1.162,  1.156,  1.195,  1.166,  1.208,  1.227,  1.265,  1.257,  1.225,  1.249]
+                        the_mean_eq_this_list=[-2.518, -1.513, -0.512, 0.222, -0.135, -0.054,  0.026,  0.113,  0.174,  0.300,  0.393,  0.428,  0.447,  0.456,  0.458,  0.468,  0.477,  0.481,  0.476,  0.494]
+                        epsilon_list         =[ 0.745,  0.780,  0.787, 0.731,  0.749,  0.787,  0.709,  0.758,  0.799,  0.777,  0.779,  0.738,  0.758,  0.720,  0.761,  0.769,  0.798,  0.786,  0.759,  0.765]
+                        #scaling_factor_list =[ 0.001,  0.010,  0.100, 0.200,  0.251,  0.316,  0.398,  0.501,  0.631,  1.000,  1.995,  3.162,  3.981,  5.012,  6.310,  7.943,  10.00,  19.95,  50.12,  100.]
+                        #                                                                      ^^^^^                                                   ^^^^^    
+                        pass
+                    if dim == 1000:
+                        the_min_gt_this_list =[-2.376, -1.377, -0.377, -0.090,  0.006,  0.097,  0.177,  0.245,  0.422,  0.536, 0.575,  0.573,  0.601,  0.615,  0.621,  0.622,  0.635,  0.628]
+                        the_max_lt_this_list =[-1.245, -0.230,  0.741,  0.988,  1.162,  1.201,  1.304,  1.489,  1.526,  1.634, 1.739,  1.777,  1.672,  1.726,  1.729,  1.875,  1.819,  1.748]
+                        the_mean_eq_this_list=[-2.008, -1.006, -0.021,  0.278,  0.371,  0.444,  0.539,  0.620,  0.788,  0.887, 0.931,  0.939,  0.963,  0.964,  0.983,  0.979,  0.994,  0.996]
+                        epsilon_list         =[ 0.773,  0.786,  0.772,  0.720,  0.801,  0.767,  0.774,  0.879,  0.748,  0.757, 0.818,  0.847,  0.719,  0.772,  0.756,  0.906,  0.835,  0.762]
+                        #scaling_factor_list =[ 0.001,  0.010,  0.100,  0.200,  0.251,  0.316,  0.398,  0.501,  1.000,  1.995, 3.162,  3.981,  5.012,  7.943,  10.00,  19.95,  50.12,  100.]
+                        #                                                               ^^^^^                                                  ^^^^^                                                                                                                                                    
+                        pass
+                    if dim == 10000:
+                        the_min_gt_this_list =[-1.831, -0.838,  0.161,  0.449,  0.540,  0.629,  0.710,  0.787,  0.859,  0.966,  1.073,  1.119,  1.127,  1.139,  1.149,  1.146,  1.165,  1.167]
+                        the_max_lt_this_list =[-0.680,  0.122,  1.084,  1.470,  1.531,  1.593,  1.712,  1.792,  1.751,  1.965,  2.089,  2.191,  2.259,  2.170,  2.104,  2.127,  2.122,  2.178]
+                        the_mean_eq_this_list=[-1.507, -0.493,  0.493,  0.760,  0.879,  0.989,  1.043,  1.117,  1.185,  1.279,  1.389,  1.465,  1.464,  1.488,  1.452,  1.460,  1.480,  1.518]
+                        epsilon_list         =[ 0.837,  0.625,  0.600,  0.720,  0.662,  0.615,  0.679,  0.686,  0.575,  0.697,  0.710,  0.736,  0.805,  0.692,  0.662,  0.677,  0.652,  0.670]
+                        #scaling_factor_list =[ 0.001,  0.010,  0.100,  0.200,  0.251,  0.316,  0.398,  0.501,  0.631,  1.000,  1.995,  3.981,  5.012,  6.310,  7.943,  10.00,  50.12,  100.]
+                        #                                                                       ^^^^^                                                   ^^^^^                                                                                                                           
+                    pass
+                
+                for param_set_count in range(scaling_factor_list.__len__()):
+                    scaling_factor = scaling_factor_list[param_set_count]
+                    if not TESTING:
+                        the_min_gt_this = the_min_gt_this_list  [param_set_count]
+                        the_max_lt_this = the_max_lt_this_list  [param_set_count]
+                        the_mean_eq_this = the_mean_eq_this_list[param_set_count]
+                        epsilon = epsilon_list  [param_set_count]
+                        pass
+                    
+                    _raw_result = torch.empty(size=[test_time])
+                    for test_count in range(test_time):
+                        #--------------------#--------------------#--------------------
+                        vec = torch.randn(size=[dim],device=device)*scaling_factor
+                        loss_layer = torch.nn.Tanh()
+                        vec = loss_layer(vec)
+                        mat = torch.rand (size=[dim, dim],device=device)#rand
+                        prod = vec@mat
+                        _this_result = log10_avg_safe(prod)
+                        #--------------------#--------------------#--------------------
+                        _raw_result[test_count] = _this_result
+                        pass
+                    the_min = _raw_result.min()
+                    the_max = _raw_result.max()
+                    the_mean = _raw_result.mean()
+                    if TESTING:
+                        the_min_gt_this_list.append(the_min.item()-0.01)
+                        the_max_lt_this_list.append(the_max.item()+0.01)
+                        the_mean_eq_this_list.append(the_mean.item())
+                        _delta_1 = the_mean - the_min  +0.02
+                        _delta_2 = the_max  - the_mean +0.02
+                        epsilon = max(_delta_1, _delta_2)
+                        epsilon_list.append(epsilon.item())    
+                        #print(f"dim:{dim}   sf{scaling_factor}  ///  {the_min-0.01:.3f}   {the_max+0.01:.3f}   {the_mean:.3f}   ")
+                        pass
+                    else:
+                        assert the_min>the_min_gt_this
+                        assert the_max<the_max_lt_this
+                        assert _tensor_equal(the_mean, [the_mean_eq_this], epsilon = epsilon)
+                        pass
+                    pass#for param_set_count
+                if TESTING:
+                    print(f"if dim == {dim}:")
+                    print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+                    print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+                    print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+                    print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
+                    print(f"#scaling_factor_list ={str_the_list(scaling_factor_list,         3)}")    
+                    print("pass")
+                    pass
+                pass# for dim
+            pass#/test
+        
+        if "sin(randn[dim]*sf) @ rand [dim,dim]" and False:
+            print("sin(randn[dim]) @ rand [dim,dim]")
+            TESTING = True
+            device = 'cuda'
+            
+            #--------------------#--------------------#--------------------
+            dim_list = [100,1000,10000]
+            #dim_list = [10000]
+            if TESTING:
+                test_time_list = [2000,2000,200]
+                #test_time_list = [20]
+                pass
+            else:
+                test_time_list = [100,30,5]
+                pass
+            for macro_iter_count in range(dim_list.__len__()):
+                dim = dim_list[macro_iter_count]
+                test_time = test_time_list[macro_iter_count]
+                
+                #scaling_factor_list =[ 0.0001, 0.001, 0.01,  0.02,    0.1,    0.2,    0.6,   1.,  1.5,  1.6,  1.7, 1.8,1.9,  2.,   3.]
+                ____temp = torch.linspace(start=0.,end=0.9, steps=10,)
+                ____temp = torch.pow(10.,____temp)
+                scaling_factor_list = (____temp*0.001).tolist()
+                scaling_factor_list.extend((____temp*0.01).tolist())
+                scaling_factor_list.extend((____temp*0.1).tolist())
+                scaling_factor_list.extend((____temp*1).tolist())
+                scaling_factor_list.extend((____temp*10).tolist())
+                scaling_factor_list.append(100.)
+                #scaling_factor_list = torch.linspace(start=-3.,end=2., steps=51,).tolist()
+                
+                #the 0.1  and 1.6
+            #--------------------#--------------------#--------------------
+                if TESTING:
+                    print(test_time)
+                    the_min_gt_this_list =  []#don't modify here.
+                    the_max_lt_this_list =  []
+                    the_mean_eq_this_list = []
+                    epsilon_list =          []
+                    pass
+                else:
+                    ###########################################  result paste to here.
+                    if dim == 100:
+                        the_min_gt_this_list =[-2.978, -2.907, -2.796, -2.737, -2.581, -2.476, -2.366, -2.286, -2.164, -2.084, -2.024, -1.903, -1.791, -1.709, -1.637, -1.492, -1.405, -1.302, -1.192, -1.102, -0.983, -0.883, -0.812, -0.739, -0.594, -0.490, -0.445, -0.320, -0.238, -0.223, -0.155, -0.158, -0.132, -0.173, -0.102, -0.114, -0.111, -0.106, -0.187, -0.153, -0.127, -0.123, -0.120, -0.129, -0.137, -0.128, -0.122, -0.116, -0.132, -0.123, -0.148]
+                        the_max_lt_this_list =[-1.745, -1.663, -1.447, -1.343, -1.289, -1.265, -1.171, -1.064, -0.924, -0.810, -0.731, -0.657, -0.593, -0.442, -0.398, -0.297, -0.195,  0.023,  0.058,  0.119,  0.251,  0.292,  0.424,  0.580,  0.642,  0.703,  0.787,  0.904,  0.963,  1.015,  1.076,  1.043,  1.078,  1.140,  1.182,  1.059,  1.050,  1.071,  1.071,  1.137,  1.064,  1.113,  1.075,  1.137,  1.065,  1.095,  1.181,  1.124,  1.057,  1.185,  1.121]
+                        the_mean_eq_this_list=[-2.519, -2.415, -2.318, -2.216, -2.103, -2.018, -1.916, -1.799, -1.711, -1.607, -1.506, -1.409, -1.312, -1.208, -1.110, -1.017, -0.911, -0.807, -0.726, -0.604, -0.516, -0.413, -0.313, -0.214, -0.121, -0.031,  0.051,  0.138,  0.208,  0.263,  0.302,  0.328,  0.341,  0.345,  0.336,  0.339,  0.341,  0.345,  0.337,  0.337,  0.326,  0.347,  0.333,  0.337,  0.330,  0.344,  0.344,  0.338,  0.345,  0.351,  0.344]
+                        epsilon_list         =[ 0.784,  0.761,  0.882,  0.883,  0.824,  0.763,  0.754,  0.745,  0.796,  0.807,  0.785,  0.761,  0.729,  0.776,  0.722,  0.730,  0.726,  0.840,  0.794,  0.733,  0.777,  0.715,  0.747,  0.804,  0.773,  0.744,  0.746,  0.777,  0.765,  0.762,  0.785,  0.725,  0.748,  0.806,  0.856,  0.730,  0.719,  0.736,  0.744,  0.810,  0.748,  0.777,  0.753,  0.809,  0.745,  0.761,  0.847,  0.796,  0.722,  0.845,  0.787]
+                        #scaling_factor_list =[ 0.001,  0.001,  0.002,  0.002,  0.003,  0.003,  0.004,  0.005,  0.006,  0.008,  0.010,  0.013,  0.016,  0.020,  0.025,  0.032,  0.040,  0.050,  0.063,  0.079,  0.100,  0.126,  0.158,  0.200,  0.251,  0.316,  0.398,  0.501,  0.631,  0.794,  1.000,  1.259,  1.585,  1.995,  2.512,  3.162,  3.981,  5.012,  6.310,  7.943,  10.000,  12.589,  15.849,  19.953,  25.119,  31.623,  39.811,  50.119,  63.096,  79.433,  100.000]
+                        #                                                                                                                                                                                                                                               0.5                                     1.5                                                                   
+                        pass
+                    if dim == 1000:
+                        the_min_gt_this_list =[-2.375, -2.271, -2.169, -2.075, -1.975, -1.874, -1.774, -1.674, -1.579, -1.474, -1.368, -1.284, -1.185, -1.090, -0.983, -0.881, -0.769, -0.679, -0.568, -0.468, -0.378, -0.291, -0.183, -0.086,  0.006,  0.114,  0.195,  0.264,  0.351,  0.423,  0.446,  0.471,  0.475,  0.483,  0.483,  0.477,  0.485,  0.487,  0.485,  0.483,  0.480,  0.479,  0.487,  0.489,  0.482,  0.487,  0.476,  0.475,  0.475,  0.466,  0.480]
+                        the_max_lt_this_list =[-1.253, -1.071, -1.027, -0.952, -0.789, -0.783, -0.689, -0.540, -0.402, -0.376, -0.233, -0.165, -0.054,  0.047,  0.122,  0.280,  0.431,  0.417,  0.575,  0.623,  0.686,  0.832,  0.927,  1.043,  1.103,  1.266,  1.322,  1.433,  1.482,  1.583,  1.591,  1.654,  1.579,  1.603,  1.637,  1.636,  1.572,  1.588,  1.600,  1.601,  1.548,  1.623,  1.595,  1.634,  1.583,  1.549,  1.686,  1.627,  1.630,  1.586,  1.572]
+                        the_mean_eq_this_list=[-2.016, -1.907, -1.808, -1.710, -1.615, -1.506, -1.401, -1.307, -1.216, -1.107, -1.009, -0.912, -0.807, -0.702, -0.623, -0.505, -0.404, -0.311, -0.205, -0.109, -0.011,  0.084,  0.180,  0.279,  0.383,  0.464,  0.547,  0.637,  0.710,  0.771,  0.805,  0.824,  0.830,  0.834,  0.850,  0.837,  0.840,  0.843,  0.839,  0.838,  0.833,  0.844,  0.847,  0.836,  0.847,  0.841,  0.839,  0.845,  0.839,  0.833,  0.844]
+                        epsilon_list         =[ 0.773,  0.846,  0.791,  0.768,  0.836,  0.733,  0.722,  0.777,  0.824,  0.741,  0.786,  0.757,  0.763,  0.759,  0.756,  0.796,  0.845,  0.738,  0.789,  0.742,  0.707,  0.758,  0.757,  0.774,  0.730,  0.812,  0.786,  0.806,  0.782,  0.822,  0.795,  0.840,  0.759,  0.780,  0.798,  0.808,  0.742,  0.755,  0.770,  0.773,  0.725,  0.789,  0.758,  0.808,  0.747,  0.718,  0.857,  0.792,  0.800,  0.762,  0.738]
+                        #scaling_factor_list =[ 0.001,  0.001,  0.002,  0.002,  0.003,  0.003,  0.004,  0.005,  0.006,  0.008,  0.010,  0.013,  0.016,  0.020,  0.025,  0.032,  0.040,  0.050,  0.063,  0.079,  0.100,  0.126,  0.158,  0.200,  0.251,  0.316,  0.398,  0.501,  0.631,  0.794,  1.000,  1.259,  1.585,  1.995,  2.512,  3.162,  3.981,  5.012,  6.310,  7.943,  10.000,  12.589,  15.849,  19.953,  25.119,  31.623,  39.811,  50.119,  63.096,  79.433,  100.000]
+                        #                                                                                                                                                                                                                                                0.5                                             2                                                          
+                        pass
+                    if dim == 10000:
+                        the_min_gt_this_list =[-1.833, -1.738, -1.629, -1.539, -1.429, -1.334, -1.231, -1.129, -1.034, -0.930, -0.831, -0.734, -0.637, -0.530, -0.427, -0.329, -0.232, -0.138, -0.027,  0.067,  0.161,  0.268,  0.360,  0.456,  0.551,  0.648,  0.737,  0.813,  0.883,  0.942,  0.989,  1.008,  1.013,  1.017,  1.016,  1.011,  1.022,  1.009,  1.019,  1.012,  1.013,  1.017,  1.021,  1.020,  1.018,  1.016,  1.016,  1.015,  1.019,  1.018,  1.018]
+                        the_max_lt_this_list =[-0.865, -0.777, -0.554, -0.486, -0.448, -0.342, -0.219, -0.074, -0.072,  0.097,  0.125,  0.359,  0.336,  0.499,  0.415,  0.740,  0.703,  0.909,  0.978,  0.974,  1.175,  1.232,  1.279,  1.474,  1.713,  1.601,  1.694,  1.864,  1.884,  1.951,  2.065,  2.098,  2.039,  1.972,  2.026,  1.952,  2.033,  2.006,  2.102,  1.934,  1.987,  2.026,  2.065,  2.017,  1.909,  2.049,  2.096,  1.924,  1.979,  1.994,  1.950]
+                        the_mean_eq_this_list=[-1.527, -1.390, -1.303, -1.205, -1.121, -0.999, -0.909, -0.828, -0.714, -0.645, -0.522, -0.434, -0.327, -0.223, -0.097, -0.028,  0.074,  0.216,  0.292,  0.388,  0.512,  0.616,  0.654,  0.805,  0.842,  0.940,  1.039,  1.133,  1.201,  1.229,  1.310,  1.331,  1.347,  1.335,  1.343,  1.332,  1.338,  1.322,  1.337,  1.349,  1.338,  1.349,  1.388,  1.330,  1.342,  1.358,  1.368,  1.332,  1.342,  1.340,  1.328]
+                        epsilon_list         =[ 0.672,  0.623,  0.759,  0.729,  0.684,  0.667,  0.700,  0.764,  0.651,  0.752,  0.657,  0.804,  0.673,  0.732,  0.522,  0.778,  0.639,  0.702,  0.696,  0.596,  0.673,  0.626,  0.635,  0.679,  0.881,  0.672,  0.665,  0.741,  0.693,  0.732,  0.765,  0.777,  0.701,  0.647,  0.693,  0.630,  0.705,  0.695,  0.774,  0.595,  0.659,  0.687,  0.688,  0.697,  0.577,  0.700,  0.738,  0.602,  0.647,  0.664,  0.632]
+                        #scaling_factor_list =[ 0.001,  0.001,  0.002,  0.002,  0.003,  0.003,  0.004,  0.005,  0.006,  0.008,  0.010,  0.013,  0.016,  0.020,  0.025,  0.032,  0.040,  0.050,  0.063,  0.079,  0.100,  0.126,  0.158,  0.200,  0.251,  0.316,  0.398,  0.501,  0.631,  0.794,  1.000,  1.259,  1.585,  1.995,  2.512,  3.162,  3.981,  5.012,  6.310,  7.943,  10.000,  12.589,  15.849,  19.953,  25.119,  31.623,  39.811,  50.119,  63.096,  79.433,  100.000]
+                        #                                                                                                                                                                                                                                               0.5                                     1.5                                                                   
+                        
+                    pass
+                
+                for param_set_count in range(scaling_factor_list.__len__()):
+                    scaling_factor = scaling_factor_list[param_set_count]
+                    if not TESTING:
+                        the_min_gt_this = the_min_gt_this_list  [param_set_count]
+                        the_max_lt_this = the_max_lt_this_list  [param_set_count]
+                        the_mean_eq_this = the_mean_eq_this_list[param_set_count]
+                        epsilon = epsilon_list  [param_set_count]
+                        pass
+                    
+                    _raw_result = torch.empty(size=[test_time])
+                    for test_count in range(test_time):
+                        #--------------------#--------------------#--------------------
+                        vec = torch.randn(size=[dim],device=device)*scaling_factor
+                        vec = vec.sin()
+                        mat = torch.rand (size=[dim, dim],device=device)#rand
+                        prod = vec@mat
+                        _this_result = log10_avg_safe(prod)
+                        #--------------------#--------------------#--------------------
+                        _raw_result[test_count] = _this_result
+                        pass
+                    the_min = _raw_result.min()
+                    the_max = _raw_result.max()
+                    the_mean = _raw_result.mean()
+                    if TESTING:
+                        the_min_gt_this_list.append(the_min.item()-0.01)
+                        the_max_lt_this_list.append(the_max.item()+0.01)
+                        the_mean_eq_this_list.append(the_mean.item())
+                        _delta_1 = the_mean - the_min  +0.02
+                        _delta_2 = the_max  - the_mean +0.02
+                        epsilon = max(_delta_1, _delta_2)
+                        epsilon_list.append(epsilon.item())    
+                        print(f"dim:{dim}   sf{scaling_factor}  ///  {the_min-0.01:.3f}   {the_max+0.01:.3f}   {the_mean:.3f}   ")
+                        pass
+                    else:
+                        assert the_min>the_min_gt_this
+                        assert the_max<the_max_lt_this
+                        assert _tensor_equal(the_mean, [the_mean_eq_this], epsilon = epsilon)
+                        pass
+                    pass#for param_set_count
+                if TESTING:
+                    print(f"if dim == {dim}:")
+                    print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+                    print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+                    print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+                    print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
+                    print(f"#scaling_factor_list ={str_the_list(scaling_factor_list,         3)}")    
+                    print("pass")
+                    pass
+                pass# for dim
+            pass#/test
+        
+        if "cos(randn[dim]*sf) @ rand [dim,dim]" and False:
+            print("cos(randn[dim]) @ rand [dim,dim]")
+            TESTING = True
+            device = 'cuda'
+            
+            #--------------------#--------------------#--------------------
+            dim_list = [100,1000,10000]
+            #dim_list = [10000]
+            if TESTING:
+                test_time_list = [2000,2000,200]
+                #test_time_list = [20]
+                pass
+            else:
+                test_time_list = [100,30,5]
+                pass
+            for macro_iter_count in range(dim_list.__len__()):
+                dim = dim_list[macro_iter_count]
+                test_time = test_time_list[macro_iter_count]
+                
+                scaling_factor_list = torch.linspace(start=-3.,end=2., steps=51,).tolist()
+            #--------------------#--------------------#--------------------
+                if TESTING:
+                    print(test_time)
+                    the_min_gt_this_list =  []#don't modify here.
+                    the_max_lt_this_list =  []
+                    the_mean_eq_this_list = []
+                    epsilon_list =          []
+                    pass
+                else:
+                    ###########################################  result paste to here.
+                                            
+                    if dim == 100:
+                        the_min_gt_this_list =[-0.148, -0.164, -0.107, -0.121, -0.103, -0.130, -0.107, -0.094, -0.151, -0.143, -0.112, -0.060, -0.013,  0.024,  0.192,  0.551,  0.878,  1.009,  1.132,  1.282,  1.285,  1.400,  1.465,  1.494,  1.560,  1.602,  1.630,  1.651,  1.668,  1.675,  1.678,  1.674,  1.667,  1.654,  1.630,  1.602,  1.565,  1.515,  1.475,  1.410,  1.328,  1.243,  1.163,  1.028,  0.870,  0.720,  0.339,  0.087,  0.025, -0.090, -0.079]
+                        the_max_lt_this_list =[ 1.083,  1.146,  1.099,  1.151,  1.140,  1.148,  1.189,  1.176,  1.177,  1.301,  1.236,  1.288,  1.322,  1.377,  1.395,  1.428,  1.462,  1.504,  1.512,  1.564,  1.577,  1.594,  1.623,  1.639,  1.659,  1.678,  1.689,  1.699,  1.707,  1.712,  1.714,  1.712,  1.707,  1.697,  1.692,  1.675,  1.661,  1.638,  1.625,  1.601,  1.581,  1.546,  1.518,  1.489,  1.447,  1.407,  1.408,  1.342,  1.335,  1.305,  1.360]
+                        the_mean_eq_this_list=[ 0.337,  0.349,  0.346,  0.360,  0.379,  0.405,  0.442,  0.492,  0.560,  0.637,  0.731,  0.836,  0.948,  1.038,  1.116,  1.195,  1.261,  1.322,  1.378,  1.431,  1.476,  1.519,  1.557,  1.588,  1.618,  1.642,  1.661,  1.677,  1.687,  1.694,  1.696,  1.694,  1.687,  1.676,  1.661,  1.642,  1.618,  1.589,  1.557,  1.519,  1.477,  1.432,  1.379,  1.322,  1.258,  1.191,  1.119,  1.037,  0.952,  0.845,  0.738]
+                        epsilon_list         =[ 0.756,  0.807,  0.763,  0.801,  0.771,  0.753,  0.757,  0.694,  0.721,  0.790,  0.852,  0.906,  0.970,  1.024,  0.934,  0.654,  0.393,  0.323,  0.257,  0.159,  0.200,  0.129,  0.102,  0.105,  0.067,  0.050,  0.041,  0.036,  0.030,  0.029,  0.028,  0.030,  0.030,  0.033,  0.041,  0.050,  0.062,  0.084,  0.091,  0.119,  0.159,  0.198,  0.225,  0.304,  0.399,  0.482,  0.790,  0.960,  0.937,  0.945,  0.826]
+                        #scaling_factor_list =[-3.000, -2.900, -2.800, -2.700, -2.600, -2.500, -2.400, -2.300, -2.200, -2.100, -2.000, -1.900, -1.800, -1.700, -1.600, -1.500, -1.400, -1.300, -1.200, -1.100, -1.000, -0.900, -0.800, -0.700, -0.600, -0.500, -0.400, -0.300, -0.200, -0.100,  0.000,  0.100,  0.200,  0.300,  0.400,  0.500,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.300,  1.400,  1.500,  1.600,  1.700,  1.800,  1.900,  2.000]
+                        #Q
+                        pass
+                    if dim == 1000:
+                        the_min_gt_this_list =[ 0.491,  0.474,  0.489,  0.488,  0.485,  0.494,  0.508,  0.518,  1.005,  1.127,  1.444,  1.663,  1.752,  1.864,  2.005,  2.101,  2.187,  2.249,  2.304,  2.377,  2.430,  2.487,  2.526,  2.564,  2.599,  2.625,  2.648,  2.665,  2.678,  2.685,  2.687,  2.685,  2.678,  2.665,  2.647,  2.625,  2.598,  2.565,  2.527,  2.485,  2.429,  2.386,  2.322,  2.252,  2.188,  2.109,  2.014,  1.902,  1.791,  1.623,  1.437]
+                        the_max_lt_this_list =[ 1.646,  1.678,  1.674,  1.738,  1.752,  1.777,  1.812,  1.875,  1.933,  1.956,  2.021,  2.078,  2.118,  2.194,  2.245,  2.309,  2.354,  2.403,  2.439,  2.481,  2.525,  2.556,  2.588,  2.618,  2.642,  2.661,  2.679,  2.692,  2.701,  2.707,  2.709,  2.707,  2.701,  2.691,  2.679,  2.661,  2.641,  2.619,  2.588,  2.556,  2.523,  2.482,  2.440,  2.394,  2.347,  2.292,  2.243,  2.192,  2.176,  2.071,  2.018]
+                        the_mean_eq_this_list=[ 0.883,  0.913,  0.956,  1.040,  1.122,  1.233,  1.376,  1.508,  1.625,  1.727,  1.819,  1.906,  1.989,  2.067,  2.140,  2.208,  2.271,  2.330,  2.384,  2.435,  2.481,  2.522,  2.559,  2.592,  2.620,  2.644,  2.663,  2.679,  2.690,  2.696,  2.698,  2.696,  2.689,  2.679,  2.663,  2.644,  2.620,  2.592,  2.559,  2.522,  2.481,  2.435,  2.385,  2.330,  2.271,  2.208,  2.139,  2.066,  1.991,  1.907,  1.817]
+                        epsilon_list       =[ 0.773,  0.775,  0.728,  0.708,  0.647,  0.749,  0.878,  1.000,  0.630,  0.610,  0.385,  0.253,  0.247,  0.213,  0.146,  0.117,  0.094,  0.091,  0.090,  0.067,  0.061,  0.045,  0.043,  0.038,  0.032,  0.029,  0.026,  0.024,  0.022,  0.021,  0.021,  0.021,  0.022,  0.023,  0.027,  0.029,  0.032,  0.037,  0.042,  0.047,  0.062,  0.059,  0.073,  0.088,  0.093,  0.109,  0.135,  0.174,  0.209,  0.294,  0.390]
+                        #scaling_factor_list =[-3.000, -2.900, -2.800, -2.700, -2.600, -2.500, -2.400, -2.300, -2.200, -2.100, -2.000, -1.900, -1.800, -1.700, -1.600, -1.500, -1.400, -1.300, -1.200, -1.100, -1.000, -0.900, -0.800, -0.700, -0.600, -0.500, -0.400, -0.300, -0.200, -0.100,  0.000,  0.100,  0.200,  0.300,  0.400,  0.500,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.300,  1.400,  1.500,  1.600,  1.700,  1.800,  1.900,  2.000]
+                        pass
+                    if dim == 10000:
+                        the_min_gt_this_list =[ 1.018,  1.020,  1.142,  1.408,  1.776,  2.110,  2.259,  2.422,  2.508,  2.650,  2.753,  2.849,  2.952,  3.030,  3.098,  3.179,  3.242,  3.303,  3.359,  3.410,  3.464,  3.506,  3.545,  3.578,  3.608,  3.632,  3.653,  3.668,  3.680,  3.686,  3.689,  3.686,  3.680,  3.668,  3.652,  3.633,  3.607,  3.578,  3.544,  3.507,  3.463,  3.416,  3.361,  3.307,  3.241,  3.176,  3.108,  3.021,  2.948,  2.847,  2.731]
+                        the_max_lt_this_list =[ 2.150,  2.188,  2.269,  2.369,  2.438,  2.490,  2.591,  2.646,  2.757,  2.811,  2.910,  2.980,  3.049,  3.108,  3.176,  3.239,  3.301,  3.356,  3.408,  3.456,  3.501,  3.539,  3.575,  3.606,  3.634,  3.657,  3.676,  3.690,  3.700,  3.707,  3.709,  3.707,  3.700,  3.690,  3.676,  3.657,  3.635,  3.607,  3.576,  3.540,  3.499,  3.458,  3.409,  3.357,  3.298,  3.244,  3.180,  3.111,  3.052,  2.963,  2.904]
+                        the_mean_eq_this_list=[ 1.653,  1.801,  1.930,  2.076,  2.216,  2.330,  2.437,  2.546,  2.644,  2.736,  2.828,  2.915,  2.995,  3.070,  3.141,  3.209,  3.273,  3.332,  3.385,  3.436,  3.482,  3.523,  3.560,  3.592,  3.621,  3.644,  3.664,  3.679,  3.690,  3.697,  3.699,  3.697,  3.690,  3.679,  3.664,  3.645,  3.620,  3.592,  3.560,  3.523,  3.481,  3.436,  3.386,  3.332,  3.272,  3.210,  3.143,  3.070,  2.996,  2.912,  2.827]
+                        epsilon_list         =[ 0.646,  0.791,  0.799,  0.678,  0.450,  0.231,  0.188,  0.134,  0.146,  0.096,  0.091,  0.076,  0.064,  0.051,  0.053,  0.041,  0.040,  0.039,  0.036,  0.036,  0.029,  0.027,  0.025,  0.024,  0.023,  0.022,  0.022,  0.021,  0.020,  0.020,  0.020,  0.020,  0.020,  0.021,  0.022,  0.022,  0.024,  0.025,  0.027,  0.027,  0.028,  0.032,  0.034,  0.035,  0.041,  0.044,  0.047,  0.059,  0.066,  0.075,  0.106]
+                        #scaling_factor_list =[-3.000, -2.900, -2.800, -2.700, -2.600, -2.500, -2.400, -2.300, -2.200, -2.100, -2.000, -1.900, -1.800, -1.700, -1.600, -1.500, -1.400, -1.300, -1.200, -1.100, -1.000, -0.900, -0.800, -0.700, -0.600, -0.500, -0.400, -0.300, -0.200, -0.100,  0.000,  0.100,  0.200,  0.300,  0.400,  0.500,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.300,  1.400,  1.500,  1.600,  1.700,  1.800,  1.900,  2.000]
+                        pass
+                                            
+                    pass
+                
+                for param_set_count in range(scaling_factor_list.__len__()):
+                    scaling_factor = scaling_factor_list[param_set_count]
+                    if not TESTING:
+                        the_min_gt_this = the_min_gt_this_list  [param_set_count]
+                        the_max_lt_this = the_max_lt_this_list  [param_set_count]
+                        the_mean_eq_this = the_mean_eq_this_list[param_set_count]
+                        epsilon = epsilon_list  [param_set_count]
+                        pass
+                    
+                    _raw_result = torch.empty(size=[test_time])
+                    for test_count in range(test_time):
+                        #--------------------#--------------------#--------------------
+                        vec = torch.randn(size=[dim],device=device)*scaling_factor
+                        vec = vec.cos()
+                        mat = torch.rand (size=[dim, dim],device=device)#rand
+                        prod = vec@mat
+                        _this_result = log10_avg_safe(prod)
+                        #--------------------#--------------------#--------------------
+                        _raw_result[test_count] = _this_result
+                        pass
+                    the_min = _raw_result.min()
+                    the_max = _raw_result.max()
+                    the_mean = _raw_result.mean()
+                    if TESTING:
+                        the_min_gt_this_list.append(the_min.item()-0.01)
+                        the_max_lt_this_list.append(the_max.item()+0.01)
+                        the_mean_eq_this_list.append(the_mean.item())
+                        _delta_1 = the_mean - the_min  +0.02
+                        _delta_2 = the_max  - the_mean +0.02
+                        epsilon = max(_delta_1, _delta_2)
+                        epsilon_list.append(epsilon.item())    
+                        #print(f"dim:{dim}   sf{scaling_factor}  ///  {the_min-0.01:.3f}   {the_max+0.01:.3f}   {the_mean:.3f}   ")
+                        pass
+                    else:
+                        assert the_min>the_min_gt_this
+                        assert the_max<the_max_lt_this
+                        assert _tensor_equal(the_mean, [the_mean_eq_this], epsilon = epsilon)
+                        pass
+                    pass#for param_set_count
+                if TESTING:
+                    print(f"if dim == {dim}:")
+                    print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+                    print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+                    print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+                    print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
+                    print(f"#scaling_factor_list ={str_the_list(scaling_factor_list,         3)}")    
+                    print("pass")
                     pass
                 pass# for dim
             pass#/test
