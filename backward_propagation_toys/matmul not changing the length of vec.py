@@ -20,12 +20,6 @@
 # 但是正交本身的保护就很麻烦，尤其矩阵很大的时候。如果保护得不是很好，对效果的影响有多大？
 
 
-# 1w
-# 1w
-# 1w
-# 1w
-# 1w
-# 1w继续。我记得是当时写的测量方法有问题，回来改测量方法，然后才是继续去测当时那个东西的有效性。
 
 
 import datetime
@@ -38,7 +32,7 @@ from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, \
     log10_avg_safe, get_mask_of_top_element__rough,\
     str_the_list
 from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_something_to_1
-from pytorch_yagaodirac_v2.Random import random_standard_vector, random_permutate, random_rotate_this_matrix
+from pytorch_yagaodirac_v2.Random import random_standard_vector, random_permutate, randomly_rotate_this_matrix
     
 
 import torch
@@ -51,17 +45,9 @@ def _line_():
     assert caller_s_line_number is not None
     return caller_s_line_number#######
 
+
+
 # 1w 所有测试里面把没有abs的结果也输出出来。读一下。
-# 1w 所有测试里面把没有abs的结果也输出出来。读一下。
-# 1w 所有测试里面把没有abs的结果也输出出来。读一下。
-# 1w 所有测试里面把没有abs的结果也输出出来。读一下。
-# 1w 所有测试里面把没有abs的结果也输出出来。读一下。
-# 1w 所有测试里面把没有abs的结果也输出出来。读一下。
-# randn出来的方阵的具体值，读一下。
-# randn出来的方阵的具体值，读一下。
-# randn出来的方阵的具体值，读一下。
-# randn出来的方阵的具体值，读一下。
-# randn出来的方阵的具体值，读一下。
 # randn出来的方阵的具体值，读一下。
 
 
@@ -104,13 +90,14 @@ def LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(ma
         
         return score__len_sqr,score_log10_div2,score_log10_div2__abs
     pass#/function
-if "basic test" and __DEBUG_ME__() and False:
+
+if "basic test" and __DEBUG_ME__() and True:
     def ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10():
-        import random,math
+        import random, math
         if "eye is perfect" and True:
             for dim in range(3, 15):
                 test_time = 1000
-                for _ in range(test_time):
+                for test_count in range(test_time):
                     vec = torch.eye(n=dim)
                     score__len_sqr,score_log10_div2,score_log10_div2__abs = \
                                 LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(vec,test_time=100)
@@ -120,7 +107,8 @@ if "basic test" and __DEBUG_ME__() and False:
             pass#/test
         if "scaled a lil bit" and True:
             for dim in range(3, 15):
-                for _ in range(5):
+                test_time = 1000
+                for test_count in range(test_time):
                     _to_the_power = (torch.rand(size=[])*2-1)*3.
                     _factor = torch.pow(10, _to_the_power)
                     vec = torch.eye(n=dim)*_factor
@@ -135,10 +123,12 @@ if "basic test" and __DEBUG_ME__() and False:
             for dim in range(3, 15):
                 for test_count in range(5):
                     vec = torch.eye(n=dim)
+                    #<  prepare the vec>
                     for _ in range(5):
                         vec = random_permutate(vec)
-                        vec = random_rotate_this_matrix(vec)
+                        vec = randomly_rotate_this_matrix(vec)
                         pass
+                    #</ prepare the vec>
                     _to_the_power = (torch.rand(size=[])*2.-1.)*3.
                     _factor = torch.pow(10, _to_the_power)
                     vec = vec*_factor
@@ -150,6 +140,8 @@ if "basic test" and __DEBUG_ME__() and False:
             pass#/test
             #rotation should also be perfect. This test is done in the rand_basic_ratation_matrix's test
         
+        return 
+    
     ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10()
     pass
 
@@ -276,7 +268,7 @@ if "measure the random init" and __DEBUG_ME__() and True:
             pass#/test
         
         
-        1w
+        assert False, '1w'
         if "measure the randn[dim,dim]/sqrt(dim)" and True:
             # output:
             print("randn[dim,dim]")
@@ -380,10 +372,10 @@ if "measure the random init" and __DEBUG_ME__() and True:
         
     ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10___2()
     pass
-        
-        
-        
-        
+
+
+
+
 if True:
     if True:
         

@@ -63,7 +63,9 @@ if "test" and __DEBUG_ME__() and False:
 "randn safe"
 
 def randn_safe(size:list[int], dtype = torch.float32, device = 'cpu')->torch.Tensor:
-    '''step1 provides 68% as a randn but only the [-1,1] elements.
+    '''torch.randn but safer.
+    
+    step1 provides 68% as a randn but only the [-1,1] elements.
     step2 minus the abs of elements with abs in (1,2] with 1 and push them back into [-1,1], 13%.
     step3 re random the last 18% elements with a uniform distribution in [-1,1].'''
     result = torch.randn(size=size, dtype=dtype, device=device)
@@ -94,6 +96,11 @@ if "test" and __DEBUG_ME__() and False:
 "random vector"
 
 def random_standard_vector(dim:int, dtype = torch.float32, device='cpu')->torch.Tensor:
+    '''generates a random vector with geometric length of 1.
+    
+    The random number generator is randn(normal distribution), this makes it doesn't need any further 
+    randomly rotation to be uniformly on angle, but the clue is only some rough test. If you really
+    need the angle to be very well uniformly distributes, you may need to make sure it by yourself.'''
     result = torch.randn(size=[dim], dtype=dtype, device=device).\
                                 div(torch.tensor(dim, dtype=torch.float64).sqrt().to(dtype))
     length_sqr = result.dot(result).sum()
@@ -181,19 +188,20 @@ if "log10 test    copy pasted from Util.py" and __DEBUG_ME__() and False:
     ____test____log10_avg_safe____standard_vec()
     pass
 
-def _get_2_diff_rand_int(dim:int, device)->tuple[torch.Tensor,torch.Tensor]:
+def _get_2_diff_rand_int(dim:int, device , devide_in_this_function = 'cpu')->tuple[torch.Tensor,torch.Tensor]:
     '''return index_tensor.
     
     shape:torch.Size([2])
     
     The 2 elements are different.'''
     assert dim>=2
-    rand_index_1 = torch.randint(0, dim,   size = [], device = device)
-    rand_index_2 = torch.randint(0, dim-1, size = [], device = device)
+    rand_index_1 = torch.randint(0, dim,   size = [], device = devide_in_this_function)
+    rand_index_2 = torch.randint(0, dim-1, size = [], device = devide_in_this_function)
     if rand_index_2>=rand_index_1:
         rand_index_2+=1
         pass
     stacked = torch.stack([rand_index_1,rand_index_2])
+    stacked = stacked.to(device=device)
     return stacked#, rand_index_1, rand_index_2
 if "test" and __DEBUG_ME__() and False:
     def ____test_____get_2_diff_rand_int():
@@ -213,9 +221,10 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
-"random sqr matrix"
+"rotation mat 2d"
 
 def angle_to_rotation_matrix_2d(angle:float|torch.Tensor)->torch.Tensor:
+    '''maybe it's a good idea to do this purely on cpu??'''
     if isinstance(angle, float):
         angle = torch.tensor(angle)
         pass
@@ -281,7 +290,9 @@ if "random_rotate algo test" and __DEBUG_ME__() and True:
     input[index_tensor[0]] = the_only_modified_part[0]
     input[index_tensor[1]] = the_only_modified_part[1]
     pass
-def random_rotate_this_matrix(input:torch.Tensor, times:int|None = None)->torch.Tensor:
+def randomly_rotate_this_matrix(input:torch.Tensor, times:int|None = None)->torch.Tensor:
+    '''randomly rotates the input'''
+    
     assert is_square_matrix(input)
     dim = input.shape[0]
     the_device = input.device
@@ -319,7 +330,7 @@ if "test" and __DEBUG_ME__() and False:
             dim = random.randint(2,300)
             #-------------#-------------#-------------
             _init_eye = torch.eye(n = dim)
-            mat = random_rotate_this_matrix(_init_eye)
+            mat = randomly_rotate_this_matrix(_init_eye)
             #-------------#-------------#-------------
             vec = random_standard_vector(dim)
             vec = vec@mat
@@ -328,7 +339,9 @@ if "test" and __DEBUG_ME__() and False:
         return
     ____test____random_rotate()
 
-def random_rotate_this_vector(input:torch.Tensor, times:int|None = None)->torch.Tensor:
+def randomly_rotate_this_vector(input:torch.Tensor, times:int|None = None)->torch.Tensor:
+    '''randomly rotates the input'''
+    
     assert input.shape.__len__() == 1, "Batch is not implemented. Maybe later."
     dim = input.shape[0]
     the_device = input.device
@@ -362,7 +375,7 @@ if "test" and __DEBUG_ME__() and False:
             for test_count in range(test_time):
                 #-------------#-------------#-------------
                 _init_vec = vector_length_norm(torch.randn(size=[1,dim],device=device)).reshape([-1])
-                vec = random_rotate_this_vector(_init_vec)
+                vec = randomly_rotate_this_vector(_init_vec)
                 #-------------#-------------#-------------
                 assert _tensor_equal(get_vector_length(vec), torch.tensor([1.],device=device))
             pass
@@ -370,17 +383,20 @@ if "test" and __DEBUG_ME__() and False:
     ____test____random_rotate_this_vector()
     pass
 
-def random_rotation_matrix__by_once(dim:int, dtype = torch.float32, device = 'cpu')->torch.Tensor:
+def random_rotation_matrix__by_once(dim:int, dtype = torch.float32, device = None)->torch.Tensor:
     '''Basically it's a eye_tensor, but with some rotation. This rotation only affects 2 dimentions.'''
-    index_tensor = _get_2_diff_rand_int(dim, device=device)
-    _angle = torch.rand(size=[], dtype = dtype,device=device)*torch.pi*2.
+    
+    device_in_this_function = 'cpu'
+    index_tensor = _get_2_diff_rand_int(dim, device=device_in_this_function)
+    _angle = torch.rand(size=[], dtype = dtype,device=device_in_this_function)*torch.pi*2.
     _cos = _angle.cos()
     _sin = _angle.sin()
-    result = torch.eye(n=dim, dtype=dtype, device=device)
+    result = torch.eye(n=dim, dtype=dtype, device=device_in_this_function)
     result[index_tensor[0],index_tensor[0]] = _cos
     result[index_tensor[0],index_tensor[1]] = _sin
     result[index_tensor[1],index_tensor[0]] = -_sin
     result[index_tensor[1],index_tensor[1]] = _cos
+    result = result.to(device=device)
     return result
 if "test" and __DEBUG_ME__() and False:
     def ____test____random_rotation_matrix__by_once():
@@ -428,9 +444,13 @@ if "test" and __DEBUG_ME__() and False:
         return 
     ____test____random_rotation_matrix__by_once()
 
-def random_rotation_matrix(dim:int, times:int|None = None, dtype = torch.float32, device = 'cpu')->torch.Tensor:
-    init_eye = torch.eye(n=dim, dtype=dtype, device=device)
-    result = random_rotate_this_matrix(init_eye,times=times)
+def random_rotation_matrix(dim:int, times:int|None = None, dtype = torch.float32, device = None)->torch.Tensor:
+    '''generates a random rotation matrix'''
+    
+    device_in_this_function = 'cpu'
+    init_eye = torch.eye(n=dim, dtype=dtype, device=device_in_this_function)
+    result = randomly_rotate_this_matrix(init_eye,times=times)
+    result = result.to(device=device)
     return result
 if "test" and __DEBUG_ME__() and False:
     def ____test____random_rotation_matrix():
@@ -442,213 +462,485 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
-
-
-
-if "some algo test":
-    # result. 
-    # @ dim 10    cpu , basically 4000   epochs to get the length out of [0.999998, 1.000002]. No protection needed.
-    # @ dim 10    cuda, basically 500    epochs to get the length out of [0.999998, 1.000002]. No protection needed.
-    # @ dim 100   cpu , basically >100k  epochs to get the length out of [0.999998, 1.000002]. No protection needed.
-    # @ dim 100   cuda, basically 5000   epochs to get the length out of [0.999998, 1.000002]. No protection needed.
-    # @ dim 1000  cpu , basically 3M     epochs to get the length out of [0.999998, 1.000002]. No protection needed.
-    
-    device = 'cuda'
-    dim = 1000
-    
-    same_dim_error:list[int] = []
-    too_large:list[int] = []
-    too_small:list[int] = []
-    
-    test_time = 1000000
-    for test_count in range(test_time):
-        epoch = 1
-        vec = random_standard_vector(dim=dim, device = device)
-        while True:
-            ori_vec = vec.detach().clone()
-            vec = random_rotate_this_vector(vec, times=1)
-            same_dim_count = ori_vec.eq(vec).sum()
-            if same_dim_count != dim-2:
-                print(f"same dim not ok   {epoch}")
-                same_dim_error.append(epoch)
-                break
-            length_sqr = vec.dot(vec).sum()#-0.001
-            if length_sqr>1.000002:
-                print(f"length too large   {epoch}")
-                too_large.append(epoch)
-                break
-            if length_sqr<0.999998:
-                print(f"length too small   {epoch}")
-                too_small.append(epoch)
-                break
-            #tail
-            epoch += 1
-            pass#while true
-        pass#for epoch
-            
-    pass
-
-
-
-
-
-def random_standard_vector__pre_rotated(dim:int, rotate_count:int|None = None, 
-                                        _protect_length_every = 30, 
-                                        dtype = torch.float32, device='cpu',
-                                        _debug__no_final_protection = False)->torch.Tensor:
-    if rotate_count is None:
-        rotate_count = int((dim+10)*1.2)
+if "I tried the so called pre rotation, but I didn't find any clue that it helps at all." and False:
+    if "torch.randperm test" and __DEBUG_ME__() and False:
+        def torch_randperm_test():
+            mat = torch.linspace(1,9,9).reshape([3,3])
+            the_rand_index = torch.randperm(3)
+            mat2 = mat[the_rand_index]
+            mat3 = mat[:,the_rand_index]
+            print(mat2)
+            print(mat3)
+            return 
+        torch_randperm_test()
         pass
-    assert rotate_count>=0
-    vec = random_standard_vector(dim=dim, dtype = dtype, device = device)
-    
-    # new vvvvvvvvvv
-    iter_count = 0
-    for _ in range(rotate_count):
-        vec = random_rotate_this_vector(vec)
+
+    if "vec @ rotation_mat length retention test" and __DEBUG_ME__() and False:
+        # result. 
+        # no halfway protection is needed.
+        def vec_matmul_rotation_mat__length_retention_test():
+            
+            # fp32
+            # if a vec[dim] needs at most 10*dim times rotation on a dim_pair, then no halfway length protection is needed if fp32.
+            # @ dim 10    cpu , basically 4000   epochs to get the length out of [0.999998, 1.000002]. No protection needed.
+            # @ dim 10    cuda, basically 500    epochs to get the length out of [0.999998, 1.000002]. No protection needed.
+            # @ dim 100   cpu , basically >100k  epochs to get the length out of [0.999998, 1.000002]. No protection needed.
+            # @ dim 100   cuda, basically 5000   epochs to get the length out of [0.999998, 1.000002]. No protection needed.
+            # @ dim 1000  cpu , basically 3M     epochs to get the length out of [0.999998, 1.000002]. No protection needed.
+            # @ dim 1000  cuda, basically 50k    epochs to get the length out of [0.999998, 1.000002]. No protection needed.
+            
+            #fp16
+            # if a vec[dim] needs at most 10*dim times rotation on a dim_pair, then no halfway length protection is needed if fp16.
+            # @ dim 10    cpu , basically 200   epochs to get the length out of [0.998, 1.002].  No protection needed.
+            # @ dim 10    cuda, basically 150   epochs to get the length out of [0.998, 1.002].  No protection needed.
+            # @ dim 100   cpu , basically 3000  epochs to get the length out of [0.998, 1.002].  No protection needed.
+            # @ dim 100   cuda, basically 4k    epochs to get the length out of [0.998, 1.002].  No protection needed.
+            # @ dim 1000  cpu , basically 60k   epochs to get the length out of [0.998, 1.002].  No protection needed.
+            # @ dim 1000  cuda, basically 160k  epochs to get the length out of [0.998, 1.002].  No protection needed.
+            
+            
+            dim = 1000
+            device = 'cpu' 
+            device = 'cuda' 
+            dtype = torch.float16
+            
+            same_dim_error:list[int] = []
+            too_large:list[int] = []
+            too_small:list[int] = []
+            
+            test_time = 1000000
+            for test_count in range(test_time):
+                epoch = 1
+                vec = random_standard_vector(dim=dim, device = device, dtype=dtype)
+                while True:
+                    ori_vec = vec.detach().clone()
+                    vec = randomly_rotate_this_vector(vec, times=1)
+                    assert vec.dtype == torch.float16
+                    same_dim_count = ori_vec.eq(vec).sum()
+                    
+                    length_sqr = vec.dot(vec).sum()#-0.001
+                    #if length_sqr>1.000002:
+                    if length_sqr>1.002:
+                        print(f"length too large   {epoch}")
+                        too_large.append(epoch)
+                        break
+                    #if length_sqr<0.999998:
+                    if length_sqr<0.998:
+                        print(f"length too small   {epoch}")
+                        too_small.append(epoch)
+                        break
+                    # if same_dim_count != dim-2:
+                    #     print(f"same dim not ok   {epoch}    {same_dim_count}")
+                    #     same_dim_error.append(epoch)
+                    #     break
+                    #tail
+                    epoch += 1
+                    pass#while true
+                pass#for epoch
+            
+            return 
         
-        #<  length protection>
-        iter_count +=1
-        if iter_count>=_protect_length_every:
-            iter_count = 0
+        vec_matmul_rotation_mat__length_retention_test()
+                
+        pass
+
+    if "rotation algo performance test" and __DEBUG_ME__() and False:
+        # result
+        # cpu is always much faster(10x).
+        def rotation_algo_performance_test():
+            
+            
+            
+            
+            from pytorch_yagaodirac_v2.timeit_yagaodirac import timeit
+            
+            time_at_most = 2.
+            # #--------------------#--------------------#--------------------
+            # dim_list =  [10, 100, 1000] 
+            # rc_list = [1000, 100, 10]
+            # for inner_param_count in range(dim_list.__len__()):
+            #     dim = dim_list[inner_param_count]
+            #     rc = rc_list[inner_param_count]
+            
+            # result:
+            # dim 10    rc 1000    vvvvvvvvvvvvvvvvvvv
+            # fp32: 1.890 c/g 10.133
+            # fp16: 1.827 c/g 11.737
+            # dim 100    rc 100    vvvvvvvvvvvvvvvvvvv
+            # fp32: 1.720 c/g 9.9673
+            # fp16: 1.712 c/g 10.566
+            # dim 1000    rc 10    vvvvvvvvvvvvvvvvvvv
+            # fp32: 1.748 c/g 10.011
+            # fp16: 1.719 c/g 10.175
+            # #--------------------#--------------------#--------------------
+            #--------------------#--------------------#--------------------
+            dim = 100   
+            
+            rc_list = [10, 100, 1000, 10000] 
+            for inner_param_count in range(rc_list.__len__()):
+                rc = rc_list[inner_param_count]
+                
+            # dim 100    rc 10    vvvvvvvvvvvvvvvvvvv
+            # fp32: 0.200 c/g 1.348
+            # fp16: 0.186 c/g 1.414
+            # dim 100    rc 100    vvvvvvvvvvvvvvvvvvv
+            # fp32: 1.871 c/g 11.338
+            # fp16: 1.876 c/g 12.902
+            # dim 100    rc 1000    vvvvvvvvvvvvvvvvvvv
+            # fp32: 18.196
+            # fp16: 18.087
+            #--------------------#--------------------#--------------------
+                def _func__empty():
+                    vec = random_standard_vector(dim=dim)
+                    for _ in range(rc):
+                        pass
+                    return
+                empty_time, _ = timeit(_func__empty, time_at_most=time_at_most)
+                
+                def _func__cpu_32():
+                    vec = random_standard_vector(dim=dim, dtype = torch.float32, device = 'cpu')
+                    for _ in range(rc):
+                        vec = randomly_rotate_this_vector(vec)
+                        pass
+                    return
+                _cpu_32_time, _ = timeit(_func__cpu_32, time_at_most=time_at_most)
+                _cpu_32_time__corrected = _cpu_32_time - empty_time
+                
+                def _func__cuda_32():
+                    vec = random_standard_vector(dim=dim, dtype = torch.float32, device = 'cuda')
+                    for _ in range(rc):
+                        vec = randomly_rotate_this_vector(vec)
+                        pass
+                    return
+                _cuda_32_time, _ = timeit(_func__cuda_32, time_at_most=time_at_most)
+                _cuda_32_time__corrected = _cuda_32_time - empty_time
+
+                def _func__cpu_16():
+                    vec = random_standard_vector(dim=dim, dtype = torch.float16, device = 'cpu')
+                    for _ in range(rc):
+                        vec = randomly_rotate_this_vector(vec)
+                        pass
+                    return
+                _cpu_16_time, _ = timeit(_func__cpu_16, time_at_most=time_at_most)
+                _cpu_16_time__corrected = _cpu_16_time - empty_time
+                
+                def _func__cuda_16():
+                    vec = random_standard_vector(dim=dim, dtype = torch.float16, device = 'cuda')
+                    for _ in range(rc):
+                        vec = randomly_rotate_this_vector(vec)
+                        pass
+                    return
+                _cuda_16_time, _ = timeit(_func__cuda_16, time_at_most=time_at_most)
+                _cuda_16_time__corrected = _cuda_16_time - empty_time
+                
+                
+                print(f"dim {dim}    rc {rc}    vvvvvvvvvvvvvvvvvvv")
+                print(f"fp32: {_cpu_32_time__corrected:.3f} c/g {_cuda_32_time__corrected:.3f} ")
+                print(f"fp16: {_cpu_16_time__corrected:.3f} c/g {_cuda_16_time__corrected:.3f} ")
+                pass
+            
+            return 
+        
+        
+        
+        rotation_algo_performance_test()
+        
+        pass
+
+    if "how many rotation is enough" and __DEBUG_ME__() and False:
+        #result. I didn't see any difference with or without pre rotation.
+        def how_many_rotation_is_enough():
+            
+            from matplotlib import pyplot as plt
+            
+            dim = 1000
+            
+            vec = random_standard_vector(dim=dim, dtype = torch.float32, device = 'cpu')
+            for _ in range(100):
+                #N_points = 100000
+                n_bins = 20
+
+                fig, axs = plt.subplots(1, 1, tight_layout=True)
+
+                # We can set the number of bins with the *bins* keyword argument.
+                axs.hist(vec.abs().tolist(), bins=n_bins)
+                #axs.hist(_dummy_layer.weight.tolist(), bins=n_bins)
+
+                plt.show()
+                                    
+                
+                vec = randomly_rotate_this_vector(vec)
+                pass
+            
+            
+            
+            ##################################
+            ##################################
+            #part 1 with matplotlib
+            #part 2 with log10_avg_safe
+            ##################################
+            ##################################
+            
+            
+            
+            from pytorch_yagaodirac_v2.Util import log10_avg_safe, str_the_list
+            
+            
+            # dim 10   vvvvvvvvvvvvvvvvvvv
+            # result_max_list   = [-0.521, -0.571, -0.545, -0.545, -0.572, -0.560, -0.556, -0.535, -0.555, -0.548, -0.544, -0.571, -0.544, -0.554]
+            # result_min_list   = [-1.042, -0.999, -1.182, -1.140, -1.139, -1.070, -1.100, -1.115, -1.171, -1.120, -1.205, -1.022, -1.281, -1.078]
+            # result_avg_list   = [-0.769, -0.753, -0.768, -0.761, -0.763, -0.772, -0.783, -0.761, -0.764, -0.759, -0.776, -0.759, -0.764, -0.765]
+            # result_delta_list = [ 0.273,  0.246,  0.414,  0.379,  0.375,  0.298,  0.317,  0.354,  0.407,  0.361,  0.429,  0.263,  0.517,  0.313]
+            # rc_list           = [ 2.000,  3.000,  6.000,  10.,  15.000,  25.000,  39.000,  63.,  100.000,  158.,  251.000,  398.,  630.000,  1000]
+            # dim 100   vvvvvvvvvvvvvvvvvvv
+            # debug info   = 9
+            # result_max_list   = [-1.226, -1.219, -1.227, -1.225, -1.226, -1.241, -1.225, -1.194, -1.216]
+            # result_min_list   = [-1.352, -1.334, -1.302, -1.349, -1.366, -1.354, -1.309, -1.372, -1.309]
+            # result_avg_list   = [-1.277, -1.279, -1.272, -1.295, -1.273, -1.287, -1.276, -1.270, -1.268]
+            # result_delta_list = [ 0.075,  0.060,  0.045,  0.070,  0.093,  0.066,  0.051,  0.102,  0.052]
+            # rc_list           = [ 2.000,  3.000,  6.000,  10.000,  15.000,  25.000,  39.000,  63.000,  100.000]
+            # dim 1000   vvvvvvvvvvvvvvvvvvv
+            # debug info   = 9
+            # result_max_list   = [-1.763, -1.767, -1.763, -1.777, -1.761, -1.786, -1.784, -1.762, -1.768]
+            # result_min_list   = [-1.771, -1.785, -1.767, -1.784, -1.773, -1.788, -1.809, -1.771, -1.774]
+            # result_avg_list   = [-1.767, -1.776, -1.765, -1.781, -1.767, -1.787, -1.796, -1.767, -1.771]
+            # result_delta_list = [ 0.004,  0.009,  0.002,  0.004,  0.006,  0.001,  0.012,  0.004,  0.003]
+            # rc_list           = [ 2.000,  3.000,  6.000,  10.000,  15.000,  25.000,  39.000,  63.000,  100.000]
+            
+            #--------------------#--------------------#--------------------
+            dim_list = [10, 100, 1000]
+            dim_list = [100, 1000]
+            test_time_list = [30,7,2]
+            test_time_list = [7,2]
+            for outter_param_count in range(dim_list.__len__()):
+                dim = dim_list[outter_param_count]
+                test_time = test_time_list[outter_param_count]
+                print(test_time)
+            #--------------------#--------------------#--------------------
+                result_max_list = []  #dont modify this
+                result_min_list = []  #dont modify this
+                result_avg_list = []  #dont modify this
+                result_delta_list = []#dont modify this
+                
+                #--------------------#--------------------#--------------------
+                rc_list = torch.pow(10,torch.linspace(0.4,2.,9)).to(torch.int32).tolist()
+                #rc_list = [1,2,5]
+                for inner_param_count in range(rc_list.__len__()):
+                    rc = rc_list[inner_param_count]
+                #--------------------#--------------------#--------------------
+                    
+                    _temp_result = torch.empty(size=[test_time])
+                    for test_count in range(test_time):
+                        #--------------------#--------------------#--------------------
+                        vec = random_standard_vector(dim=dim, dtype = torch.float32, device = 'cpu')
+                        for _ in range(rc):
+                            vec = randomly_rotate_this_vector(vec)
+                            pass
+                        the_length = get_vector_length(vec)
+                        assert the_length<1.00001
+                        assert the_length>0.99999
+                        _this_result = log10_avg_safe(vec)
+                        #--------------------#--------------------#--------------------
+                        _temp_result[test_count] = _this_result
+                        pass# for test_count
+                    __the_max = _temp_result.max()
+                    __the_min = _temp_result.min()
+                    __the_avg = _temp_result.mean()
+                    result_max_list.append(__the_max)
+                    result_min_list.append(__the_min)
+                    result_avg_list.append(__the_avg)
+                    __upper_delta = __the_max-__the_avg
+                    __lower_delta = __the_avg-__the_min
+                    __final_delta = max(__upper_delta, __lower_delta)
+                    result_delta_list.append(__final_delta)
+                    print(f"dim {dim}  rc {rc}  //  {__the_max.item():.3f}   {__the_min.item():.3f}   {__the_avg.item():.3f}   ")
+                    pass# for inner_param
+                print(f"dim {dim}   vvvvvvvvvvvvvvvvvvv")
+                print(f"debug info   = {result_max_list.__len__()}")
+                print(f"result_max_list   = {str_the_list(result_max_list, 3)}")
+                print(f"result_min_list   = {str_the_list(result_min_list, 3)}")
+                print(f"result_avg_list   = {str_the_list(result_avg_list, 3)}")
+                print(f"result_delta_list = {str_the_list(result_delta_list, 3)}")
+                print(f"rc_list           = {str_the_list(rc_list, 3)}")
+                pass#for outter_param    
+            
+            
+            return 
+        how_many_rotation_is_enough()
+        pass
+
+
+    def random_standard_vector__pre_rotated(dim:int, rotate_count:int|None = None, 
+                                            #_protect_length_every = 30, 
+                                            shuffle = True, 
+                                            dtype = torch.float32, device='cpu',
+                                            device_in_this_func = 'cpu',
+                                            _debug__no_final_protection = False)->torch.Tensor:
+        '''generates a random rotation matrix.'''
+        if rotate_count is None:
+            rotate_count = int((dim+10)*1.2)
+            pass
+        assert rotate_count>=0
+        
+        # bc in my case, 
+        vec = random_standard_vector(dim=dim, dtype = dtype, device = device_in_this_func)
+        
+        # new vvvvvvvvvv
+        iter_count = 0
+        for _ in range(rotate_count):
+            vec = randomly_rotate_this_vector(vec)
+            
+            # #<  length protection>
+            # iter_count +=1
+            # if iter_count>=_protect_length_every:
+            #     iter_count = 0
+            #     vec = vector_length_norm(vec.reshape([1,-1])).reshape([-1])
+            #     pass
+            # #</ length protection>
+            pass
+        
+        #<  before return/>
+        
+        assert False, "unfinished."
+        if shuffle:
+            torch.randperm()
+            torch.randro()
+            vec.s
+        
+        if not _debug__no_final_protection:
             vec = vector_length_norm(vec.reshape([1,-1])).reshape([-1])
             pass
-        #</ length protection>
+        # new ^^^^^^^^^^^
+        vec = vec.to(device = device)
+        return vec
+    if "basic test" and False:
+        def ____test____random_standard_vector__pre_rotated(): 
+            
+            if "length accuracy test  if without the last protection before return ." and True: 
+                if "result":
+                    "dim 2"
+                    pass# if result.
+                # output:
+                print("length accuracy test")
+                device = 'cpu'
+                #--------------------#--------------------#--------------------
+                dim_list =          [2,  3,  5, 10, 100,1000]
+                test_time_list = [1000,500,100,100, 30, 3]
+                for outter_iter_count in range(dim_list.__len__()):
+                    dim = dim_list[outter_iter_count]
+                    test_time = test_time_list[outter_iter_count]
+                    print(test_time)
+                #--------------------#--------------------#--------------------
+                    the_min_gt_this_list =  []#don't modify here.
+                    the_max_lt_this_list =  []#don't modify here.
+                    the_mean_eq_this_list = []#don't modify here.
+                    epsilon_list =          []#don't modify here.
+                    #--------------------#--------------------#--------------------
+                    rc_list = [0,1,2,3,5,10,100]
+                    for inner_iter_count in range(rc_list.__len__()):
+                        rc = rc_list[inner_iter_count]
+                    #--------------------#--------------------#--------------------
+                    
+                        _raw_result = torch.empty(size=[test_time])
+                        for test_count in range(test_time):
+                            #--------------------#--------------------#--------------------
+                            vec = random_standard_vector__pre_rotated(dim=dim,rotate_count=rc, 
+                                            _protect_length_every = rc+100, _debug__no_final_protection = True)
+                            _this_result = get_vector_length(vec)
+                            #--------------------#--------------------#--------------------
+                            _raw_result[test_count] = _this_result
+                            pass
+                        the_min = _raw_result.min()
+                        the_max = _raw_result.max()
+                        the_mean = _raw_result.mean()
+                        the_min_gt_this_list.append(the_min.item())
+                        the_max_lt_this_list.append(the_max.item())
+                        the_mean_eq_this_list.append(the_mean.item())
+                        _delta_1 = the_mean - the_min 
+                        _delta_2 = the_max  - the_mean
+                        epsilon = max(_delta_1, _delta_2)
+                        epsilon_list.append(epsilon.item())    
+                        print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
+                        pass# for macro_iter_count
+                    print(f"if dim == {dim}:")
+                    print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+                    print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+                    print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+                    print(f"epsilon_list         ={str_the_list(epsilon_list, 3)}")    
+                    print(f"#rc_list             ={str_the_list(rc_list,      3)}")    
+                    print("pass")
+                    
+                    pass#for outter param
+                pass#/test
+                
+                
+                
+            if "protection per ???" and True: 
+                # output:
+                print("protection per ???")
+                device = 'cpu'
+                #--------------------#--------------------#--------------------
+                dim_list =          [2,  3,  5, 10, 100,1000]
+                test_time_list = [1000,500,100,100, 30, 3]
+                for outter_iter_count in range(dim_list.__len__()):
+                    dim = dim_list[outter_iter_count]
+                    test_time = test_time_list[outter_iter_count]
+                    print(test_time)
+                #--------------------#--------------------#--------------------
+                    the_min_gt_this_list =  []#don't modify here.
+                    the_max_lt_this_list =  []#don't modify here.
+                    the_mean_eq_this_list = []#don't modify here.
+                    epsilon_list =          []#don't modify here.
+                    #--------------------#--------------------#--------------------
+                    rc_list = [0,1,2,3,5,10,100]
+                    for inner_iter_count in range(rc_list.__len__()):
+                        rc = rc_list[inner_iter_count]
+                    #--------------------#--------------------#--------------------
+                    
+                        _raw_result = torch.empty(size=[test_time])
+                        for test_count in range(test_time):
+                            #--------------------#--------------------#--------------------
+                            #set the _protect_length_every to large enough to prevent the protection.
+                            vec = random_standard_vector__pre_rotated(dim=dim,rotate_count=rc, _protect_length_every = rc+100)
+                            _this_result = get_vector_length(vec)
+                            #--------------------#--------------------#--------------------
+                            _raw_result[test_count] = _this_result
+                            pass
+                        the_min = _raw_result.min()
+                        the_max = _raw_result.max()
+                        the_mean = _raw_result.mean()
+                        the_min_gt_this_list.append(the_min.item())
+                        the_max_lt_this_list.append(the_max.item())
+                        the_mean_eq_this_list.append(the_mean.item())
+                        _delta_1 = the_mean - the_min 
+                        _delta_2 = the_max  - the_mean
+                        epsilon = max(_delta_1, _delta_2)
+                        epsilon_list.append(epsilon.item())    
+                        print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
+                        pass# for macro_iter_count
+                    print(f"if dim == {dim}")
+                    print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+                    print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+                    print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+                    print(f"epsilon_list         ={str_the_list(epsilon_list, 3)}")    
+                    print(f"#rc_list             ={str_the_list(rc_list,      3)}")    
+                    print("pass")
+                    
+                    pass#for outter param
+                pass#/test
+                
+                
+                
+                
+                
+                
+            
+            assert False,"每多少次保护一下长度。"
+            
+            return 
+        
+        ____test____random_standard_vector__pre_rotated()
         pass
-    
-    #<  before return/>
-    if not _debug__no_final_protection:
-        vec = vector_length_norm(vec.reshape([1,-1])).reshape([-1])
-        pass
-    # new ^^^^^^^^^^^
-    return vec
-if "basic test" and True:
-    def ____test____random_standard_vector__pre_rotated(): 
-        
-        if "length accuracy test  if without the last protection before return ." and True: 
-            if "result":
-                "dim 2"
-                pass# if result.
-            # output:
-            print("length accuracy test")
-            device = 'cpu'
-            #--------------------#--------------------#--------------------
-            dim_list =          [2,  3,  5, 10, 100,1000]
-            test_time_list = [1000,500,100,100, 30, 3]
-            for outter_iter_count in range(dim_list.__len__()):
-                dim = dim_list[outter_iter_count]
-                test_time = test_time_list[outter_iter_count]
-                print(test_time)
-            #--------------------#--------------------#--------------------
-                the_min_gt_this_list =  []#don't modify here.
-                the_max_lt_this_list =  []#don't modify here.
-                the_mean_eq_this_list = []#don't modify here.
-                epsilon_list =          []#don't modify here.
-                #--------------------#--------------------#--------------------
-                rc_list = [0,1,2,3,5,10,100]
-                for inner_iter_count in range(rc_list.__len__()):
-                    rc = rc_list[inner_iter_count]
-                #--------------------#--------------------#--------------------
-                
-                    _raw_result = torch.empty(size=[test_time])
-                    for test_count in range(test_time):
-                        #--------------------#--------------------#--------------------
-                        vec = random_standard_vector__pre_rotated(dim=dim,rotate_count=rc, 
-                                        _protect_length_every = rc+100, _debug__no_final_protection = True)
-                        _this_result = get_vector_length(vec)
-                        #--------------------#--------------------#--------------------
-                        _raw_result[test_count] = _this_result
-                        pass
-                    the_min = _raw_result.min()
-                    the_max = _raw_result.max()
-                    the_mean = _raw_result.mean()
-                    the_min_gt_this_list.append(the_min.item())
-                    the_max_lt_this_list.append(the_max.item())
-                    the_mean_eq_this_list.append(the_mean.item())
-                    _delta_1 = the_mean - the_min 
-                    _delta_2 = the_max  - the_mean
-                    epsilon = max(_delta_1, _delta_2)
-                    epsilon_list.append(epsilon.item())    
-                    print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
-                    pass# for macro_iter_count
-                print(f"if dim == {dim}:")
-                print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
-                print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
-                print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
-                print(f"epsilon_list         ={str_the_list(epsilon_list, 3)}")    
-                print(f"#rc_list             ={str_the_list(rc_list,      3)}")    
-                print("pass")
-                
-                pass#for outter param
-            pass#/test
-            
-            
-            
-        if "protection per ???" and True: 
-            # output:
-            print("protection per ???")
-            device = 'cpu'
-            #--------------------#--------------------#--------------------
-            dim_list =          [2,  3,  5, 10, 100,1000]
-            test_time_list = [1000,500,100,100, 30, 3]
-            for outter_iter_count in range(dim_list.__len__()):
-                dim = dim_list[outter_iter_count]
-                test_time = test_time_list[outter_iter_count]
-                print(test_time)
-            #--------------------#--------------------#--------------------
-                the_min_gt_this_list =  []#don't modify here.
-                the_max_lt_this_list =  []#don't modify here.
-                the_mean_eq_this_list = []#don't modify here.
-                epsilon_list =          []#don't modify here.
-                #--------------------#--------------------#--------------------
-                rc_list = [0,1,2,3,5,10,100]
-                for inner_iter_count in range(rc_list.__len__()):
-                    rc = rc_list[inner_iter_count]
-                #--------------------#--------------------#--------------------
-                
-                    _raw_result = torch.empty(size=[test_time])
-                    for test_count in range(test_time):
-                        #--------------------#--------------------#--------------------
-                        #set the _protect_length_every to large enough to prevent the protection.
-                        vec = random_standard_vector__pre_rotated(dim=dim,rotate_count=rc, _protect_length_every = rc+100)
-                        _this_result = get_vector_length(vec)
-                        #--------------------#--------------------#--------------------
-                        _raw_result[test_count] = _this_result
-                        pass
-                    the_min = _raw_result.min()
-                    the_max = _raw_result.max()
-                    the_mean = _raw_result.mean()
-                    the_min_gt_this_list.append(the_min.item())
-                    the_max_lt_this_list.append(the_max.item())
-                    the_mean_eq_this_list.append(the_mean.item())
-                    _delta_1 = the_mean - the_min 
-                    _delta_2 = the_max  - the_mean
-                    epsilon = max(_delta_1, _delta_2)
-                    epsilon_list.append(epsilon.item())    
-                    print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
-                    pass# for macro_iter_count
-                print(f"if dim == {dim}")
-                print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
-                print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
-                print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
-                print(f"epsilon_list         ={str_the_list(epsilon_list, 3)}")    
-                print(f"#rc_list             ={str_the_list(rc_list,      3)}")    
-                print("pass")
-                
-                pass#for outter param
-            pass#/test
-            
-            
-            
-            
-            
-            
-        
-        assert False,"每多少次保护一下长度。"
-        
-        return 
-    
-    ____test____random_standard_vector__pre_rotated()
     pass
 
 
@@ -656,39 +948,277 @@ if "basic test" and True:
 
 
 "   random permutate"
+#总之就是还有一些解法。
 
-def random_permutate(input:torch.Tensor, times_by_row:int|None = None, times_by_column:int|None = None)->torch.Tensor:
-    assert is_square_matrix(input)
-    dim = input.shape[0]
-    the_device = input.device
-    
-    if times_by_row is None:
-        times_by_row = dim*3
-        pass
-    if times_by_column is None:
-        times_by_column = dim*3
-        pass
-    
-    with torch.no_grad():
-        for _ in range(times_by_row):
-            rand_index_1,rand_index_2 = _get_2_diff_rand_int(dim, device=the_device)
-            _temp = input[rand_index_1].clone()
-            input[rand_index_1] = input[rand_index_2]
-            input[rand_index_2] = _temp
+if "when I made this, I didn't know the torch.randperm function." and False:
+    def random_permutate(input:torch.Tensor, times_by_row:int|None = None, times_by_column:int|None = None)->torch.Tensor:
+        assert is_square_matrix(input)
+        dim = input.shape[0]
+        the_device = input.device
+        
+        if times_by_row is None:
+            times_by_row = dim*3
             pass
-        for _ in range(times_by_column):
-            rand_index_1,rand_index_2 = _get_2_diff_rand_int(dim, device=the_device)
-            _temp = input[:,rand_index_1].clone()
-            input[:,rand_index_1] = input[:,rand_index_2]
-            input[:,rand_index_2] = _temp
-        return input
-    pass#/function
+        if times_by_column is None:
+            times_by_column = dim*3
+            pass
+        
+        with torch.no_grad():
+            for _ in range(times_by_row):
+                rand_index_1,rand_index_2 = _get_2_diff_rand_int(dim, device=the_device)
+                _temp = input[rand_index_1].clone()
+                input[rand_index_1] = input[rand_index_2]
+                input[rand_index_2] = _temp
+                pass
+            for _ in range(times_by_column):
+                rand_index_1,rand_index_2 = _get_2_diff_rand_int(dim, device=the_device)
+                _temp = input[:,rand_index_1].clone()
+                input[:,rand_index_1] = input[:,rand_index_2]
+                input[:,rand_index_2] = _temp
+            return input
+        pass#/function
+    if "test" and __DEBUG_ME__() and True:
+        def ____test____random_permutate():
+            "only row"
+            for _ in range(5):
+                mat = torch.tensor([[0.,1,2],[0,1,2],[0,1,2]])
+                mat_after = random_permutate(mat.detach().clone(), times_by_row = random.randint(2,5),
+                                                times_by_column = 0)
+                #-------------------------------------------------------------------------
+                assert mat.eq(mat_after).all()
+                pass
+            
+            "only column"
+            for _ in range(5):
+                mat = torch.tensor([[0.,0,0],[1,1,1],[2,2,2]])
+                mat_after = random_permutate(mat.detach().clone(), times_by_row = 0,
+                                                times_by_column = random.randint(2,5))
+                #-------------------------------------------------------------------------
+                assert mat.eq(mat_after).all()
+                pass
+                
+            "only column"
+            for _ in range(115):
+                dim = random.randint(2,300)
+                #-------------------------------------------------------------------------
+                mat = torch.randn(size=[dim,dim])
+                mat_after = random_permutate(mat.detach().clone(), 
+                                            times_by_row    = random.randint(dim+10,dim*3+50),
+                                            times_by_column = random.randint(dim+10,dim*3+50))
+                #-------------------------------------------------------------------------
+                _ori_sum = mat.sum()
+                _after_sum = mat_after.sum()
+                assert _tensor_equal(_ori_sum, _after_sum, epsilon=_ori_sum.abs()*0.0003)
+                assert _tensor_equal(mat.std(), mat_after.std())
+                
+                assert have_same_elements(mat, mat_after)
+                pass
+            return 
+        ____test____random_permutate()
+        pass
+
+    def random_permutation_matrix__by_once(dim:int, dtype = torch.float32, device = 'cpu')->torch.Tensor:
+        result = torch.eye(n=dim, dtype=dtype, device=device)
+        rand_index_1,rand_index_2 = _get_2_diff_rand_int(dim, device=device)
+        result[rand_index_1,rand_index_1] = 0.
+        result[rand_index_2,rand_index_2] = 0.
+        result[rand_index_1,rand_index_2] = 1.
+        result[rand_index_2,rand_index_1] = 1.
+        return result
+    if "test" and __DEBUG_ME__() and True:
+        def ____test____random_permutation_matrix__by_once():
+            for _ in range(116):
+                dim = random.randint(2,300)
+                #---------------------------
+                mat = random_permutation_matrix__by_once(dim)
+                #---------------------------
+                assert mat.sum() == dim
+                
+                _ref_mat = torch.zeros_like(mat)
+                _ref_mat[0] = 1.
+                assert have_same_elements(mat, _ref_mat)
+                
+                assert mat.det().abs() == 1
+                pass
+            
+            "if multiple this thing multiply together"
+            for _ in range(15):
+                dim = random.randint(2,88)
+                amount = random.randint(2,10)
+                #---------------------------
+                mat = random_permutation_matrix__by_once(dim)
+                for _the_number in range(amount-1):
+                    new_mat = random_permutation_matrix__by_once(dim)
+                    mat = mat@new_mat
+                    pass
+                #---------------------------
+                assert mat.sum() == dim
+                
+                _ref_mat = torch.zeros_like(mat)
+                _ref_mat[0] = 1.
+                assert have_same_elements(mat, _ref_mat)
+                
+                assert mat.det().abs() == 1
+                pass
+            
+            
+            return 
+        ____test____random_permutation_matrix__by_once()
+        pass
+
+    def random_permutation_matrix(dim:int, times:int|None = None, dtype = torch.float32, device = 'cpu')->torch.Tensor:
+        init_eye = torch.eye(n=dim, dtype=dtype, device=device)
+        if times is None:
+            times = dim*3
+            pass
+        row_times = times//2
+        column_times = times-row_times
+        result = random_permutate(init_eye,times_by_row=row_times,times_by_column=column_times)
+        return result
+    if "test" and __DEBUG_ME__() and True:
+        def ____test____random_permutation_matrix():
+            for _ in range(116):
+                dim = random.randint(2,300)
+                #---------------------------
+                mat = random_permutation_matrix(dim,dim*5)
+                #---------------------------
+                assert mat.sum() == dim
+                
+                _ref_mat = torch.zeros_like(mat)
+                _ref_mat[0] = 1.
+                assert have_same_elements(mat, _ref_mat)
+                
+                assert mat.det().abs() == 1
+                pass
+            return 
+        ____test____random_permutation_matrix()
+        pass
+    
+    
+    
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def randomly_permutate_this_vector(input:torch.Tensor)->torch.Tensor:
+    '''randomly permutate this vector.'''
+    
+    dim = input.shape[-1]
+    the_rand_permutation_index = torch.randperm(dim)
+    result = input[..., the_rand_permutation_index]
+    return result
 if "test" and __DEBUG_ME__() and True:
-    def ____test____random_permutate():
-        "only row"
+    def ____test____randomly_permutate_this_vector():
+        # vec = torch.linspace(1,5,4)
+        # ori_sum = vec.sum()
+        # vec = randomly_permutate_this_vector(vec)
+        # assert _tensor_equal(ori_sum, vec.sum())
+        
+        # at least 2 ways to validate. 
+        # sort and check with eq
+        # or sum/mean will keep before and after.
+        
+        1w 读一下。 不排序的情况下，看看哪些是错的。
+        
+        for _ in range(112):
+            dim = [random.randint(2,1000)]
+            vec = torch.randn(size = dim)
+            ori_sum = vec.sum()
+            vec = randomly_permutate_this_vector(vec)
+            assert _tensor_equal(ori_sum, vec.sum())
+            pass
+        
+        for _ in range(112):
+            dim = [random.randint(2,100), random.randint(2,100)]
+            vec = torch.randn(size = dim)
+            ori_sum_0 = vec.sum(dim=0).sort().values
+            ori_sum_1 = vec.sum(dim=1)
+            vec = randomly_permutate_this_vector(vec)
+            assert _tensor_equal(ori_sum, vec.sum(dim=1))
+            assert _tensor_equal(ori_sum_0, vec.sum(dim=0).sort().values)
+            assert _tensor_equal(ori_sum_1, vec.sum(dim=1))
+            pass
+        
+        for _ in range(112):
+            dim = [random.randint(2,30), random.randint(2,30), random.randint(2,30)]
+            vec = torch.randn(size = dim)
+            ori_sum_0 = vec.sum(dim=0).sort().values
+            ori_sum_1 = vec.sum(dim=1).sort().values
+            ori_sum_2 = vec.sum(dim=2)
+            vec = randomly_permutate_this_vector(vec)
+            assert _tensor_equal(ori_sum_0, vec.sum(dim=0).sort().values)
+            assert _tensor_equal(ori_sum_1, vec.sum(dim=1).sort().values)
+            assert _tensor_equal(ori_sum_2, vec.sum(dim=2))
+            pass
+        
+        return 
+    
+    ____test____randomly_permutate_this_vector()
+    pass
+        
+
+def randomly_permutate_this_matrix(input:torch.Tensor)->torch.Tensor:
+    '''randomly permutate this vector.'''
+    
+    dim = input.shape[-1]
+    the_rand_permutation_index = torch.randperm(dim)
+    result = input[..., the_rand_permutation_index]
+    
+    dim = input.shape[-1]
+    the_rand_permutation_index = torch.randperm(dim)
+    result = input[..., the_rand_permutation_index, :]
+    return result
+if "test" and __DEBUG_ME__() and True:
+    def ____test____randomly_permutate_this_matrix():
+        # at least 2 ways to validate. 
+        # sort and check with eq
+        # or sum/mean will keep before and after.
+        
+        for _ in range(112):
+            dim = [random.randint(2,100), random.randint(2,100)]
+            vec = torch.randn(size = dim)
+            ori_sum_0 = vec.sum(dim=0).sort().values
+            ori_sum_1 = vec.sum(dim=1).sort().values
+            vec = randomly_permutate_this_matrix(vec)
+            assert _tensor_equal(ori_sum_0, vec.sum(dim=0).sort().values)
+            assert _tensor_equal(ori_sum_1, vec.sum(dim=1).sort().values)
+            pass
+        
+        for _ in range(112):
+            dim = [random.randint(2,30), random.randint(2,30), random.randint(2,30)]
+            vec = torch.randn(size = dim)
+            ori_sum = vec.sum(dim=2)
+            vec = randomly_permutate_this_matrix(vec)
+            assert _tensor_equal(ori_sum, vec.sum(dim=2))
+            1w 所有的维度。
+            pass
+        
+        return 
+    
+    ____test____randomly_permutate_this_vector()
+    pass
+        
+    
+    pass#/function
+        # same elements.
+        
         for _ in range(5):
             mat = torch.tensor([[0.,1,2],[0,1,2],[0,1,2]])
-            mat_after = random_permutate(mat.detach().clone(), times_by_row = random.randint(2,5),
+            mat_after = randomly_permutate_this_vector(mat.detach().clone(), times_by_row = random.randint(2,5),
                                             times_by_column = 0)
             #-------------------------------------------------------------------------
             assert mat.eq(mat_after).all()
@@ -702,6 +1232,18 @@ if "test" and __DEBUG_ME__() and True:
             #-------------------------------------------------------------------------
             assert mat.eq(mat_after).all()
             pass
+        
+        
+        
+        
+        
+        
+        
+    
+    
+    
+    
+        
             
         "only column"
         for _ in range(115):
@@ -799,6 +1341,18 @@ if "test" and __DEBUG_ME__() and True:
         return 
     ____test____random_permutation_matrix()
     pass
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

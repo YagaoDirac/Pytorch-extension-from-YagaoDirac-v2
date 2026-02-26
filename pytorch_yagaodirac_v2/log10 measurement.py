@@ -3341,7 +3341,7 @@ if "btw, K He init is a uniform distribution(rand) / sqrt(dim)." and False:
     from matplotlib import pyplot as plt
     
     N_points = 100000
-    n_bins = 20
+    n_bins = 50############### modify this.
 
     fig, axs = plt.subplots(1, 1, tight_layout=True)
 

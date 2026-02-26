@@ -150,7 +150,7 @@ if "test    it has print in it." and __DEBUG_ME__() and False:
     
 def timeit(test_this_callable, params:tuple = (), time_at_most = 0.2, _magic_ratio = 4., \
             base = 4, I_believe_it_comes_stable_at = 10000, timeout_tolerence:Optional[float] = None, \
-            _debug__force_warm_up = 0, _debug__provides_log = False, \
+            force_warm_up = 0, _debug__provides_log = False, \
                             )->tuple[float, Optional[list[str]]]:
     "return result(in float), log(if not None)"
     assert time_at_most>0
@@ -175,8 +175,8 @@ def timeit(test_this_callable, params:tuple = (), time_at_most = 0.2, _magic_rat
         _log = []
         pass
     
-    if _debug__force_warm_up>0:
-        _raw_timeit(test_this_callable, params, number=_debug__force_warm_up)
+    if force_warm_up>0:
+        _raw_timeit(test_this_callable, params, number=force_warm_up)
         pass
     
     
