@@ -254,43 +254,52 @@ if "basic behavior and device adaption." and __DEBUG_ME__() and False:
 
 
 "   random rotation"
+# a detail about the calculating precision. 
+# Check out the test in 'so called pre rotation'. I tested a lil bit. Usually this is not a problem.
+# but if anything is rotated for like dim*100 times and it needs to be exactly the same length, protect it at last.
 
-if "random_rotate algo test" and __DEBUG_ME__() and True:
-    "column"
-    dim = 3
-    input = torch.linspace(0,dim*dim-1,dim*dim).reshape([dim,dim])
-    #index_tensor ,_,_ = _get_2_diff_rand_int(dim,'cpu')
-    index_tensor = torch.tensor([0,1])
-    #angle = torch.rand(size=[])*torch.pi*2.
-    angle = torch.tensor(torch.pi/6.)
+if "random_rotate algo test" and __DEBUG_ME__() and False:
+    def ____test____random_rotate_algo_test():
+        "column"
+        dim = 3
+        input = torch.linspace(0,dim*dim-1,dim*dim).reshape([dim,dim])
+        #index_tensor ,_,_ = _get_2_diff_rand_int(dim,'cpu')
+        index_tensor = torch.tensor([0,1])
+        #angle = torch.rand(size=[])*torch.pi*2.
+        angle = torch.tensor(torch.pi/6.)
 
-    #写一个专用的旋转矩阵的函数。rotate2d一类的。
+        #写一个专用的旋转矩阵的函数。rotate2d一类的。
 
-    the_only_modified_part = input.index_select(dim=1,index=index_tensor)#new tensor.
-    assert the_only_modified_part.eq(torch.tensor([[0,1],[3,4],[6,7]])).all()
-    the_only_modified_part = the_only_modified_part@angle_to_rotation_matrix_2d(angle)
-    assert _tensor_equal(the_only_modified_part[0], torch.tensor([0.,1])@angle_to_rotation_matrix_2d(angle))
-    input[:,index_tensor[0]] = the_only_modified_part[:,0]
-    input[:,index_tensor[1]] = the_only_modified_part[:,1]
+        the_only_modified_part = input.index_select(dim=1,index=index_tensor)#new tensor.
+        assert the_only_modified_part.eq(torch.tensor([[0,1],[3,4],[6,7]])).all()
+        the_only_modified_part = the_only_modified_part@angle_to_rotation_matrix_2d(angle)
+        assert _tensor_equal(the_only_modified_part[0], torch.tensor([0.,1])@angle_to_rotation_matrix_2d(angle))
+        input[:,index_tensor[0]] = the_only_modified_part[:,0]
+        input[:,index_tensor[1]] = the_only_modified_part[:,1]
+        
+        "row"
+        dim = 3
+        input = torch.linspace(0,dim*dim-1,dim*dim).reshape([dim,dim])
+        #index_tensor ,_,_ = _get_2_diff_rand_int(dim,'cpu')
+        index_tensor = torch.tensor([0,1])
+        #angle = torch.rand(size=[])*torch.pi*2.
+        angle = torch.tensor(torch.pi/6.)
+
+        #写一个专用的旋转矩阵的函数。rotate2d一类的。
+
+        the_only_modified_part = input.index_select(dim=0,index=index_tensor)#new tensor.
+        assert the_only_modified_part.eq(torch.tensor([[0,1,2],[3,4,5]])).all()
+        the_only_modified_part = angle_to_rotation_matrix_2d(angle)@the_only_modified_part
+        assert _tensor_equal(the_only_modified_part[:,0], (angle_to_rotation_matrix_2d(angle)@torch.tensor([[0.],[3]])).reshape([-1]))
+        input[index_tensor[0]] = the_only_modified_part[0]
+        input[index_tensor[1]] = the_only_modified_part[1]
+
+        return 
+
+    ____test____random_rotate_algo_test()
     
-    "row"
-    dim = 3
-    input = torch.linspace(0,dim*dim-1,dim*dim).reshape([dim,dim])
-    #index_tensor ,_,_ = _get_2_diff_rand_int(dim,'cpu')
-    index_tensor = torch.tensor([0,1])
-    #angle = torch.rand(size=[])*torch.pi*2.
-    angle = torch.tensor(torch.pi/6.)
-
-    #写一个专用的旋转矩阵的函数。rotate2d一类的。
-
-    the_only_modified_part = input.index_select(dim=0,index=index_tensor)#new tensor.
-    assert the_only_modified_part.eq(torch.tensor([[0,1,2],[3,4,5]])).all()
-    the_only_modified_part = angle_to_rotation_matrix_2d(angle)@the_only_modified_part
-    assert _tensor_equal(the_only_modified_part[:,0], (angle_to_rotation_matrix_2d(angle)@torch.tensor([[0.],[3]])).reshape([-1]))
-    input[index_tensor[0]] = the_only_modified_part[0]
-    input[index_tensor[1]] = the_only_modified_part[1]
     pass
-def randomly_rotate_this_matrix(input:torch.Tensor, times:int|None = None)->torch.Tensor:
+def randomly_rotate__matrix(input:torch.Tensor, times:int|None = None)->torch.Tensor:
     '''randomly rotates the input'''
     
     assert is_square_matrix(input)
@@ -330,16 +339,19 @@ if "test" and __DEBUG_ME__() and False:
             dim = random.randint(2,300)
             #-------------#-------------#-------------
             _init_eye = torch.eye(n = dim)
-            mat = randomly_rotate_this_matrix(_init_eye)
+            mat = randomly_rotate__matrix(_init_eye)
             #-------------#-------------#-------------
             vec = random_standard_vector(dim)
             vec = vec@mat
             assert _tensor_equal(get_vector_length(vec), [1.])
             pass
+    
         return
+    
     ____test____random_rotate()
+    pass
 
-def randomly_rotate_this_vector(input:torch.Tensor, times:int|None = None)->torch.Tensor:
+def randomly_rotate__vector(input:torch.Tensor, times:int|None = None)->torch.Tensor:
     '''randomly rotates the input'''
     
     assert input.shape.__len__() == 1, "Batch is not implemented. Maybe later."
@@ -375,7 +387,7 @@ if "test" and __DEBUG_ME__() and False:
             for test_count in range(test_time):
                 #-------------#-------------#-------------
                 _init_vec = vector_length_norm(torch.randn(size=[1,dim],device=device)).reshape([-1])
-                vec = randomly_rotate_this_vector(_init_vec)
+                vec = randomly_rotate__vector(_init_vec)
                 #-------------#-------------#-------------
                 assert _tensor_equal(get_vector_length(vec), torch.tensor([1.],device=device))
             pass
@@ -449,7 +461,7 @@ def random_rotation_matrix(dim:int, times:int|None = None, dtype = torch.float32
     
     device_in_this_function = 'cpu'
     init_eye = torch.eye(n=dim, dtype=dtype, device=device_in_this_function)
-    result = randomly_rotate_this_matrix(init_eye,times=times)
+    result = randomly_rotate__matrix(init_eye,times=times)
     result = result.to(device=device)
     return result
 if "test" and __DEBUG_ME__() and False:
@@ -458,9 +470,6 @@ if "test" and __DEBUG_ME__() and False:
         return 
     ____test____random_rotation_matrix()
     pass
-
-
-
 
 if "I tried the so called pre rotation, but I didn't find any clue that it helps at all." and False:
     if "torch.randperm test" and __DEBUG_ME__() and False:
@@ -514,7 +523,7 @@ if "I tried the so called pre rotation, but I didn't find any clue that it helps
                 vec = random_standard_vector(dim=dim, device = device, dtype=dtype)
                 while True:
                     ori_vec = vec.detach().clone()
-                    vec = randomly_rotate_this_vector(vec, times=1)
+                    vec = randomly_rotate__vector(vec, times=1)
                     assert vec.dtype == torch.float16
                     same_dim_count = ori_vec.eq(vec).sum()
                     
@@ -600,7 +609,7 @@ if "I tried the so called pre rotation, but I didn't find any clue that it helps
                 def _func__cpu_32():
                     vec = random_standard_vector(dim=dim, dtype = torch.float32, device = 'cpu')
                     for _ in range(rc):
-                        vec = randomly_rotate_this_vector(vec)
+                        vec = randomly_rotate__vector(vec)
                         pass
                     return
                 _cpu_32_time, _ = timeit(_func__cpu_32, time_at_most=time_at_most)
@@ -609,7 +618,7 @@ if "I tried the so called pre rotation, but I didn't find any clue that it helps
                 def _func__cuda_32():
                     vec = random_standard_vector(dim=dim, dtype = torch.float32, device = 'cuda')
                     for _ in range(rc):
-                        vec = randomly_rotate_this_vector(vec)
+                        vec = randomly_rotate__vector(vec)
                         pass
                     return
                 _cuda_32_time, _ = timeit(_func__cuda_32, time_at_most=time_at_most)
@@ -618,7 +627,7 @@ if "I tried the so called pre rotation, but I didn't find any clue that it helps
                 def _func__cpu_16():
                     vec = random_standard_vector(dim=dim, dtype = torch.float16, device = 'cpu')
                     for _ in range(rc):
-                        vec = randomly_rotate_this_vector(vec)
+                        vec = randomly_rotate__vector(vec)
                         pass
                     return
                 _cpu_16_time, _ = timeit(_func__cpu_16, time_at_most=time_at_most)
@@ -627,7 +636,7 @@ if "I tried the so called pre rotation, but I didn't find any clue that it helps
                 def _func__cuda_16():
                     vec = random_standard_vector(dim=dim, dtype = torch.float16, device = 'cuda')
                     for _ in range(rc):
-                        vec = randomly_rotate_this_vector(vec)
+                        vec = randomly_rotate__vector(vec)
                         pass
                     return
                 _cuda_16_time, _ = timeit(_func__cuda_16, time_at_most=time_at_most)
@@ -669,7 +678,7 @@ if "I tried the so called pre rotation, but I didn't find any clue that it helps
                 plt.show()
                                     
                 
-                vec = randomly_rotate_this_vector(vec)
+                vec = randomly_rotate__vector(vec)
                 pass
             
             
@@ -734,7 +743,7 @@ if "I tried the so called pre rotation, but I didn't find any clue that it helps
                         #--------------------#--------------------#--------------------
                         vec = random_standard_vector(dim=dim, dtype = torch.float32, device = 'cpu')
                         for _ in range(rc):
-                            vec = randomly_rotate_this_vector(vec)
+                            vec = randomly_rotate__vector(vec)
                             pass
                         the_length = get_vector_length(vec)
                         assert the_length<1.00001
@@ -788,7 +797,7 @@ if "I tried the so called pre rotation, but I didn't find any clue that it helps
         # new vvvvvvvvvv
         iter_count = 0
         for _ in range(rotate_count):
-            vec = randomly_rotate_this_vector(vec)
+            vec = randomly_rotate__vector(vec)
             
             # #<  length protection>
             # iter_count +=1
@@ -929,14 +938,6 @@ if "I tried the so called pre rotation, but I didn't find any clue that it helps
                     pass#for outter param
                 pass#/test
                 
-                
-                
-                
-                
-                
-            
-            assert False,"每多少次保护一下长度。"
-            
             return 
         
         ____test____random_standard_vector__pre_rotated()
@@ -948,9 +949,8 @@ if "I tried the so called pre rotation, but I didn't find any clue that it helps
 
 
 "   random permutate"
-#总之就是还有一些解法。
 
-if "when I made this, I didn't know the torch.randperm function." and False:
+if "when I made this, I didn't know the torch.randperm function. Now I dont need this." and False:
     def random_permutate(input:torch.Tensor, times_by_row:int|None = None, times_by_column:int|None = None)->torch.Tensor:
         assert is_square_matrix(input)
         dim = input.shape[0]
@@ -1094,27 +1094,11 @@ if "when I made this, I didn't know the torch.randperm function." and False:
         ____test____random_permutation_matrix()
         pass
     
-    
-    
     pass
 
+"   new version below   vvvvvvvvvvvvv"
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def randomly_permutate_this_vector(input:torch.Tensor)->torch.Tensor:
+def randomly_permutate__vector(input:torch.Tensor)->torch.Tensor:
     '''randomly permutate this vector.'''
     
     dim = input.shape[-1]
@@ -1132,13 +1116,21 @@ if "test" and __DEBUG_ME__() and True:
         # sort and check with eq
         # or sum/mean will keep before and after.
         
-        1w 读一下。 不排序的情况下，看看哪些是错的。
+        
+        #a = torch.tensor([[2.,1],[4,3]])
+        # a = torch.tensor([[2.,1],[0,0],[4,3]])
+        # print(a)
+        # b = a.sort()
+
+        # a = torch.linspace(1,8,8).reshape([2,2,2])
+        # b = a.sum(dim=1)
+
         
         for _ in range(112):
             dim = [random.randint(2,1000)]
             vec = torch.randn(size = dim)
             ori_sum = vec.sum()
-            vec = randomly_permutate_this_vector(vec)
+            vec = randomly_permutate__vector(vec)
             assert _tensor_equal(ori_sum, vec.sum())
             pass
         
@@ -1147,8 +1139,7 @@ if "test" and __DEBUG_ME__() and True:
             vec = torch.randn(size = dim)
             ori_sum_0 = vec.sum(dim=0).sort().values
             ori_sum_1 = vec.sum(dim=1)
-            vec = randomly_permutate_this_vector(vec)
-            assert _tensor_equal(ori_sum, vec.sum(dim=1))
+            vec = randomly_permutate__vector(vec)
             assert _tensor_equal(ori_sum_0, vec.sum(dim=0).sort().values)
             assert _tensor_equal(ori_sum_1, vec.sum(dim=1))
             pass
@@ -1158,29 +1149,28 @@ if "test" and __DEBUG_ME__() and True:
             vec = torch.randn(size = dim)
             ori_sum_0 = vec.sum(dim=0).sort().values
             ori_sum_1 = vec.sum(dim=1).sort().values
-            ori_sum_2 = vec.sum(dim=2)
-            vec = randomly_permutate_this_vector(vec)
+            ori_sum_2 = vec.reshape([-1,dim[2]]).sum(dim=1)
+            vec = randomly_permutate__vector(vec)
             assert _tensor_equal(ori_sum_0, vec.sum(dim=0).sort().values)
             assert _tensor_equal(ori_sum_1, vec.sum(dim=1).sort().values)
-            assert _tensor_equal(ori_sum_2, vec.sum(dim=2))
+            assert _tensor_equal(ori_sum_2, vec.reshape([-1,dim[2]]).sum(dim=1))
             pass
         
         return 
     
     ____test____randomly_permutate_this_vector()
     pass
-        
 
-def randomly_permutate_this_matrix(input:torch.Tensor)->torch.Tensor:
+def randomly_permutate__matrix(input:torch.Tensor)->torch.Tensor:
     '''randomly permutate this vector.'''
     
     dim = input.shape[-1]
     the_rand_permutation_index = torch.randperm(dim)
     result = input[..., the_rand_permutation_index]
     
-    dim = input.shape[-1]
+    dim = input.shape[-2]
     the_rand_permutation_index = torch.randperm(dim)
-    result = input[..., the_rand_permutation_index, :]
+    result = result[..., the_rand_permutation_index, :]
     return result
 if "test" and __DEBUG_ME__() and True:
     def ____test____randomly_permutate_this_matrix():
@@ -1188,165 +1178,81 @@ if "test" and __DEBUG_ME__() and True:
         # sort and check with eq
         # or sum/mean will keep before and after.
         
+        # a = torch.linspace(1,9,9).reshape([3,3])
+        # b = randomly_permutate_this_matrix(a)
+        # prin(b)
+        
+        
         for _ in range(112):
             dim = [random.randint(2,100), random.randint(2,100)]
             vec = torch.randn(size = dim)
             ori_sum_0 = vec.sum(dim=0).sort().values
             ori_sum_1 = vec.sum(dim=1).sort().values
-            vec = randomly_permutate_this_matrix(vec)
+            vec = randomly_permutate__matrix(vec)
             assert _tensor_equal(ori_sum_0, vec.sum(dim=0).sort().values)
             assert _tensor_equal(ori_sum_1, vec.sum(dim=1).sort().values)
             pass
         
         for _ in range(112):
             dim = [random.randint(2,30), random.randint(2,30), random.randint(2,30)]
+            dim = [2,2,2]
             vec = torch.randn(size = dim)
-            ori_sum = vec.sum(dim=2)
-            vec = randomly_permutate_this_matrix(vec)
-            assert _tensor_equal(ori_sum, vec.sum(dim=2))
-            1w 所有的维度。
+            ori_sum_0 = vec.sum(dim=0).reshape([-1]).sort().values
+            ori_sum_1 = vec.sum(dim=1).sort().values
+            ori_sum_1_flattened = vec.sum(dim=1).reshape([-1]).sort().values
+            ori_sum_2 = vec.reshape([dim[0], -1]).sum(dim=1).sort().values
+            vec = randomly_permutate__matrix(vec)
+            assert _tensor_equal(ori_sum_0, vec.sum(dim=0).reshape([-1]).sort().values)
+            assert _tensor_equal(ori_sum_1, vec.sum(dim=1).sort().values)
+            assert _tensor_equal(ori_sum_1_flattened, vec.sum(dim=1).reshape([-1]).sort().values)
+            assert _tensor_equal(ori_sum_2, vec.reshape([dim[0], -1]).sum(dim=1).sort().values)
             pass
         
         return 
     
-    ____test____randomly_permutate_this_vector()
+    ____test____randomly_permutate_this_matrix()
     pass
         
     
-    pass#/function
-        # same elements.
+    # pass#/function
+    #     # same elements.
         
-        for _ in range(5):
-            mat = torch.tensor([[0.,1,2],[0,1,2],[0,1,2]])
-            mat_after = randomly_permutate_this_vector(mat.detach().clone(), times_by_row = random.randint(2,5),
-                                            times_by_column = 0)
-            #-------------------------------------------------------------------------
-            assert mat.eq(mat_after).all()
-            pass
+    #     for _ in range(5):
+    #         mat = torch.tensor([[0.,1,2],[0,1,2],[0,1,2]])
+    #         mat_after = randomly_permutate_this_vector(mat.detach().clone(), times_by_row = random.randint(2,5),
+    #                                         times_by_column = 0)
+    #         #-------------------------------------------------------------------------
+    #         assert mat.eq(mat_after).all()
+    #         pass
         
-        "only column"
-        for _ in range(5):
-            mat = torch.tensor([[0.,0,0],[1,1,1],[2,2,2]])
-            mat_after = random_permutate(mat.detach().clone(), times_by_row = 0,
-                                            times_by_column = random.randint(2,5))
-            #-------------------------------------------------------------------------
-            assert mat.eq(mat_after).all()
-            pass
+    #     "only column"
+    #     for _ in range(5):
+    #         mat = torch.tensor([[0.,0,0],[1,1,1],[2,2,2]])
+    #         mat_after = random_permutate(mat.detach().clone(), times_by_row = 0,
+    #                                         times_by_column = random.randint(2,5))
+    #         #-------------------------------------------------------------------------
+    #         assert mat.eq(mat_after).all()
+    #         pass
         
-        
-        
-        
-        
-        
-        
-    
-    
-    
-    
-        
+    #     "only column"
+    #     for _ in range(115):
+    #         dim = random.randint(2,300)
+    #         #-------------------------------------------------------------------------
+    #         mat = torch.randn(size=[dim,dim])
+    #         mat_after = random_permutate(mat.detach().clone(), 
+    #                                     times_by_row    = random.randint(dim+10,dim*3+50),
+    #                                     times_by_column = random.randint(dim+10,dim*3+50))
+    #         #-------------------------------------------------------------------------
+    #         _ori_sum = mat.sum()
+    #         _after_sum = mat_after.sum()
+    #         assert _tensor_equal(_ori_sum, _after_sum, epsilon=_ori_sum.abs()*0.0003)
+    #         assert _tensor_equal(mat.std(), mat_after.std())
             
-        "only column"
-        for _ in range(115):
-            dim = random.randint(2,300)
-            #-------------------------------------------------------------------------
-            mat = torch.randn(size=[dim,dim])
-            mat_after = random_permutate(mat.detach().clone(), 
-                                        times_by_row    = random.randint(dim+10,dim*3+50),
-                                        times_by_column = random.randint(dim+10,dim*3+50))
-            #-------------------------------------------------------------------------
-            _ori_sum = mat.sum()
-            _after_sum = mat_after.sum()
-            assert _tensor_equal(_ori_sum, _after_sum, epsilon=_ori_sum.abs()*0.0003)
-            assert _tensor_equal(mat.std(), mat_after.std())
-            
-            assert have_same_elements(mat, mat_after)
-            pass
-        return 
-    ____test____random_permutate()
-    pass
-
-def random_permutation_matrix__by_once(dim:int, dtype = torch.float32, device = 'cpu')->torch.Tensor:
-    result = torch.eye(n=dim, dtype=dtype, device=device)
-    rand_index_1,rand_index_2 = _get_2_diff_rand_int(dim, device=device)
-    result[rand_index_1,rand_index_1] = 0.
-    result[rand_index_2,rand_index_2] = 0.
-    result[rand_index_1,rand_index_2] = 1.
-    result[rand_index_2,rand_index_1] = 1.
-    return result
-if "test" and __DEBUG_ME__() and True:
-    def ____test____random_permutation_matrix__by_once():
-        for _ in range(116):
-            dim = random.randint(2,300)
-            #---------------------------
-            mat = random_permutation_matrix__by_once(dim)
-            #---------------------------
-            assert mat.sum() == dim
-            
-            _ref_mat = torch.zeros_like(mat)
-            _ref_mat[0] = 1.
-            assert have_same_elements(mat, _ref_mat)
-            
-            assert mat.det().abs() == 1
-            pass
-        
-        "if multiple this thing multiply together"
-        for _ in range(15):
-            dim = random.randint(2,88)
-            amount = random.randint(2,10)
-            #---------------------------
-            mat = random_permutation_matrix__by_once(dim)
-            for _the_number in range(amount-1):
-                new_mat = random_permutation_matrix__by_once(dim)
-                mat = mat@new_mat
-                pass
-            #---------------------------
-            assert mat.sum() == dim
-            
-            _ref_mat = torch.zeros_like(mat)
-            _ref_mat[0] = 1.
-            assert have_same_elements(mat, _ref_mat)
-            
-            assert mat.det().abs() == 1
-            pass
-        
-        
-        return 
-    ____test____random_permutation_matrix__by_once()
-    pass
-
-def random_permutation_matrix(dim:int, times:int|None = None, dtype = torch.float32, device = 'cpu')->torch.Tensor:
-    init_eye = torch.eye(n=dim, dtype=dtype, device=device)
-    if times is None:
-        times = dim*3
-        pass
-    row_times = times//2
-    column_times = times-row_times
-    result = random_permutate(init_eye,times_by_row=row_times,times_by_column=column_times)
-    return result
-if "test" and __DEBUG_ME__() and True:
-    def ____test____random_permutation_matrix():
-        for _ in range(116):
-            dim = random.randint(2,300)
-            #---------------------------
-            mat = random_permutation_matrix(dim,dim*5)
-            #---------------------------
-            assert mat.sum() == dim
-            
-            _ref_mat = torch.zeros_like(mat)
-            _ref_mat[0] = 1.
-            assert have_same_elements(mat, _ref_mat)
-            
-            assert mat.det().abs() == 1
-            pass
-        return 
-    ____test____random_permutation_matrix()
-    pass
-
-
-
-
-
-
+    #         assert have_same_elements(mat, mat_after)
+    #         pass
+    #     return 
+    # ____test____random_permutate()
+    # pass
 
 
 
