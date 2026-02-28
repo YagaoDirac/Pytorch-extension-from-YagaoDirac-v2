@@ -92,60 +92,63 @@ def LOSS__vec_len_retention__of_a_mat_in_matmul(matrix:torch.Tensor,
         return score__len_sqr,score_log10_div2,score_log10_div2__abs
     pass#/function
 
-if "basic test" and __DEBUG_ME__() and True:
-    def ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10():
+if "basic test" and __DEBUG_ME__() and False:
+    def ____test____LOSS__vec_len_retention__of_a_mat_in_matmul():
         import random, math
-        # if "eye is perfect" and False:
-        #     for dim in range(3, 15):
-        #         test_time = 10
-        #         for test_count in range(test_time):
-        #             mat = torch.eye(n=dim)
-        #             score__len_sqr,score_log10_div2,score_log10_div2__abs = \
-        #                         LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat,test_time=100)
-        #             assert _tensor_equal(score__len_sqr.log10()/2., torch.zeros(size=[100]), epsilon=1e-6)
-        #             pass
-        #         pass#for dim
-        #     pass#/test
-        # if "scaled a lil bit" and True:
-        #     for dim in range(3, 15):
-        #         test_time = 10
-        #         for test_count in range(test_time):
-        #             _to_the_power = (torch.rand(size=[])*2-1)*3.
-        #             _factor = torch.pow(10, _to_the_power)
-        #             mat = torch.eye(n=dim)*_factor
-        #             score__len_sqr,score_log10_div2,score_log10_div2__abs = \
-        #                         LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat, test_time=100)
-        #             assert _tensor_equal(score__len_sqr.log10()/2., torch.ones(size=[100])*_to_the_power)
-        #             pass
-        #         pass#for dim
-        #     pass#/test
+        if "eye is perfect" and True:
+            for dim in range(3, 15):
+                test_time = 10
+                for test_count in range(test_time):
+                    mat = torch.eye(n=dim)
+                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                                LOSS__vec_len_retention__of_a_mat_in_matmul(mat,test_time=100)
+                    assert _tensor_equal(score__len_sqr.log10()/2., torch.zeros(size=[100]), epsilon=1e-6)
+                    pass
+                pass#for dim
+            pass#/test
+        if "scaled a lil bit" and True:
+            for dim in range(3, 15):
+                test_time = 10
+                for test_count in range(test_time):
+                    _to_the_power = (torch.rand(size=[])*2-1)*3.
+                    _factor = torch.pow(10, _to_the_power)
+                    mat = torch.eye(n=dim)*_factor
+                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                                LOSS__vec_len_retention__of_a_mat_in_matmul(mat, test_time=100)
+                    assert _tensor_equal(score__len_sqr.log10()/2., torch.ones(size=[100])*_to_the_power)
+                    pass
+                pass#for dim
+            pass#/test
         
-        # if "rotation and permutation are all perfect" and True:
-        #     for dim in range(3, 15):
-        #         test_time = 10
-        #         for test_count in range(test_time):
-        #             mat = torch.eye(n=dim)
-        #             #<  prepare the vec>
-        #             for _ in range(5):
-        #                 mat = randomly_permutate__matrix(mat)
-        #                 mat = randomly_rotate__matrix(mat)
-        #                 pass
-        #             #</ prepare the vec>
-        #             _to_the_power = (torch.rand(size=[])*2.-1.)*3.
-        #             _factor = torch.pow(10, _to_the_power)
-        #             mat.mul_(_factor)
-        #             score__len_sqr,score_log10_div2,score_log10_div2__abs = \
-        #                         LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(mat, test_time=100)
-        #             assert _tensor_equal(score__len_sqr.log10()/2., torch.ones(size=[100])*_to_the_power)
-        #             pass
-        #         pass#for dim
-        #     pass#/test
-        #     #rotation should also be perfect. This test is done in the rand_basic_ratation_matrix's test
+        if "rotation and permutation are all perfect" and True:
+            for dim in range(3, 15):
+                test_time = 10
+                for test_count in range(test_time):
+                    mat = torch.eye(n=dim)
+                    #<  prepare the vec>
+                    for _ in range(5):
+                        mat = randomly_permutate__matrix(mat)
+                        mat = randomly_rotate__matrix(mat)
+                        pass
+                    #</ prepare the vec>
+                    _to_the_power = (torch.rand(size=[])*2.-1.)*3.
+                    _factor = torch.pow(10, _to_the_power)
+                    mat.mul_(_factor)
+                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                                LOSS__vec_len_retention__of_a_mat_in_matmul(mat, test_time=100)
+                    assert _tensor_equal(score__len_sqr.log10()/2., torch.ones(size=[100])*_to_the_power)
+                    pass
+                pass#for dim
+            pass#/test
+            #rotation should also be perfect. This test is done in the rand_basic_ratation_matrix's test
         
         
-        1w 继续
         
         if "randn and randn but rotated and permuted should be similar" and True:
+            #result
+            # result_of__length_diff_min     = [ 0.009,  0.006, -0.006, -0.001]
+            # dim_list                       = [ 2.000,  5.000,  10.000,  100.000]
+            
             result_of__diff = []#don't modify this.
             #----------------#----------------#----------------
             dim_list =         [2,  5, 10, 100]
@@ -183,7 +186,7 @@ if "basic test" and __DEBUG_ME__() and True:
         
         return 
     
-    ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10()
+    ____test____LOSS__vec_len_retention__of_a_mat_in_matmul()
     pass
 
 # All the measurement are for square matrix. So, [dim] means [dim,dim]
@@ -592,7 +595,7 @@ if "measure the random init" and __DEBUG_ME__() and False:
 
 
 
-if "I still don't understand what happened in this test. "and False:
+if "I still don't understand what happened in this test. No plan now."and False:
     if True:
         
         assert False,"  1w"
@@ -671,7 +674,7 @@ def LOSS__behavior_similarity(input:torch.Tensor, target:torch.Tensor,
     with torch.no_grad():
         the_device = input.device
         length__log_10__diff = torch.empty([test_time], device = the_device)
-        angle_diff = torch.empty([test_time], device = the_device)
+        angle_diff           = torch.empty([test_time], device = the_device)
         for epoch in range(test_time):
             vec = random_standard_vector(dim, dtype=input.dtype, device=input.device)
             
@@ -701,13 +704,35 @@ def LOSS__behavior_similarity(input:torch.Tensor, target:torch.Tensor,
         
         length__log_10__diff__avg = length__log_10__diff.mean()
         length__log_10__diff__abs_avg = length__log_10__diff.abs().mean()
+        
+        
         angle_diff__avg = angle_diff.mean()
         return length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg
     pass#/function
+
+if "basic behavior test" and __DEBUG_ME__() and False:
+    def ____test____basic____LOSS__behavior_similarity():
+        # set up breakpoint and read.
+        mat_1 = torch.tensor([  
+                                [1., 0 ],
+                                [0,  1.],
+                                ])
+        mat_2 = torch.tensor([  
+                                [0,  1.],
+                                [1., 0 ],
+                                ])
+        length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg = \
+                LOSS__behavior_similarity(mat_1, mat_2,test_time=1)
+        
+        return
+    
+    ____test____basic____LOSS__behavior_similarity()
+    pass
+
 if "test" and __DEBUG_ME__() and True:
     def ____test____LOSS__behavior_similarity():
-        
-        if "self and self*?, the same direction.":
+        import random
+        if "self and self*?, the same direction." and False:
             #----------------#----------------#----------------
             dim_list =         [2,  5, 10, 100]
             test_time_list = [100, 50, 30, 15]
@@ -717,49 +742,41 @@ if "test" and __DEBUG_ME__() and True:
             #----------------#----------------#----------------
                 for _ in range(test_time):
                     #----------------#----------------#----------------
-                    mat = torch.randn(size=[dim,dim])
-                    to_the_power = (math.random()-0.5)*5.
+                    mat_ref = torch.randn(size=[dim,dim])
+                    to_the_power = (random.random()-0.5)*5.
                     _factor = math.pow(10,to_the_power)
+                    mat = mat_ref.detach()*_factor
                     length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
-                        = LOSS__behavior_similarity(mat.detach().clone(), mat.detach().clone()*_factor)
+                        = LOSS__behavior_similarity(mat, mat_ref)
                     assert _tensor_equal(length__log_10__diff__ori, torch.ones(size=length__log_10__diff__ori.shape)*to_the_power)
-                    assert _tensor_equal(angle_diff__avg,           torch.zeros(size=angle_diff__avg))
+                    assert _tensor_equal(angle_diff__avg,           torch.zeros(size=angle_diff__avg.shape))
                     #----------------#----------------#----------------
                     pass
                 pass#for outter
             pass#/ test
         
-        if "manually make 2 very similar mats.":
-            #----------------#----------------#----------------
-            dim_list =         [2,  5, 10, 100]
-            test_time_list = [100, 50, 30, 15]
-            for outter_param_count in range(dim_list.__len__()):
-                dim = dim_list[outter_param_count]
-                test_time = test_time_list[outter_param_count]
-            #----------------#----------------#----------------
-                for _ in range(test_time):
-                    #----------------#----------------#----------------
-                    mat_1 = torch.randn(size=[dim,dim])
-                    mat_1[0,0] = 1.
-                    mat_2 = mat_1.detach().clone()
-                    mat_1[0,0] = 1.1
-                    length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
-                        = LOSS__behavior_similarity(mat_1, mat_2)
-                    
-                    assert _tensor_equal(length__log_10__diff__ori, torch.zeros(size=length__log_10__diff__ori.shape), epsilon=0.001)
-                    assert length__log_10__diff__abs_avg<0.01
-                    
-                    max_of__angle_diff = angle_diff.max()
-                    assert max_of__angle_diff<0.01
-                    assert angle_diff__avg<0.001
-                    #----------------#----------------#----------------
-                    pass
-                pass#for outter
-        
-        
-        
-        
-        if "2 randn?":
+        if "manually make 2 very similar mats." and False:
+            #result
+            # 1 vs 1.1
+            # result_of__length_diff_min     = [-0.0285, -0.0063, -0.0025, -0.0001]
+            # result_of__length_diff_max     = [ 0.0520,  0.0148,  0.0048,  0.0002]
+            # result_of__length_diff_avg     = [ 0.0149,  0.0021,  0.0005,  0.0000]
+            # result_of__length_diff_abs_avg = [ 0.0202,  0.0035,  0.0010,  0.0000]
+            # result_of__angle_diff_max      = [ 0.0325,  0.0019,  0.0004,  0.0000]
+            # result_of__angle_diff_avg      = [ 0.0022,  0.0003,  0.0001,  0.0000]
+            # dim_list                       = [ 2.0000,  5.0000,  10.000,  100.00]
+            
+            # 0 vs 0.1
+            # result_of__length_diff_min     = [-0.0795, -0.0104, -0.0034, -0.0002]
+            # result_of__length_diff_max     = [ 0.0928,  0.0114,  0.0036,  0.0002]
+            # result_of__length_diff_avg     = [ 0.0025,  0.0001,  0.0000,  0.0000]
+            # result_of__length_diff_abs_avg = [ 0.0255,  0.0029,  0.0009,  0.0000]
+            # result_of__angle_diff_max      = [ 0.1546,  0.0025,  0.0004,  0.0000]
+            # result_of__angle_diff_avg      = [ 0.0143,  0.0003,  0.0001,  0.0000]
+            # dim_list                       = [ 2.0000,  5.0000,  10.0000,  100.0000]
+            
+            #maybe the angle result is more different.
+            
             result_of__length_diff_min     = []
             result_of__length_diff_max     = []
             result_of__length_diff_avg     = []
@@ -768,8 +785,8 @@ if "test" and __DEBUG_ME__() and True:
             result_of__angle_diff_avg      = []
             #----------------#----------------#----------------
             dim_list =         [2,  5, 10, 100]
-            test_time_list = [100, 50, 30, 15]
-            test_time_list = [10, 5, 3, 1]
+            test_time_list = [1000, 500, 300, 100]
+            #test_time_list = [10, 5, 3, 1]
             for outter_param_count in range(dim_list.__len__()):
                 dim = dim_list[outter_param_count]
                 test_time = test_time_list[outter_param_count]
@@ -783,7 +800,9 @@ if "test" and __DEBUG_ME__() and True:
                 for test_count in range(test_time):
                     #----------------#----------------#----------------
                     mat_1 = torch.randn(size=[dim,dim])
-                    mat_2 = torch.randn(size=[dim,dim])
+                    mat_1[0,0] = 0.#1.
+                    mat_2 = mat_1.detach().clone()
+                    mat_1[0,0] = 0.1#1.1
                     length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
                         = LOSS__behavior_similarity(mat_1, mat_2)
                     
@@ -795,23 +814,537 @@ if "test" and __DEBUG_ME__() and True:
                     _raw_result_of__angle_diff_avg[test_count] = angle_diff__avg
                     #----------------#----------------#----------------
                     pass
-                result_of__length_diff_min    .append(_raw_result_of__length_diff_min    )
-                result_of__length_diff_max    .append(_raw_result_of__length_diff_max    )
-                result_of__length_diff_avg    .append(_raw_result_of__length_diff_avg    )
-                result_of__length_diff_abs_avg.append(_raw_result_of__length_diff_abs_avg)
-                result_of__angle_diff_max     .append(_raw_result_of__angle_diff_max     )
-                result_of__angle_diff_avg     .append(_raw_result_of__angle_diff_avg     )
+                result_of__length_diff_min    .append(_raw_result_of__length_diff_min    .mean())
+                result_of__length_diff_max    .append(_raw_result_of__length_diff_max    .mean())
+                result_of__length_diff_avg    .append(_raw_result_of__length_diff_avg    .mean())
+                result_of__length_diff_abs_avg.append(_raw_result_of__length_diff_abs_avg.mean())
+                result_of__angle_diff_max     .append(_raw_result_of__angle_diff_max     .mean())
+                result_of__angle_diff_avg     .append(_raw_result_of__angle_diff_avg     .mean())
                 pass#for outter
-            print(f"result_of__length_diff_min     = {str_the_list(result_of__length_diff_min    , 3)}")
-            print(f"result_of__length_diff_max     = {str_the_list(result_of__length_diff_max    , 3)}")
-            print(f"result_of__length_diff_avg     = {str_the_list(result_of__length_diff_avg    , 3)}")
-            print(f"result_of__length_diff_abs_avg = {str_the_list(result_of__length_diff_abs_avg, 3)}")
-            print(f"result_of__angle_diff_max      = {str_the_list(result_of__angle_diff_max     , 3)}")
-            print(f"result_of__angle_diff_avg     = {str_the_list(result_of__angle_diff_avg     , 3)}")
+            print(f"result_of__length_diff_min     = {str_the_list(result_of__length_diff_min    , 4)}")
+            print(f"result_of__length_diff_max     = {str_the_list(result_of__length_diff_max    , 4)}")
+            print(f"result_of__length_diff_avg     = {str_the_list(result_of__length_diff_avg    , 4)}")
+            print(f"result_of__length_diff_abs_avg = {str_the_list(result_of__length_diff_abs_avg, 4)}")
+            print(f"result_of__angle_diff_max      = {str_the_list(result_of__angle_diff_max     , 4)}")
+            print(f"result_of__angle_diff_avg     = {str_the_list(result_of__angle_diff_avg      , 4)}")
+            print(f"dim_list                       = {str_the_list(dim_list     , 4)}")
+            pass#/ test
+        
+        if "scan the difference_factor in the last test" and False:
+            #result
+            #base 0.
+            # result_of__length_diff_min     = [-0.0000, -0.0004, -0.0033, -0.0112, -0.0314]
+            # result_of__length_diff_max     = [ 0.0000,  0.0004,  0.0037,  0.0121,  0.0401]
+            # result_of__length_diff_avg     = [ 0.0000,  0.0000,  0.0000,  0.0002,  0.0019]
+            # result_of__length_diff_abs_avg = [ 0.0000,  0.0001,  0.0009,  0.0029,  0.0097]
+            # result_of__angle_diff_max      = [ 0.0000,  0.0000,  0.0004,  0.0035,  0.0362]
+            # result_of__angle_diff_avg      = [ 0.0000,  0.0000,  0.0001,  0.0005,  0.0058]
+            # diff_list                      = [ 0.0010,  0.0100,  0.1000,  0.3000,  1.0000]
+            
+            #base 1.
+            # result_of__length_diff_min     = [-0.0000, -0.0003, -0.0025, -0.0073, -0.0210]
+            # result_of__length_diff_max     = [ 0.0000,  0.0005,  0.0049,  0.0148,  0.0525]
+            # result_of__length_diff_avg     = [ 0.0000,  0.0000,  0.0005,  0.0017,  0.0065]
+            # result_of__length_diff_abs_avg = [ 0.0000,  0.0001,  0.0010,  0.0032,  0.0106]
+            # result_of__angle_diff_max      = [ 0.0000,  0.0000,  0.0004,  0.0033,  0.0337]
+            # result_of__angle_diff_avg      = [ 0.0000,  0.0000,  0.0001,  0.0005,  0.0054]
+            # diff_list                      = [ 0.0010,  0.0100,  0.1000,  0.3000,  1.0000]
+            
+            result_of__length_diff_min     = []
+            result_of__length_diff_max     = []
+            result_of__length_diff_avg     = []
+            result_of__length_diff_abs_avg = []
+            result_of__angle_diff_max      = []
+            result_of__angle_diff_avg      = []
+            #----------------#----------------#----------------
+            _base = 1.
+            dim = 10
+            test_time = 100
+            diff_list = [0.001,0.01,0.1,0.3,1.]
+            #test_time_list = [10, 5, 3, 1]
+            for outter_param_count in range(diff_list.__len__()):
+                diff = diff_list[outter_param_count]
+            #----------------#----------------#----------------
+                _raw_result_of__length_diff_min     = torch.empty(size=[test_time])
+                _raw_result_of__length_diff_max     = torch.empty(size=[test_time])
+                _raw_result_of__length_diff_avg     = torch.empty(size=[test_time])
+                _raw_result_of__length_diff_abs_avg = torch.empty(size=[test_time])
+                _raw_result_of__angle_diff_max      = torch.empty(size=[test_time])
+                _raw_result_of__angle_diff_avg      = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #----------------#----------------#----------------
+                    mat_1 = torch.randn(size=[dim,dim])
+                    mat_1[0,0] = _base
+                    mat_2 = mat_1.detach().clone()
+                    mat_1[0,0] = _base + diff
+                    length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
+                        = LOSS__behavior_similarity(mat_1, mat_2)
+                    
+                    _raw_result_of__length_diff_min[test_count] = length__log_10__diff__ori.min()
+                    _raw_result_of__length_diff_max[test_count] = length__log_10__diff__ori.max()
+                    _raw_result_of__length_diff_avg[test_count] = length__log_10__diff__avg
+                    _raw_result_of__length_diff_abs_avg[test_count] = length__log_10__diff__abs_avg
+                    _raw_result_of__angle_diff_max[test_count] = angle_diff.max()
+                    _raw_result_of__angle_diff_avg[test_count] = angle_diff__avg
+                    #----------------#----------------#----------------
+                    pass
+                result_of__length_diff_min    .append(_raw_result_of__length_diff_min    .mean())
+                result_of__length_diff_max    .append(_raw_result_of__length_diff_max    .mean())
+                result_of__length_diff_avg    .append(_raw_result_of__length_diff_avg    .mean())
+                result_of__length_diff_abs_avg.append(_raw_result_of__length_diff_abs_avg.mean())
+                result_of__angle_diff_max     .append(_raw_result_of__angle_diff_max     .mean())
+                result_of__angle_diff_avg     .append(_raw_result_of__angle_diff_avg     .mean())
+                pass#for outter
+            print(f"result_of__length_diff_min     = {str_the_list(result_of__length_diff_min    , 4)}")
+            print(f"result_of__length_diff_max     = {str_the_list(result_of__length_diff_max    , 4)}")
+            print(f"result_of__length_diff_avg     = {str_the_list(result_of__length_diff_avg    , 4)}")
+            print(f"result_of__length_diff_abs_avg = {str_the_list(result_of__length_diff_abs_avg, 4)}")
+            print(f"result_of__angle_diff_max      = {str_the_list(result_of__angle_diff_max     , 4)}")
+            print(f"result_of__angle_diff_avg     = {str_the_list(result_of__angle_diff_avg      , 4)}")
+            print(f"diff_list                      = {str_the_list(diff_list     , 4)}")
+            pass#/ test
+        
+        if "2 randn?" and False:
+            #result
+            # result_of__length_diff_min     = [-0.4867, -0.4228, -0.3007, -0.1128]
+            # result_of__length_diff_max     = [ 0.4763,  0.4071,  0.2989,  0.1144]
+            # result_of__length_diff_avg     = [-0.0029, -0.0013, -0.0013, -0.0003]
+            # result_of__length_diff_abs_avg = [ 0.2956,  0.1686,  0.1144,  0.0353]
+            # result_of__angle_diff_min      = [ 0.2677,  0.2356,  0.3839,  0.7453]
+            # result_of__angle_diff_max      = [ 1.7229,  1.7608,  1.6046,  1.2548]
+            # result_of__angle_diff_avg      = [ 0.9972,  0.9991,  1.0022,  1.0011]
+            # dim_list                       = [ 2.000,  5.000,    10.000,  100.000]
+            # the angle is basically orthogonal, the same as expected.
+            
+            print("2 randn?")
+            result_of__length_diff_min     = []
+            result_of__length_diff_max     = []
+            result_of__length_diff_avg     = []
+            result_of__length_diff_abs_avg = []
+            result_of__angle_diff_min      = []
+            result_of__angle_diff_max      = []
+            result_of__angle_diff_avg      = []
+            #----------------#----------------#----------------
+            dim_list =         [2,  5, 10, 100]
+            test_time_list = [1000, 500, 300, 100]
+            #test_time_list = [10, 5, 3, 1]
+            for outter_param_count in range(dim_list.__len__()):
+                dim = dim_list[outter_param_count]
+                test_time = test_time_list[outter_param_count]
+            #----------------#----------------#----------------
+                _raw_result_of__length_diff_min     = torch.empty(size=[test_time])
+                _raw_result_of__length_diff_max     = torch.empty(size=[test_time])
+                _raw_result_of__length_diff_avg     = torch.empty(size=[test_time])
+                _raw_result_of__length_diff_abs_avg = torch.empty(size=[test_time])
+                _raw_result_of__angle_diff_min      = torch.empty(size=[test_time])
+                _raw_result_of__angle_diff_max      = torch.empty(size=[test_time])
+                _raw_result_of__angle_diff_avg      = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #----------------#----------------#----------------
+                    mat_1 = torch.randn(size=[dim,dim])
+                    mat_2 = torch.randn(size=[dim,dim])
+                    length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
+                        = LOSS__behavior_similarity(mat_1, mat_2)
+                    
+                    _raw_result_of__length_diff_min[test_count] = length__log_10__diff__ori.min()
+                    _raw_result_of__length_diff_max[test_count] = length__log_10__diff__ori.max()
+                    _raw_result_of__length_diff_avg[test_count] = length__log_10__diff__avg
+                    _raw_result_of__length_diff_abs_avg[test_count] = length__log_10__diff__abs_avg
+                    _raw_result_of__angle_diff_min[test_count] = angle_diff.min()
+                    _raw_result_of__angle_diff_max[test_count] = angle_diff.max()
+                    _raw_result_of__angle_diff_avg[test_count] = angle_diff__avg
+                    #----------------#----------------#----------------
+                    pass
+                result_of__length_diff_min    .append(_raw_result_of__length_diff_min    .mean())
+                result_of__length_diff_max    .append(_raw_result_of__length_diff_max    .mean())
+                result_of__length_diff_avg    .append(_raw_result_of__length_diff_avg    .mean())
+                result_of__length_diff_abs_avg.append(_raw_result_of__length_diff_abs_avg.mean())
+                result_of__angle_diff_min     .append(_raw_result_of__angle_diff_min     .mean())
+                result_of__angle_diff_max     .append(_raw_result_of__angle_diff_max     .mean())
+                result_of__angle_diff_avg     .append(_raw_result_of__angle_diff_avg     .mean())
+                pass#for outter
+            print(f"result_of__length_diff_min     = {str_the_list(result_of__length_diff_min    , 4)}")
+            print(f"result_of__length_diff_max     = {str_the_list(result_of__length_diff_max    , 4)}")
+            print(f"result_of__length_diff_avg     = {str_the_list(result_of__length_diff_avg    , 4)}")
+            print(f"result_of__length_diff_abs_avg = {str_the_list(result_of__length_diff_abs_avg, 4)}")
+            print(f"result_of__angle_diff_min      = {str_the_list(result_of__angle_diff_min     , 4)}")
+            print(f"result_of__angle_diff_max      = {str_the_list(result_of__angle_diff_max     , 4)}")
+            print(f"result_of__angle_diff_avg     = {str_the_list(result_of__angle_diff_avg     ,  4)}")
             print(f"dim_list                       = {str_the_list(dim_list     , 3)}")
             pass#/ test
         
+        if "ref for 2 randn?" and False:
+            #result
+            # result_of__angle_diff_min  = [ 0.0000,  0.0666,  0.2562,  0.7783,  0.9294]
+            # result_of__angle_diff_max  = [ 2.0000,  1.9464,  1.8249,  1.2406,  1.0955]
+            # result_of__angle_diff_avg  = [ 1.0099,  1.0024,  0.9994,  0.9927,  0.9982]
+            # dim_list                   = [ 2.000,  5.000,  10.000,  100.000,  1000.000]
+            
+            print("ref for 2 randn?")
+            result_of__angle_diff_min= []
+            result_of__angle_diff_max= []
+            result_of__angle_diff_avg= []
+            #----------------#----------------#----------------
+            dim_list =         [2,  5, 10, 100, 1000]
+            test_time_list = [1000, 500, 300, 100, 100]
+            #test_time_list = [10, 5, 3, 1]
+            for outter_param_count in range(dim_list.__len__()):
+                dim = dim_list[outter_param_count]
+                test_time = test_time_list[outter_param_count]
+            #----------------#----------------#----------------
+                _raw_result      = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #----------------#----------------#----------------
+                    dot_product = random_standard_vector(dim=dim).dot(random_standard_vector(dim=dim))
+                    _this_result = 1. - dot_product
+                    
+                    _raw_result[test_count] = _this_result
+                    #----------------#----------------#----------------
+                    pass
+                result_of__angle_diff_min.append(_raw_result.min())
+                result_of__angle_diff_max.append(_raw_result.max())
+                result_of__angle_diff_avg.append(_raw_result.mean())
+                pass#for outter
+            print(f"result_of__angle_diff_min  = {str_the_list(result_of__angle_diff_min     , 4)}")
+            print(f"result_of__angle_diff_max  = {str_the_list(result_of__angle_diff_max     , 4)}")
+            print(f"result_of__angle_diff_avg = {str_the_list(result_of__angle_diff_avg     ,  4)}")
+            print(f"dim_list                   = {str_the_list(dim_list     , 3)}")
+            pass#/ test
         
+        
+        
+        
+        
+        
+        
+        
+        1w 就是2个 的点乘。
+        if " a bit other test":
+            dim = 1000
+            
+            
+            vec_1 = torch.randn(size=[1,dim])
+            #vec_1 -= vec_1.mean()
+            #vec_1 += offset
+            vec_1 = vector_length_norm(vec_1)
+            vec_1_mean = vec_1.mean()
+            if vec_1_mean<0:
+                vec_1 *= -1.
+                vec_1_mean *= -1.
+                pass
+            
+            vec_2 = torch.randn(size=[1,dim])
+            #vec_2 -= vec_2.mean()
+            #vec_2 += offset
+            vec_2 = vector_length_norm(vec_2)
+            vec_2_mean = vec_2.mean()
+            if vec_2_mean<0:
+                vec_2 *= -1.
+                vec_2_mean *= -1.
+                pass
+            dot_prod = vec_1.dot(vec_2)
+            pass
+            
+        
+        
+        
+        if "2 rand ?" and False:
+            #result
+            # result_of__length_diff_min     = [-0.4191, -0.3433, -0.2460, -0.0968]
+            # result_of__length_diff_max     = [ 0.4565,  0.3339,  0.2534,  0.0992]
+            # result_of__length_diff_avg     = [ 0.0171, -0.0009,  0.0021,  0.0002]
+            # result_of__length_diff_abs_avg = [ 0.2250,  0.1231,  0.0844,  0.0265]
+            # result_of__angle_diff_min      = [ 0.0126,  0.0315,  0.0420,  0.0406]
+            # result_of__angle_diff_max      = [ 1.4124,  1.5155,  1.3866,  1.1511]
+            # result_of__angle_diff_avg      = [ 0.3538,  0.4444,  0.4619,  0.4858]
+            # dim_list                       = [ 2.000,  5.000,    10.000,  100.000]
+            # angle is getting closer to 0.5???
+            
+            print("2 rand ?")
+            result_of__length_diff_min     = []
+            result_of__length_diff_max     = []
+            result_of__length_diff_avg     = []
+            result_of__length_diff_abs_avg = []
+            result_of__angle_diff_min      = []
+            result_of__angle_diff_max      = []
+            result_of__angle_diff_avg      = []
+            #----------------#----------------#----------------
+            dim_list =         [2,  5, 10, 100]
+            test_time_list = [1000, 500, 300, 100]
+            #test_time_list = [10, 5, 3, 1]
+            for outter_param_count in range(dim_list.__len__()):
+                dim = dim_list[outter_param_count]
+                test_time = test_time_list[outter_param_count]
+            #----------------#----------------#----------------
+                _raw_result_of__length_diff_min     = torch.empty(size=[test_time])
+                _raw_result_of__length_diff_max     = torch.empty(size=[test_time])
+                _raw_result_of__length_diff_avg     = torch.empty(size=[test_time])
+                _raw_result_of__length_diff_abs_avg = torch.empty(size=[test_time])
+                _raw_result_of__angle_diff_min      = torch.empty(size=[test_time])
+                _raw_result_of__angle_diff_max      = torch.empty(size=[test_time])
+                _raw_result_of__angle_diff_avg      = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #----------------#----------------#----------------
+                    mat_1 = torch.rand (size=[dim,dim])#rand
+                    mat_2 = torch.rand (size=[dim,dim])#rand
+                    length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
+                        = LOSS__behavior_similarity(mat_1, mat_2)
+                    
+                    _raw_result_of__length_diff_min[test_count] = length__log_10__diff__ori.min()
+                    _raw_result_of__length_diff_max[test_count] = length__log_10__diff__ori.max()
+                    _raw_result_of__length_diff_avg[test_count] = length__log_10__diff__avg
+                    _raw_result_of__length_diff_abs_avg[test_count] = length__log_10__diff__abs_avg
+                    _raw_result_of__angle_diff_min[test_count] = angle_diff.min()
+                    _raw_result_of__angle_diff_max[test_count] = angle_diff.max()
+                    _raw_result_of__angle_diff_avg[test_count] = angle_diff__avg
+                    #----------------#----------------#----------------
+                    pass
+                result_of__length_diff_min    .append(_raw_result_of__length_diff_min    .mean())
+                result_of__length_diff_max    .append(_raw_result_of__length_diff_max    .mean())
+                result_of__length_diff_avg    .append(_raw_result_of__length_diff_avg    .mean())
+                result_of__length_diff_abs_avg.append(_raw_result_of__length_diff_abs_avg.mean())
+                result_of__angle_diff_min     .append(_raw_result_of__angle_diff_min     .mean())
+                result_of__angle_diff_max     .append(_raw_result_of__angle_diff_max     .mean())
+                result_of__angle_diff_avg     .append(_raw_result_of__angle_diff_avg     .mean())
+                pass#for outter
+            print(f"result_of__length_diff_min     = {str_the_list(result_of__length_diff_min    , 4)}")
+            print(f"result_of__length_diff_max     = {str_the_list(result_of__length_diff_max    , 4)}")
+            print(f"result_of__length_diff_avg     = {str_the_list(result_of__length_diff_avg    , 4)}")
+            print(f"result_of__length_diff_abs_avg = {str_the_list(result_of__length_diff_abs_avg, 4)}")
+            print(f"result_of__angle_diff_min      = {str_the_list(result_of__angle_diff_min     , 4)}")
+            print(f"result_of__angle_diff_max      = {str_the_list(result_of__angle_diff_max     , 4)}")
+            print(f"result_of__angle_diff_avg     = {str_the_list(result_of__angle_diff_avg     ,  4)}")
+            print(f"dim_list                       = {str_the_list(dim_list     , 3)}")
+            pass#/ test
+        
+        if "ref for 2 rand ?":
+            #result
+            # result_of__angle_diff_min  = [ 0.0000,  0.0017,  0.0367,  0.1828,  0.2261]
+            # result_of__angle_diff_max  = [ 0.9163,  0.7605,  0.5372,  0.3549,  0.2700]
+            # result_of__angle_diff_avg = [ 0.1570,  0.2268,  0.2405,  0.2501,  0.2484]
+            # dim_list                   = [ 2.000,  5.000,  10.000,  100.000,  1000.000]
+            # I dirived the formula, the result is 3/4. The measurement is 1-the result, so it's 1/4.
+            # This result is correct.
+            
+            assert False
+            #1w 角度好像不对。
+            
+            print("ref for 2 rand ?")
+            result_of__angle_diff_min= []
+            result_of__angle_diff_max= []
+            result_of__angle_diff_avg= []
+            #----------------#----------------#----------------
+            dim_list =         [2,  5, 10, 100, 1000]
+            test_time_list = [1000, 500, 300, 100, 100]
+            #test_time_list = [10, 5, 3, 1]
+            for outter_param_count in range(dim_list.__len__()):
+                dim = dim_list[outter_param_count]
+                test_time = test_time_list[outter_param_count]
+            #----------------#----------------#----------------
+                _raw_result      = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #----------------#----------------#----------------
+                    vec_1 = torch.rand(size=[1, dim])
+                    vec_1 = vector_length_norm(vec_1).reshape([-1])
+                    vec_2 = torch.rand(size=[1, dim])
+                    vec_2 = vector_length_norm(vec_2).reshape([-1])
+                    
+                    dot_product = vec_1.dot(vec_2)
+                    _this_result = 1. - dot_product
+                    
+                    _raw_result[test_count] = _this_result
+                    #----------------#----------------#----------------
+                    pass
+                result_of__angle_diff_min.append(_raw_result.min())
+                result_of__angle_diff_max.append(_raw_result.max())
+                result_of__angle_diff_avg.append(_raw_result.mean())
+                pass#for outter
+            print(f"result_of__angle_diff_min  = {str_the_list(result_of__angle_diff_min     , 4)}")
+            print(f"result_of__angle_diff_max  = {str_the_list(result_of__angle_diff_max     , 4)}")
+            print(f"result_of__angle_diff_avg = {str_the_list(result_of__angle_diff_avg     ,  4)}")
+            print(f"dim_list                   = {str_the_list(dim_list     , 3)}")
+            pass#/ test
+        
+        if "ref for 2 randn.abs  ?":
+            #result
+            # result_of__angle_diff_min  = [ 0.0000,  0.0144,  0.0785,  0.2601,  0.3199]
+            # result_of__angle_diff_max  = [ 0.9702,  0.8939,  0.6802,  0.4946,  0.4023]
+            # result_of__angle_diff_avg = [ 0.1801,  0.3039,  0.3379,  0.3645,  0.3639]
+            # dim_list                   = [ 2.000,  5.000,  10.000,  100.000,  1000.000]
+            # randn.abs is very different from rand.
+            
+            print("ref for 2 randn.abs ?")
+            result_of__angle_diff_min= []
+            result_of__angle_diff_max= []
+            result_of__angle_diff_avg= []
+            #----------------#----------------#----------------
+            dim_list =         [2,  5, 10, 100, 1000]
+            test_time_list = [1000, 500, 300, 100, 100]
+            #test_time_list = [10, 5, 3, 1]
+            for outter_param_count in range(dim_list.__len__()):
+                dim = dim_list[outter_param_count]
+                test_time = test_time_list[outter_param_count]
+            #----------------#----------------#----------------
+                _raw_result      = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #----------------#----------------#----------------
+                    dot_product = random_standard_vector(dim=dim).abs().dot(random_standard_vector(dim=dim).abs())
+                    _this_result = 1. - dot_product
+                    
+                    _raw_result[test_count] = _this_result
+                    #----------------#----------------#----------------
+                    pass
+                result_of__angle_diff_min.append(_raw_result.min())
+                result_of__angle_diff_max.append(_raw_result.max())
+                result_of__angle_diff_avg.append(_raw_result.mean())
+                pass#for outter
+            print(f"result_of__angle_diff_min  = {str_the_list(result_of__angle_diff_min     , 4)}")
+            print(f"result_of__angle_diff_max  = {str_the_list(result_of__angle_diff_max     , 4)}")
+            print(f"result_of__angle_diff_avg = {str_the_list(result_of__angle_diff_avg     ,  4)}")
+            print(f"dim_list                   = {str_the_list(dim_list     , 3)}")
+            pass#/ test
+        
+        
+        
+        if "ref for 2 rand. The v_randn @ M_rand 's mean is affected by the v's mean.    for each case       VISUALISATION!!!!!!!!!" and False:
+            #<  The visualisation version>
+            
+            # 用不同的rand mat去乘同一个，看看是不是都有类似的偏移。
+            # 现在已知的结论是，这个vec的mean会控制最终乘出来的vec的整体的分布，所以是一个mean=最开始的mean*可能乘以维度吧，的一个正态。
+            # 应该是这个事情导致了最终的角度相似性的很神奇的行为。
+            # 可能是dim/sqrt2
+            
+            #vec = random_standard_vector(dim=1000)
+            vec = torch.randn(size=[1000])
+            print(f"vec.mean()   {vec.mean()}")
+            for _ in range(111):
+                mat = torch.rand (size=[1000,1000])
+                result_vec = vec@mat
+                print(result_vec.mean())
+                from matplotlib import pyplot as plt
+            
+                n_bins = 30############### modify this.
+
+                fig, axs = plt.subplots(1, 1, tight_layout=True)
+
+                # We can set the number of bins with the *bins* keyword argument.
+                axs.hist(result_vec.tolist(), bins=n_bins)
+                #axs.hist(mat.reshape([-1]).tolist(), bins=n_bins)
+                
+                plt.show()
+                
+                axs.clear()
+                pass
+            #</ The visualisation version>
+        
+        if "ref for 2 rand. The v_randn @ M_rand 's mean is affected by the v's mean.    the entire thing    VISUALISATION!!!!!!!!!" and False:
+            # 用不同的rand mat去乘同一个，看看是不是都有类似的偏移。
+            # 现在已知的结论是，这个vec的mean会控制最终乘出来的vec的整体的分布，所以是一个mean=最开始的mean*可能乘以维度吧，的一个正态。
+            # 应该是这个事情导致了最终的角度相似性的很神奇的行为。
+            # 可能是dim/sqrt2
+            
+            #vec = random_standard_vector(dim=1000)
+            test_time = 300
+            test_range = 0.2
+            dim = 1000
+            
+            x_data = torch.linspace(-test_range, test_range, test_time).tolist()
+            y_data = []
+            
+            for the_x in x_data:
+                #<  prepare the vec>
+                vec = torch.randn(size=[dim])
+                vec -= vec.mean()
+                assert _tensor_equal(vec.mean(), [0.])
+                vec += the_x
+                assert _tensor_equal(vec.mean(), [the_x])
+                #</ prepare the vec>
+                #<  calc>
+                mat = torch.rand (size=[dim,dim])
+                result_vec = vec@mat
+                #</ calc>
+                y_data.append(result_vec.mean())
+                pass
+            
+            from matplotlib import pyplot as plt
+            fig, axs = plt.subplots(1, 1, tight_layout=True)
+            axs.plot(x_data,y_data)
+            plt.show()
+                
+            pass#/ test
+        
+        if "ref for 2 rand. The v_randn @ M_rand 's mean is affected by the v's mean.    the entire thing    " and False:
+            #result
+            # dim 100       test_time1000
+            # result_min = [-10.935, -5.947, -0.915,  3.986,  9.077]
+            # result_max = [-9.176, -4.107,  1.039,  5.902,  10.828]
+            # result_avg = [-9.998, -5.011, -0.006,  5.005,  10.003]
+            # the_x_list = [-0.200, -0.100,  0.000,  0.100,  0.200]
+            # dim 1000       test_time100
+            # result_min = [-100.67, -50.697, -0.646,  49.088,  99.110]
+            # result_max = [-99.075, -49.356,  0.660,  50.730,  100.778]
+            # result_avg = [-99.985, -49.998, -0.017,  49.999,  99.984]
+            # the_x_list = [-0.200,  -0.100,  0.000,   0.100,   0.200]
+            # dim 10000       test_time10
+            # result_min = [-1000.40, -500.337, -0.449,  499.564,  999.076]
+            # result_max = [-999.470, -499.441,  0.249,  500.536,  1000.414]
+            # result_avg = [-999.891, -500.026, -0.147,  499.986,  999.962]
+            # the_x_list = [-0.200,   -0.100,    0.000,  0.100,    0.200]
+            
+            # 0.5*the_x*dim
+            
+            # 用不同的rand mat去乘同一个，看看是不是都有类似的偏移。
+            # 现在已知的结论是，这个vec的mean会控制最终乘出来的vec的整体的分布，所以是一个mean=最开始的mean*可能乘以维度吧，的一个正态。
+            # 应该是这个事情导致了最终的角度相似性的很神奇的行为。
+            
+            #vec = random_standard_vector(dim=1000)
+            dim_list = [100, 1000, 10000]
+            test_time_list = [1000,100,10]
+            for outter_param_count in range(dim_list.__len__()):
+                dim = dim_list[outter_param_count]
+                test_time = test_time_list[outter_param_count]
+                
+                result_min = []#dont modify this
+                result_max = []#dont modify this
+                result_avg = []#dont modify this
+                
+                the_x_list = [-0.2, -0.1, 0., 0.1, 0.2,]
+                for inner_param_count in range(the_x_list.__len__()):
+                    the_x = the_x_list[inner_param_count]
+                    
+                    _raw_result = torch.empty(size=[test_time])
+                    for test_count in range(test_time):
+                        #<  prepare the vec>
+                        vec = torch.randn(size=[dim])
+                        vec -= vec.mean()
+                        assert _tensor_equal(vec.mean(), [0.])
+                        vec += the_x
+                        assert _tensor_equal(vec.mean(), [the_x])
+                        #</ prepare the vec>
+                        #<  calc>
+                        mat = torch.rand (size=[dim,dim])
+                        result_vec = vec@mat
+                        #</ calc>
+                        _raw_result[test_count] = result_vec.mean()
+                        pass
+                    
+                    
+                    result_min.append(_raw_result.min() )
+                    result_max.append(_raw_result.max() )
+                    result_avg.append(_raw_result.mean())
+                    pass#for test_range
+                
+                print(f"dim {dim}       test_time{test_time}")
+                print(f"result_min = {str_the_list(result_min, 3)}")
+                print(f"result_max = {str_the_list(result_max, 3)}")
+                print(f"result_avg = {str_the_list(result_avg, 3)}")
+                print(f"the_x_list = {str_the_list(the_x_list, 3)}")
+                pass#for outter_param
+            pass#/ test
+        
+        
+            
+            
         
         
         
