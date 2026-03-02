@@ -593,8 +593,6 @@ if "measure the random init" and __DEBUG_ME__() and False:
     pass
 
 
-
-
 if "I still don't understand what happened in this test. No plan now."and False:
     if True:
         
@@ -648,6 +646,8 @@ if "I still don't understand what happened in this test. No plan now."and False:
         #return 
     ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10()
     pass
+
+
 
 def LOSS__behavior_similarity(input:torch.Tensor, target:torch.Tensor,
                             test_time:int|None = None, cap = 5.) \
@@ -729,9 +729,10 @@ if "basic behavior test" and __DEBUG_ME__() and False:
     ____test____basic____LOSS__behavior_similarity()
     pass
 
-if "test" and __DEBUG_ME__() and True:
+if "test" and __DEBUG_ME__() and False:
     def ____test____LOSS__behavior_similarity():
         import random
+        "part 1, 2 similar matrixs."
         if "self and self*?, the same direction." and False:
             #----------------#----------------#----------------
             dim_list =         [2,  5, 10, 100]
@@ -904,6 +905,9 @@ if "test" and __DEBUG_ME__() and True:
             print(f"diff_list                      = {str_the_list(diff_list     , 4)}")
             pass#/ test
         
+        
+        
+        "part 2, 2 randn matrixs."
         if "2 randn?" and False:
             #result
             # result_of__length_diff_min     = [-0.4867, -0.4228, -0.3007, -0.1128]
@@ -1013,41 +1017,7 @@ if "test" and __DEBUG_ME__() and True:
         
         
         
-        
-        
-        
-        
-        
-        1w 就是2个 的点乘。
-        if " a bit other test":
-            dim = 1000
-            
-            
-            vec_1 = torch.randn(size=[1,dim])
-            #vec_1 -= vec_1.mean()
-            #vec_1 += offset
-            vec_1 = vector_length_norm(vec_1)
-            vec_1_mean = vec_1.mean()
-            if vec_1_mean<0:
-                vec_1 *= -1.
-                vec_1_mean *= -1.
-                pass
-            
-            vec_2 = torch.randn(size=[1,dim])
-            #vec_2 -= vec_2.mean()
-            #vec_2 += offset
-            vec_2 = vector_length_norm(vec_2)
-            vec_2_mean = vec_2.mean()
-            if vec_2_mean<0:
-                vec_2 *= -1.
-                vec_2_mean *= -1.
-                pass
-            dot_prod = vec_1.dot(vec_2)
-            pass
-            
-        
-        
-        
+        "part 3, 2 rand matrixs."
         if "2 rand ?" and False:
             #result
             # result_of__length_diff_min     = [-0.4191, -0.3433, -0.2460, -0.0968]
@@ -1058,7 +1028,9 @@ if "test" and __DEBUG_ME__() and True:
             # result_of__angle_diff_max      = [ 1.4124,  1.5155,  1.3866,  1.1511]
             # result_of__angle_diff_avg      = [ 0.3538,  0.4444,  0.4619,  0.4858]
             # dim_list                       = [ 2.000,  5.000,    10.000,  100.000]
-            # angle is getting closer to 0.5???
+            
+            # angle is getting closer to 0.5. I don't believe it's a mathmatical 0.5.
+            # some other ref tests below.
             
             print("2 rand ?")
             result_of__length_diff_min     = []
@@ -1117,96 +1089,65 @@ if "test" and __DEBUG_ME__() and True:
             print(f"dim_list                       = {str_the_list(dim_list     , 3)}")
             pass#/ test
         
-        if "ref for 2 rand ?":
-            #result
-            # result_of__angle_diff_min  = [ 0.0000,  0.0017,  0.0367,  0.1828,  0.2261]
-            # result_of__angle_diff_max  = [ 0.9163,  0.7605,  0.5372,  0.3549,  0.2700]
-            # result_of__angle_diff_avg = [ 0.1570,  0.2268,  0.2405,  0.2501,  0.2484]
-            # dim_list                   = [ 2.000,  5.000,  10.000,  100.000,  1000.000]
-            # I dirived the formula, the result is 3/4. The measurement is 1-the result, so it's 1/4.
-            # This result is correct.
+        if "some test on the algo itself as a ref." and False:
+            dim = 1000
             
-            assert False
-            #1w 角度好像不对。
+            vec_1 = torch.randn(size=[1,dim])
+            #vec_1 -= vec_1.mean()
+            #vec_1 += offset
+            vec_1 = vector_length_norm(vec_1)
+            vec_1_mean = vec_1.mean()
+            if vec_1_mean<0:
+                vec_1 *= -1.
+                vec_1_mean *= -1.
+                pass
+            vec_1 = vec_1.reshape([-1])
             
-            print("ref for 2 rand ?")
-            result_of__angle_diff_min= []
-            result_of__angle_diff_max= []
-            result_of__angle_diff_avg= []
-            #----------------#----------------#----------------
-            dim_list =         [2,  5, 10, 100, 1000]
-            test_time_list = [1000, 500, 300, 100, 100]
-            #test_time_list = [10, 5, 3, 1]
-            for outter_param_count in range(dim_list.__len__()):
-                dim = dim_list[outter_param_count]
-                test_time = test_time_list[outter_param_count]
-            #----------------#----------------#----------------
-                _raw_result      = torch.empty(size=[test_time])
-                for test_count in range(test_time):
-                    #----------------#----------------#----------------
-                    vec_1 = torch.rand(size=[1, dim])
-                    vec_1 = vector_length_norm(vec_1).reshape([-1])
-                    vec_2 = torch.rand(size=[1, dim])
-                    vec_2 = vector_length_norm(vec_2).reshape([-1])
-                    
-                    dot_product = vec_1.dot(vec_2)
-                    _this_result = 1. - dot_product
-                    
-                    _raw_result[test_count] = _this_result
-                    #----------------#----------------#----------------
-                    pass
-                result_of__angle_diff_min.append(_raw_result.min())
-                result_of__angle_diff_max.append(_raw_result.max())
-                result_of__angle_diff_avg.append(_raw_result.mean())
-                pass#for outter
-            print(f"result_of__angle_diff_min  = {str_the_list(result_of__angle_diff_min     , 4)}")
-            print(f"result_of__angle_diff_max  = {str_the_list(result_of__angle_diff_max     , 4)}")
-            print(f"result_of__angle_diff_avg = {str_the_list(result_of__angle_diff_avg     ,  4)}")
-            print(f"dim_list                   = {str_the_list(dim_list     , 3)}")
+            vec_2 = torch.randn(size=[1,dim])
+            #vec_2 -= vec_2.mean()
+            #vec_2 += offset
+            vec_2 = vector_length_norm(vec_2)
+            vec_2_mean = vec_2.mean()
+            if vec_2_mean<0:
+                vec_2 *= -1.
+                vec_2_mean *= -1.
+                pass
+            vec_2 = vec_2.reshape([-1])
+            
+            dot_prod = vec_1.dot(vec_2)
             pass#/ test
         
-        if "ref for 2 randn.abs  ?":
-            #result
-            # result_of__angle_diff_min  = [ 0.0000,  0.0144,  0.0785,  0.2601,  0.3199]
-            # result_of__angle_diff_max  = [ 0.9702,  0.8939,  0.6802,  0.4946,  0.4023]
-            # result_of__angle_diff_avg = [ 0.1801,  0.3039,  0.3379,  0.3645,  0.3639]
-            # dim_list                   = [ 2.000,  5.000,  10.000,  100.000,  1000.000]
-            # randn.abs is very different from rand.
-            
-            print("ref for 2 randn.abs ?")
-            result_of__angle_diff_min= []
-            result_of__angle_diff_max= []
-            result_of__angle_diff_avg= []
-            #----------------#----------------#----------------
-            dim_list =         [2,  5, 10, 100, 1000]
-            test_time_list = [1000, 500, 300, 100, 100]
-            #test_time_list = [10, 5, 3, 1]
-            for outter_param_count in range(dim_list.__len__()):
-                dim = dim_list[outter_param_count]
-                test_time = test_time_list[outter_param_count]
-            #----------------#----------------#----------------
-                _raw_result      = torch.empty(size=[test_time])
-                for test_count in range(test_time):
-                    #----------------#----------------#----------------
-                    dot_product = random_standard_vector(dim=dim).abs().dot(random_standard_vector(dim=dim).abs())
-                    _this_result = 1. - dot_product
-                    
-                    _raw_result[test_count] = _this_result
-                    #----------------#----------------#----------------
+        if "vec_randn @ mat_rand   the sign is not very random. same_sign/_diff_sign is between 2.9 to 3.4" and False:
+            dim = 10000
+            same_sign = 0
+            diff_sign = 0
+            for _ in range(50):
+                vec = torch.randn(size=[dim])
+                if vec.mean()<0:
+                    vec *= -1.
                     pass
-                result_of__angle_diff_min.append(_raw_result.min())
-                result_of__angle_diff_max.append(_raw_result.max())
-                result_of__angle_diff_avg.append(_raw_result.mean())
-                pass#for outter
-            print(f"result_of__angle_diff_min  = {str_the_list(result_of__angle_diff_min     , 4)}")
-            print(f"result_of__angle_diff_max  = {str_the_list(result_of__angle_diff_max     , 4)}")
-            print(f"result_of__angle_diff_avg = {str_the_list(result_of__angle_diff_avg     ,  4)}")
-            print(f"dim_list                   = {str_the_list(dim_list     , 3)}")
+                
+                mat_1 = torch.rand(size=[dim,dim])
+                vec_1 = vec@mat_1
+                sign_1:torch.Tensor = vec_1.gt(0.)
+                
+                mat_2 = torch.rand(size=[dim,dim])
+                vec_2 = vec@mat_2
+                sign_2:torch.Tensor = vec_2.gt(0.)
+                
+                both_pos = sign_1.logical_and(sign_2).sum()
+                both_neg = dim - sign_1.logical_or(sign_2).sum()
+                pos_1_2_neg = sign_1.logical_and(sign_2.logical_not()).sum()
+                neg_1_2_pos = sign_1.logical_not().logical_and(sign_2).sum()
+                assert both_pos+both_neg+pos_1_2_neg+neg_1_2_pos == dim
+                #print(f"++{both_pos:4} --{both_neg:4}  {both_pos+both_neg:4}//{pos_1_2_neg+neg_1_2_pos:4}  +-{pos_1_2_neg:4} -+{neg_1_2_pos:4} ")
+                same_sign += both_pos+both_neg
+                diff_sign += pos_1_2_neg+neg_1_2_pos
+                pass
+            print(f"same_sign {same_sign:6}     diff_sign {diff_sign:6}")
             pass#/ test
         
-        
-        
-        if "ref for 2 rand. The v_randn @ M_rand 's mean is affected by the v's mean.    for each case       VISUALISATION!!!!!!!!!" and False:
+        if "The v_randn @ M_rand 's mean is affected by the v's mean.    for each case     VISUALISATION!    v_randn is not very accurate." and False:
             #<  The visualisation version>
             
             # 用不同的rand mat去乘同一个，看看是不是都有类似的偏移。
@@ -1237,7 +1178,7 @@ if "test" and __DEBUG_ME__() and True:
                 pass
             #</ The visualisation version>
         
-        if "ref for 2 rand. The v_randn @ M_rand 's mean is affected by the v's mean.    the entire thing    VISUALISATION!!!!!!!!!" and False:
+        if "The v_randn @ M_rand 's mean is affected by the v's mean.    the entire thing  VISUALISATION!    v_randn is not very accurate." and False:
             # 用不同的rand mat去乘同一个，看看是不是都有类似的偏移。
             # 现在已知的结论是，这个vec的mean会控制最终乘出来的vec的整体的分布，所以是一个mean=最开始的mean*可能乘以维度吧，的一个正态。
             # 应该是这个事情导致了最终的角度相似性的很神奇的行为。
@@ -1273,7 +1214,7 @@ if "test" and __DEBUG_ME__() and True:
                 
             pass#/ test
         
-        if "ref for 2 rand. The v_randn @ M_rand 's mean is affected by the v's mean.    the entire thing    " and False:
+        if "The v_randn @ M_rand 's mean is affected by the v's mean.    the entire thing                    v_randn is not very accurate." and False:
             #result
             # dim 100       test_time1000
             # result_min = [-10.935, -5.947, -0.915,  3.986,  9.077]
@@ -1343,93 +1284,245 @@ if "test" and __DEBUG_ME__() and True:
             pass#/ test
         
         
+        
+        if "irrelevant test, just for fun. vec_rand dot vec_rand" and False:
+            #result
+            # result_of__angle_diff_min  = [ 0.0000,  0.0017,  0.0367,  0.1828,  0.2261]
+            # result_of__angle_diff_max  = [ 0.9163,  0.7605,  0.5372,  0.3549,  0.2700]
+            # result_of__angle_diff_avg = [ 0.1570,  0.2268,  0.2405,  0.2501,  0.2484]
+            # dim_list                   = [ 2.000,  5.000,  10.000,  100.000,  1000.000]
+            # I dirived the formula, the result is 3/4. The measurement is 1-the result, so it's 1/4.
+            # This result is correct.
             
             
+            print("ref for 2 rand ?")
+            result_of__angle_diff_min= []
+            result_of__angle_diff_max= []
+            result_of__angle_diff_avg= []
+            #----------------#----------------#----------------
+            dim_list =         [2,  5, 10, 100, 1000]
+            test_time_list = [1000, 500, 300, 100, 100]
+            #test_time_list = [10, 5, 3, 1]
+            for outter_param_count in range(dim_list.__len__()):
+                dim = dim_list[outter_param_count]
+                test_time = test_time_list[outter_param_count]
+            #----------------#----------------#----------------
+                _raw_result      = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #----------------#----------------#----------------
+                    vec_1 = torch.rand(size=[1, dim])
+                    vec_1 = vector_length_norm(vec_1).reshape([-1])
+                    vec_2 = torch.rand(size=[1, dim])
+                    vec_2 = vector_length_norm(vec_2).reshape([-1])
+                    
+                    dot_product = vec_1.dot(vec_2)
+                    _this_result = 1. - dot_product
+                    
+                    _raw_result[test_count] = _this_result
+                    #----------------#----------------#----------------
+                    pass
+                result_of__angle_diff_min.append(_raw_result.min())
+                result_of__angle_diff_max.append(_raw_result.max())
+                result_of__angle_diff_avg.append(_raw_result.mean())
+                pass#for outter
+            print(f"result_of__angle_diff_min  = {str_the_list(result_of__angle_diff_min     , 4)}")
+            print(f"result_of__angle_diff_max  = {str_the_list(result_of__angle_diff_max     , 4)}")
+            print(f"result_of__angle_diff_avg = {str_the_list(result_of__angle_diff_avg     ,  4)}")
+            print(f"dim_list                   = {str_the_list(dim_list     , 3)}")
+            pass#/ test
         
-        
-        
-        
-        
-        
-        
-        # old code below. I didn't check it.
-        
-        # "The score between 2 random matrix is 1.85 to 2.3, for any dimention. Tests below."
-        # for dim in [10,100,1000,10000]:
-        #     mat1 = torch.randn(size=[dim,dim])
-        #     mat2 = torch.randn(size=[dim,dim])
-        #     length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
-        #         = LOSS__behavior_similarity(mat1,mat2)
-        #     print(dim, angle_score, length_score_log_10)
-        #     pass
-        
-        # import math, random
-        # for _ in range(166):
-        #     rand = random.random()-0.5
-        #     dim = random.randint(2,300)
-        #     mat1 = torch.randn(size=[dim,dim])
-        #     mat2 = mat1.detach().clone().mul(math.pow(10., rand))
-        #     length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
-        #         = LOSS__behavior_similarity(mat1,mat2)
-        #     assert _tensor_equal(angle_diff, [0.])
-        #     assert _tensor_equal(length_score_log_10, [abs(rand)])
-        #     pass
-        
-        # mat0 = torch.tensor([[1.,0],[0,1]])
-        # mat1 = torch.tensor([[1.,0.1],[0,1]])
-        # mat2 = torch.tensor([[1.,0.2],[0,1]])
-        
-        #         length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
-        
-        
-        # bad___angle_score, bad___length_score_log_10 = LOSS__behavior_similarity(mat0,mat1)
-        # worse_angle_score, worse_length_score_log_10 = LOSS__behavior_similarity(mat0,mat2)
-        # assert bad___angle_score<worse_angle_score
-        # assert bad___length_score_log_10<worse_length_score_log_10
-        
-        # for _ in range(116):
-        #     rand = random.random()+0.001# >0.
-        #     dim = random.randint(2,300)
-        #     mat0 = torch.eye(n=dim)
-        #     mat0[0,1] = rand
-        #     mat1 = torch.eye(n=dim)
-        #     mat1[0,1] = rand*1.1
-        #     mat2 = torch.eye(n=dim)
-        #     mat2[0,1] = rand*1.2
+        if "irrelevant test, vec_randn.abs @ vec_randn.abs " and False:
+            #result
+            # result_of__angle_diff_min  = [ 0.0000,  0.0144,  0.0785,  0.2601,  0.3199]
+            # result_of__angle_diff_max  = [ 0.9702,  0.8939,  0.6802,  0.4946,  0.4023]
+            # result_of__angle_diff_avg = [ 0.1801,  0.3039,  0.3379,  0.3645,  0.3639]
+            # dim_list                   = [ 2.000,  5.000,  10.000,  100.000,  1000.000]
+            # randn.abs is very different from rand.
             
-            
-        #             length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
-            
-            
-        #     bad___angle_score, bad___length_score_log_10 = LOSS__behavior_similarity(mat0,mat1)
-        #     worse_angle_score, worse_length_score_log_10 = LOSS__behavior_similarity(mat0,mat2)
-        #     assert bad___angle_score<=worse_angle_score
-        #     assert bad___length_score_log_10<worse_length_score_log_10
-        #     pass
+            print("irrelevant test, vec_randn.abs @ vec_randn.abs ")
+            result_of__angle_diff_min= []
+            result_of__angle_diff_max= []
+            result_of__angle_diff_avg= []
+            #----------------#----------------#----------------
+            dim_list =         [2,  5,   10,  100, 1000]
+            test_time_list = [1000, 500, 300, 100, 100]
+            #test_time_list = [10, 5, 3, 1]
+            for outter_param_count in range(dim_list.__len__()):
+                dim = dim_list[outter_param_count]
+                test_time = test_time_list[outter_param_count]
+            #----------------#----------------#----------------
+                _raw_result      = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #----------------#----------------#----------------
+                    dot_product = random_standard_vector(dim=dim).abs().dot(random_standard_vector(dim=dim).abs())
+                    _this_result = 1. - dot_product
+                    
+                    _raw_result[test_count] = _this_result
+                    #----------------#----------------#----------------
+                    pass
+                result_of__angle_diff_min.append(_raw_result.min())
+                result_of__angle_diff_max.append(_raw_result.max())
+                result_of__angle_diff_avg.append(_raw_result.mean())
+                pass#for outter
+            print(f"result_of__angle_diff_min  = {str_the_list(result_of__angle_diff_min     , 4)}")
+            print(f"result_of__angle_diff_max  = {str_the_list(result_of__angle_diff_max     , 4)}")
+            print(f"result_of__angle_diff_avg = {str_the_list(result_of__angle_diff_avg     ,  4)}")
+            print(f"dim_list                   = {str_the_list(dim_list     , 3)}")
+            pass#/ test
+        
         return
+    
     ____test____LOSS__behavior_similarity()
     pass
 
+
+
 def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor)->tuple[torch.Tensor,torch.Tensor]:
-    '''return length_score, angle_score
+    '''return len_score__mse, len_score__mae, angle_score, (
+        (hor_len_score__mse,hor_len_score__mae,ver_len_score__mse,ver_len_score__mae),\
+        (hor_angle_score, ver_angle_score))
     
     The result is always >=0. The smaller the better.'''
     assert is_square_matrix(matrix)
     
     dim = matrix.shape[0]
-    _temp___all_should_near_0 = matrix@(matrix.T)-torch.eye(n=dim, device=matrix.device)
-    iota_of_dim = iota(dim, device=matrix.device)
-    ___temp = _temp___all_should_near_0[iota_of_dim, iota_of_dim]
-    ___temp = ___temp.abs()
-    ___temp = ___temp.mean()
-    length_score = _temp___all_should_near_0[iota_of_dim, iota_of_dim].abs().mean()
     
-    _temp___all_should_near_0[iota_of_dim, iota_of_dim] = 0.
-    angle_score = _temp___all_should_near_0.abs().mean()
-    angle_score = angle_score*dim/(dim-1)
-    return length_score, angle_score
+    mat_sqr = matrix*matrix
+    assert mat_sqr.shape == matrix.shape
+    
+    #<  horizontal length score>
+    hor_sum__as_len_sqr = mat_sqr.sum(dim=1)
+    assert hor_sum__as_len_sqr.ge(0.).all()
+    
+    hor_len_score__mse = hor_sum__as_len_sqr.mean().sqrt()
+    hor_len = hor_sum__as_len_sqr.sqrt()
+    hor_len_score__mae = hor_len.mean()
+    #</ horizontal length score>
+    #<  vertical length score>
+    ver_sum__as_len_sqr = mat_sqr.sum(dim=0)
+    assert ver_sum__as_len_sqr.ge(0.).all()
+    
+    ver_len_score__mse = ver_sum__as_len_sqr.mean().sqrt()
+    ver_len = ver_sum__as_len_sqr.sqrt()
+    ver_len_score__mae = ver_len.mean()
+    #</ vertical length score>
+    
+    
+    
+    iota_of_dim = iota(dim, device=matrix.device)
+    
+    #<  horizontal sub vectors   angle score>    
+    matrix_into_hor_len_1 = matrix/(hor_len.reshape([-1,1]).expand([-1,dim]))
+    assert _tensor_equal(get_vector_length(matrix_into_hor_len_1[0]), [1.])
+    hor_vec_angle_test = matrix_into_hor_len_1 @ (matrix_into_hor_len_1.T)                                    
+    hor_vec_angle_test[iota_of_dim, iota_of_dim] = 0.
+    hor_angle_score = hor_vec_angle_test.abs().mean()*dim/(dim-1)
+    #</ horizontal sub vectors   angle score>    
+    
+    #<  vertical sub vectors   angle score>    
+    matrix_into_ver_len_1 = matrix/(ver_len.reshape([1,-1]).expand([dim,-1]))
+    assert _tensor_equal(get_vector_length(matrix_into_ver_len_1[:,0]), [1.])
+    ver_vec_angle_test = (matrix_into_ver_len_1.T) @ matrix_into_ver_len_1                              
+    ver_vec_angle_test[iota_of_dim, iota_of_dim] = 0.
+    ver_angle_score = ver_vec_angle_test.abs().mean()*dim/(dim-1)
+    #</ vertical sub vectors   angle score>    
+    
+    len_score__mse = (hor_len_score__mse+ver_len_score__mse)/2.
+    len_score__mae = (hor_len_score__mae+ver_len_score__mae)/2.
+    angle_score = (hor_angle_score+ver_angle_score)/2.
+    
+    return len_score__mse, len_score__mae, angle_score, (
+        (hor_len_score__mse,hor_len_score__mae,ver_len_score__mse,ver_len_score__mae),\
+        (hor_angle_score, ver_angle_score))
+    
+    1w 还没测。
+    
+    
+    # old code.
+    # _temp___all_should_near_0 = matrix@(matrix.T)-torch.eye(n=dim, device=matrix.device)
+    # iota_of_dim = iota(dim, device=matrix.device)
+    # __debug_only__temp = _temp___all_should_near_0[iota_of_dim, iota_of_dim]
+    # __debug_only__temp = __debug_only__temp.abs()
+    # __debug_only__temp = __debug_only__temp.mean()
+    # length_score__mse = _temp___all_should_near_0[iota_of_dim, iota_of_dim].abs().mean().sqrt()
+    # length_score__mae = _temp___all_should_near_0[iota_of_dim, iota_of_dim].abs().sqrt().mean()
+    
+    # _temp___all_should_near_0[iota_of_dim, iota_of_dim] = 0.
+    # angle_score_part_1 = _temp___all_should_near_0.abs().mean()
+    
+    # _temp___all_should_near_0 = (matrix.T)@matrix-torch.eye(n=dim, device=matrix.device)
+    # _temp___all_should_near_0[iota_of_dim, iota_of_dim] = 0.
+    # angle_score_part_2 = _temp___all_should_near_0.abs().mean()
+    # angle_score = angle_score*dim/(dim-1)
+    # return length_score__mse, length_score__mae, angle_score
+
 if "test" and __DEBUG_ME__() and True:
     def ____test____LOSS__the_mat_is_standard_orthogonal():
+        if "rotation+permutation is perfect in this test" and True:
+            #------------------#------------------#------------------
+            dim_list = 
+            test_time_list = 
+            for     
+                dim = dim_list[//]
+                test_time = test_time_list[f/dsf/d]
+            #------------------#------------------#------------------
+                for test_count in range(test_time):
+                    mat = torch.eye(n=dim)
+                    mat = randomly_rotate__matrix(mat)
+                    mat = randomly_permutate__matrix(mat)
+                    len_score__mse, len_score__mae, angle_score, (
+                        (hor_len_score__mse,hor_len_score__mae,ver_len_score__mse,ver_len_score__mae),\
+                        (hor_angle_score, ver_angle_score)) = LOSS__the_mat_is_standard_orthogonal(mat)
+                    
+                    assert ???
+                    
+                    pass#for test_count
+                pass#for ouuter???
+                
+                
+                
+            pass#/test
+        
+        if "that matrix is somewhat perfect in this test" and True:
+            #------------------#------------------#------------------
+            dim_list = 
+            test_time_list = 
+            for     
+                dim = dim_list[//]
+                test_time = test_time_list[f/dsf/d]
+            #------------------#------------------#------------------
+                for test_count in range(test_time):
+                    mat = torch.tensor([[1., 1, 1, 1],
+                                        [1 , 1,-1,-1],
+                                        [1 ,-1,-1, 1],
+                                        [1 ,-1, 1,-1],])
+                    mat = randomly_rotate__matrix(mat)
+                    mat = randomly_permutate__matrix(mat)
+                    len_score__mse, len_score__mae, angle_score, (
+                        (hor_len_score__mse,hor_len_score__mae,ver_len_score__mse,ver_len_score__mae),\
+                        (hor_angle_score, ver_angle_score)) = LOSS__the_mat_is_standard_orthogonal(mat)
+                    
+                    assert ???
+                    
+                    pass#for test_count
+                pass#for ouuter???
+                
+                
+                
+            pass#/test
+    
+    
+     相似
+    随机
+    
+    
+    
+    
+    
+    
+    old  code below.
+    
+    
         import math, random
         "i dont remember the name, but it's orthogonal."
         mat = torch.tensor([[1., 1, 1, 1],
@@ -1489,6 +1582,8 @@ if "test" and __DEBUG_ME__() and True:
         return
     ____test____LOSS__the_mat_is_standard_orthogonal()
     pass
+
+
 
 def LOSS__angle_similarity(input:torch.Tensor, target:torch.Tensor)->torch.Tensor:
     '''return score

@@ -93,6 +93,7 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
+
 "random vector"
 
 def random_standard_vector(dim:int, dtype = torch.float32, device='cpu')->torch.Tensor:
@@ -188,6 +189,211 @@ if "log10 test    copy pasted from Util.py" and __DEBUG_ME__() and False:
     ____test____log10_avg_safe____standard_vec()
     pass
 
+"   a special version for low dim, but more uniformly distributed."
+if "algo perf test" and False:
+    def ____test____random_standard_vector_slow____basic_also_test():
+        # result
+        # result_min  = [ 1.000,  1.000,  1.000,  1.000,  1.000,  1.000,  1.000,  1.000,  2.000]
+        # result_max  = [ 3.000,  8.000,  15.000,  45.,  107.000,  129.000,  277.,  1048.,  3113.000]
+        # result_avg  = [ 1.235,  1.920,  3.670,  6.095,  13.655,  27.690,  59.,  159.6,  399.415]
+        # dim_list   = [ 2.000,  3.000,  4.000,  5.000,  6.000,  7.000,  8.000,  9.000,  10.000]
+        # log_of_avg = ([0.2111, 0.6523, 1.3002, 1.8075, 2.6141, 3.3211, 4.0775, 5.0727, 5.9900])
+        
+        # result_avg  = torch.tensor([ 1.235,  1.920,  3.670,  6.095,  13.655,  27.690,  59.,  159.6,  399.415])
+        # print(result_avg.log())
+        
+        result_min = []#dont modify this
+        result_max = []#dont modify this
+        result_avg = []#dont modify this
+        #-----------------#-----------------#-----------------
+        dim_list =         [2,3,4,   5,6,7,8,9,   10,]#,  50, 100]
+        #test_time_list = [100,100,100,100,]
+        for inner_param_set in range(dim_list.__len__()):
+            dim = dim_list[inner_param_set]
+            #test_time = test_time_list[////]
+            test_time = 200
+            threshold_len = 0.1
+        #-----------------#-----------------#-----------------
+            print(test_time)
+            _result = torch.empty(size=[test_time])
+            for test_count in range(test_time):
+                
+                total_times = 0
+                while True:
+                    total_times +=1#tail.
+                    
+                    vec = torch.rand(size=[dim])#no sign at the moment.
+                    the_len = get_vector_length(vec)
+                    if the_len>threshold_len and the_len<1.:
+                        break
+                    #tail uppon.
+                    pass#while
+                _result[test_count] = total_times
+                pass#for test_count
+                
+            result_min.append(_result.min())
+            result_max.append(_result.max())
+            result_avg.append(_result.mean())
+            pass#for inner_param
+        print(f"result_min  = {str_the_list(result_min, 3)}")
+        print(f"result_max  = {str_the_list(result_max, 3)}")
+        print(f"result_avg  = {str_the_list(result_avg, 3)}")
+        print(f"dim_list   = {str_the_list(dim_list, 3)}")
+        
+        return 
+    
+    ____test____random_standard_vector_slow____basic_also_test()
+    pass
+
+def random_standard_vector__low_dim(dim:int, threshold_len = 0.1, dtype = torch.float32, device='cpu')->torch.Tensor:
+    '''generates a random vector with geometric length of 1.
+    
+    This version is slower but more uniformly. It's a try and retry method.
+    
+    The random number generator is randn(normal distribution), this makes it doesn't need any further 
+    randomly rotation to be uniformly on angle, but the clue is only some rough test. If you really
+    need the angle to be very well uniformly distributes, you may need to make sure it by yourself.'''
+    
+    assert threshold_len>0.
+    assert threshold_len<0.5#if you know what you are doing, this can go up to 1.
+    
+    assert dim <=8, "the test time is basiclly e to the power of dim*0.8."
+    
+    while True:
+        vec = torch.rand(size=[dim], dtype = dtype, device=device)#no sign at the moment.
+        the_len = get_vector_length(vec)
+        if the_len>threshold_len and the_len<1.:
+            normalized_vec = vector_length_norm(vec.reshape([1,-1])).reshape([-1])
+            return normalized_vec*rand_sign(size=[dim], dtype = dtype, device=device)
+        pass
+    pass#function.
+
+if "basic test" and __DEBUG_ME__() and False: 
+    def ____test_____random_standard_vector_slow__basic_test():
+        for _ in range(16):
+            dim = random.randint(2,5)
+            vec = random_standard_vector__low_dim(dim)
+            assert vec.dtype == torch.float32
+            assert _tensor_equal(get_vector_length(vec), [1.]) 
+            pass
+        
+        vec = random_standard_vector__low_dim(5, torch.float64, 'cuda')
+        assert vec.dtype == torch.float64
+        assert vec.device.type == 'cuda'
+        return
+    ____test_____random_standard_vector_slow__basic_test()
+    pass
+
+
+#还有一个写法。。。
+#还有一个写法。。。
+#还有一个写法。。。
+#还有一个写法。。。
+1w 还没验证。
+验证的时候，首先是总次数，
+然后长度太小的那个到底需要不需要保护。
+最后和之前的纯反复尝试的版本比对一下数字的分布。
+if "algo perf test" and True:
+    import math
+    
+    dim = 9
+    _1_over_sqrt_of_dim = math.sqrt(1./dim)
+    threshold_len = 0.1
+    threshold_per_dim = threshold_len * _1_over_sqrt_of_dim
+    
+    vec = torch.rand(size=[dim])#, dtype = dtype, device=device)#no sign at the moment.
+    while True:
+        the_len = get_vector_length(vec)
+        if the_len >= 1.:
+            flag__too_large = vec.ge(_1_over_sqrt_of_dim)
+            len_of_flag = flag__too_large.sum()
+            vec[flag__too_large] = torch.rand(size=[len_of_flag])
+            continue
+        if the_len <= threshold_len:
+            flag__too_small = vec.le(threshold_per_dim)
+            len_of_flag = flag__too_small.sum()
+            vec[flag__too_small] = torch.rand(size=[len_of_flag])
+            continue
+        break
+    
+    normalized_vec = vector_length_norm(vec.reshape([1,-1])).reshape([-1])
+    return normalized_vec*rand_sign(size=[dim])#, dtype = dtype, device=device)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    def ____test____random_standard_vector_slow____basic_also_test():
+        # result
+        
+        result_min = []#dont modify this
+        result_max = []#dont modify this
+        result_avg = []#dont modify this
+        #-----------------#-----------------#-----------------
+        dim_list =         [2,3,4,   5,6,7,8,9,   10,]#,  50, 100]
+        #test_time_list = [100,100,100,100,]
+        for inner_param_set in range(dim_list.__len__()):
+            dim = dim_list[inner_param_set]
+            #test_time = test_time_list[////]
+            test_time = 200
+            threshold_len = 0.1
+        #-----------------#-----------------#-----------------
+            print(test_time)
+            _result = torch.empty(size=[test_time])
+            for test_count in range(test_time):
+                
+                total_times = 0
+                while True:
+                    total_times +=1#tail.
+                    
+                    vec = torch.rand(size=[dim])#no sign at the moment.
+                    the_len = get_vector_length(vec)
+                    if the_len>threshold_len and the_len<1.:
+                        break
+                    #tail uppon.
+                    pass#while
+                _result[test_count] = total_times
+                pass#for test_count
+                
+            result_min.append(_result.min())
+            result_max.append(_result.max())
+            result_avg.append(_result.mean())
+            pass#for inner_param
+        print(f"result_min  = {str_the_list(result_min, 3)}")
+        print(f"result_max  = {str_the_list(result_max, 3)}")
+        print(f"result_avg  = {str_the_list(result_avg, 3)}")
+        print(f"dim_list   = {str_the_list(dim_list, 3)}")
+        
+        return 
+    
+    ____test____random_standard_vector_slow____basic_also_test()
+    pass
+
+
+
+
+
+
+
+
+
+
+
+"not very important."
+
 def _get_2_diff_rand_int(dim:int, device , devide_in_this_function = 'cpu')->tuple[torch.Tensor,torch.Tensor]:
     '''return index_tensor.
     
@@ -221,6 +427,7 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
+
 "rotation mat 2d"
 
 def angle_to_rotation_matrix_2d(angle:float|torch.Tensor)->torch.Tensor:
@@ -250,6 +457,7 @@ if "basic behavior and device adaption." and __DEBUG_ME__() and False:
         return
     ____test_____angle_to_rotation_matrix_2d()
     pass
+
 
 
 
