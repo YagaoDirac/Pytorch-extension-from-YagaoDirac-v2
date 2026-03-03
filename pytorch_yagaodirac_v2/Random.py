@@ -285,24 +285,87 @@ if "basic test" and __DEBUG_ME__() and False:
     pass
 
 
-#还有一个写法。。。
-#还有一个写法。。。
-#还有一个写法。。。
-#还有一个写法。。。
-1w 还没验证。
-验证的时候，首先是总次数，
-然后长度太小的那个到底需要不需要保护。
-最后和之前的纯反复尝试的版本比对一下数字的分布。
-if "algo perf test" and True:
+# This is the third version. But the total_time test result is slightly worse than the "low dim version."
+# so, no further work will be done for this version.
+# 然后长度太小的那个到底需要不需要保护。
+# 最后和之前的纯反复尝试的版本比对一下数字的分布。
+if "algo perf test" and False:
+    import math
+    def ____test____random_standard_vector_v3____perf_test():
+    # result
+    # result_min  = [ 1.000,  1.000,  1.000,  1.000,  1.000,  1.000,  1.000,   2.000,   2.000]
+    # result_max  = [ 6.000,  9.000,  9.000,  40.000,  49.,  178.,    313.000,  1040.,  2548.000]
+    # result_avg  = [ 1.345,  1.915,  2.925,  5.775,  12.35,  27.585,  64.99,  146. ,   451.055]
+    # dim_list    = [ 2.000,  3.000,  4.000,  5.000,  6.000,  7.000,  8.000,  9.000,    10.000]
+    
+        result_min = []#dont modify this
+        result_max = []#dont modify this
+        result_avg = []#dont modify this
+        #-----------------#-----------------#-----------------
+        dim_list =         [2,3,4,   5,6,7,8,9,   10,]#,  50, 100]
+        #test_time_list = [100,100,100,100,]
+        for inner_param_set in range(dim_list.__len__()):
+            dim = dim_list[inner_param_set]
+            #test_time = test_time_list[////]
+            test_time = 200
+            threshold_len = 0.1
+        #-----------------#-----------------#-----------------
+            print(test_time)
+            _result = torch.empty(size=[test_time])
+            for test_count in range(test_time):
+                
+                _1_over_sqrt_of_dim = math.sqrt(1./dim)
+                assert _tensor_equal([_1_over_sqrt_of_dim*_1_over_sqrt_of_dim], [1/dim])
+                threshold_len = 0.1
+                threshold_per_dim = threshold_len * _1_over_sqrt_of_dim
+                assert _tensor_equal([threshold_per_dim*threshold_per_dim], [threshold_len*threshold_len/dim])
+                
+                total_times = 0
+                
+                while True:
+                    total_times +=1#tail.
+                    #-----------------#-----------------#-----------------
+                    
+                    vec = torch.rand(size=[dim])#, dtype = dtype, device=device)#no sign at the moment.
+                    the_len = get_vector_length(vec)
+                    if the_len >= 1.:
+                        flag__too_large = vec.ge(_1_over_sqrt_of_dim)
+                        len_of_flag = flag__too_large.sum()
+                        vec[flag__too_large] = torch.rand(size=[len_of_flag])
+                        continue
+                    if the_len <= threshold_len:
+                        flag__too_small = vec.le(threshold_per_dim)
+                        len_of_flag = flag__too_small.sum()
+                        vec[flag__too_small] = torch.rand(size=[len_of_flag])
+                        continue
+                    
+                    break
+                    #-----------------#-----------------#-----------------
+                
+                _result[test_count] = total_times
+                pass#for test_count
+                
+            result_min.append(_result.min())
+            result_max.append(_result.max())
+            result_avg.append(_result.mean())
+            pass#for inner_param
+        print(f"result_min  = {str_the_list(result_min, 3)}")
+        print(f"result_max  = {str_the_list(result_max, 3)}")
+        print(f"result_avg  = {str_the_list(result_avg, 3)}")
+        print(f"dim_list   = {str_the_list(dim_list, 3)}")
+        
+        return 
+    ____test____random_standard_vector_v3____perf_test()
+    pass
+def ____random_standard_vector__v3____UNFINISHED(dim :int, threshold_len = 0.1):
+    assert False, "继续"
     import math
     
-    dim = 9
     _1_over_sqrt_of_dim = math.sqrt(1./dim)
-    threshold_len = 0.1
     threshold_per_dim = threshold_len * _1_over_sqrt_of_dim
     
-    vec = torch.rand(size=[dim])#, dtype = dtype, device=device)#no sign at the moment.
     while True:
+        vec = torch.rand(size=[dim])#, dtype = dtype, device=device)#no sign at the moment.
         the_len = get_vector_length(vec)
         if the_len >= 1.:
             flag__too_large = vec.ge(_1_over_sqrt_of_dim)
@@ -381,12 +444,6 @@ if "algo perf test" and True:
     
     ____test____random_standard_vector_slow____basic_also_test()
     pass
-
-
-
-
-
-
 
 
 

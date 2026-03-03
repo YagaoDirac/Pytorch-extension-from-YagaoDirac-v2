@@ -19,6 +19,25 @@
 
 # 但是正交本身的保护就很麻烦，尤其矩阵很大的时候。如果保护得不是很好，对效果的影响有多大？
 
+# 1w 
+
+做个笔记。
+
+现在在1440行的那个地方。
+
+这个工具就是保护向量的二阶长度用的。
+之后要做的事情是看看这个能不能辅助gramo强化的某种mlp
+
+再后面是数字神经网络，用拆分的方式分治法。
+再后面是逻辑学习，把xor的逻辑优化一下。
+两个工具现在都很难处理xor，现在想到的办法是单独设置一个xor标记，就是彻底的分成普通输出和xor专用输出。
+可能是普通输出上加一个xor标记，如果这个标记点亮了，那就跑xor专用的一个版本，输出也按照专用的方式来解释，最终输出解释出来的内容。
+
+再后面就是安排意识和意识转移的实验了。
+
+再后面就是尝试一下破解数学，或者其他的什么应用了。
+
+中间可以考虑的一些支线任务，比如确认conv的数量级，确认tfm相关的数量级和训练动力学，尤其是softmax相关的那些，到底怎么办。
 
 
 
@@ -1377,41 +1396,54 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
-def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor)->tuple[torch.Tensor,torch.Tensor]:
+def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least = -10.)->tuple[torch.Tensor,torch.Tensor]:
     '''return len_score__mse, len_score__mae, angle_score, (
         (hor_len_score__mse,hor_len_score__mae,ver_len_score__mse,ver_len_score__mae),\
         (hor_angle_score, ver_angle_score))
     
     The result is always >=0. The smaller the better.'''
     assert is_square_matrix(matrix)
+    assert _result_log10_at_least < -2., "if you know what you are doing, modify this line."
     
     dim = matrix.shape[0]
     
     mat_sqr = matrix*matrix
     assert mat_sqr.shape == matrix.shape
     
+    1w 进来读。
+    
+    
     #<  horizontal length score>
-    hor_sum__as_len_sqr = mat_sqr.sum(dim=1)
-    assert hor_sum__as_len_sqr.ge(0.).all()
+    #所以要输出的东西，这个应该是1的原始值，log10之后的原始值，再abs再mean的实际分数。
+    hor_sum__as_len_sqr__should_be_1 = mat_sqr.sum(dim=1)# should be 1. [RETURN VALUE]
+    hor_sum__as_len_log10__should_be_0 = hor_sum__as_len_sqr__should_be_1.log10()/2.# [RETURN VALUE]
+    # [RETURN VALUE] below vvvvv
+    hor_len_score = hor_sum__as_len_log10__should_be_0[hor_sum__as_len_log10__should_be_0>_result_log10_at_least].sum()
+    assert hor_sum__as_len_log10__should_be_0.ge(_result_log10_at_least)
     
-    hor_len_score__mse = hor_sum__as_len_sqr.mean().sqrt()
-    hor_len = hor_sum__as_len_sqr.sqrt()
-    hor_len_score__mae = hor_len.mean()
+    #old code
+    #hor_len_score__mse = hor_sum__as_len_sqr__should_be_1.mean().sqrt()
+    #hor_len_score__mae = hor_len.mean()
     #</ horizontal length score>
+    
+    
     #<  vertical length score>
-    ver_sum__as_len_sqr = mat_sqr.sum(dim=0)
-    assert ver_sum__as_len_sqr.ge(0.).all()
+    ver_sum__as_len_sqr__should_be_1 = mat_sqr.sum(dim=0)# should be 1. [RETURN VALUE]
+    ver_sum__as_len_log10__should_be_0 = ver_sum__as_len_sqr__should_be_1.log10()/2.# [RETURN VALUE]
+    # [RETURN VALUE] below vvvvv
+    ver_len_score = ver_sum__as_len_log10__should_be_0[ver_sum__as_len_log10__should_be_0>_result_log10_at_least].sum()
+    assert ver_sum__as_len_log10__should_be_0.ge(_result_log10_at_least)
     
-    ver_len_score__mse = ver_sum__as_len_sqr.mean().sqrt()
-    ver_len = ver_sum__as_len_sqr.sqrt()
-    ver_len_score__mae = ver_len.mean()
+    #old code
+    #ver_len_score__mse = ver_sum__as_len_sqr.mean().sqrt()
+    #ver_len_score__mae = ver_len.mean()
     #</ vertical length score>
-    
     
     
     iota_of_dim = iota(dim, device=matrix.device)
     
-    #<  horizontal sub vectors   angle score>    
+    #<  horizontal sub vectors   angle score>  
+    hor_len = hor_sum__as_len_sqr__should_be_1.sqrt()
     matrix_into_hor_len_1 = matrix/(hor_len.reshape([-1,1]).expand([-1,dim]))
     assert _tensor_equal(get_vector_length(matrix_into_hor_len_1[0]), [1.])
     hor_vec_angle_test = matrix_into_hor_len_1 @ (matrix_into_hor_len_1.T)                                    
@@ -1420,6 +1452,7 @@ def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor)->tuple[torch.Tenso
     #</ horizontal sub vectors   angle score>    
     
     #<  vertical sub vectors   angle score>    
+    ver_len = ver_sum__as_len_sqr__should_be_1.sqrt()
     matrix_into_ver_len_1 = matrix/(ver_len.reshape([1,-1]).expand([dim,-1]))
     assert _tensor_equal(get_vector_length(matrix_into_ver_len_1[:,0]), [1.])
     ver_vec_angle_test = (matrix_into_ver_len_1.T) @ matrix_into_ver_len_1                              
@@ -1427,17 +1460,20 @@ def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor)->tuple[torch.Tenso
     ver_angle_score = ver_vec_angle_test.abs().mean()*dim/(dim-1)
     #</ vertical sub vectors   angle score>    
     
-    len_score__mse = (hor_len_score__mse+ver_len_score__mse)/2.
-    len_score__mae = (hor_len_score__mae+ver_len_score__mae)/2.
+    
+    
+    (hor_sum__as_len_sqr__should_be_1,hor_sum__as_len_log10__should_be_0,hor_len_score)
+    
+    (ver_sum__as_len_sqr__should_be_1,ver_sum__as_len_log10__should_be_0,ver_len_score)
+    
+    len_score = (hor_len_score+ver_len_score)/2.
     angle_score = (hor_angle_score+ver_angle_score)/2.
     
     return len_score__mse, len_score__mae, angle_score, (
-        (hor_len_score__mse,hor_len_score__mae,ver_len_score__mse,ver_len_score__mae),\
-        (hor_angle_score, ver_angle_score))
-    
-    1w 还没测。
-    
-    
+            (hor_sum__as_len_sqr__should_be_1,hor_sum__as_len_log10__should_be_0,hor_len_score),
+            (ver_sum__as_len_sqr__should_be_1,ver_sum__as_len_log10__should_be_0,ver_len_score)
+                ),\
+        (hor_angle_score, ver_angle_score)
     # old code.
     # _temp___all_should_near_0 = matrix@(matrix.T)-torch.eye(n=dim, device=matrix.device)
     # iota_of_dim = iota(dim, device=matrix.device)
@@ -1457,14 +1493,42 @@ def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor)->tuple[torch.Tenso
     # return length_score__mse, length_score__mae, angle_score
 
 if "test" and __DEBUG_ME__() and True:
+    
+    
+    1w 从这儿进去读。
+    
+    
+    mat = torch.tensor([[1.,1],
+                        [0, 0]])
+    len_score__mse, len_score__mae, angle_score, (
+        (hor_len_score__mse,hor_len_score__mae,ver_len_score__mse,ver_len_score__mae),\
+        (hor_angle_score, ver_angle_score)) = LOSS__the_mat_is_standard_orthogonal(mat)
+
+    
+    
+    mat = torch.eye(n=3)
+    mat = randomly_rotate__matrix(mat)
+    mat = randomly_permutate__matrix(mat)
+    len_score__mse, len_score__mae, angle_score, (
+        (hor_len_score__mse,hor_len_score__mae,ver_len_score__mse,ver_len_score__mae),\
+        (hor_angle_score, ver_angle_score)) = LOSS__the_mat_is_standard_orthogonal(mat)
+
+    
+    
+    
+    
+    
+    
+    
     def ____test____LOSS__the_mat_is_standard_orthogonal():
         if "rotation+permutation is perfect in this test" and True:
             #------------------#------------------#------------------
-            dim_list = 
-            test_time_list = 
-            for     
-                dim = dim_list[//]
-                test_time = test_time_list[f/dsf/d]
+            dim_list =       [2,     10, 100, 1000]
+            test_time_list = [1000,1000, 100,   10]
+            for inner_param_set in range(dim_list.__len__()):
+                dim = dim_list[inner_param_set]
+                test_time = test_time_list[inner_param_set]
+                print(test_time)
             #------------------#------------------#------------------
                 for test_count in range(test_time):
                     mat = torch.eye(n=dim)
@@ -1474,110 +1538,77 @@ if "test" and __DEBUG_ME__() and True:
                         (hor_len_score__mse,hor_len_score__mae,ver_len_score__mse,ver_len_score__mae),\
                         (hor_angle_score, ver_angle_score)) = LOSS__the_mat_is_standard_orthogonal(mat)
                     
-                    assert ???
-                    
+                    assert _tensor_equal(len_score__mse, [0])
+                    assert _tensor_equal(len_score__mae, [0])
+                    assert _tensor_equal(angle_score, [0])
                     pass#for test_count
                 pass#for ouuter???
-                
-                
-                
             pass#/test
         
         if "that matrix is somewhat perfect in this test" and True:
-            #------------------#------------------#------------------
-            dim_list = 
-            test_time_list = 
-            for     
-                dim = dim_list[//]
-                test_time = test_time_list[f/dsf/d]
-            #------------------#------------------#------------------
-                for test_count in range(test_time):
-                    mat = torch.tensor([[1., 1, 1, 1],
-                                        [1 , 1,-1,-1],
-                                        [1 ,-1,-1, 1],
-                                        [1 ,-1, 1,-1],])
-                    mat = randomly_rotate__matrix(mat)
-                    mat = randomly_permutate__matrix(mat)
-                    len_score__mse, len_score__mae, angle_score, (
-                        (hor_len_score__mse,hor_len_score__mae,ver_len_score__mse,ver_len_score__mae),\
-                        (hor_angle_score, ver_angle_score)) = LOSS__the_mat_is_standard_orthogonal(mat)
-                    
-                    assert ???
-                    
-                    pass#for test_count
-                pass#for ouuter???
-                
-                
-                
-            pass#/test
-    
-    
-     相似
-    随机
-    
-    
-    
-    
-    
-    
-    old  code below.
-    
-    
-        import math, random
-        "i dont remember the name, but it's orthogonal."
-        mat = torch.tensor([[1., 1, 1, 1],
-                            [1 , 1,-1,-1],
-                            [1 ,-1,-1, 1],
-                            [1 ,-1, 1,-1],])
-        _length_score, angle_score = LOSS__the_mat_is_standard_orthogonal(mat)
-        assert _tensor_equal(angle_score, [0])
-        
-        
-        "eye is perfect in this test."
-        for dim in [2,3,5,10,100,1000]:
-            mat = torch.eye(n=dim)
-            length_score, angle_score = LOSS__the_mat_is_standard_orthogonal(mat)
-            assert _tensor_equal(length_score, [0])
+            mat = torch.tensor([[1., 1, 1, 1],
+                                [1 , 1,-1,-1],
+                                [1 ,-1,-1, 1],
+                                [1 ,-1, 1,-1],])
+            mat = randomly_rotate__matrix(mat)
+            mat = randomly_permutate__matrix(mat)
+            len_score__mse, len_score__mae, angle_score, (
+                (hor_len_score__mse,hor_len_score__mae,ver_len_score__mse,ver_len_score__mae),\
+                (hor_angle_score, ver_angle_score)) = LOSS__the_mat_is_standard_orthogonal(mat)
+            
+            assert _tensor_equal(len_score__mse, [0])
+            assert _tensor_equal(len_score__mae, [0])
             assert _tensor_equal(angle_score, [0])
-            pass
+            pass#/test
         
-        #                        vvv
-        mat1 = torch.tensor([[1.,0.1],[0,1]])
-        mat2 = torch.tensor([[1.,0.2],[0,1]])
-        #                        ^^^
-        bad___length_score, bad___angle_score = LOSS__the_mat_is_standard_orthogonal(mat1)
-        worse_length_score, worse_angle_score = LOSS__the_mat_is_standard_orthogonal(mat2)
-        assert bad___length_score<worse_length_score
-        assert bad___angle_score <worse_angle_score
+        assert False,'''
+            相似
+            随机
         
-        for _ in range(6):
-            rand = random.random()+0.001# >0.
-            #                        vvvvvvvv
-            mat1 = torch.tensor([[1.,rand    ],[0,1]])
-            mat2 = torch.tensor([[1.,rand*1.1],[0,1]])
-            #                        ^^^^^^^^
-            bad___length_score, bad___angle_score = LOSS__the_mat_is_standard_orthogonal(mat1)
-            worse_length_score, worse_angle_score = LOSS__the_mat_is_standard_orthogonal(mat2)
-            assert bad___length_score<worse_length_score
-            assert bad___angle_score <worse_angle_score
-            pass
+        '''
         
-        for _ in range(6):
-            rand = random.random()+0.001# >0.
-            dim = random.randint(2, 300)
-            #<  init>
-            mat1 = torch.eye(n=dim)
-            mat2 = torch.eye(n=dim)
-            #           vvvvvvvv
-            mat1[0,1] = rand
-            mat2[0,1] = rand*1.1
-            #           ^^^^^^^^
-            bad___length_score, bad___angle_score = LOSS__the_mat_is_standard_orthogonal(mat1)
-            worse_length_score, worse_angle_score = LOSS__the_mat_is_standard_orthogonal(mat2)
-            #</ init>
-            assert bad___length_score<worse_length_score
-            assert bad___angle_score <worse_angle_score
-            pass
+        
+        
+        
+        assert False,"old  code below."
+        
+        # #                        vvv
+        # mat1 = torch.tensor([[1.,0.1],[0,1]])
+        # mat2 = torch.tensor([[1.,0.2],[0,1]])
+        # #                        ^^^
+        # bad___length_score, bad___angle_score = LOSS__the_mat_is_standard_orthogonal(mat1)
+        # worse_length_score, worse_angle_score = LOSS__the_mat_is_standard_orthogonal(mat2)
+        # assert bad___length_score<worse_length_score
+        # assert bad___angle_score <worse_angle_score
+        
+        # for _ in range(6):
+        #     rand = random.random()+0.001# >0.
+        #     #                        vvvvvvvv
+        #     mat1 = torch.tensor([[1.,rand    ],[0,1]])
+        #     mat2 = torch.tensor([[1.,rand*1.1],[0,1]])
+        #     #                        ^^^^^^^^
+        #     bad___length_score, bad___angle_score = LOSS__the_mat_is_standard_orthogonal(mat1)
+        #     worse_length_score, worse_angle_score = LOSS__the_mat_is_standard_orthogonal(mat2)
+        #     assert bad___length_score<worse_length_score
+        #     assert bad___angle_score <worse_angle_score
+        #     pass
+        
+        # for _ in range(6):
+        #     rand = random.random()+0.001# >0.
+        #     dim = random.randint(2, 300)
+        #     #<  init>
+        #     mat1 = torch.eye(n=dim)
+        #     mat2 = torch.eye(n=dim)
+        #     #           vvvvvvvv
+        #     mat1[0,1] = rand
+        #     mat2[0,1] = rand*1.1
+        #     #           ^^^^^^^^
+        #     bad___length_score, bad___angle_score = LOSS__the_mat_is_standard_orthogonal(mat1)
+        #     worse_length_score, worse_angle_score = LOSS__the_mat_is_standard_orthogonal(mat2)
+        #     #</ init>
+        #     assert bad___length_score<worse_length_score
+        #     assert bad___angle_score <worse_angle_score
+        #     pass
         
         return
     ____test____LOSS__the_mat_is_standard_orthogonal()
