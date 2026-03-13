@@ -445,6 +445,16 @@ def ____random_standard_vector__v3____UNFINISHED(dim :int, threshold_len = 0.1):
     ____test____random_standard_vector_slow____basic_also_test()
     pass
 
+if "I also found some explaination from 3b1b" and False:
+    '''
+    Basically, the volume of a ball in n-dimention, over the bounding box, is getting smaller
+    at a significant speed when the n is big enough. 
+    This makes it's very unlikely to get a set of random(torch.rand) numbers and the square sum is less than 1.
+    Remember, "Your balls are just puny" by 3b1b.
+    https://youtu.be/fsLh-NYhOoU?t=2979
+    '''
+    pass
+
 
 
 
