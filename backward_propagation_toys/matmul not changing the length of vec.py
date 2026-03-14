@@ -1402,14 +1402,14 @@ if "test" and __DEBUG_ME__() and False:
 
 
 def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least = -10., 
-                                #angle_score_nan_to_this = 0.,
+                                _correct_offset_for_angle_score = -0.4, 
                                 _debug__needs_log = False)\
-                            -> tuple[   torch.Tensor,torch.Tensor,\
+                            -> tuple[   torch.Tensor,torch.Tensor,torch.Tensor,\
                                     tuple[  tuple[torch.Tensor,torch.Tensor,torch.Tensor],\
                                             tuple[torch.Tensor,torch.Tensor,torch.Tensor],\
                                             tuple[torch.Tensor,torch.Tensor]],\
-                                    list|None]:
-    '''return len_score, angle_score, \
+                                    list[tuple[str, torch.Tensor]] | None]:
+    '''return  len_score, angle_score_corrected, angle_score, \
             ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
             ( ver_sum__as_len_sqr___1_is_good__dim,ver_sum__as_len_log10___0_is_good__dim,ver_len_score),
             (hor_angle_score, ver_angle_score)),\
@@ -1418,17 +1418,17 @@ def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_l
     The result is always >=0. The smaller the better.'''
     assert is_square_matrix(matrix)
     assert _result_log10_at_least < -2., "if you know what you are doing, modify this line."
-    #assert angle_score_nan_to_this in [0.,1.,-1.] or (angle_score_nan_to_this >=0. and angle_score_nan_to_this <=1.),\
-    #                                                                   "or if you know what you are doing."
-    # but maybe this angle_score_nan_to_this should be 0 bc of the definition. Not scanned yet.                                                           
-                                                                        
+    
+    assert _correct_offset_for_angle_score in [0., -1., -0.4], "if you know what you are doing..."
+    #I tested with torch.randn. -0.4 is recommended. It helps low dim cases to result the same result as high dim cases.
+    
     dim = matrix.shape[0]
     
     mat_sqr = matrix*matrix
     assert mat_sqr.shape == matrix.shape
     
     if _debug__needs_log:
-        _log:list[tuple]|None = []
+        _log:list[tuple[str, torch.Tensor]]|None = []
         pass
     else:
         _log = None
@@ -1442,7 +1442,8 @@ def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_l
     
     hor_len_score__raw = hor_sum__as_len_log10___0_is_good__dim[hor_sum__as_len_log10___0_is_good__dim>_result_log10_at_least]
     if _log is not None:
-        _log.append(("hor_len_score__raw", hor_len_score__raw))
+        _log.append(("hor_len_score__raw", hor_len_score__raw))#[0]
+        _log.append(("hor_len_score__raw.mean()", hor_len_score__raw.mean()))#[1]
         pass
     hor_len_score = hor_len_score__raw.abs().mean()# [RETURN VALUE]
     
@@ -1461,7 +1462,12 @@ def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_l
     
     ver_len_score__raw = ver_sum__as_len_log10___0_is_good__dim[ver_sum__as_len_log10___0_is_good__dim>_result_log10_at_least]
     if _log is not None:
-        _log.append(("ver_len_score__raw", ver_len_score__raw))
+        _log.append(("ver_len_score__raw", ver_len_score__raw))#[2]
+        _log.append(("ver_len_score__raw.mean()", ver_len_score__raw.mean()))#[3]
+        
+        assert _log[1][0] == "hor_len_score__raw.mean()"
+        assert _log[3][0] == "ver_len_score__raw.mean()"
+        _log.append(("sum of two len_score__raw.mean()", _log[1][1] + _log[3][1]))#[4]
         pass
     ver_len_score = ver_len_score__raw.abs().mean()# [RETURN VALUE]
     
@@ -1480,14 +1486,14 @@ def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_l
     hor_len = hor_sum__as_len_sqr___1_is_good__dim.sqrt()
     matrix_into_hor_len_1 = matrix/(hor_len.reshape([-1,1]).expand([-1,dim]))
     if _log is not None:
-        _log.append(("matrix_into_hor_len_1 before nan_to_num", matrix_into_hor_len_1.detach().clone()))
+        _log.append(("matrix_into_hor_len_1 before nan_to_num", matrix_into_hor_len_1.detach().clone()))#[5]
         pass
     matrix_into_hor_len_1.nan_to_num_(0.)# just in case, if any /0, there's nan.
     assert _tensor_equal(get_vector_length(matrix_into_hor_len_1[0]), [1.]) or _tensor_equal(get_vector_length(matrix_into_hor_len_1[0]), [0.])
     hor_vec_angle_test = matrix_into_hor_len_1 @ (matrix_into_hor_len_1.T)                                    
     hor_vec_angle_test[iota_of_dim, iota_of_dim] = 0.
     if _log is not None:
-        _log.append(("hor_vec_angle_test", hor_vec_angle_test))
+        _log.append(("hor_vec_angle_test", hor_vec_angle_test))#[6]
         pass
     hor_angle_score = hor_vec_angle_test.abs().mean()*dim/(dim-1)# [RETURN VALUE]
     #</ horizontal sub vectors   angle score>    
@@ -1496,14 +1502,14 @@ def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_l
     ver_len = ver_sum__as_len_sqr___1_is_good__dim.sqrt()
     matrix_into_ver_len_1 = matrix/(ver_len.reshape([1,-1]).expand([dim,-1]))
     if _log is not None:
-        _log.append(("matrix_into_ver_len_1 before nan_to_num", matrix_into_ver_len_1.detach().clone()))
+        _log.append(("matrix_into_ver_len_1 before nan_to_num", matrix_into_ver_len_1.detach().clone()))#[7]
         pass
     matrix_into_ver_len_1.nan_to_num_(0.)# just in case, if any /0, there's nan.
     assert _tensor_equal(get_vector_length(matrix_into_ver_len_1[:,0]), [1.]) or _tensor_equal(get_vector_length(matrix_into_ver_len_1[:,0]), [0.])
     ver_vec_angle_test = (matrix_into_ver_len_1.T) @ matrix_into_ver_len_1                              
     ver_vec_angle_test[iota_of_dim, iota_of_dim] = 0.
     if _log is not None:
-        _log.append(("ver_vec_angle_test", ver_vec_angle_test))
+        _log.append(("ver_vec_angle_test", ver_vec_angle_test))#[8]
         pass
     ver_angle_score = ver_vec_angle_test.abs().mean()*dim/(dim-1)# [RETURN VALUE]
     #</ vertical sub vectors   angle score>    
@@ -1511,18 +1517,21 @@ def LOSS__the_mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_l
     
     len_score = hor_len_score+ver_len_score
     angle_score = hor_angle_score+ver_angle_score
+    angle_score_corrected = angle_score*math.sqrt(dim + _correct_offset_for_angle_score)
+    # If you don't know it too much, set it to -0.4     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    # -0.4 is the default value. So, simply don't touch it.
     
-    return len_score, angle_score, \
+    return len_score, angle_score_corrected, angle_score, \
             ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
             ( ver_sum__as_len_sqr___1_is_good__dim,ver_sum__as_len_log10___0_is_good__dim,ver_len_score),
             (hor_angle_score, ver_angle_score)),\
             _log
             
-            # tuple[  torch.Tensor,torch.Tensor,
+            # tuple[  torch.Tensor,torch.Tensor,torch.Tensor,
             #         tuple[  tuple[torch.Tensor,torch.Tensor,torch.Tensor],
             #                 tuple[torch.Tensor,torch.Tensor,torch.Tensor],
             #                 tuple[torch.Tensor,torch.Tensor]]
-            #         list|None]
+            #         list[tuple[str, torch.Tensor]] | None]]
             
     # old code.
     # _temp___all_should_near_0 = matrix@(matrix.T)-torch.eye(n=dim, device=matrix.device)
@@ -1550,9 +1559,9 @@ if "test" and __DEBUG_ME__() and True:
             #0 0
             mat = torch.tensor([[1.,1],
                                 [0, 0]])
-            len_score, angle_score, ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
+            len_score, angle_score_corrected, angle_score, ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
                 ( ver_sum__as_len_sqr___1_is_good__dim,ver_sum__as_len_log10___0_is_good__dim,ver_len_score),
-                (hor_angle_score, ver_angle_score)), _log = LOSS__the_mat_is_standard_orthogonal(mat)
+                (hor_angle_score, ver_angle_score)), _log = LOSS__the_mat_is_standard_orthogonal(mat, _debug__needs_log = True)
             assert _tensor_equal(hor_sum__as_len_sqr___1_is_good__dim, [2., 0])
             assert _tensor_equal(   hor_sum__as_len_log10___0_is_good__dim[0], [math.log10(2.)/2.])
             assert                  hor_sum__as_len_log10___0_is_good__dim[1].isneginf()
@@ -1566,24 +1575,39 @@ if "test" and __DEBUG_ME__() and True:
             assert _tensor_equal(ver_angle_score, [1.])
             assert _tensor_equal(angle_score, [1.])
             
+            assert _log[4][0] == "sum of two len_score__raw.mean()"
+            assert _tensor_equal(_log[4][1], [math.log10(2.)/2.])
+            
             # this doesn't pass
             # for _ in range(7):
             #     mat = torch.tensor([[1.,1],
             #                         [0, 0]])
             #     mat = randomly_rotate__matrix(mat)
             #     mat = randomly_permutate__matrix(mat)
-            #     len_score, angle_score, _, _ = LOSS__the_mat_is_standard_orthogonal(mat)
+            #     len_score, angle_score_corrected, angle_score, _, _ = LOSS__the_mat_is_standard_orthogonal(mat)
             #     assert _tensor_equal(len_score, [math.log10(2.)/2.])
             #     assert _tensor_equal(angle_score, [1.])
             #     pass
+            
+            mat = torch.tensor([[0.1, 0.1],
+                                [0,   0]])
+            len_score, angle_score_corrected, angle_score, ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
+                ( ver_sum__as_len_sqr___1_is_good__dim,ver_sum__as_len_log10___0_is_good__dim,ver_len_score),
+                (hor_angle_score, ver_angle_score)), _log = LOSS__the_mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+            
+            assert _tensor_equal(len_score, [abs(math.log10(2.)/2.-2)])
+            assert _tensor_equal(angle_score, [1.])
+            
+            assert _log[4][0] == "sum of two len_score__raw.mean()"
+            assert _tensor_equal(_log[4][1], [math.log10(2.)/2.-2])
             
             #1 0
             #1 0
             mat = torch.tensor([[1.,0],
                                 [1, 0]])
-            len_score, angle_score, ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
+            len_score, angle_score_corrected, angle_score, ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
                 ( ver_sum__as_len_sqr___1_is_good__dim,ver_sum__as_len_log10___0_is_good__dim,ver_len_score),
-                (hor_angle_score, ver_angle_score)), _log = LOSS__the_mat_is_standard_orthogonal(mat)
+                (hor_angle_score, ver_angle_score)), _log = LOSS__the_mat_is_standard_orthogonal(mat, _debug__needs_log = True)
             assert _tensor_equal(hor_sum__as_len_sqr___1_is_good__dim, [1., 1])
             assert _tensor_equal(hor_sum__as_len_log10___0_is_good__dim, [0., 0])
             assert _tensor_equal(hor_len_score, [0.])
@@ -1599,13 +1623,16 @@ if "test" and __DEBUG_ME__() and True:
             assert _tensor_equal(ver_angle_score, [0.])
             assert _tensor_equal(angle_score, [1.])
             
+            assert _log[4][0] == "sum of two len_score__raw.mean()"
+            assert _tensor_equal(_log[4][1], [math.log10(2.)/2.])
+            
             # this doesn't pass
             # for _ in range(7):
             #     mat = torch.tensor([[1.,0],
             #                         [1, 0]])
             #     mat = randomly_rotate__matrix(mat)
             #     mat = randomly_permutate__matrix(mat)
-            #     len_score, angle_score, _, _ = LOSS__the_mat_is_standard_orthogonal(mat)
+            #     len_score, angle_score_corrected, angle_score, _, _ = LOSS__the_mat_is_standard_orthogonal(mat)
             #     assert _tensor_equal(len_score, [math.log10(2.)/2.])
             #     assert _tensor_equal(angle_score, [1.])
             #     pass
@@ -1614,9 +1641,9 @@ if "test" and __DEBUG_ME__() and True:
             #1 -1
             mat = torch.tensor([[1.,-1],
                                 [1, -1]])
-            len_score, angle_score, ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
+            len_score, angle_score_corrected, angle_score, ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
                 ( ver_sum__as_len_sqr___1_is_good__dim,ver_sum__as_len_log10___0_is_good__dim,ver_len_score),
-                (hor_angle_score, ver_angle_score)), _log = LOSS__the_mat_is_standard_orthogonal(mat)
+                (hor_angle_score, ver_angle_score)), _log = LOSS__the_mat_is_standard_orthogonal(mat, _debug__needs_log = True)
             assert _tensor_equal(hor_sum__as_len_sqr___1_is_good__dim, [2., 2])
             assert _tensor_equal(hor_sum__as_len_log10___0_is_good__dim, [math.log10(2.)/2., math.log10(2.)/2.])
             assert _tensor_equal(hor_len_score, [math.log10(2.)/2.])
@@ -1631,13 +1658,16 @@ if "test" and __DEBUG_ME__() and True:
             assert _tensor_equal(ver_angle_score, [1.])
             assert _tensor_equal(angle_score, [2.])
             
+            assert _log[4][0] == "sum of two len_score__raw.mean()"
+            assert _tensor_equal(_log[4][1], [math.log10(2.)])
+            
             # this doesn't pass
             # for _ in range(7):
             #     mat = torch.tensor([[1.,-1],
             #                         [1, -1]])
             #     mat = randomly_rotate__matrix(mat)
             #     mat = randomly_permutate__matrix(mat)
-            #     len_score, angle_score, _, _ = LOSS__the_mat_is_standard_orthogonal(mat)
+            #     len_score, angle_score_corrected, angle_score, _, _ = LOSS__the_mat_is_standard_orthogonal(mat)
             #     assert _tensor_equal(len_score, [math.log10(2.)])
             #     assert _tensor_equal(angle_score, [2.])
             #     pass
@@ -1647,9 +1677,9 @@ if "test" and __DEBUG_ME__() and True:
                                 [1 , 1,-1,-1],
                                 [1 ,-1,-1, 1],
                                 [1 ,-1, 1,-1],])
-            len_score, angle_score, ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
+            len_score, angle_score_corrected, angle_score, ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
                 ( ver_sum__as_len_sqr___1_is_good__dim,ver_sum__as_len_log10___0_is_good__dim,ver_len_score),
-                (hor_angle_score, ver_angle_score)), _log = LOSS__the_mat_is_standard_orthogonal(mat)
+                (hor_angle_score, ver_angle_score)), _log = LOSS__the_mat_is_standard_orthogonal(mat, _debug__needs_log = True)
             assert _tensor_equal(hor_sum__as_len_sqr___1_is_good__dim, [4.]*4)
             assert _tensor_equal(hor_sum__as_len_log10___0_is_good__dim, [math.log10(4.)/2.]*4)
             assert _tensor_equal(hor_len_score, [math.log10(4.)/2.])
@@ -1664,6 +1694,9 @@ if "test" and __DEBUG_ME__() and True:
             assert _tensor_equal(ver_angle_score, [0.])
             assert _tensor_equal(angle_score, [0.])
             
+            assert _log[4][0] == "sum of two len_score__raw.mean()"
+            assert _tensor_equal(_log[4][1], [math.log10(4.)])
+            
             for _ in range(17):
                 mat = torch.tensor([[1., 1, 1, 1],
                                     [1 , 1,-1,-1],
@@ -1671,7 +1704,7 @@ if "test" and __DEBUG_ME__() and True:
                                     [1 ,-1, 1,-1],])
                 mat = randomly_rotate__matrix(mat)
                 mat = randomly_permutate__matrix(mat)
-                len_score, angle_score, _, _ = LOSS__the_mat_is_standard_orthogonal(mat)
+                len_score, angle_score, _,_, _ = LOSS__the_mat_is_standard_orthogonal(mat)
                 assert _tensor_equal(len_score, [math.log10(4.)])
                 assert _tensor_equal(angle_score, [0.])
                 pass
@@ -1692,7 +1725,7 @@ if "test" and __DEBUG_ME__() and True:
                     mat = torch.eye(n=dim)
                     mat = randomly_rotate__matrix(mat)
                     mat = randomly_permutate__matrix(mat)
-                    len_score, angle_score, ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
+                    len_score, angle_score_corrected, angle_score, ((hor_sum__as_len_sqr___1_is_good__dim,hor_sum__as_len_log10___0_is_good__dim,hor_len_score),
                         ( ver_sum__as_len_sqr___1_is_good__dim,ver_sum__as_len_log10___0_is_good__dim,ver_len_score),
                         (hor_angle_score, ver_angle_score)), _log = LOSS__the_mat_is_standard_orthogonal(mat)
                     assert _tensor_equal(hor_sum__as_len_sqr___1_is_good__dim, [1.]*dim)
@@ -1716,16 +1749,87 @@ if "test" and __DEBUG_ME__() and True:
     
     
     def ____test____measure_the_random_init____LOSS__the_mat_is_standard_orthogonal():
-        if "measure the random generated matrix first" and True:
-            # randn(size=[dim,dim])/math.sqrt(dim)
+        if "the reason to correct the angle_score" and False:
             #result
-            # len_score_min   = [ 0.009,  0.070,  0.041,  0.015]
-            # len_score_max   = [ 2.186,  0.331,  0.058,  0.016]
-            # len_score_avg   = [ 0.441,  0.163,  0.049,  0.016]
-            # angle_score_min = [ 0.009,  0.353,  0.155,  0.050]
-            # angle_score_max = [ 2.000,  0.754,  0.165,  0.051]
-            # angle_score_avg = [ 1.264,  0.518,  0.160,  0.050]
-            # dim_list      = [ 2.00,  10.00,  100.00,  1000.00]
+            # log10_of__angle_score_min = [-1.260, -1.305, -1.778]#the first 3 lines are log10(per element, read the code.)
+            # log10_of__angle_score_max = [-0.501, -1.238, -1.773]
+            # log10_of__angle_score_avg = [-0.784, -1.273, -1.775]
+            # corrected_angle_score_min = [ 1.127,  1.546,  1.592]#the following 3 lines are abs.
+            # corrected_angle_score_max = [ 2.299,  1.648,  1.598]
+            # corrected_angle_score_avg = [ 1.605,  1.597,  1.596]
+            # dim_list                  = [ 10.0,  100.0,  1000.0]
+            
+            #btw, corrected_angle_score for randn is 1.60
+        
+            log10_of__angle_score_min = []#don't modify this
+            log10_of__angle_score_max = []#don't modify this
+            log10_of__angle_score_avg = []#don't modify this
+            corrected_angle_score_min = []#don't modify this
+            corrected_angle_score_max = []#don't modify this
+            corrected_angle_score_avg = []#don't modify this
+            #------------------#------------------#------------------
+            dim_list =       [   10,  100, 1000]
+            test_time_list = [2000, 1000,  100]
+            for inner_param_set in range(dim_list.__len__()):
+                dim = dim_list[inner_param_set]
+                test_time = test_time_list[inner_param_set]
+                print(test_time)
+            #------------------#------------------#------------------
+            
+                raw_corrected_angle_score = torch.empty(size=[test_time])
+                log10_of__raw_angle_score = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #------------------#------------------#------------------
+                    mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
+                    len_score, angle_score_corrected, angle_score, _,_log = LOSS__the_mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+                    assert _log[6][0] == "hor_vec_angle_test"
+                    _tensor_in_log = _log[6][1]
+                    
+                    part_1 = _tensor_in_log[dim//2:,:dim//2]
+                    #assert not part_1.eq(0.).any()#may not stable.
+                    log10_avg__for_part_1 = log10_avg_safe(part_1)
+                    
+                    part_2 = _tensor_in_log[:dim//2,dim//2:]
+                    assert not part_2.eq(0.).any()#may not stable.
+                    log10_avg__for_part_2 = log10_avg_safe(part_2)
+                    
+                    _this_result = (log10_avg__for_part_1+log10_avg__for_part_2)/2.
+                    #------------------#------------------#------------------
+                    log10_of__raw_angle_score[test_count] = _this_result
+                    raw_corrected_angle_score[test_count] = angle_score_corrected
+                    pass
+                log10_of__angle_score_min .append(log10_of__raw_angle_score.min ())
+                log10_of__angle_score_max .append(log10_of__raw_angle_score.max ())
+                log10_of__angle_score_avg .append(log10_of__raw_angle_score.mean())
+                corrected_angle_score_min .append(raw_corrected_angle_score.min ())
+                corrected_angle_score_max .append(raw_corrected_angle_score.max ())
+                corrected_angle_score_avg .append(raw_corrected_angle_score.mean())
+                pass#for inner param set
+            print(f"log10_of__angle_score_min = {str_the_list(log10_of__angle_score_min, 3)}")
+            print(f"log10_of__angle_score_max = {str_the_list(log10_of__angle_score_max, 3)}")
+            print(f"log10_of__angle_score_avg = {str_the_list(log10_of__angle_score_avg, 3)}")
+            print(f"corrected_angle_score_min = {str_the_list(corrected_angle_score_min, 3)}")
+            print(f"corrected_angle_score_max = {str_the_list(corrected_angle_score_max, 3)}")
+            print(f"corrected_angle_score_avg = {str_the_list(corrected_angle_score_avg, 3)}")
+            print(f"dim_list                = {str_the_list(dim_list, 1)}")
+            
+            pass#/test
+        
+        if "randn" and False:
+            print("randn")
+            #the angle part is repeating. But anyway.
+            # randn(size=[dim,dim])/sqrt(dim)
+            #result
+            # len_score_min   = [-2.438, -0.295, -0.027, -0.002]
+            # len_score_max   = [ 0.705,  0.204,  0.019,  0.001]
+            # len_score_avg   = [-0.250, -0.046, -0.004, -0.000]
+            # angle_score_min = [ 0.020,  1.129,  1.550,  1.591]
+            # angle_score_max = [ 2.530,  2.348,  1.650,  1.599]
+            # angle_score_avg = [ 1.616,  1.605,  1.596,  1.596]
+            # dim_list         = [ 2.00,  10.00,  100.00,  1000.]
+            
+            # angle_score_avg = [ 1.801,  1.636,  1.601,  1.596]# if the correction offset if 0.
+            # angle_score_avg = [ 1.272,  1.548,  1.592,  1.595]# if the correction offset if -1.
             
             #throritically, rotating and permutating a matrix should not change the result too much ?
             
@@ -1737,7 +1841,7 @@ if "test" and __DEBUG_ME__() and True:
             angle_score_avg = []#don't modify this
             #------------------#------------------#------------------
             dim_list =       [2,       10,  100, 1000]
-            test_time_list = [10000,10000, 1000,  500]
+            test_time_list = [10000, 3000, 1000,  200]
             for inner_param_set in range(dim_list.__len__()):
                 dim = dim_list[inner_param_set]
                 test_time = test_time_list[inner_param_set]
@@ -1749,17 +1853,13 @@ if "test" and __DEBUG_ME__() and True:
                 for test_count in range(test_time):
                     #------------------#------------------#------------------
                     mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
-                    #mat = randomly_rotate__matrix(mat)
-                    #mat = randomly_permutate__matrix(mat)
-                    len_score, angle_score, _,_ = LOSS__the_mat_is_standard_orthogonal(mat)
-                    1w
-                    1w
-                    1w
-                    1w要不要追加一个对角度loss的修正？？？
+                    _, angle_score_corrected, _,_,_log = LOSS__the_mat_is_standard_orthogonal(mat, _debug__needs_log = True)#,_correct_offset_for_angle_score = -1.)
+                    assert _log[4][0] == "sum of two len_score__raw.mean()"
+                    len_score = _log[4][1]
                     #------------------#------------------#------------------
                     
                     raw_len_score[test_count] = len_score
-                    raw_angle_score[test_count] = angle_score
+                    raw_angle_score[test_count] = angle_score_corrected
                     pass
                 len_score_min   .append(raw_len_score.min ())
                 len_score_max   .append(raw_len_score.max ())
@@ -1779,8 +1879,92 @@ if "test" and __DEBUG_ME__() and True:
             
             pass#/test
         
+        if "rand" and False:
+            #the angle part is very weird. It looks the correction in that function is wrong?
+            # randn(size=[dim,dim])/sqrt(dim)
+            #result
+            # len_score_min               = [-2.542, -0.644, -0.492, -0.478]
+            # len_score_max               = [-0.066, -0.371, -0.467, -0.476]
+            # len_score_avg               = [-0.625, -0.496, -0.479, -0.477]
+            # angle_score_min             = [ 0.125,  4.125,  14.794, 47.396]#rand doesn't fit the correction.
+            # angle_score_max             = [ 2.530,  5.296,  15.179, 47.484]#rand doesn't fit the correction.
+            # angle_score_avg             = [ 2.126,  4.703,  14.989, 47.430]#rand doesn't fit the correction.
+            # angle_score_uncorrected_min = [ 0.099,  1.331,  1.482,  1.499]
+            # angle_score_uncorrected_max = [ 0.099,  1.331,  1.482,  1.499]
+            # angle_score_uncorrected_avg = [ 0.099,  1.331,  1.482,  1.499]
+            # dim_list                  = [ 2.00,  10.00,  100.00,  1000.00]
+                        
+            # angle_score_avg = [ 1.801, xxxxxxxxx 1.636,  1.601,  1.596]# if the correction offset if 0.
+            # angle_score_avg = [ 1.272, xxxxxxxxxxxx 1.548,  1.592,  1.595]# if the correction offset if -1.
+            
+            #throritically, rotating and permutating a matrix should not change the result too much ?
+            print("rand")
+            len_score_min = []#don't modify this
+            len_score_max = []#don't modify this
+            len_score_avg = []#don't modify this
+            angle_score_min = []#don't modify this
+            angle_score_max = []#don't modify this
+            angle_score_avg = []#don't modify this
+            angle_score_uncorrected_min = []#don't modify this
+            angle_score_uncorrected_max = []#don't modify this
+            angle_score_uncorrected_avg = []#don't modify this
+            #------------------#------------------#------------------
+            dim_list =       [2,      10,  100, 1000]
+            test_time_list = [5000, 3000, 1000,  200]
+            for inner_param_set in range(dim_list.__len__()):
+                dim = dim_list[inner_param_set]
+                test_time = test_time_list[inner_param_set]
+                print(test_time)
+            #------------------#------------------#------------------
+            
+                raw_len_score = torch.empty(size=[test_time])
+                raw_angle_score = torch.empty(size=[test_time])
+                raw_angle_score_uncorrected = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #------------------#------------------#------------------
+                    mat = torch.rand (size=[dim,dim])/math.sqrt(dim)
+                    _, angle_score_corrected, angle_score, _,_log = LOSS__the_mat_is_standard_orthogonal(mat, _debug__needs_log = True)#,_correct_offset_for_angle_score = -1.)
+                    assert _log[4][0] == "sum of two len_score__raw.mean()"
+                    len_score = _log[4][1]
+                    #------------------#------------------#------------------
+                    
+                    raw_len_score[test_count] = len_score
+                    raw_angle_score[test_count] = angle_score_corrected
+                    raw_angle_score_uncorrected[test_count] = angle_score
+                    pass
+                len_score_min   .append(raw_len_score.min ())
+                len_score_max   .append(raw_len_score.max ())
+                len_score_avg   .append(raw_len_score.mean())
+                angle_score_min .append(raw_angle_score.min ())
+                angle_score_max .append(raw_angle_score.max ())
+                angle_score_avg .append(raw_angle_score.mean())
+                angle_score_uncorrected_min .append(raw_angle_score_uncorrected.min ())
+                angle_score_uncorrected_max .append(raw_angle_score_uncorrected.min ())
+                angle_score_uncorrected_avg .append(raw_angle_score_uncorrected.min ())
+                
+                pass#for inner param set
+            print(f"len_score_min               = {str_the_list(len_score_min  , 3)}")
+            print(f"len_score_max               = {str_the_list(len_score_max  , 3)}")
+            print(f"len_score_avg               = {str_the_list(len_score_avg  , 3)}")
+            print(f"angle_score_min             = {str_the_list(angle_score_min, 3)}")
+            print(f"angle_score_max             = {str_the_list(angle_score_max, 3)}")
+            print(f"angle_score_avg             = {str_the_list(angle_score_avg, 3)}")
+            print(f"angle_score_uncorrected_min = {str_the_list(angle_score_uncorrected_min, 3)}")
+            print(f"angle_score_uncorrected_max = {str_the_list(angle_score_uncorrected_max, 3)}")
+            print(f"angle_score_uncorrected_avg = {str_the_list(angle_score_uncorrected_avg, 3)}")
+            print(f"dim_list                  = {str_the_list(dim_list, 2)}")
+            
+            pass#/test
+        
+        
+        1w
+        1w
+        1w
+        1w
+        
         
         if "permutation doesn't affect the result." and False:
+            #it's a only assertion test. No print.
             #throritically, rotating and permutating a matrix should not change the result too much ?
             #------------------#------------------#------------------
             dim_list =       [2,     10, 100, 1000]
@@ -1791,10 +1975,10 @@ if "test" and __DEBUG_ME__() and True:
                 print(test_time)
             #------------------#------------------#------------------
                 for test_count in range(test_time):
-                    mat = torch.randn(size=[dim,dim])/math.sqrt(dim)*1000.
+                    mat = torch.randn(size=[dim,dim])/math.sqrt(dim)*1000.#to make sure the before_abs are all >0.
                     mat = randomly_rotate__matrix(mat)
                     mat = randomly_permutate__matrix(mat)
-                    before__len_score, before__angle_score, all_the_other_results,_ = LOSS__the_mat_is_standard_orthogonal(mat)
+                    before__len_score, before__angle_score, _, all_the_other_results,_ = LOSS__the_mat_is_standard_orthogonal(mat)
                     
                     #this assertion is specially for this test. They must be >0 before the abs().
                     assert all_the_other_results[0][1].ge(0.).all()
@@ -1816,7 +2000,6 @@ if "test" and __DEBUG_ME__() and True:
                 pass#for inner param set
             pass#/test
         
-        
         if "how much does the randomly rotation affect the score." and True:
             # randn(size=[dim,dim])/math.sqrt(dim) * 1000
             #result is the abs(diff)
@@ -1830,12 +2013,12 @@ if "test" and __DEBUG_ME__() and True:
             # dim_list      = [ 2.00,  10.00,  100.00,  1000.00]
             # if dim is big enough, the error is small enough.
             
-            len_score_min = []#don't modify this
-            len_score_max = []#don't modify this
-            len_score_avg = []#don't modify this
-            angle_score_min = []#don't modify this
-            angle_score_max = []#don't modify this
-            angle_score_avg = []#don't modify this
+            diff_of__len_score_min = []#don't modify this
+            diff_of__len_score_max = []#don't modify this
+            diff_of__len_score_avg = []#don't modify this
+            diff_of__angle_score_min = []#don't modify this
+            diff_of__angle_score_max = []#don't modify this
+            diff_of__angle_score_avg = []#don't modify this
             #------------------#------------------#------------------
             dim_list =       [2,       10,  100, 1000]
             test_time_list = [10000,10000,  300,  20]
@@ -1850,26 +2033,29 @@ if "test" and __DEBUG_ME__() and True:
                 for test_count in range(test_time):
                     #------------------#------------------#------------------
                     mat = torch.randn(size=[dim,dim])/math.sqrt(dim)*1000.
-                    before__len_score, before__angle_score, all_the_other_results,_ = LOSS__the_mat_is_standard_orthogonal(mat)
+                    _, before__angle_score, _,_, _log = LOSS__the_mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+                    assert _log[4][0] == "sum of two len_score__raw.mean()"
+                    before__len_score = _log[4][1]
                     
                     #this assertion is specially for this test. They must be >0 before the abs().
-                    assert all_the_other_results[0][1].ge(0.).all()
-                    assert all_the_other_results[1][1].ge(0.).all()
-                    
+                    # assert all_the_other_results[0][1].ge(0.).all()
+                    # assert all_the_other_results[1][1].ge(0.).all()
                     
                     mat = randomly_rotate__matrix(mat)
-                    after__len_score,  after__angle_score , _,_ = LOSS__the_mat_is_standard_orthogonal(mat)
+                    _, after__angle_score, _,_, _log = LOSS__the_mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+                    assert _log[4][0] == "sum of two len_score__raw.mean()"
+                    after__len_score = _log[4][1]
                     #------------------#------------------#------------------
                     
                     raw_len_score[test_count] = (before__len_score-after__len_score).abs()
                     raw_angle_score[test_count] = (before__angle_score-after__angle_score).abs()
                     pass
-                len_score_min   .append(raw_len_score.min ())
-                len_score_max   .append(raw_len_score.max ())
-                len_score_avg   .append(raw_len_score.mean())
-                angle_score_min .append(raw_angle_score.min ())
-                angle_score_max .append(raw_angle_score.max ())
-                angle_score_avg .append(raw_angle_score.mean())
+                diff_of__len_score_min   .append(raw_len_score.min ())
+                diff_of__len_score_max   .append(raw_len_score.max ())
+                diff_of__len_score_avg   .append(raw_len_score.mean())
+                diff_of__angle_score_min .append(raw_angle_score.min ())
+                diff_of__angle_score_max .append(raw_angle_score.max ())
+                diff_of__angle_score_avg .append(raw_angle_score.mean())
                 
                 pass#for inner param set
             print(f"len_score_min   = {str_the_list(len_score_min  , 3)}")
@@ -1881,6 +2067,33 @@ if "test" and __DEBUG_ME__() and True:
             print(f"dim_list      = {str_the_list(dim_list, 2)}")
             
             pass#/test
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        旋转带来的影响
+        渐变的要怎么做,  perfect_mat和rand_mat做插值
+        
+        
+        
+        #mat = randomly_rotate__matrix(mat)
+                    #mat = randomly_permutate__matrix(mat)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         return 
     
