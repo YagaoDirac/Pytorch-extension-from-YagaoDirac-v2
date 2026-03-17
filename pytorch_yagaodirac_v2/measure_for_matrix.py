@@ -30,15 +30,11 @@ def _line_():
 
 
 
-
-
-
-
-
-
 def LOSS__vec_len_retention__of_a_mat_in_matmul(matrix:torch.Tensor,
-                        test_time:int|None = None, at_least = -7.)->tuple[torch.Tensor,torch.Tensor,torch.Tensor]:
-    '''return score__len_sqr,score_log10_div2,score_log10_div2__abs
+                        test_time:int|None = None, at_least = -7.)->tuple[torch.Tensor, tuple[torch.Tensor,torch.Tensor,torch.Tensor]]:
+    '''return length_retention_score, (score__len_sqr, score_log10_div2, score_log10_div2__abs)
+    
+    The score_log10_div2 and score_log10_div2__abs maybe empty. If so, the length_retention_score is nan.
     
     the 2nd and 3rd output size can be smaller than the 1st one if any of them is smaller than the at_least
     
@@ -53,7 +49,7 @@ def LOSS__vec_len_retention__of_a_mat_in_matmul(matrix:torch.Tensor,
     
     with torch.no_grad():
         the_device = matrix.device
-        score__len_sqr = torch.empty([test_time], device = the_device)
+        score__len_sqr___test_time = torch.empty([test_time], device = the_device)
         for epoch in range(test_time):
             vec = random_standard_vector(dim=dim, dtype=matrix.dtype, device=the_device)
             
@@ -61,29 +57,39 @@ def LOSS__vec_len_retention__of_a_mat_in_matmul(matrix:torch.Tensor,
             after_matmul = vec@matrix
             new_len_sqr = after_matmul.dot(after_matmul)
             
-            score__len_sqr[epoch] = new_len_sqr
+            score__len_sqr___test_time[epoch] = new_len_sqr
             
             #old
             #score_of_this_epoch = new_len_sqr.log10().abs()/2.
             #all_score[epoch] = score_of_this_epoch
             pass#/ for
         
-        raw_score_log10_div2 = score__len_sqr.log10()/2.
-        score_log10_div2 = raw_score_log10_div2[raw_score_log10_div2>=at_least]
-        score_log10_div2__abs = score_log10_div2.abs()
+        raw_score_log10_div2___test_time = score__len_sqr___test_time.log10()/2.
+        score_log10_div2___maybe_test_time = raw_score_log10_div2___test_time[raw_score_log10_div2___test_time>=at_least]
+        score_log10_div2__abs___maybe_test_time = score_log10_div2___maybe_test_time.abs()
+        length_retention_score = score_log10_div2__abs___maybe_test_time.mean()
         
-        return score__len_sqr,score_log10_div2,score_log10_div2__abs
+        return length_retention_score, \
+            (score__len_sqr___test_time, score_log10_div2___maybe_test_time, score_log10_div2__abs___maybe_test_time)
     pass#/function
 
 if "basic test" and __DEBUG_ME__() and False:
     def ____test____LOSS__vec_len_retention__of_a_mat_in_matmul():
         import random, math
+        if "what is too small" and True:
+            mat = torch.eye(n=3)/10000.
+            length_retention_score, (score__len_sqr___test_time, \
+                score_log10_div2___maybe_test_time, score_log10_div2__abs___maybe_test_time) = \
+                        LOSS__vec_len_retention__of_a_mat_in_matmul(mat,test_time=2, at_least= -2)
+            assert length_retention_score.isnan()
+            pass
+        
         if "eye is perfect" and True:
             for dim in range(3, 15):
                 test_time = 10
                 for test_count in range(test_time):
                     mat = torch.eye(n=dim)
-                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                    length_retention_score, (score__len_sqr, score_log10_div2, score_log10_div2__abs) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(mat,test_time=100)
                     assert _tensor_equal(score__len_sqr.log10()/2., torch.zeros(size=[100]), epsilon=1e-6)
                     pass
@@ -96,7 +102,7 @@ if "basic test" and __DEBUG_ME__() and False:
                     _to_the_power = (torch.rand(size=[])*2-1)*3.
                     _factor = torch.pow(10, _to_the_power)
                     mat = torch.eye(n=dim)*_factor
-                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                    length_retention_score, (score__len_sqr, score_log10_div2, score_log10_div2__abs) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(mat, test_time=100)
                     assert _tensor_equal(score__len_sqr.log10()/2., torch.ones(size=[100])*_to_the_power)
                     pass
@@ -117,7 +123,7 @@ if "basic test" and __DEBUG_ME__() and False:
                     _to_the_power = (torch.rand(size=[])*2.-1.)*3.
                     _factor = torch.pow(10, _to_the_power)
                     mat.mul_(_factor)
-                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                    length_retention_score, (score__len_sqr, score_log10_div2, score_log10_div2__abs) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(mat, test_time=100)
                     assert _tensor_equal(score__len_sqr.log10()/2., torch.ones(size=[100])*_to_the_power)
                     pass
@@ -129,7 +135,7 @@ if "basic test" and __DEBUG_ME__() and False:
         
         if "randn and randn but rotated and permuted should be similar" and True:
             #result
-            # result_of__length_diff_min     = [ 0.009,  0.006, -0.006, -0.001]
+            # result_of__length_diff_mean    = [ 0.009,  0.006, -0.006, -0.001]
             # dim_list                       = [ 2.000,  5.000,  10.000,  100.000]
             
             result_of__diff = []#don't modify this.
@@ -152,9 +158,9 @@ if "basic test" and __DEBUG_ME__() and False:
                         mat_2 = randomly_rotate__matrix(mat_2)
                         pass
                     #</ prepare the vec>
-                    score__len_sqr, mat_1__score_log10_div2, score_log10_div2__abs = \
+                    _, (score__len_sqr, mat_1__score_log10_div2, score_log10_div2__abs) = \
                             LOSS__vec_len_retention__of_a_mat_in_matmul(mat_1, test_time=100)
-                    score__len_sqr, mat_2__score_log10_div2, score_log10_div2__abs = \
+                    _, (score__len_sqr, mat_2__score_log10_div2, score_log10_div2__abs) = \
                             LOSS__vec_len_retention__of_a_mat_in_matmul(mat_2, test_time=100)
                     _this_result = mat_1__score_log10_div2.mean()-mat_2__score_log10_div2.mean()
                     #----------------#----------------#----------------
@@ -162,7 +168,7 @@ if "basic test" and __DEBUG_ME__() and False:
                     pass
                 result_of__diff.append(_raw_result_of__diff.mean())
                 pass#for dim
-            print(f"result_of__length_diff_min     = {str_the_list(result_of__diff    , 3)}")
+            print(f"result_of__length_diff_mean   = {str_the_list(result_of__diff    , 3)}")
             print(f"dim_list                       = {str_the_list(dim_list     , 3)}")
             pass#/test
         
@@ -174,400 +180,292 @@ if "basic test" and __DEBUG_ME__() and False:
 
 # All the measurement are for square matrix. So, [dim] means [dim,dim]
 # randn[dim,dim] >>> 0.5*log10(dim)
-# randn@randn    >>> 1.*log10(dim) 
+# randn@randn    >>>  1.*log10(dim) 
 # randn[dim,dim]/sqrt(dim) >>> 0.
 
-# rand [dim,dim] >>> 0.5*log10(dim) -0.24
-# rand @rand     >>> 1.5*log10(dim)-0.60
+# rand [dim,dim] >>> 0.5*log10(dim) -0.32
+# rand @rand     >>> 1.5*log10(dim) -0.86
 
-# rand*2-1       >>> 0.5*log10(dim)-0.238
-# rand*2-1 @ rand*2-1 >>> 1.*log10(dim)-0.17
+# rand*2-1       >>> 0.5*log10(dim)-0.24
+# rand*2-1 @ rand*2-1 >>> 1.*log10(dim)-0.26
 if "measure the random init" and __DEBUG_ME__() and False:
     def ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10___2():
         import math
         if "small example" and False:
             # dim = 10
-            # rand_mat = torch.randn(size=[dim,dim])#/math.sqrt(10)
+            # rand_mat = torch.randn(size=[dim,dim])#/math.sqrt(dim)
             # score__len_sqr,score_log10_div2,score_log10_div2__abs = \
             #             LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(rand_mat, test_time=10)
             # aaaaa = score__len_sqr.sort().values
             # bbbbb = log10_avg_safe(aaaaa)/2.
             pass
         
-        if "measure the randn[dim,dim]" and False:
+        if "randn[dim,dim] with or without /sqrt(dim)" and False:
             # output:
-            # the_min_gt_this_list =[ 0.393,  0.990,  1.499]
-            # the_max_lt_this_list =[ 0.581,  1.006,  1.501]
-            # the_mean_eq_this_list=[ 0.496,  1.000,  1.500]
-            # epsilon_list         =[ 0.103,  0.010,  0.001]
-            # dim_list =                [10,    100,   1000]
+            # with "/sqrt(dim)"
+            # the_min_gt_this_list  = [-0.147, -0.013, -0.001]
+            # the_max_lt_this_list  = [ 0.060,  0.007,  0.001]
+            # the_mean_eq_this_list = [-0.025, -0.002, -0.000]
+            # dim_list                   = [10, 100, 1000]
+            
+            # without "/sqrt(dim)"
+            # the_min_gt_this_list  = [ 0.376,  0.986,  1.499]
+            # the_max_lt_this_list  = [ 0.573,  1.006,  1.500]
+            # the_mean_eq_this_list = [ 0.480,  0.997,  1.500]
+            # dim_list                   = [10, 100, 1000]
+            
             # 0.5 log10(dim)
-            print("randn[dim,dim]")
+            print("randn[dim,dim] with or without /sqrt(dim)")
             device = 'cuda'
             #--------------------#--------------------#--------------------
             dim_list = [10,100,1000]
-            test_time_list = [300,100,30]
+            test_time_list = [300,100,20]
             #--------------------#--------------------#--------------------
-            the_min_gt_this_list =  []#don't modify here.
-            the_max_lt_this_list =  []
-            the_mean_eq_this_list = []
-            epsilon_list =          []
+            mean_of__score_log10_div2__min =  []#don't modify here.
+            mean_of__score_log10_div2__max =  []#don't modify here.
+            mean_of__score_log10_div2__avg =  []#don't modify here.
             for inner_iter_count in range(dim_list.__len__()):
                 dim = dim_list[inner_iter_count]
                 test_time = test_time_list[inner_iter_count]
                 print(test_time)
-            
+
                 _raw_result = torch.empty(size=[test_time])
                 for test_count in range(test_time):
                     #--------------------#--------------------#--------------------
-                    rand_mat = torch.randn(size=[dim,dim], device=device)
-                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                    rand_mat = torch.randn(size=[dim,dim], device=device)#/math.sqrt(dim)
+                    _, (_, score_log10_div2, _) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
                     
-                    _this_result = log10_avg_safe(score__len_sqr.mean())/2.
+                    _this_result = score_log10_div2.mean()
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
+                    
                     pass
-                the_min = _raw_result.min()
-                the_max = _raw_result.max()
-                the_mean = _raw_result.mean()
-                the_min_gt_this_list.append(the_min.item())
-                the_max_lt_this_list.append(the_max.item())
-                the_mean_eq_this_list.append(the_mean.item())
-                _delta_1 = the_mean - the_min 
-                _delta_2 = the_max  - the_mean
-                epsilon = max(_delta_1, _delta_2)
-                epsilon_list.append(epsilon.item())    
-                print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
+                mean_of__score_log10_div2__min.append(_raw_result.min() )
+                mean_of__score_log10_div2__max.append(_raw_result.max() )
+                mean_of__score_log10_div2__avg.append(_raw_result.mean())
                 pass# for macro_iter_count
-            print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
-            print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
-            print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
-            print(f"epsilon_list        ={    str_the_list(epsilon_list,         3)}")    
-            print(f"#dim_list            ={  dim_list}")    
+            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
+            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
+            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
+            print(f"dim_list                   = {  dim_list}")
             pass#/test
         
-        if "measure the randn@randn" and False:
+        if "randn@randn" and False:
             # output:
-            # the_min_gt_this_list =[ 0.809,  1.979,  2.999]
-            # the_max_lt_this_list =[ 1.143,  2.014,  3.002]
-            # the_mean_eq_this_list=[ 0.991,  2.000,  3.000]
-            # epsilon_list         =[ 0.182,  0.020,  0.001]
-            #dim_list              =[10,       100,   1000]
+            # the_min_gt_this_list  = [ 0.816,  1.972,  2.998]
+            # the_max_lt_this_list  = [ 1.170,  2.011,  3.001]
+            # the_mean_eq_this_list = [ 0.952,  1.996,  2.999]
+            # dim_list             = [10, 100, 1000]
             # 1.*log10(dim)
             print("randn[dim,dim]")
             device = 'cuda'
             #--------------------#--------------------#--------------------
             dim_list = [10,100,1000]
-            test_time_list = [300,100,30]
-            #--------------------#--------------------#--------------------
-            the_min_gt_this_list =  []#don't modify here.
-            the_max_lt_this_list =  []
-            the_mean_eq_this_list = []
-            epsilon_list =          []
+            test_time_list = [300,100,20]
+            mean_of__score_log10_div2__min =  []#don't modify here.
+            mean_of__score_log10_div2__max =  []#don't modify here.
+            mean_of__score_log10_div2__avg =  []#don't modify here.
             for inner_iter_count in range(dim_list.__len__()):
                 dim = dim_list[inner_iter_count]
                 test_time = test_time_list[inner_iter_count]
                 print(test_time)
-            
+
                 _raw_result = torch.empty(size=[test_time])
                 for test_count in range(test_time):
                     #--------------------#--------------------#--------------------
                     rand_mat = torch.randn(size=[dim,dim], device=device)
                     rand_mat = rand_mat@torch.randn(size=[dim,dim], device=device)
-                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                    _, (_, score_log10_div2, _) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
                     
-                    _this_result = log10_avg_safe(score__len_sqr.mean())/2.
+                    _this_result = score_log10_div2.mean()
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
+                    
                     pass
-                the_min = _raw_result.min()
-                the_max = _raw_result.max()
-                the_mean = _raw_result.mean()
-                the_min_gt_this_list.append(the_min.item())
-                the_max_lt_this_list.append(the_max.item())
-                the_mean_eq_this_list.append(the_mean.item())
-                _delta_1 = the_mean - the_min 
-                _delta_2 = the_max  - the_mean
-                epsilon = max(_delta_1, _delta_2)
-                epsilon_list.append(epsilon.item())    
-                print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
+                mean_of__score_log10_div2__min.append(_raw_result.min() )
+                mean_of__score_log10_div2__max.append(_raw_result.max() )
+                mean_of__score_log10_div2__avg.append(_raw_result.mean())
                 pass# for macro_iter_count
-            print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
-            print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
-            print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
-            print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
-            print(f"#dim_list            ={  dim_list}")     
+            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
+            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
+            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
+            print(f"dim_list             = {  dim_list}")
             pass#/test
         
-        if "measure the randn[dim,dim]/sqrt(dim)" and False:
+        if "rand [dim,dim], just for fun" and False:
             # output:
-            # the_min_gt_this_list =[-0.118, -0.009, -0.001]
-            # the_max_lt_this_list =[ 0.075,  0.009,  0.001]
-            # the_mean_eq_this_list=[-0.004,  0.000,  0.000]
-            # epsilon_list       =[ 0.114,  0.009,  0.001]
-            # #dim_list            =[10, 100, 1000]
-            # 0.
-            print("randn[dim,dim]")
+            # the_min_gt_this_list  = [ 0.081,  0.650,  1.168]
+            # the_max_lt_this_list  = [ 0.274,  0.721,  1.188]
+            # the_mean_eq_this_list = [ 0.175,  0.679,  1.181]
+            # dim_list                   = [10, 100, 1000]
+            # 0.5*log10(dim) -0.32
+            print("rand [dim,dim], just for fun")
             device = 'cuda'
             #--------------------#--------------------#--------------------
             dim_list = [10,100,1000]
-            test_time_list = [300,100,30]
+            test_time_list = [300,100,20]
             #--------------------#--------------------#--------------------
-            the_min_gt_this_list =  []#don't modify here.
-            the_max_lt_this_list =  []
-            the_mean_eq_this_list = []
-            epsilon_list =          []
+            mean_of__score_log10_div2__min =  []#don't modify here.
+            mean_of__score_log10_div2__max =  []#don't modify here.
+            mean_of__score_log10_div2__avg =  []#don't modify here.
             for inner_iter_count in range(dim_list.__len__()):
                 dim = dim_list[inner_iter_count]
                 test_time = test_time_list[inner_iter_count]
                 print(test_time)
-            
-                _raw_result = torch.empty(size=[test_time])
-                for test_count in range(test_time):
-                    #--------------------#--------------------#--------------------
-                    rand_mat = torch.randn(size=[dim,dim], device=device)/math.sqrt(dim)
-                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
-                                LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
-                    
-                    _this_result = log10_avg_safe(score__len_sqr.mean())/2.
-                    #--------------------#--------------------#--------------------
-                    _raw_result[test_count] = _this_result
-                    pass
-                the_min = _raw_result.min()
-                the_max = _raw_result.max()
-                the_mean = _raw_result.mean()
-                the_min_gt_this_list.append(the_min.item())
-                the_max_lt_this_list.append(the_max.item())
-                the_mean_eq_this_list.append(the_mean.item())
-                _delta_1 = the_mean - the_min 
-                _delta_2 = the_max  - the_mean
-                epsilon = max(_delta_1, _delta_2)
-                epsilon_list.append(epsilon.item())    
-                print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
-                pass# for macro_iter_count
-            print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
-            print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
-            print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
-            print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
-            print(f"#dim_list            ={  dim_list}")     
-            pass#/test
-        
-        
-        if "measure the rand [dim,dim]" and False:
-            # output:
-            # the_min_gt_this_list =[ 0.175,  0.693,  1.246]
-            # the_max_lt_this_list =[ 0.337,  0.805,  1.277]
-            # the_mean_eq_this_list=[ 0.258,  0.759,  1.260]
-            # epsilon_list         =[ 0.084,  0.066,  0.017]
-            # #dim_list            =[10, 100, 1000]
-            # 0.5*log10(dim) -0.24
-            print("rand [dim,dim]")
-            device = 'cuda'
-            #--------------------#--------------------#--------------------
-            dim_list = [10,100,1000]
-            test_time_list = [300,100,30]
-            #--------------------#--------------------#--------------------
-            the_min_gt_this_list =  []#don't modify here.
-            the_max_lt_this_list =  []
-            the_mean_eq_this_list = []
-            epsilon_list =          []
-            for inner_iter_count in range(dim_list.__len__()):
-                dim = dim_list[inner_iter_count]
-                test_time = test_time_list[inner_iter_count]
-                print(test_time)
-            
+
                 _raw_result = torch.empty(size=[test_time])
                 for test_count in range(test_time):
                     #--------------------#--------------------#--------------------
                     rand_mat = torch.rand (size=[dim,dim], device=device)#rand
-                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                    _, (_, score_log10_div2, _) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
                     
-                    _this_result = log10_avg_safe(score__len_sqr.mean())/2.
+                    _this_result = score_log10_div2.mean()
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
+                    
                     pass
-                the_min = _raw_result.min()
-                the_max = _raw_result.max()
-                the_mean = _raw_result.mean()
-                the_min_gt_this_list.append(the_min.item())
-                the_max_lt_this_list.append(the_max.item())
-                the_mean_eq_this_list.append(the_mean.item())
-                _delta_1 = the_mean - the_min 
-                _delta_2 = the_max  - the_mean
-                epsilon = max(_delta_1, _delta_2)
-                epsilon_list.append(epsilon.item())    
-                print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
+                mean_of__score_log10_div2__min.append(_raw_result.min() )
+                mean_of__score_log10_div2__max.append(_raw_result.max() )
+                mean_of__score_log10_div2__avg.append(_raw_result.mean())
                 pass# for macro_iter_count
-            print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
-            print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
-            print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
-            print(f"epsilon_list        ={    str_the_list(epsilon_list,         3)}")    
-            print(f"#dim_list            ={  dim_list}")     
+            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
+            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
+            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
+            print(f"dim_list                   = {  dim_list}")
             pass#/test
         
-        if "measure the rand @rand" and False:
+        if "rand @rand, just for fun" and False:
             # output:
-            # the_min_gt_this_list =[ 0.736,  2.347,  3.882]
-            # the_max_lt_this_list =[ 1.038,  2.459,  3.915]
-            # the_mean_eq_this_list=[ 0.914,  2.400,  3.898]
-            # epsilon_list        =[ 0.178,  0.059,  0.017]
-            # #dim_list            =[10, 100, 1000]
-            # 1.5*log10(dim)-0.60
-            print("rand @rand")
+            # the_min_gt_this_list  = [ 0.482,  2.073,  3.605]
+            # the_max_lt_this_list  = [ 0.841,  2.229,  3.652]
+            # the_mean_eq_this_list = [ 0.696,  2.145,  3.627]
+            # dim_list                   = [10, 100, 1000]
+            # 1.5*log10(dim)-0.86
+            print("rand @rand, just for fun")
             device = 'cuda'
             #--------------------#--------------------#--------------------
             dim_list = [10,100,1000]
-            test_time_list = [300,100,30]
+            test_time_list = [300,100,20]
             #--------------------#--------------------#--------------------
-            the_min_gt_this_list =  []#don't modify here.
-            the_max_lt_this_list =  []
-            the_mean_eq_this_list = []
-            epsilon_list =          []
+            mean_of__score_log10_div2__min =  []#don't modify here.
+            mean_of__score_log10_div2__max =  []#don't modify here.
+            mean_of__score_log10_div2__avg =  []#don't modify here.
             for inner_iter_count in range(dim_list.__len__()):
                 dim = dim_list[inner_iter_count]
                 test_time = test_time_list[inner_iter_count]
                 print(test_time)
-            
+
                 _raw_result = torch.empty(size=[test_time])
                 for test_count in range(test_time):
                     #--------------------#--------------------#--------------------
                     rand_mat = torch.rand (size=[dim,dim], device=device)#rand
                     rand_mat = rand_mat @ torch.rand (size=[dim,dim], device=device)#rand
-                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                    _, (_, score_log10_div2, _) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
                     
-                    _this_result = log10_avg_safe(score__len_sqr.mean())/2.
+                    _this_result = score_log10_div2.mean()
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
+                    
                     pass
-                the_min = _raw_result.min()
-                the_max = _raw_result.max()
-                the_mean = _raw_result.mean()
-                the_min_gt_this_list.append(the_min.item())
-                the_max_lt_this_list.append(the_max.item())
-                the_mean_eq_this_list.append(the_mean.item())
-                _delta_1 = the_mean - the_min 
-                _delta_2 = the_max  - the_mean
-                epsilon = max(_delta_1, _delta_2)
-                epsilon_list.append(epsilon.item())    
-                print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
+                mean_of__score_log10_div2__min.append(_raw_result.min() )
+                mean_of__score_log10_div2__max.append(_raw_result.max() )
+                mean_of__score_log10_div2__avg.append(_raw_result.mean())
                 pass# for macro_iter_count
-            print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
-            print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
-            print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
-            print(f"epsilon_list        ={    str_the_list(epsilon_list,      3)}")    
-            print(f"#dim_list            ={  dim_list}")     
+            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
+            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
+            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
+            print(f"dim_list                   = {  dim_list}")
             pass#/test
         
-        
-        if "measure the rand*2-1 [dim,dim]" and True:
+        if "measure the rand*2-1 [dim,dim]" and False:
             # output:
-            # the_min_gt_this_list =[ 0.201,  0.754,  1.261]
-            # the_max_lt_this_list =[ 0.323,  0.768,  1.262]
-            # the_mean_eq_this_list=[ 0.261,  0.762,  1.262]
-            # epsilon_list        =[ 0.062,  0.008,  0.001]
-            # #dim_list            =[10, 100, 1000]
-            # 0.5*log10(dim)-0.238
+            # the_min_gt_this_list  = [ 0.181,  0.751,  1.261]
+            # the_max_lt_this_list  = [ 0.298,  0.766,  1.262]
+            # the_mean_eq_this_list = [ 0.242,  0.759,  1.261]
+            # dim_list                   = [10, 100, 1000]
+            # 0.5*log10(dim)-0.24
             print("rand*2-1")
             device = 'cuda'
             #--------------------#--------------------#--------------------
             dim_list = [10,100,1000]
-            test_time_list = [300,100,30]
+            test_time_list = [300,100,20]
             #--------------------#--------------------#--------------------
-            the_min_gt_this_list =  []#don't modify here.
-            the_max_lt_this_list =  []
-            the_mean_eq_this_list = []
-            epsilon_list =          []
+            mean_of__score_log10_div2__min =  []#don't modify here.
+            mean_of__score_log10_div2__max =  []#don't modify here.
+            mean_of__score_log10_div2__avg =  []#don't modify here.
             for inner_iter_count in range(dim_list.__len__()):
                 dim = dim_list[inner_iter_count]
                 test_time = test_time_list[inner_iter_count]
                 print(test_time)
-            
+
                 _raw_result = torch.empty(size=[test_time])
                 for test_count in range(test_time):
                     #--------------------#--------------------#--------------------
                     rand_mat = torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
-                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                    _, (_, score_log10_div2, _) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
                     
-                    _this_result = log10_avg_safe(score__len_sqr.mean())/2.
+                    _this_result = score_log10_div2.mean()
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
+                    
                     pass
-                the_min = _raw_result.min()
-                the_max = _raw_result.max()
-                the_mean = _raw_result.mean()
-                the_min_gt_this_list.append(the_min.item())
-                the_max_lt_this_list.append(the_max.item())
-                the_mean_eq_this_list.append(the_mean.item())
-                _delta_1 = the_mean - the_min 
-                _delta_2 = the_max  - the_mean
-                epsilon = max(_delta_1, _delta_2)
-                epsilon_list.append(epsilon.item())    
-                print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
+                mean_of__score_log10_div2__min.append(_raw_result.min() )
+                mean_of__score_log10_div2__max.append(_raw_result.max() )
+                mean_of__score_log10_div2__avg.append(_raw_result.mean())
                 pass# for macro_iter_count
-            print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
-            print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
-            print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
-            print(f"epsilon_list        ={    str_the_list(epsilon_list,         3)}")    
-            print(f"#dim_list            ={  dim_list}")     
+            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
+            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
+            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
+            print(f"dim_list                   = {  dim_list}")
             pass#/test
         
         if "measure the rand*2-1 @ rand*2-1[dim,dim]" and False:
             # output:
-            # the_min_gt_this_list =[ 0.646,  1.765,  2.799]
-            # the_max_lt_this_list =[ 1.079,  1.901,  2.847]
-            # the_mean_eq_this_list=[ 0.851,  1.828,  2.823]
-            # epsilon_list        =[ 0.228,  0.073,  0.024]
-            # #dim_list            =[10, 100, 1000]
-            # 1.*log10(dim)-0.17
+            # the_min_gt_this_list  = [ 0.539,  1.688,  2.725]
+            # the_max_lt_this_list  = [ 0.943,  1.799,  2.757]
+            # the_mean_eq_this_list = [ 0.749,  1.745,  2.743]
+            # dim_list                   = [10, 100, 1000]
+            # 1.*log10(dim)-0.26
             print("rand*2-1 @ rand*2-1")
             device = 'cuda'
             #--------------------#--------------------#--------------------
             dim_list = [10,100,1000]
-            test_time_list = [300,100,30]
+            test_time_list = [300,100,20]
             #--------------------#--------------------#--------------------
-            the_min_gt_this_list =  []#don't modify here.
-            the_max_lt_this_list =  []
-            the_mean_eq_this_list = []
-            epsilon_list =          []
+            mean_of__score_log10_div2__min =  []#don't modify here.
+            mean_of__score_log10_div2__max =  []#don't modify here.
+            mean_of__score_log10_div2__avg =  []#don't modify here.
             for inner_iter_count in range(dim_list.__len__()):
                 dim = dim_list[inner_iter_count]
                 test_time = test_time_list[inner_iter_count]
                 print(test_time)
-            
+
                 _raw_result = torch.empty(size=[test_time])
                 for test_count in range(test_time):
                     #--------------------#--------------------#--------------------
                     rand_mat = torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
                     rand_mat = rand_mat @ torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
-                    score__len_sqr,score_log10_div2,score_log10_div2__abs = \
+                    _, (_, score_log10_div2, _) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
                     
-                    _this_result = log10_avg_safe(score__len_sqr.mean())/2.
+                    _this_result = score_log10_div2.mean()
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
+                    
                     pass
-                the_min = _raw_result.min()
-                the_max = _raw_result.max()
-                the_mean = _raw_result.mean()
-                the_min_gt_this_list.append(the_min.item())
-                the_max_lt_this_list.append(the_max.item())
-                the_mean_eq_this_list.append(the_mean.item())
-                _delta_1 = the_mean - the_min 
-                _delta_2 = the_max  - the_mean
-                epsilon = max(_delta_1, _delta_2)
-                epsilon_list.append(epsilon.item())    
-                print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
+                mean_of__score_log10_div2__min.append(_raw_result.min() )
+                mean_of__score_log10_div2__max.append(_raw_result.max() )
+                mean_of__score_log10_div2__avg.append(_raw_result.mean())
                 pass# for macro_iter_count
-            print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
-            print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
-            print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
-            print(f"epsilon_list        ={    str_the_list(epsilon_list,         3)}")    
-            print(f"#dim_list            ={  dim_list}")     
+            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
+            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
+            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
+            print(f"dim_list                   = {  dim_list}")
             pass#/test
         
         return 
@@ -1495,7 +1393,6 @@ def LOSS__mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least
         
         pass
     return  len_score, angle_score, _log
-    
 
 if "old code" and False:
     # old code.
@@ -2023,13 +1920,109 @@ if "test" and __DEBUG_ME__() and True:
             
             pass#/test
         
-        if "permutation doesn't affect the result." and True:
+        if "permutation doesn't affect the result." and False:
+            if "some trivial test" and False:
+                dim = 3
+                mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
+                mat = randomly_rotate__matrix(mat)
+                mat = randomly_permutate__matrix(mat)
+                before__len_score, before__angle_score, before___log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+                
+                #mat = randomly_rotate__matrix(mat)#no... this is tested later.
+                mat = randomly_permutate__matrix(mat)*10.
+                after__len_score, after__angle_score, after___log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+
+                #assert _tensor_equal(before__len_score, after__len_score)# no.
+                assert _tensor_equal(before__angle_score, after__angle_score)
+                
+                for ii in range(before___log.__len__()):
+                    name = before___log[ii][0]
+                    before_entry = before___log[ii][1]
+                    after_entry = after___log[ii][1]
+                    #print(f"{name} {before_entry} {after_entry}")
+                    #assert _tensor_equal(before_entry.flatten().sort().values, after_entry.flatten().sort().values)
+                    if name in [
+                        "sum of two len_score__raw_mean_without_abs" # 0.1400 2.1400
+                    ]:
+                        assert _tensor_equal(before_entry+2., after_entry)
+                        pass
+                    if name in [
+                        "sum of two raw angle_score" # 0.8766 0.8766
+                        "hor_angle_score" #            0.4468 0.4468
+                        "ver_angle_score" #            0.4297 0.4297
+                    ]:
+                        assert _tensor_equal(before_entry, after_entry)
+                        pass
+                    if name in [
+                        "hor_sum__as_len_sqr___1_is_good__dim" # ([2.6050, 0.6573, 1.3940]) tensor([ 65.7252, 260.5022, 139.3987])
+                        "ver_sum__as_len_sqr___1_is_good__dim" # ([0.8186, 2.2877, 1.5500]) tensor([155.0018,  81.8580, 228.7663])
+                    ]:
+                        assert _tensor_equal(before_entry.flatten().sort().values*100., after_entry.flatten().sort().values)
+                        pass
+                    if name in [
+                        "hor_sum__as_len_log10___0_is_good__dim" #([ 0.2079, -0.0911,  0.0721]) tensor([0.9089, 1.2079, 1.0721])
+                        "hor_len_score__raw" #              tensor([ 0.2079, -0.0911,  0.0721]) tensor([0.9089, 1.2079, 1.0721])
+                        "hor_len_score__raw_mean_without_abs" #0.0629 1.0629
+                        "ver_sum__as_len_log10___0_is_good__dim" #([-0.0435,  0.1797,  0.0952]) tensor([1.0952, 0.9565, 1.1797])
+                        "ver_len_score__raw" #              tensor([-0.0435,  0.1797,  0.0952]) tensor([1.0952, 0.9565, 1.1797])
+                        "ver_len_score__raw_mean_without_abs" #0.0771 1.0771
+                    ]:
+                        assert _tensor_equal(before_entry.flatten().sort().values+1., after_entry.flatten().sort().values)
+                    if name in [
+                        "matrix_into_hor_len_1 before nan_to_num"
+                        # tensor([[-0.1599,  0.7765, -0.6095],
+                        #         [ 0.6166,  0.0616,  0.7849],
+                        #         [-0.6001, -0.7159,  0.3568]]) 
+                        # tensor([[ 0.7849,  0.6166,  0.0616],
+                        #         [-0.6095, -0.1599,  0.7765],
+                        #         [ 0.3568, -0.6001, -0.7159]])
+                        "matrix_into_ver_len_1 before nan_to_num"
+                        # tensor([[-0.2853,  0.8286, -0.7901],
+                        #         [ 0.5525,  0.0330,  0.5111],
+                        #         [-0.7832, -0.5588,  0.3384]]) 
+                        # tensor([[ 0.5111,  0.5525,  0.0330],
+                        #         [-0.7901, -0.2853,  0.8286],
+                        #         [ 0.3384, -0.7832, -0.5588]])
+                        ]:
+                        import random
+                        _some_random_number = random.random()
+                        assert _tensor_equal(  before_entry.nan_to_num(_some_random_number).flatten().sort().values, 
+                                                after_entry.nan_to_num(_some_random_number).flatten().sort().values)
+                    if name in [
+                        "hor_vec_angle_test"
+                        # tensor([[ 0.0000, -0.5291, -0.6774],
+                        #         [-0.5291,  0.0000, -0.1341],
+                        #         [-0.6774, -0.1341,  0.0000]])
+                        # tensor([[ 0.0000, -0.5291, -0.1341],
+                        #         [-0.5291,  0.0000, -0.6774],
+                        #         [-0.1341, -0.6774,  0.0000]])
+                        "ver_vec_angle_test"
+                        # tensor([[ 0.0000,  0.2195,  0.2428],
+                        #         [ 0.2195,  0.0000, -0.8269],
+                        #         [ 0.2428, -0.8269,  0.0000]]) 
+                        # tensor([[ 0.0000,  0.2428, -0.8269],
+                        #         [ 0.2428,  0.0000,  0.2195],
+                        #         [-0.8269,  0.2195,  0.0000]])
+                        ]:
+                        import random
+                        _some_random_number = random.random()
+                        assert _tensor_equal(  before_entry.flatten().sort().values, 
+                                                after_entry.flatten().sort().values)
+                        pass
+                    if name in [
+                        "hor_len_score" # 0.12372 1.06296 # this is some .abs().sum. Dont check it here.
+                        "ver_len_score" # 0.10611 1.07713 # this is some .abs().sum. Dont check it here.
+                        ]:
+                        #nothing here. This is not checked for some reason.
+                        pass
+                    pass
+            
             #it's a only assertion test. No print.
             #throritically, rotating and permutating a matrix should not change the result too much ?
             #------------------#------------------#------------------
-            dim_list =       [2,     10, 100, 1000]
-            test_time_list = [1000,1000, 100,   10]
-            test_time_list = [100,100, 10,   2]
+            dim_list =       [2,   10,   30, 100, 1000]
+            test_time_list = [100, 500, 200, 100,   10]
+            #test_time_list = [10, 50, 20, 10,   2]
             for inner_param_set in range(dim_list.__len__()):
                 dim = dim_list[inner_param_set]
                 test_time = test_time_list[inner_param_set]
@@ -2044,33 +2037,120 @@ if "test" and __DEBUG_ME__() and True:
                     #mat = randomly_rotate__matrix(mat)#no... this is tested later.
                     mat = randomly_permutate__matrix(mat)
                     after__len_score, after__angle_score, after___log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
-                    1w
-                    1w
-                    1w
-                    1w
-                    assert before___log[0][0] == "sum of two len_score__raw_mean_without_abs"
-                    
+
                     assert _tensor_equal(before__len_score, after__len_score)
                     assert _tensor_equal(before__angle_score, after__angle_score)
                     
+                    #for ii in range(before___log.__len__()):
+                    for ii in [0, 1]:
+                        before_entry = before___log[ii][1]
+                        after_entry = after___log[ii][1]
+                        assert _tensor_equal(before_entry.flatten().sort().values, after_entry.flatten().sort().values)
+                        pass
+                    
                     mat = mat*10
-                    after__len_score, after__angle_score, _,_ = LOSS__mat_is_standard_orthogonal(mat)
-                    assert _tensor_equal(before__len_score+2., after__len_score, epsilon=0.2)
+                    after__len_score, after__angle_score, after___log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+                    
+                    #assert _tensor_equal(before__len_score, after__len_score)# no. wrong.
                     assert _tensor_equal(before__angle_score, after__angle_score)
+                    
+                    for ii in range(before___log.__len__()):
+                        name = before___log[ii][0]
+                        before_entry = before___log[ii][1]
+                        after_entry = after___log[ii][1]
+                        #print(f"{name} {before_entry} {after_entry}")
+                        #assert _tensor_equal(before_entry.flatten().sort().values, after_entry.flatten().sort().values)
+                        if name in [
+                            "sum of two len_score__raw_mean_without_abs" # 0.1400 2.1400
+                        ]:
+                            assert _tensor_equal(before_entry+2., after_entry)
+                            pass
+                        if name in [
+                            "sum of two raw angle_score" # 0.8766 0.8766
+                            "hor_angle_score" #            0.4468 0.4468
+                            "ver_angle_score" #            0.4297 0.4297
+                        ]:
+                            assert _tensor_equal(before_entry, after_entry)
+                            pass
+                        if name in [
+                            "hor_sum__as_len_sqr___1_is_good__dim" # ([2.6050, 0.6573, 1.3940]) tensor([ 65.7252, 260.5022, 139.3987])
+                            "ver_sum__as_len_sqr___1_is_good__dim" # ([0.8186, 2.2877, 1.5500]) tensor([155.0018,  81.8580, 228.7663])
+                        ]:
+                            assert _tensor_equal(before_entry.flatten().sort().values*100., after_entry.flatten().sort().values)
+                            pass
+                        if name in [
+                            "hor_sum__as_len_log10___0_is_good__dim" #([ 0.2079, -0.0911,  0.0721]) tensor([0.9089, 1.2079, 1.0721])
+                            "hor_len_score__raw" #              tensor([ 0.2079, -0.0911,  0.0721]) tensor([0.9089, 1.2079, 1.0721])
+                            "hor_len_score__raw_mean_without_abs" #0.0629 1.0629
+                            "ver_sum__as_len_log10___0_is_good__dim" #([-0.0435,  0.1797,  0.0952]) tensor([1.0952, 0.9565, 1.1797])
+                            "ver_len_score__raw" #              tensor([-0.0435,  0.1797,  0.0952]) tensor([1.0952, 0.9565, 1.1797])
+                            "ver_len_score__raw_mean_without_abs" #0.0771 1.0771
+                        ]:
+                            assert _tensor_equal(before_entry.flatten().sort().values+1., after_entry.flatten().sort().values)
+                        if name in [
+                            "matrix_into_hor_len_1 before nan_to_num"
+                            # tensor([[-0.1599,  0.7765, -0.6095],
+                            #         [ 0.6166,  0.0616,  0.7849],
+                            #         [-0.6001, -0.7159,  0.3568]]) 
+                            # tensor([[ 0.7849,  0.6166,  0.0616],
+                            #         [-0.6095, -0.1599,  0.7765],
+                            #         [ 0.3568, -0.6001, -0.7159]])
+                            "matrix_into_ver_len_1 before nan_to_num"
+                            # tensor([[-0.2853,  0.8286, -0.7901],
+                            #         [ 0.5525,  0.0330,  0.5111],
+                            #         [-0.7832, -0.5588,  0.3384]]) 
+                            # tensor([[ 0.5111,  0.5525,  0.0330],
+                            #         [-0.7901, -0.2853,  0.8286],
+                            #         [ 0.3384, -0.7832, -0.5588]])
+                            ]:
+                            import random
+                            _some_random_number = random.random()
+                            assert _tensor_equal(  before_entry.nan_to_num(_some_random_number).flatten().sort().values, 
+                                                    after_entry.nan_to_num(_some_random_number).flatten().sort().values)
+                        if name in [
+                            "hor_vec_angle_test"
+                            # tensor([[ 0.0000, -0.5291, -0.6774],
+                            #         [-0.5291,  0.0000, -0.1341],
+                            #         [-0.6774, -0.1341,  0.0000]])
+                            # tensor([[ 0.0000, -0.5291, -0.1341],
+                            #         [-0.5291,  0.0000, -0.6774],
+                            #         [-0.1341, -0.6774,  0.0000]])
+                            "ver_vec_angle_test"
+                            # tensor([[ 0.0000,  0.2195,  0.2428],
+                            #         [ 0.2195,  0.0000, -0.8269],
+                            #         [ 0.2428, -0.8269,  0.0000]]) 
+                            # tensor([[ 0.0000,  0.2428, -0.8269],
+                            #         [ 0.2428,  0.0000,  0.2195],
+                            #         [-0.8269,  0.2195,  0.0000]])
+                            ]:
+                            import random
+                            _some_random_number = random.random()
+                            assert _tensor_equal(  before_entry.flatten().sort().values, 
+                                                    after_entry.flatten().sort().values)
+                            pass
+                        if name in [
+                            "hor_len_score" # 0.12372 1.06296 # this is some .abs().sum. Dont check it here.
+                            "ver_len_score" # 0.10611 1.07713 # this is some .abs().sum. Dont check it here.
+                            ]:
+                            #nothing here. This is not checked for some reason.
+                            pass
+                    
+                    
                     pass
                 pass#for inner param set
             pass#/test
         
-        if "how much does the randomly rotation affect the score." and True:
+        if "how much does the randomly rotation affect the score." and False:
             # randn(size=[dim,dim])/math.sqrt(dim) * 1000
             #result is the abs(diff)
             #theoritically, rotating a matrix should not change the result too much ?
             # diff_of__len_score_min   = [ 0.00000,  0.00000,  0.00000,  0.00000]
-            # diff_of__len_score_max   = [ 1.14286,  0.07745,  0.00137,  0.00002]
-            # diff_of__len_score_avg   = [ 0.09054,  0.01056,  0.00036,  0.00001]
-            # diff_of__angle_score_min = [ 0.00000,  0.00000,  0.00001,  0.00008]
-            # diff_of__angle_score_max = [ 2.37605,  0.42442,  0.01753,  0.00097]
-            # diff_of__angle_score_avg = [ 0.31272,  0.06614,  0.00453,  0.00034]#this is scaled score, and it also goes into 0 when dim incr.
+            # diff_of__len_score_max   = [ 1.26512,  0.06083,  0.00122,  0.00003]
+            # diff_of__len_score_avg   = [ 0.09150,  0.01082,  0.00031,  0.00001]
+            # diff_of__angle_score_min = [ 0.00000,  0.00002,  0.00004,  0.00005]
+            # diff_of__angle_score_max = [ 2.36598,  0.42716,  0.01646,  0.00098]
+            # diff_of__angle_score_avg = [ 0.31417,  0.06749,  0.00462,  0.00036]
+            # dim_list               = [ 2.0000,  10.0000,  100.0000,  1000.0000]#this is scaled score, and it also goes into 0 when dim incr.
             # dim_list                = [  2.0000,   10.0000,  100.0000,  1000.]
             # if dim is big enough, the error is small enough.
             
@@ -2093,9 +2173,9 @@ if "test" and __DEBUG_ME__() and True:
                 raw_angle_score = torch.empty(size=[test_time])
                 for test_count in range(test_time):
                     #------------------#------------------#------------------
-                    mat = torch.randn(size=[dim,dim])/math.sqrt(dim)*1000.
-                    _, _, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
-                    assert _log[0][0] == "sum of two len_score__raw.mean()"
+                    mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
+                    _, before__angle_score, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+                    assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
                     before__len_score = _log[0][1]
                     
                     #this assertion is specially for this test. They must be >0 before the abs().
@@ -2103,8 +2183,8 @@ if "test" and __DEBUG_ME__() and True:
                     # assert all_the_other_results[1][1].ge(0.).all()
                     
                     mat = randomly_rotate__matrix(mat)
-                    _, _, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
-                    assert _log[0][0] == "sum of two len_score__raw.mean()"
+                    _, after__angle_score, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+                    assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
                     after__len_score = _log[0][1]
                     #------------------#------------------#------------------
                     
@@ -2129,46 +2209,50 @@ if "test" and __DEBUG_ME__() and True:
             
             pass#/test
         
-        if "a perfect blends with a randn" and True:
+        if "a perfect blends with a randn" and False:
             # nothing special. The result looks normal. It's a weak evidence for the tool itself.
             # rand_sign(size=[dim,dim])/sqrt(dim)
             #result
             
             # if dim == 2:
-            # len_score_min               = [-0.000, -0.324, -2.223, -1.985, -1.750]
-            # len_score_max               = [ 0.000,  0.099,  0.463,  1.014,  0.911]
-            # len_score_avg               = [-0.000, -0.093, -0.352, -0.014,  0.051]
-            # angle_score_min             = [ 0.000,  0.001,  0.023,  0.020,  0.055]
-            # angle_score_max             = [ 0.000,  1.301,  2.530,  2.530,  2.530]
-            # angle_score_avg             = [ 0.000,  0.316,  1.548,  1.621,  1.609]
-            # randn_factor_list         = [ 0.00,  0.10,  0.50,  0.90,  1.00]
+            # len_score_min       = [-0.000, -0.323, -0.823, -1.597, -1.643, -1.735, -2.038, -1.484, -2.103, -1.523, -1.569]
+            # len_score_max       = [ 0.000,  0.059,  0.204,  0.240,  0.324,  0.459,  0.537,  0.795,  0.715,  0.799,  0.833]
+            # len_score_avg       = [-0.000, -0.090, -0.205, -0.294, -0.389, -0.376, -0.328, -0.212, -0.130, -0.034,  0.055]
+            # angle_score_min     = [ 0.000,  0.009,  0.006,  0.037,  0.008,  0.083,  0.092,  0.040,  0.017,  0.046,  0.039]
+            # angle_score_max     = [ 0.000,  1.229,  2.210,  2.523,  2.530,  2.530,  2.530,  2.530,  2.530,  2.530,  2.530]
+            # angle_score_avg     = [ 0.000,  0.320,  0.698,  1.142,  1.491,  1.542,  1.635,  1.586,  1.644,  1.654,  1.637]
+            # randn_factor_list   = [ 0.000,  0.100,  0.200,  0.300,  0.400,  0.500,  0.600,  0.700,  0.800,  0.900,  1.000]
+            #                                 ^^^^^
             # pass
             # if dim == 10:
-            # len_score_min               = [-0.000, -0.158,  0.251,  0.670,  0.690]
-            # len_score_max               = [ 0.000,  0.028,  0.558,  1.026,  1.111]
-            # len_score_avg               = [-0.000, -0.050,  0.398,  0.866,  0.956]
-            # angle_score_min             = [ 0.000,  0.541,  1.236,  1.186,  1.143]
-            # angle_score_max             = [ 0.000,  1.050,  2.207,  2.097,  2.114]
-            # angle_score_avg             = [ 0.000,  0.723,  1.601,  1.611,  1.591]
-            # randn_factor_list         = [ 0.00,  0.10,  0.50,  0.90,  1.00]
+            # len_score_min      = [-0.000, -0.067, -0.134, -0.158, -0.088,  0.079,  0.201,  0.345,  0.437,  0.597,  0.690,  0.770]
+            # len_score_max      = [ 0.000,  0.008,  0.039,  0.126,  0.258,  0.434,  0.543,  0.679,  0.834,  0.919,  1.040,  1.120]
+            # len_score_avg      = [-0.000, -0.035, -0.051, -0.008,  0.101,  0.246,  0.389,  0.530,  0.653,  0.766,  0.868,  0.957]
+            # angle_score_min    = [ 0.000,  0.266,  0.532,  0.973,  1.116,  1.241,  1.276,  1.239,  1.220,  1.185,  1.257,  1.290]
+            # angle_score_max    = [ 0.000,  0.538,  0.968,  1.648,  1.928,  2.144,  2.206,  2.231,  2.110,  2.027,  2.027,  2.051]
+            # angle_score_avg    = [ 0.000,  0.365,  0.719,  1.271,  1.515,  1.586,  1.606,  1.599,  1.581,  1.607,  1.614,  1.613]
+            # randn_factor_list  = [ 0.000,  0.050,  0.100,  0.200,  0.300,  0.400,  0.500,  0.600,  0.700,  0.800,  0.900,  1.000]
+            #                                        ^^^^^
             # pass
             # if dim == 100:
-            # len_score_min               = [-0.000,  0.240,  1.381,  1.887,  1.972]
-            # len_score_max               = [ 0.000,  0.270,  1.414,  1.918,  2.012]
-            # len_score_avg               = [-0.000,  0.255,  1.398,  1.904,  1.996]
-            # angle_score_min             = [ 0.000,  1.392,  1.544,  1.548,  1.548]
-            # angle_score_max             = [ 0.000,  1.462,  1.644,  1.633,  1.634]
-            # angle_score_avg             = [ 0.000,  1.429,  1.596,  1.596,  1.594]
-            # randn_factor_list         = [ 0.00,  0.10,  0.50,  0.90,  1.00]
+            # len_score_min     = [-0.000, -0.006,  0.025,  0.082,  0.159,  0.240,  0.646,  0.956,  1.382,  1.676,  1.981]
+            # len_score_max     = [ 0.000,  0.004,  0.042,  0.100,  0.180,  0.271,  0.675,  0.989,  1.413,  1.702,  2.014]
+            # len_score_avg     = [-0.000, -0.000,  0.033,  0.092,  0.169,  0.255,  0.662,  0.973,  1.399,  1.687,  1.996]
+            # angle_score_min   = [ 0.000,  0.435,  0.809,  1.100,  1.288,  1.401,  1.542,  1.542,  1.567,  1.557,  1.557]
+            # angle_score_max   = [ 0.000,  0.454,  0.859,  1.151,  1.345,  1.465,  1.626,  1.634,  1.637,  1.640,  1.635]
+            # angle_score_avg   = [ 0.000,  0.445,  0.835,  1.123,  1.313,  1.427,  1.582,  1.594,  1.599,  1.596,  1.596]
+            # randn_factor_list = [ 0.000,  0.020,  0.040,  0.060,  0.080,  0.100,  0.200,  0.300,  0.500,  0.700,  1.000]
+            #                                                               ^^^^^
             # pass
             # if dim == 1000:
-            # len_score_min               = [-0.000,  1.031,  2.397,  2.906,  2.998]
-            # len_score_max               = [ 0.000,  1.035,  2.400,  2.910,  3.000]
-            # len_score_avg               = [-0.000,  1.033,  2.398,  2.908,  2.999]
-            # angle_score_min             = [ 0.000,  1.586,  1.592,  1.593,  1.593]
-            # angle_score_max             = [ 0.000,  1.595,  1.600,  1.599,  1.599]
-            # angle_score_avg             = [ 0.000,  1.591,  1.596,  1.596,  1.596]
-            # randn_factor_list         = [ 0.00,  0.10,  0.50,  0.90,  1.00]
+            # len_score_min     = [-0.000,  0.006,  0.033,  0.076,  0.133,  0.264,  0.401,  0.530,  0.650,  0.860,  1.033,  1.608,  2.398,  2.999]
+            # len_score_max     = [-0.000,  0.007,  0.034,  0.078,  0.134,  0.265,  0.402,  0.532,  0.652,  0.861,  1.035,  1.609,  2.399,  3.000]
+            # len_score_avg     = [-0.000,  0.006,  0.033,  0.077,  0.133,  0.265,  0.401,  0.531,  0.651,  0.860,  1.034,  1.608,  2.398,  3.000]
+            # angle_score_min   = [ 0.000,  0.352,  0.669,  0.930,  1.129,  1.369,  1.484,  1.537,  1.561,  1.580,  1.588,  1.593,  1.594,  1.592]
+            # angle_score_max   = [ 0.000,  0.352,  0.671,  0.932,  1.133,  1.373,  1.487,  1.540,  1.568,  1.587,  1.592,  1.599,  1.598,  1.598]
+            # angle_score_avg   = [ 0.000,  0.352,  0.670,  0.931,  1.130,  1.372,  1.485,  1.539,  1.564,  1.584,  1.590,  1.596,  1.596,  1.595]
+            # randn_factor_list = [ 0.000,  0.005,  0.010,  0.015,  0.020,  0.030,  0.040,  0.050,  0.060,  0.080,  0.100,  0.200,  0.500,  1.000]
+            #                                                                                                                       ^^^^^
             # pass
             
             
@@ -2176,11 +2260,15 @@ if "test" and __DEBUG_ME__() and True:
             print("a perfect blends with a randn")
             
             #------------------#------------------#------------------
-            dim_list =       [2,     10, 100, 1000]
-            test_time_list = [1000, 500, 200,  50]
+            dim_list =       [2,    10, 100, 1000]
+            test_time_list = [500, 300, 100,  5]
             for outter_param_set in range(dim_list.__len__()):
                 dim = dim_list[outter_param_set]
                 test_time = test_time_list[outter_param_set]
+                
+                if dim <1000:
+                    continue
+                
                 print(test_time)
             #------------------#------------------#------------------
                 len_score_min = []#don't modify this
@@ -2189,12 +2277,21 @@ if "test" and __DEBUG_ME__() and True:
                 angle_score_min = []#don't modify this
                 angle_score_max = []#don't modify this
                 angle_score_avg = []#don't modify this
-                angle_score_uncorrected_min = []#don't modify this
-                angle_score_uncorrected_max = []#don't modify this
-                angle_score_uncorrected_avg = []#don't modify this
                 
                 #------------------#------------------#------------------
-                randn_factor_list = [0., 0.1, 0.5, 0.9, 1.]
+                if dim ==2 :
+                    randn_factor_list = [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.]
+                    pass
+                elif dim == 10:
+                    randn_factor_list = [0., 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.]
+                    pass
+                elif dim == 100:
+                    randn_factor_list = [0., 0.02, 0.04, 0.06, 0.08, 0.1, 0.2, 0.3, 0.5, 0.7, 1.]
+                    pass
+                elif dim == 1000:
+                    randn_factor_list = [0., 0.005, 0.01, 0.015, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.5, 1.]
+                    pass
+                    
                 for inner_param_set in range(randn_factor_list.__len__()):
                     randn_factor = randn_factor_list[inner_param_set]
                 #------------------#------------------#------------------
@@ -2212,14 +2309,13 @@ if "test" and __DEBUG_ME__() and True:
                         
                         test_mat = perfect_mat*(1.-randn_factor)+randn_mat*randn_factor
                         
-                        _, _, _log = LOSS__mat_is_standard_orthogonal(test_mat, _debug__needs_log = True)#,_correct_offset_for_angle_score = -1.)
-                        assert _log[0][0] == "sum of two len_score__raw.mean()"
+                        _, angle_score, _log = LOSS__mat_is_standard_orthogonal(test_mat, _debug__needs_log = True)#,_correct_offset_for_angle_score = -1.)
+                        assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
                         len_score = _log[0][1]
                         #------------------#------------------#------------------
                         
                         raw_len_score[test_count] = len_score
-                        raw_angle_score[test_count] = angle_score_corrected
-                        raw_angle_score_uncorrected[test_count] = angle_score
+                        raw_angle_score[test_count] = angle_score
                         pass
                     len_score_min   .append(raw_len_score.min ())
                     len_score_max   .append(raw_len_score.max ())
@@ -2227,22 +2323,16 @@ if "test" and __DEBUG_ME__() and True:
                     angle_score_min .append(raw_angle_score.min ())
                     angle_score_max .append(raw_angle_score.max ())
                     angle_score_avg .append(raw_angle_score.mean())
-                    angle_score_uncorrected_min .append(raw_angle_score_uncorrected.min ())
-                    angle_score_uncorrected_max .append(raw_angle_score_uncorrected.min ())
-                    angle_score_uncorrected_avg .append(raw_angle_score_uncorrected.min ())
                     
                     pass#for inner param set
                 print(f"if dim == {dim}:")
-                print(f"len_score_min               = {str_the_list(len_score_min  , 3)}")
-                print(f"len_score_max               = {str_the_list(len_score_max  , 3)}")
-                print(f"len_score_avg               = {str_the_list(len_score_avg  , 3)}")
-                print(f"angle_score_min             = {str_the_list(angle_score_min, 3)}")
-                print(f"angle_score_max             = {str_the_list(angle_score_max, 3)}")
-                print(f"angle_score_avg             = {str_the_list(angle_score_avg, 3)}")
-                print(f"angle_score_uncorrected_min = {str_the_list(angle_score_uncorrected_min, 3)}")
-                print(f"angle_score_uncorrected_max = {str_the_list(angle_score_uncorrected_max, 3)}")
-                print(f"angle_score_uncorrected_avg = {str_the_list(angle_score_uncorrected_avg, 3)}")
-                print(f"randn_factor_list         = {str_the_list(randn_factor_list, 2)}")
+                print(f"len_score_min   = {str_the_list(len_score_min  , 3)}")
+                print(f"len_score_max   = {str_the_list(len_score_max  , 3)}")
+                print(f"len_score_avg   = {str_the_list(len_score_avg  , 3)}")
+                print(f"angle_score_min = {str_the_list(angle_score_min, 3)}")
+                print(f"angle_score_max = {str_the_list(angle_score_max, 3)}")
+                print(f"angle_score_avg = {str_the_list(angle_score_avg, 3)}")
+                print(f"randn_factor_list = {str_the_list(randn_factor_list, 3)}")
                 print("pass")
                 
                 pass#for outter param set
@@ -2251,7 +2341,7 @@ if "test" and __DEBUG_ME__() and True:
         
         return 
     
-    ____test____measure_the_random_init____LOSS__the_mat_is_standard_orthogonal()
+    #____test____measure_the_random_init____LOSS__the_mat_is_standard_orthogonal()
     
     
     
@@ -2266,82 +2356,87 @@ if "test" and __DEBUG_ME__() and True:
             pass
         
         return 
-    ____test____device_adaption____LOSS__the_mat_is_standard_orthogonal()
+    #____test____device_adaption____LOSS__the_mat_is_standard_orthogonal()
     pass
 
 
 
 
-def ____xxxx____LOSS__angle_similarity(input:torch.Tensor, target:torch.Tensor)->torch.Tensor:
-    '''return score
-    
-    The result is always >=0. The smaller the better.
-    
-    The score between 2 random matrix is 1.85 to 2.3, for any dimention. Tests below.
-    
-    If any length of any row or column is too small, it's not measured, 
-    and it's a fake good score for that detail.
-    '''
-    assert is_square_matrix(input)
-    assert is_square_matrix(target)
-    with torch.no_grad():
+if "angle_similarity but the assuption is a bit wrong." and False:
+    #simply use other measurements
         
-        norm_ed_by_row_mat_1 = vector_length_norm(input)
-        norm_ed_by_row_mat_2 = vector_length_norm(target)
-        ___temp = norm_ed_by_row_mat_1*norm_ed_by_row_mat_2
-        ___temp = ___temp.sum(dim=1)
-        ___temp = ___temp.mean()
-        score_part_1 = 1.-___temp
+    def ____xxxx____LOSS__angle_similarity(input:torch.Tensor, target:torch.Tensor)->torch.Tensor:
+        '''return score
         
-        norm_ed_by_column_mat_1 = vector_length_norm(input.T)
-        norm_ed_by_column_mat_2 = vector_length_norm(target.T)
-        ___temp = norm_ed_by_column_mat_1*norm_ed_by_column_mat_2
-        ___temp = ___temp.sum(dim=1)
-        ___temp = ___temp.mean()
-        score_part_2 = 1.-___temp
+        The result is always >=0. The smaller the better.
         
-        return (score_part_1+score_part_2).mean()
-    pass#/function
-if "test" and __DEBUG_ME__() and False:
-    def ____test____LOSS__angle_similarity():
-        "The score between 2 random matrix is 1.85 to 2.3, for any dimention. Tests below."
-        for dim in [10,100,1000,10000]:
-            mat1 = torch.randn(size=[dim,dim])
-            mat2 = torch.randn(size=[dim,dim])
-            score = ____xxxx____LOSS__angle_similarity(mat1,mat2)
-            print(dim, score)
-            pass
+        The score between 2 random matrix is 1.85 to 2.3, for any dimention. Tests below.
         
-        import math, random
-        for _ in range(166):
-            dim = random.randint(2,300)
-            mat1 = torch.randn(size=[dim,dim])
-            mat2 = mat1.detach().clone().mul(1.3)
-            score = ____xxxx____LOSS__angle_similarity(mat1,mat2)
-            assert _tensor_equal(score, [0.])
-            pass
-        
-        mat0 = torch.tensor([[1.,0],[0,1]])
-        mat1 = torch.tensor([[1.,0.1],[0,1]])
-        mat2 = torch.tensor([[1.,0.2],[0,1]])
-        score_small = ____xxxx____LOSS__angle_similarity(mat0,mat1)
-        score_large = ____xxxx____LOSS__angle_similarity(mat0,mat2)
-        assert score_small<score_large
-        
-        for _ in range(116):
-            rand = random.random()+0.001# >0.
-            dim = random.randint(2,300)
-            mat0 = torch.eye(n=dim)
-            mat0[0,1] = rand
-            mat1 = torch.eye(n=dim)
-            mat1[0,1] = rand*1.1
-            mat2 = torch.eye(n=dim)
-            mat2[0,1] = rand*1.2
+        If any length of any row or column is too small, it's not measured, 
+        and it's a fake good score for that detail.
+        '''
+        assert is_square_matrix(input)
+        assert is_square_matrix(target)
+        with torch.no_grad():
+            
+            norm_ed_by_row_mat_1 = vector_length_norm(input)
+            norm_ed_by_row_mat_2 = vector_length_norm(target)
+            ___temp = norm_ed_by_row_mat_1*norm_ed_by_row_mat_2
+            ___temp = ___temp.sum(dim=1)
+            ___temp = ___temp.mean()
+            score_part_1 = 1.-___temp
+            
+            norm_ed_by_column_mat_1 = vector_length_norm(input.T)
+            norm_ed_by_column_mat_2 = vector_length_norm(target.T)
+            ___temp = norm_ed_by_column_mat_1*norm_ed_by_column_mat_2
+            ___temp = ___temp.sum(dim=1)
+            ___temp = ___temp.mean()
+            score_part_2 = 1.-___temp
+            
+            return (score_part_1+score_part_2).mean()
+        pass#/function
+    if "test" and __DEBUG_ME__() and False:
+        def ____test____LOSS__angle_similarity():
+            "The score between 2 random matrix is 1.85 to 2.3, for any dimention. Tests below."
+            for dim in [10,100,1000,10000]:
+                mat1 = torch.randn(size=[dim,dim])
+                mat2 = torch.randn(size=[dim,dim])
+                score = ____xxxx____LOSS__angle_similarity(mat1,mat2)
+                print(dim, score)
+                pass
+            
+            import math, random
+            for _ in range(166):
+                dim = random.randint(2,300)
+                mat1 = torch.randn(size=[dim,dim])
+                mat2 = mat1.detach().clone().mul(1.3)
+                score = ____xxxx____LOSS__angle_similarity(mat1,mat2)
+                assert _tensor_equal(score, [0.])
+                pass
+            
+            mat0 = torch.tensor([[1.,0],[0,1]])
+            mat1 = torch.tensor([[1.,0.1],[0,1]])
+            mat2 = torch.tensor([[1.,0.2],[0,1]])
             score_small = ____xxxx____LOSS__angle_similarity(mat0,mat1)
             score_large = ____xxxx____LOSS__angle_similarity(mat0,mat2)
-            assert score_small<=score_large
-            pass
-        return
-    ____test____LOSS__angle_similarity()
+            assert score_small<score_large
+            
+            for _ in range(116):
+                rand = random.random()+0.001# >0.
+                dim = random.randint(2,300)
+                mat0 = torch.eye(n=dim)
+                mat0[0,1] = rand
+                mat1 = torch.eye(n=dim)
+                mat1[0,1] = rand*1.1
+                mat2 = torch.eye(n=dim)
+                mat2[0,1] = rand*1.2
+                score_small = ____xxxx____LOSS__angle_similarity(mat0,mat1)
+                score_large = ____xxxx____LOSS__angle_similarity(mat0,mat2)
+                assert score_small<=score_large
+                pass
+            return
+        ____test____LOSS__angle_similarity()
+        pass
+    
     pass
 
