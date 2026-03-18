@@ -32,7 +32,7 @@ def _line_():
 
 def LOSS__vec_len_retention__of_a_mat_in_matmul(matrix:torch.Tensor,
                         test_time:int|None = None, at_least = -7.)->tuple[torch.Tensor, tuple[torch.Tensor,torch.Tensor,torch.Tensor]]:
-    '''return length_retention_score, (score__len_sqr, score_log10_div2, score_log10_div2__abs)
+    '''return length_retention_loss, (score__len_sqr, score_log10_div2, score_log10_div2__abs)
     
     The score_log10_div2 and score_log10_div2__abs maybe empty. If so, the length_retention_score is nan.
     
@@ -1265,7 +1265,7 @@ def LOSS__mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least
                                 _correct_offset_for_angle_score = -0.4, 
                                 _debug__needs_log = False)\
                     -> tuple[torch.Tensor,torch.Tensor, list[tuple[str, torch.Tensor]]|None]:
-    '''return  len_score, angle_score, _log
+    '''return  len_loss, angle_loss, _log
     
     The result is always >=0. The smaller the better.'''
     assert is_square_matrix(matrix)
