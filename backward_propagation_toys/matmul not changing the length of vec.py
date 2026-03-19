@@ -617,7 +617,7 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, length_factor = 0.15, an
             _log.append(("MATRIX   ready to correct by row", matrix.detach().clone(), _line_()))
             pass
         with torch.no_grad():
-            #assert False, "is it mean or sum   vvvv  here ????"
+            #assert False, "is it mean or sum  vvv  here ????"
             _temp_len_sqr = matrix.mul(matrix).sum(dim=1)#mean(dim=1)#mul and then sum, it's a dot.
             if "check it a lil bit" and __debug__ckeck_alone_the_way:
                 _temp_len_sqr__ref = matrix[0].dot(matrix[0])
@@ -644,7 +644,6 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, length_factor = 0.15, an
                 pass
             
             if _log is not None:
-                _temp_len_sqr
                 _log.append(("_temp_len_sqr", _temp_len_sqr.detach().clone(), _line_()))
                 _log.append(("mul_me_to_correct_length", mul_me_to_correct_length.detach().clone(), _line_()))
                 _log.append(("MATRIX   Length corrected by row", matrix.detach().clone(), _line_()))
@@ -738,7 +737,7 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, length_factor = 0.15, an
             pass
         with torch.no_grad():
             # column?
-            #assert False, "is it mean or sum   vvvv  here ????"
+            #assert False, "is it mean or sum  vvv  here ????"
             _temp_len_sqr = matrix.mul(matrix).sum(dim=0)#mul and then sum, it's a dot.
             if "check it a lil bit" and __debug__ckeck_alone_the_way:
                 _temp_len_sqr__ref = matrix[:,0].dot(matrix[:,0])
@@ -757,7 +756,7 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, length_factor = 0.15, an
             mul_me_to_correct_length = mul_me_to_correct_length.minimum(the_length_multiplies_at_most)
             matrix.mul_(mul_me_to_correct_length.reshape([1,-1]).expand([dim,-1]))
             if "check it after modifying" and __debug__ckeck_alone_the_way:
-                _temp_len_sqr__after_modifying = matrix.mul(matrix).mean(dim=0)#mul and then sum, it's a dot.
+                _temp_len_sqr__after_modifying = matrix.mul(matrix).sum(dim=0)#mul and then sum, it's a dot.
                 abs_log10_of_element__of_ori = (_temp_len_sqr*dim).log10().abs()
                 abs_log10_of_element__of_after = (_temp_len_sqr__after_modifying*dim).log10().abs()
                 better = abs_log10_of_element__of_ori.ge(abs_log10_of_element__of_after)
@@ -908,8 +907,7 @@ if "length correction only" and __DEBUG_ME__() and True:
                                                             [3, 3]]), epsilon=0.001)
             pass
         
-        
-        if "0.3333333333333333333333333333" and True:
+        if "the step 1 len correction   for 0.3333333333333333333333333333" and False:
             #<  preparation>
             _one_over_sqrt_2 = 1/math.sqrt(2.)
             mat = torch.empty(size=[2,2],dtype=torch.float64)
@@ -931,20 +929,371 @@ if "length correction only" and __DEBUG_ME__() and True:
             assert _log[4][0] == 'MATRIX   Length corrected by row'
             assert _tensor_equal(_log[4][1], torch.tensor([[ 10*0.7071, 10*0.7071],
                                                             [   0.7071,    0.7071]]), epsilon=0.001)
-            1w
-            1w
-            1w
-            1w继续
+            pass
+        
+        if "the step 1 len correction   for 0.3333333333333333333333333333" and False:
+            #<  preparation>
+            _one_over_sqrt_2 = 1/math.sqrt(2.)
+            mat = torch.empty(size=[2,2],dtype=torch.float64)
+            mat.fill_(_one_over_sqrt_2)
+            mat[0] *= 25*25*25*4*4*4
+            mat[1] *= 25*25*25*3*3*3
+            assert _tensor_equal(mat, [[ 25*25*25*4*4*4*0.7071, 25*25*25*4*4*4*0.7071],
+                                        [25*25*25*3*3*3*0.7071, 25*25*25*3*3*3*0.7071]], epsilon=11)
+            #<  calc>
+            _result_tuple_tl = correct_the_matrix___version_2(mat,length_factor = 0.333333333333333333333333333333, 
+                                                    angle_factor=0., iter_count=1, 
+                                dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            result_mat = _result_tuple_tl[0]
+            _log = _result_tuple_tl[1]
+            #<  assertions>
+            assert _log[2][0] == "_temp_len_sqr"
+            assert _tensor_equal(_log[2][1], torch.tensor([1e12, #25*25*25*4*4*4* 25*25*25*4*4*4, 
+                                                            25*25*25*3*3*3* 25*25*25*3*3*3]), epsilon=1e4)
+            
+            assert _log[4][0] == 'MATRIX   Length corrected by row'
+            assert _tensor_equal(_log[4][1], torch.tensor([[ 25*4*0.7071, 25*4*0.7071],
+                                                            [25*3*0.7071, 25*3*0.7071]]), epsilon=0.001)
             assert _log[14][0] == "_temp_len_sqr"
-            assert _tensor_equal(_log[14][1], torch.tensor([25*25, 25*25]), epsilon=0.001)
+            assert _tensor_equal(_log[14][1], torch.tensor([25*25*25 *0.5, 25*25*25 *0.5]), epsilon=0.01)
+            
+            ____temp = 25*4*0.7071/(25 *math.pow(0.5,0.3333333))
+            assert _tensor_equal(result_mat, torch.tensor([[ 4*0.7071/math.pow(0.5,0.333333), 4*0.7071/math.pow(0.5,0.333333)],
+                                                            [3*0.7071/math.pow(0.5,0.333333), 3*0.7071/math.pow(0.5,0.333333)]]), epsilon=0.001)
+            pass
+        
+        if "the step 1 len correction   for 0.75" and False:
+            #<  preparation>
+            _one_over_sqrt_2 = 1/math.sqrt(2.)
+            mat = torch.empty(size=[2,2],dtype=torch.float64)
+            mat.fill_(_one_over_sqrt_2)
+            mat[0] /= 4.
+            assert _tensor_equal(mat, [[ 0.7071/4, 0.7071/4],
+                                        [0.7071,   0.7071]])
+            #<  calc>
+            _result_tuple_tl = correct_the_matrix___version_2(mat,length_factor = 0.75, angle_factor=0., iter_count=1, 
+                                dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            _log = _result_tuple_tl[1]
+            #<  assertions>
+            assert _log[2][0] == "_temp_len_sqr"
+            assert _tensor_equal(_log[2][1], torch.tensor([1/16., 1]))
+            
+            assert _log[4][0] == 'MATRIX   Length corrected by row'
+            assert _tensor_equal(_log[4][1], torch.tensor([[2*0.7071, 2*0.7071],
+                                                            [ 0.7071,   0.7071]]))
+            pass
+        
+        if "reverse test with special values." and False:
+            #dim = ???
+            # length_factor = random.random()*0.2+0.2#0.2 to 0.4
+            # if random.random()<0.2:
+            #     length_factor = random.random()*0.15+0.6#0.6 to 0.75
+            #     pass
+            # actual_pow = (0.5-length_factor)/0.5# pow(length_sqr, this_nubmer)
+            
+            # random_result_mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
+            # random_result_mat *= random.random()*1.5+0.5# 0.5 to 2.
+            
+            #<  forward>
+            ____sqrt_05 = math.sqrt(0.5)
+            mat = torch.tensor([[16*25*2*____sqrt_05, 16*25*2*____sqrt_05],
+                                [9*25*2*____sqrt_05,  9*25*2*____sqrt_05]])
+            result_mat, _log = correct_the_matrix___version_2(mat.detach().clone(),length_factor = 0.25, angle_factor=0., iter_count=1, 
+                                dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            #</ forward>
+            #<  backward, 4>
+            dim = 2
+            length_factor = 0.25
+            how_much_is_left = (0.5-length_factor)/0.5# pow(length_sqr, this_nubmer)
+            assert how_much_is_left == 0.5
+            random_result_mat = torch.tensor([[4., 4],[3, 3]])
+            assert _tensor_equal(result_mat, random_result_mat)
+            #<  backward, 3>
+            _vec_len_in_step_2 = get_vector_length(random_result_mat.T)
+            _result_length__log14 = _vec_len_in_step_2.pow(1/how_much_is_left)#1/
+            assert _tensor_equal(_result_length__log14*_result_length__log14, _log[14][1], epsilon=0.001)
+            assert _tensor_equal(_result_length__log14*_result_length__log14, torch.tensor([25*25, 25*25]), epsilon=0.001)
+            #<  backward, 2>
+            _step_2_scale_factor = _vec_len_in_step_2.pow(1/how_much_is_left -1)#1/   -1
+            halfway_mat = random_result_mat*(_step_2_scale_factor.reshape([1,-1]).expand([dim,-1]))
+            assert _tensor_equal(_log[4][1], halfway_mat, epsilon=0.001)
+            assert _tensor_equal(halfway_mat, torch.tensor([[ 4*5, 4*5],
+                                                            [3*5, 3*5]]), epsilon=0.001)
+            #<  backward, 1>
+            _vec_len_in_step_1 = get_vector_length(halfway_mat)
+            _result_length__log2 = _vec_len_in_step_1.pow(1/how_much_is_left)#1/
+            assert _tensor_equal(_result_length__log2*_result_length__log2, _log[2][1], epsilon=0.1)
+            assert _tensor_equal(_result_length__log2*_result_length__log2, torch.tensor([16*16*25*25.*4, 9*9*25*25 *4]), epsilon=0.001)
+            #<  backward, 0>
+            _step_1_scale_factor = _vec_len_in_step_1.pow(1/how_much_is_left -1)#1/   -1
+            ori_mat = halfway_mat*(_step_1_scale_factor.reshape([-1, 1]).expand([-1,dim]))
+            assert _tensor_equal(mat, ori_mat, epsilon=0.1)
+            assert _tensor_equal(ori_mat, [[16*25*2*0.7071, 16*25*2*0.7071],
+                                            [9*25*2*0.7071,  9*25*2*0.7071]], epsilon=0.01)
+            
+            fds=432
             
             
-            assert _tensor_equal(result_mat, torch.tensor([[ 4, 4],
-                                                            [3, 3]]), epsilon=0.001)
+            
+            
+            
+            
+            # assert _tensor_equal(result_mat, torch.tensor([[ 4, 4],
+            #                                                 [3, 3]]), epsilon=0.001)
+            
+            #assert _tensor_equal(_log[14][1], torch.tensor([25*25, 25*25]), epsilon=0.001)
+            
+            # assert _log[4][0] == 'MATRIX   Length corrected by row'
+            # assert _tensor_equal(_log[4][1], torch.tensor([[ 4*5, 4*5],
+            #                                                 [3*5, 3*5]]), epsilon=0.001)
+            
+            # assert _tensor_equal(_log[2][1], torch.tensor([16*16*25*25.*4, 9*9*25*25 *4]))
+            
+            # assert _tensor_equal(mat, [[16*25*2*0.7071, 16*25*2*0.7071],
+            #                             [9*25*2*0.7071,  9*25*2*0.7071]], epsilon=0.01)
+            pass
+        
+        if "reverse test" and True:
+            1w 测量一下到底差距是多少。
+            现在系数不能超过0.5。
+            
+            是否允许超过0.5，
+            是否
+            
+            scan this extra_factor = 2.
+            extra_factor = 2.
+            extra_factor = 2.
+            extra_factor = 2.
+            for _ in range(111):
+                
+                dim_list = [5,10]
+                test_time_list = [100,10]
+                for outter_param_set in range(dim_list.__len__()):
+                    dim = dim_list[outter_param_set]
+                    test_time = test_time_list[outter_param_set]
+                    
+                    # result_length__log2_mul_result_length__log2__vs__log2    = []#don't modify here.
+                    # halfway_mat__vs__log4                                    = []#don't modify here.
+                    # result_length__log14_mul_result_length__log14__vs__log14 = []#don't modify here.
+                    # result_mat__vs__random_result_mat                        = []#don't modify here.
+                    
+                    length_factor_list = [0.2,0.25,0.3,0.35,0.4, 0.6,0.7,0.75]
+                    for inner_param_set in range(dim_list.__len__()):
+                        length_factor = length_factor_list[inner_param_set]
+                        how_much_is_left = (0.5-length_factor)/0.5# pow(length_sqr, this_nubmer)
+                        
+                        
+                        _raw_result_of__result_length__log2_mul_result_length__log2__vs__log2    = torch.empty(size=[test_time])#don't modify here.
+                        _raw_result_of__halfway_mat__vs__log4                                    = torch.empty(size=[test_time])#don't modify here.
+                        _raw_result_of__result_length__log14_mul_result_length__log14__vs__log14 = torch.empty(size=[test_time])#don't modify here.
+                        _raw_result_of__result_mat__vs__random_result_mat                        = torch.empty(size=[test_time])#don't modify here.
+                        
+                        for test_count in range(test_time):
+                            random_result_mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
+                            random_result_mat *= random.random()*1.5+0.5# 0.5 to 2. to scale it a bit.
+                            random_result_mat *= extra_factor
+                            
+                            #<  backward, 3>
+                            _vec_len_in_step_2 = get_vector_length(random_result_mat.T)
+                            _result_length__log14 = _vec_len_in_step_2.pow(1/how_much_is_left)#1/
+                            #<  backward, 2>
+                            _step_2_scale_factor = _vec_len_in_step_2.pow(1/how_much_is_left -1)#1/   -1
+                            halfway_mat = random_result_mat*(_step_2_scale_factor.reshape([1,-1]).expand([dim,-1]))
+                            #<  backward, 1>
+                            _vec_len_in_step_1 = get_vector_length(halfway_mat)
+                            _result_length__log2 = _vec_len_in_step_1.pow(1/how_much_is_left)#1/
+                            #<  backward, 0>
+                            _step_1_scale_factor = _vec_len_in_step_1.pow(1/how_much_is_left -1)#1/   -1
+                            ori_mat = halfway_mat*(_step_1_scale_factor.reshape([-1, 1]).expand([-1,dim]))
+                            
+                            #<  forward>
+                            result_mat, _log = correct_the_matrix___version_2(ori_mat.detach().clone(),length_factor = length_factor, angle_factor=0., iter_count=1, 
+                                                dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                            #</ forward>
+                            
+                            if "all the prints" and False:
+                                #<  assertion, 1>
+                                print("---------------------------------------------------------------------")
+                                print(_result_length__log2*_result_length__log2)#, _log[2][1])
+                                print(_result_length__log2*_result_length__log2 - _log[2][1])
+                                #<  assertion, 2>
+                                print(halfway_mat)#, _log[4][1])
+                                print(halfway_mat - _log[4][1])
+                                #<  assertion, 3>
+                                print("-------------")
+                                print(_result_length__log14*_result_length__log14)#, _log[14][1])
+                                print(_result_length__log14*_result_length__log14 - _log[14][1])
+                                #<  assertion, 4>
+                                print(result_mat)#, random_result_mat)
+                                print(result_mat - random_result_mat)
+                                pass
+                            
+                            #<  measurement>
+                            
+                            1w
+                            1w
+                            1w改名，扔到util里面去。
+                            
+                            def _compare_2_data(data1:torch.Tensor, data2:torch.Tensor, )->tuple[bool, torch.Tensor]:
+                                useful_flag_1 = data1.ne(0.)
+                                left_hand_side__useful = data1[useful_flag_1]
+                                left_hand_side = log10_avg_safe(left_hand_side__useful)
+
+                                diff = data1 - data2
+                                useful_flag_2 = diff.ne(0.)
+                                right_hand_side__useful = diff[useful_flag_2]
+                                right_hand_side = log10_avg_safe(right_hand_side__useful)
+                                
+                                if left_hand_side.isnan() or right_hand_side.isnan():
+                                    return (False,torch.empty(size=[]))
+                                return (True, left_hand_side - right_hand_side)
+                                #end of function
+                            
+                            
+                            1w
+                            1w
+                            
+data1 = torch.randn(size=[111])
+data2 = torch.randn(size=[111])
+
+def _compare_2_data(data1:torch.Tensor, data2:torch.Tensor, )->tuple[bool, torch.Tensor]:
+    useful_flag_1 = data1.ne(0.)
+    left_hand_side__useful = data1[useful_flag_1]
+    left_hand_side = log10_avg_safe(left_hand_side__useful)
+    
+    diff = data1 - data2
+    useful_flag_2 = diff.ne(0.)
+    right_hand_side__useful = diff[useful_flag_2]
+    right_hand_side = log10_avg_safe(right_hand_side__useful)
+    
+    if left_hand_side.isnan() or right_hand_side.isnan():
+        return (False,torch.empty(size=[]))
+    return (True, left_hand_side - right_hand_side)
+    #end of function
+for _ in range(1231):
+    aaa = _compare_2_data(data1, data2)[1]
+
+    #<  assertion, 1>
+    ori_left = data1
+    useful_flag_1 = ori_left.ne(0.)
+    left_hand_side__useful = ori_left[useful_flag_1]
+    left_hand_side = log10_avg_safe(left_hand_side__useful)
+
+    diff = data1-data2
+    useful_flag_2 = diff.ne(0.)
+    right_hand_side__useful = diff[useful_flag_2]
+    right_hand_side = log10_avg_safe(right_hand_side__useful)
+    if not(left_hand_side.isnan() or right_hand_side.isnan()):
+        bbb = left_hand_side - right_hand_side
+        # assert left_hand_side - right_hand_side > 9.
+        pass
+
+    assert _tensor_equal(aaa, bbb)
+
+    pass
+
+fds=432
+
+
+1w
+1w
+1w
+1w
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            #<  assertion, 1>
+                            _result_tuple = _compare_2_data(_result_length__log2*_result_length__log2, _log[2][1])
+                            if _result_tuple[0]:
+                                _raw_result_of__result_length__log2_mul_result_length__log2__vs__log2[test_count] = \
+                                        _result_tuple[1]
+                                pass
+                            #<  assertion, 2>
+                            _result_tuple = _compare_2_data(halfway_mat, _log[4][1])
+                            if _result_tuple[0]:
+                                _raw_result_of__halfway_mat__vs__log4[test_count] = \
+                                        _result_tuple[1]
+                                pass
+                            #<  assertion, 3>
+                            _result_tuple = _compare_2_data(_result_length__log14*_result_length__log14, _log[14][1])
+                            if _result_tuple[0]:
+                                _raw_result_of__result_length__log14_mul_result_length__log14__vs__log14[test_count] = \
+                                        _result_tuple[1]
+                                pass
+                            #<  assertion, 4>
+                            _result_tuple = _compare_2_data(result_mat, random_result_mat)
+                            if _result_tuple[0]:
+                                _raw_result_of__result_mat__vs__random_result_mat[test_count] = \
+                                        _result_tuple[1]
+                                pass
+                            #</ measurement>
+                            pass#for test_count
+                        
+                        
+                        pass#for inner_param_set
+                        
+                        
+                        
+                if "the old assertions" and False:
+                    # maybe still useful.
+                    # #<  assertion, 1>
+                    # assert _tensor_equal(_result_length__log2*_result_length__log2, _log[2][1])#, epsilon=0.1)
+                    # #<  assertion, 2>
+                    # assert _tensor_equal(halfway_mat, _log[4][1])#, epsilon=0.1)
+                    # #<  assertion, 3>
+                    # assert _tensor_equal(_result_length__log14*_result_length__log14, _log[14][1], epsilon=0.005)
+                    # #<  assertion, 4>
+                    # assert _tensor_equal(result_mat, random_result_mat)
+                    pass
+                pass
+            
+            fds=432
+            
+            
+            
+            
+            
+            
+            # assert _tensor_equal(result_mat, torch.tensor([[ 4, 4],
+            #                                                 [3, 3]]), epsilon=0.001)
+            
+            #assert _tensor_equal(_log[14][1], torch.tensor([25*25, 25*25]), epsilon=0.001)
+            
+            # assert _log[4][0] == 'MATRIX   Length corrected by row'
+            # assert _tensor_equal(_log[4][1], torch.tensor([[ 4*5, 4*5],
+            #                                                 [3*5, 3*5]]), epsilon=0.001)
+            
+            # assert _tensor_equal(_log[2][1], torch.tensor([16*16*25*25.*4, 9*9*25*25 *4]))
+            
+            # assert _tensor_equal(mat, [[16*25*2*0.7071, 16*25*2*0.7071],
+            #                             [9*25*2*0.7071,  9*25*2*0.7071]], epsilon=0.01)
             pass
         
         
-        fds=432
+        
+        
+        
+        
+        
+        if "reverse test" and True:
+            #dim = ???
+            # length_factor = random.random()*0.2+0.2#0.2 to 0.4
+            # if random.random()<0.2:
+            #     length_factor = random.random()*0.15+0.6#0.6 to 0.75
+            #     pass
+            # actual_pow = (0.5-length_factor)/0.5# pow(length_sqr, this_nubmer)
+            
+            # random_result_mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
+            # random_result_mat *= random.random()*1.5+0.5# 0.5 to 2.
+            pass
+        
         
         
         # old code below.
@@ -1828,7 +2177,7 @@ if "param scan" and __DEBUG_ME__() and True:
 #参数的影响到底有多大，不能只是是否。
 #参数的影响到底有多大，不能只是是否。
 
-
+__debug__ckeck_alone_the_way
 
 
 
