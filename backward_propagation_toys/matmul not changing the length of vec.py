@@ -54,7 +54,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, \
     iota, is_square_matrix, \
     vector_length_norm, get_vector_length,\
-    log10_avg_safe, get_mask_of_top_element__rough,\
+    log10_avg_safe, log10_avg__how_similar, get_mask_of_top_element__rough,\
     str_the_list
 from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_something_to_1
 from pytorch_yagaodirac_v2.Random import random_standard_vector, randomly_permutate__matrix, randomly_rotate__matrix
@@ -1054,205 +1054,172 @@ if "length correction only" and __DEBUG_ME__() and True:
             pass
         
         if "reverse test" and True:
-            1w 测量一下到底差距是多少。
-            现在系数不能超过0.5。
+            # 1w 测量一下到底差距是多少。
+            # 现在系数不能超过0.5。
             
-            是否允许超过0.5，
-            是否
+            # 是否允许超过0.5，
+            # 是否
             
-            scan this extra_factor = 2.
-            extra_factor = 2.
-            extra_factor = 2.
-            extra_factor = 2.
-            for _ in range(111):
+            # scan this extra_factor = 2.
+            # extra_factor = 2.
+            # extra_factor = 2.
+            # extra_factor = 2.
+            
+            1w 查一下这两个0是什么地方出来的。
+            
+            if dim == 5
+result_length__log2_mul_result_length__log2__vs__log2__max   =[ 0.000,  14.459]
+result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 15.524,  15.661]
+halfway_mat__vs__log4__max                                   =[ 0.000,  15.440]
+halfway_mat__vs__log4__avg                                   =[ 15.660,  15.854]
+result_length__log14_mul_result_length__log14__vs__log14__max=[ 7.656,  7.648]
+result_length__log14_mul_result_length__log14__vs__log14__avg=[ 8.103,  8.094]
+result_mat__vs__random_result_mat__max                       =[ 8.347,  8.236]
+result_mat__vs__random_result_mat__avg                       =[ 8.770,  8.659]
+pass
+10
+if dim == 10
+result_length__log2_mul_result_length__log2__vs__log2__max   =[ 15.600,  15.406]
+result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 15.699,  15.661]
+halfway_mat__vs__log4__max                                   =[ 15.674,  15.547]
+halfway_mat__vs__log4__avg                                   =[ 15.831,  15.825]
+result_length__log14_mul_result_length__log14__vs__log14__max=[ 7.920,  8.020]
+result_length__log14_mul_result_length__log14__vs__log14__avg=[ 8.216,  8.156]
+result_mat__vs__random_result_mat__max                       =[ 8.753,  8.586]
+result_mat__vs__random_result_mat__avg                       =[ 8.941,  8.794]
+pass
+            
+            
+            dim_list = [5,10]
+            test_time_list = [100,10]
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                test_time = test_time_list[outter_param_set]
+                print(test_time)
                 
-                dim_list = [5,10]
-                test_time_list = [100,10]
-                for outter_param_set in range(dim_list.__len__()):
-                    dim = dim_list[outter_param_set]
-                    test_time = test_time_list[outter_param_set]
+                result_length__log2_mul_result_length__log2__vs__log2__min   = []#don't modify here.
+                result_length__log2_mul_result_length__log2__vs__log2__avg   = []#don't modify here.
+                halfway_mat__vs__log4__min                                   = []#don't modify here.
+                halfway_mat__vs__log4__avg                                   = []#don't modify here.
+                result_length__log14_mul_result_length__log14__vs__log14__min= []#don't modify here.
+                result_length__log14_mul_result_length__log14__vs__log14__avg= []#don't modify here.
+                result_mat__vs__random_result_mat__min                       = []#don't modify here.
+                result_mat__vs__random_result_mat__avg                       = []#don't modify here.
+                
+                length_factor_list = [0.2,0.25,0.3,0.35,0.4, 0.6,0.7,0.75]
+                for inner_param_set in range(dim_list.__len__()):
+                    length_factor = length_factor_list[inner_param_set]
+                    how_much_is_left = (0.5-length_factor)/0.5# pow(length_sqr, this_nubmer)
                     
-                    # result_length__log2_mul_result_length__log2__vs__log2    = []#don't modify here.
-                    # halfway_mat__vs__log4                                    = []#don't modify here.
-                    # result_length__log14_mul_result_length__log14__vs__log14 = []#don't modify here.
-                    # result_mat__vs__random_result_mat                        = []#don't modify here.
                     
-                    length_factor_list = [0.2,0.25,0.3,0.35,0.4, 0.6,0.7,0.75]
-                    for inner_param_set in range(dim_list.__len__()):
-                        length_factor = length_factor_list[inner_param_set]
-                        how_much_is_left = (0.5-length_factor)/0.5# pow(length_sqr, this_nubmer)
+                    _raw_result_of__result_length__log2_mul_result_length__log2__vs__log2    = torch.empty(size=[test_time])#don't modify here.
+                    _raw_result_of__halfway_mat__vs__log4                                    = torch.empty(size=[test_time])#don't modify here.
+                    _raw_result_of__result_length__log14_mul_result_length__log14__vs__log14 = torch.empty(size=[test_time])#don't modify here.
+                    _raw_result_of__result_mat__vs__random_result_mat                        = torch.empty(size=[test_time])#don't modify here.
+                    
+                    for test_count in range(test_time):
+                        random_result_mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
+                        # random_result_mat *= random.random()*1.5+0.5# 0.5 to 2. to scale it a bit.
+                        # random_result_mat *= extra_factor
                         
+                        #<  backward, 3>
+                        _vec_len_in_step_2 = get_vector_length(random_result_mat.T)
+                        _result_length__log14 = _vec_len_in_step_2.pow(1/how_much_is_left)#1/
+                        #<  backward, 2>
+                        _step_2_scale_factor = _vec_len_in_step_2.pow(1/how_much_is_left -1)#1/   -1
+                        halfway_mat = random_result_mat*(_step_2_scale_factor.reshape([1,-1]).expand([dim,-1]))
+                        #<  backward, 1>
+                        _vec_len_in_step_1 = get_vector_length(halfway_mat)
+                        _result_length__log2 = _vec_len_in_step_1.pow(1/how_much_is_left)#1/
+                        #<  backward, 0>
+                        _step_1_scale_factor = _vec_len_in_step_1.pow(1/how_much_is_left -1)#1/   -1
+                        ori_mat = halfway_mat*(_step_1_scale_factor.reshape([-1, 1]).expand([-1,dim]))
                         
-                        _raw_result_of__result_length__log2_mul_result_length__log2__vs__log2    = torch.empty(size=[test_time])#don't modify here.
-                        _raw_result_of__halfway_mat__vs__log4                                    = torch.empty(size=[test_time])#don't modify here.
-                        _raw_result_of__result_length__log14_mul_result_length__log14__vs__log14 = torch.empty(size=[test_time])#don't modify here.
-                        _raw_result_of__result_mat__vs__random_result_mat                        = torch.empty(size=[test_time])#don't modify here.
+                        #<  forward>
+                        result_mat, _log = correct_the_matrix___version_2(ori_mat.detach().clone(),
+                                                    length_factor = length_factor, angle_factor=0., iter_count=1, 
+                                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                        #</ forward>
                         
-                        for test_count in range(test_time):
-                            random_result_mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
-                            random_result_mat *= random.random()*1.5+0.5# 0.5 to 2. to scale it a bit.
-                            random_result_mat *= extra_factor
-                            
-                            #<  backward, 3>
-                            _vec_len_in_step_2 = get_vector_length(random_result_mat.T)
-                            _result_length__log14 = _vec_len_in_step_2.pow(1/how_much_is_left)#1/
-                            #<  backward, 2>
-                            _step_2_scale_factor = _vec_len_in_step_2.pow(1/how_much_is_left -1)#1/   -1
-                            halfway_mat = random_result_mat*(_step_2_scale_factor.reshape([1,-1]).expand([dim,-1]))
-                            #<  backward, 1>
-                            _vec_len_in_step_1 = get_vector_length(halfway_mat)
-                            _result_length__log2 = _vec_len_in_step_1.pow(1/how_much_is_left)#1/
-                            #<  backward, 0>
-                            _step_1_scale_factor = _vec_len_in_step_1.pow(1/how_much_is_left -1)#1/   -1
-                            ori_mat = halfway_mat*(_step_1_scale_factor.reshape([-1, 1]).expand([-1,dim]))
-                            
-                            #<  forward>
-                            result_mat, _log = correct_the_matrix___version_2(ori_mat.detach().clone(),length_factor = length_factor, angle_factor=0., iter_count=1, 
-                                                dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-                            #</ forward>
-                            
-                            if "all the prints" and False:
-                                #<  assertion, 1>
-                                print("---------------------------------------------------------------------")
-                                print(_result_length__log2*_result_length__log2)#, _log[2][1])
-                                print(_result_length__log2*_result_length__log2 - _log[2][1])
-                                #<  assertion, 2>
-                                print(halfway_mat)#, _log[4][1])
-                                print(halfway_mat - _log[4][1])
-                                #<  assertion, 3>
-                                print("-------------")
-                                print(_result_length__log14*_result_length__log14)#, _log[14][1])
-                                print(_result_length__log14*_result_length__log14 - _log[14][1])
-                                #<  assertion, 4>
-                                print(result_mat)#, random_result_mat)
-                                print(result_mat - random_result_mat)
-                                pass
-                            
-                            #<  measurement>
-                            
-                            1w
-                            1w
-                            1w改名，扔到util里面去。
-                            
-                            def _compare_2_data(data1:torch.Tensor, data2:torch.Tensor, )->tuple[bool, torch.Tensor]:
-                                useful_flag_1 = data1.ne(0.)
-                                left_hand_side__useful = data1[useful_flag_1]
-                                left_hand_side = log10_avg_safe(left_hand_side__useful)
-
-                                diff = data1 - data2
-                                useful_flag_2 = diff.ne(0.)
-                                right_hand_side__useful = diff[useful_flag_2]
-                                right_hand_side = log10_avg_safe(right_hand_side__useful)
-                                
-                                if left_hand_side.isnan() or right_hand_side.isnan():
-                                    return (False,torch.empty(size=[]))
-                                return (True, left_hand_side - right_hand_side)
-                                #end of function
-                            
-                            
-                            1w
-                            1w
-                            
-data1 = torch.randn(size=[111])
-data2 = torch.randn(size=[111])
-
-def _compare_2_data(data1:torch.Tensor, data2:torch.Tensor, )->tuple[bool, torch.Tensor]:
-    useful_flag_1 = data1.ne(0.)
-    left_hand_side__useful = data1[useful_flag_1]
-    left_hand_side = log10_avg_safe(left_hand_side__useful)
-    
-    diff = data1 - data2
-    useful_flag_2 = diff.ne(0.)
-    right_hand_side__useful = diff[useful_flag_2]
-    right_hand_side = log10_avg_safe(right_hand_side__useful)
-    
-    if left_hand_side.isnan() or right_hand_side.isnan():
-        return (False,torch.empty(size=[]))
-    return (True, left_hand_side - right_hand_side)
-    #end of function
-for _ in range(1231):
-    aaa = _compare_2_data(data1, data2)[1]
-
-    #<  assertion, 1>
-    ori_left = data1
-    useful_flag_1 = ori_left.ne(0.)
-    left_hand_side__useful = ori_left[useful_flag_1]
-    left_hand_side = log10_avg_safe(left_hand_side__useful)
-
-    diff = data1-data2
-    useful_flag_2 = diff.ne(0.)
-    right_hand_side__useful = diff[useful_flag_2]
-    right_hand_side = log10_avg_safe(right_hand_side__useful)
-    if not(left_hand_side.isnan() or right_hand_side.isnan()):
-        bbb = left_hand_side - right_hand_side
-        # assert left_hand_side - right_hand_side > 9.
-        pass
-
-    assert _tensor_equal(aaa, bbb)
-
-    pass
-
-fds=432
-
-
-1w
-1w
-1w
-1w
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
-                            
+                        if "all the prints" and False:
                             #<  assertion, 1>
-                            _result_tuple = _compare_2_data(_result_length__log2*_result_length__log2, _log[2][1])
-                            if _result_tuple[0]:
-                                _raw_result_of__result_length__log2_mul_result_length__log2__vs__log2[test_count] = \
-                                        _result_tuple[1]
-                                pass
+                            print("---------------------------------------------------------------------")
+                            print(_result_length__log2*_result_length__log2)#, _log[2][1])
+                            print(_result_length__log2*_result_length__log2 - _log[2][1])
                             #<  assertion, 2>
-                            _result_tuple = _compare_2_data(halfway_mat, _log[4][1])
-                            if _result_tuple[0]:
-                                _raw_result_of__halfway_mat__vs__log4[test_count] = \
-                                        _result_tuple[1]
-                                pass
+                            print(halfway_mat)#, _log[4][1])
+                            print(halfway_mat - _log[4][1])
                             #<  assertion, 3>
-                            _result_tuple = _compare_2_data(_result_length__log14*_result_length__log14, _log[14][1])
-                            if _result_tuple[0]:
-                                _raw_result_of__result_length__log14_mul_result_length__log14__vs__log14[test_count] = \
-                                        _result_tuple[1]
-                                pass
+                            print("-------------")
+                            print(_result_length__log14*_result_length__log14)#, _log[14][1])
+                            print(_result_length__log14*_result_length__log14 - _log[14][1])
                             #<  assertion, 4>
-                            _result_tuple = _compare_2_data(result_mat, random_result_mat)
-                            if _result_tuple[0]:
-                                _raw_result_of__result_mat__vs__random_result_mat[test_count] = \
-                                        _result_tuple[1]
-                                pass
-                            #</ measurement>
-                            pass#for test_count
+                            print(result_mat)#, random_result_mat)
+                            print(result_mat - random_result_mat)
+                            pass
                         
                         
-                        pass#for inner_param_set
-                        
-                        
-                        
-                if "the old assertions" and False:
-                    # maybe still useful.
-                    # #<  assertion, 1>
-                    # assert _tensor_equal(_result_length__log2*_result_length__log2, _log[2][1])#, epsilon=0.1)
-                    # #<  assertion, 2>
-                    # assert _tensor_equal(halfway_mat, _log[4][1])#, epsilon=0.1)
-                    # #<  assertion, 3>
-                    # assert _tensor_equal(_result_length__log14*_result_length__log14, _log[14][1], epsilon=0.005)
-                    # #<  assertion, 4>
-                    # assert _tensor_equal(result_mat, random_result_mat)
-                    pass
+                        #<  measurement>
+                        #<  assertion, 1>
+                        _result_is_valid, the_difference = log10_avg__how_similar(_result_length__log2*_result_length__log2, _log[2][1])
+                        if _result_is_valid:
+                            _raw_result_of__result_length__log2_mul_result_length__log2__vs__log2[test_count] = the_difference
+                            pass
+                        #<  assertion, 2>
+                        _result_is_valid, the_difference = log10_avg__how_similar(halfway_mat, _log[4][1])
+                        if _result_is_valid:
+                            _raw_result_of__halfway_mat__vs__log4[test_count] = the_difference
+                            pass
+                        #<  assertion, 3>
+                        _result_is_valid, the_difference = log10_avg__how_similar(_result_length__log14*_result_length__log14, _log[14][1])
+                        if _result_is_valid:
+                            _raw_result_of__result_length__log14_mul_result_length__log14__vs__log14[test_count] = the_difference
+                            pass
+                        #<  assertion, 4>
+                        _result_is_valid, the_difference = log10_avg__how_similar(result_mat, random_result_mat)
+                        if _result_is_valid:
+                            _raw_result_of__result_mat__vs__random_result_mat[test_count] = the_difference
+                            pass
+                        #</ measurement>
+                        pass#for test_count
+                    
+                    result_length__log2_mul_result_length__log2__vs__log2__min   .append(_raw_result_of__result_length__log2_mul_result_length__log2__vs__log2.min())
+                    result_length__log2_mul_result_length__log2__vs__log2__avg   .append(_raw_result_of__result_length__log2_mul_result_length__log2__vs__log2.mean())
+                    halfway_mat__vs__log4__min                                   .append(_raw_result_of__halfway_mat__vs__log4.min())
+                    halfway_mat__vs__log4__avg                                   .append(_raw_result_of__halfway_mat__vs__log4.mean())
+                    result_length__log14_mul_result_length__log14__vs__log14__min.append(_raw_result_of__result_length__log14_mul_result_length__log14__vs__log14.min())
+                    result_length__log14_mul_result_length__log14__vs__log14__avg.append(_raw_result_of__result_length__log14_mul_result_length__log14__vs__log14.mean())
+                    result_mat__vs__random_result_mat__min                       .append(_raw_result_of__result_mat__vs__random_result_mat.min())
+                    result_mat__vs__random_result_mat__avg                       .append(_raw_result_of__result_mat__vs__random_result_mat.mean())
+                    
+                    pass#for inner_param_set
+                
+                print(f"if dim == {dim}")
+                print(f"result_length__log2_mul_result_length__log2__vs__log2__min   ={str_the_list(result_length__log2_mul_result_length__log2__vs__log2__min, 3)}")
+                print(f"result_length__log2_mul_result_length__log2__vs__log2__avg   ={str_the_list(result_length__log2_mul_result_length__log2__vs__log2__avg, 3)}")
+                print(f"halfway_mat__vs__log4__min                                   ={str_the_list(halfway_mat__vs__log4__min                                   , 3)}")
+                print(f"halfway_mat__vs__log4__avg                                   ={str_the_list(halfway_mat__vs__log4__avg                                   , 3)}")
+                print(f"result_length__log14_mul_result_length__log14__vs__log14__min={str_the_list(result_length__log14_mul_result_length__log14__vs__log14__min, 3)}")
+                print(f"result_length__log14_mul_result_length__log14__vs__log14__avg={str_the_list(result_length__log14_mul_result_length__log14__vs__log14__avg, 3)}")
+                print(f"result_mat__vs__random_result_mat__min                       ={str_the_list(result_mat__vs__random_result_mat__min                       , 3)}")
+                print(f"result_mat__vs__random_result_mat__avg                       ={str_the_list(result_mat__vs__random_result_mat__avg                       , 3)}")
+                print("pass")
+                
+                pass# for outter_param_set
+                
+                
+            if "the old assertions" and False:
+                # maybe still useful.
+                # #<  assertion, 1>
+                # assert _tensor_equal(_result_length__log2*_result_length__log2, _log[2][1])#, epsilon=0.1)
+                # #<  assertion, 2>
+                # assert _tensor_equal(halfway_mat, _log[4][1])#, epsilon=0.1)
+                # #<  assertion, 3>
+                # assert _tensor_equal(_result_length__log14*_result_length__log14, _log[14][1], epsilon=0.005)
+                # #<  assertion, 4>
+                # assert _tensor_equal(result_mat, random_result_mat)
                 pass
+            pass
             
             fds=432
             

@@ -2160,6 +2160,123 @@ if "test" and __DEBUG_ME__() and False:
     ____test____log10_avg_safe()
     pass
 
+def log10_avg__how_similar(host:torch.Tensor, guest:torch.Tensor, )->tuple[bool, torch.Tensor]:
+    '''return _result_is_valid, the_difference
+    
+    If the result is less than 1, don't trust it.
+    
+    result feels like log10(host) - log10(host-guest)
+    
+    The result has some error.'''
+    useful_flag_1 = host.ne(0.)
+    left_hand_side__useful = host[useful_flag_1]
+    left_hand_side = log10_avg_safe(left_hand_side__useful)
+
+    diff = host - guest
+    useful_flag_2 = diff.ne(0.)
+    right_hand_side__useful = diff[useful_flag_2]
+    right_hand_side = log10_avg_safe(right_hand_side__useful)
+    
+    if left_hand_side.isnan() or right_hand_side.isnan():
+        return (False,torch.empty(size=[]))
+    return (True, left_hand_side - right_hand_side)
+    #end of function
+if "test" and __DEBUG_ME__() and False:
+    def ____test____log10_avg_diff_safe():
+        #this one is weird.
+        if "between 2 randn" and False:
+            #result
+            # diff__min   = [-2.691, -2.726, -1.856, -1.410, -0.892, -0.333, -0.215, -0.168]
+            # diff__max   = [ 3.355,  2.295,  2.018,  1.152,  0.560,  0.038, -0.086, -0.136]
+            # diff__avg   = [-0.114, -0.133, -0.143, -0.149, -0.152, -0.152, -0.151, -0.151]
+            # dim_list   = [ 1.000,  2.000,  3.000,  5.000,  10.000,  100.,  1000.,  10000]
+            
+            diff__min = []#don't modify this.
+            diff__max = []#don't modify this.
+            diff__avg = []#don't modify this.
+            
+            #----------------#----------------#----------------
+            dim_list =         [1,   2,   3,   5,  10,  100, 1000, 10000]
+            test_time_list = [1000,1000,1000,1000,1000,1000, 1000,  1000,]
+            for outter_param_count in range(dim_list.__len__()):
+                dim = dim_list[outter_param_count]
+                test_time = test_time_list[outter_param_count]
+                print(test_time)
+            #----------------#----------------#----------------
+                _raw_result = torch.empty(size=[test_time])
+                for test_count in range(test_time):
+                    #----------------#----------------#----------------
+                    host = torch.randn(size=[dim])
+                    guest = torch.randn(size=[dim])
+                    # this tool actually measures this --->> ^^^
+                    _result_is_valid, the_difference = log10_avg__how_similar(host=host, guest=guest)
+                    if not _result_is_valid:
+                        continue
+                    #----------------#----------------#----------------
+                    _raw_result[test_count] = the_difference
+                    pass
+                diff__min.append(_raw_result.min())
+                diff__max.append(_raw_result.max())
+                diff__avg.append(_raw_result.mean())
+                pass#for dim
+            print(f"diff__min   = {str_the_list(diff__min    , 3)}")
+            print(f"diff__max   = {str_the_list(diff__max    , 3)}")
+            print(f"diff__avg   = {str_the_list(diff__avg    , 3)}")
+            print(f"dim_list   = {str_the_list(dim_list     , 3)}")
+            pass#/test
+        
+        if "scan the scaling factor" and False:
+            #result
+            # if dim == anything:
+            # diff__max    = [ 3.000,  2.000,  1.000,  0.000, -1.000, -2.000, -3.000]
+            # diff__avg    = [ 3.000,  2.000,  1.000,  0.000, -1.000, -2.000, -3.000]
+            # scaling_factor= [-3.000, -2.000, -1.000,  0.000,  1.000,  2.000,  3.000]
+            # I know it looks fake, but yeah.
+            #----------------#----------------#----------------
+            dim_list =         [1,   2,   3,   5,  10,  100, 1000, 10000]
+            test_time_list = [1000,1000,1000,1000,1000,1000, 1000, 1000]
+            for outter_param_count in range(dim_list.__len__()):
+                dim = dim_list[outter_param_count]
+                test_time = test_time_list[outter_param_count]
+            #----------------#----------------#----------------
+                
+                diff__max = []#don't modify this.
+                diff__avg = []#don't modify this.
+                
+                #----------------#----------------#----------------
+                scaling_factor_list_as_pow = torch.linspace(-3.,3.,7)
+                scaling_factor_list = torch.tensor(10.).pow(scaling_factor_list_as_pow)
+                for scaling_factor in scaling_factor_list:
+                    #scaling_factor = scaling_factor_list[inner_param_count]
+                #----------------#----------------#----------------
+                    
+                    _raw_result = torch.empty(size=[test_time])
+                    for test_count in range(test_time):
+                        
+                        #----------------#----------------#----------------
+                        host = torch.randn(size=[dim])
+                        guest = host.detach().clone()*(1.+scaling_factor)
+                        _result_is_valid, the_difference = log10_avg__how_similar(host=host, guest=guest)
+                        if not _result_is_valid:
+                            continue
+                        #----------------#----------------#----------------
+                        _raw_result[test_count] = the_difference
+                        pass
+                    diff__max.append(_raw_result.max())
+                    diff__avg.append(_raw_result.mean())
+                    pass#for dim(the inner)
+                print(f"if dim == {dim}:")
+                print(f"diff__max    = {str_the_list(diff__max    , 3)}")
+                print(f"diff__avg    = {str_the_list(diff__avg    , 3)}")
+                print(f"scaling_factor= {str_the_list(scaling_factor_list_as_pow     , 3)}")
+                print("pass")
+                pass#for outter_param_count
+                
+            pass#/test
+    
+    ____test____log10_avg_diff_safe()
+    
+    pass
 
 
 
