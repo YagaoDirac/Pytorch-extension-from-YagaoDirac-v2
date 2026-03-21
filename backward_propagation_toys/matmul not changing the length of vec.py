@@ -853,7 +853,7 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, length_factor = 0.15, an
     return matrix, _log
 
 
-if "length correction only" and __DEBUG_ME__() and True:
+if "length correction only, finished, mar 21" and __DEBUG_ME__() and False:
     import random, math
     def ____test____correct_the_matrix___version_2____length_correction():
         if "the step 1 len correction   for 0.25" and False:
@@ -1031,29 +1031,65 @@ if "length correction only" and __DEBUG_ME__() and True:
             assert _tensor_equal(ori_mat, [[16*25*2*0.7071, 16*25*2*0.7071],
                                             [9*25*2*0.7071,  9*25*2*0.7071]], epsilon=0.01)
             
-            fds=432
             
-            
-            
-            
-            
-            
-            # assert _tensor_equal(result_mat, torch.tensor([[ 4, 4],
-            #                                                 [3, 3]]), epsilon=0.001)
-            
-            #assert _tensor_equal(_log[14][1], torch.tensor([25*25, 25*25]), epsilon=0.001)
-            
-            # assert _log[4][0] == 'MATRIX   Length corrected by row'
-            # assert _tensor_equal(_log[4][1], torch.tensor([[ 4*5, 4*5],
-            #                                                 [3*5, 3*5]]), epsilon=0.001)
-            
-            # assert _tensor_equal(_log[2][1], torch.tensor([16*16*25*25.*4, 9*9*25*25 *4]))
-            
-            # assert _tensor_equal(mat, [[16*25*2*0.7071, 16*25*2*0.7071],
-            #                             [9*25*2*0.7071,  9*25*2*0.7071]], epsilon=0.01)
             pass
         
-        if "reverse test" and True:
+        if "reverse test, not very good. CHeck out the style 2 below." and False:
+            # result
+            # a bit explaining. Bc the test is random the output first, and calcs backwardly to find out the input.
+            # When the length_factor is 0.2 or 0.8,(or 0.5???), the input is corrected too much in forward pass
+            # (not the forward in training). If the random generated output is a bit far from "length of 1", the 
+            # calculated input is very far from "length of 1". Bc the floating point number suffers from rounding-up error,
+            # the result is very weird.
+            # Although from dim at least 10, this barely happens. 
+            # 
+            
+            # if dim == 3,   
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[ 0.000,  0.000,  8.191,  7.071,  6.508,  4.159,  -0.131,  -37207051271474774016.000]
+            # result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 15.265, 15.305, 15.630, 15.287, 15.388, 15.312,  15.623, -186035254295789568.000]
+            # halfway_mat__vs__log4__min                                   =[ 0.000,  0.000,  6.627,  0.298,  0.000, -0.478,  -0.335,  -0.084]
+            # halfway_mat__vs__log4__avg                                   =[ 15.103, 15.249, 15.789, 15.287, 12.457, 4.523,   10.648,  12.795]
+            # result_length__log14_mul_result_length__log14__vs__log14__min=[ 7.399,  7.464,  1.035,  0.173,  0.000,  0.000,   0.000,   0.000]
+            # result_length__log14_mul_result_length__log14__vs__log14__avg=[ 7.980,  7.990,  7.921,  7.719,  5.831,  1.761,   4.737,   6.088]
+            # result_mat__vs__random_result_mat__min                       =[ 8.119,  8.065,  1.359,  0.615, -5.633, -27.134, -5.103,  -1.774]
+            # result_mat__vs__random_result_mat__avg                       =[ 8.658,  8.595,  8.425,  8.131,  5.730, -0.606,   4.644,   6.132]
+            # length_factor_list                                           =[ 0.2  ,  0.25 ,  0.3  ,  0.35 ,  0.4  ,  0.6  ,   0.7  ,   0.75 ]
+            # pass
+            # if dim == 10,  
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[ 15.275,  15.231,  15.023,  14.748,  14.091,  13.309, 15.040, 14.844]
+            # result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 15.668,  15.663,  15.638,  15.622,  15.609,  15.528, 15.647, 15.629]
+            # halfway_mat__vs__log4__min                                   =[ 15.573,  15.637,  15.683,  15.617,  11.613,  0.000,  9.544,  13.869]
+            # halfway_mat__vs__log4__avg                                   =[ 15.837,  15.864,  15.841,  15.830,  15.780,  4.487,  15.539, 15.773]
+            # result_length__log14_mul_result_length__log14__vs__log14__min=[ 7.799,   7.779,   7.836,   7.786,   1.845,   0.000,  0.536,  1.985]
+            # result_length__log14_mul_result_length__log14__vs__log14__avg=[ 8.165,   8.181,   8.158,   8.167,   8.084,   0.998,  7.560,  8.121]
+            # result_mat__vs__random_result_mat__min                       =[ 8.565,   8.363,   8.381,   8.287,   1.845,  -9.479,  0.314,  1.995]
+            # result_mat__vs__random_result_mat__avg                       =[ 8.883,   8.799,   8.699,   8.641,   8.492,   0.104,  7.726,  8.270]
+            # length_factor_list                                           =[ 0.2  ,   0.25 ,   0.3  ,   0.35 ,   0.4  ,   0.6  ,  0.7  ,  0.75 ]
+            # pass
+            # if dim == 100,   
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[ 15.633,  15.616,  15.627,  15.611,  15.583,  15.577,  15.611,  15.587]
+            # result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 15.713,  15.719,  15.697,  15.692,  15.675,  15.680,  15.693,  15.698]
+            # halfway_mat__vs__log4__min                                   =[ 15.799,  15.805,  15.801,  15.803,  15.794,  15.759,  15.740,  15.740]
+            # halfway_mat__vs__log4__avg                                   =[ 15.822,  15.826,  15.820,  15.819,  15.811,  15.786,  15.771,  15.764]
+            # result_length__log14_mul_result_length__log14__vs__log14__min=[ 8.492,   8.525,   8.505,   8.523,   8.541,   8.520,   8.480,   8.523]
+            # result_length__log14_mul_result_length__log14__vs__log14__avg=[ 8.636,   8.632,   8.629,   8.631,   8.634,   8.620,   8.631,   8.632]
+            # result_mat__vs__random_result_mat__min                       =[ 9.217,   9.151,   9.050,   9.015,   8.953,   8.760,   8.666,   8.677]
+            # result_mat__vs__random_result_mat__avg                       =[ 9.359,   9.258,   9.179,   9.116,   9.060,   8.872,   8.813,   8.786]
+            # length_factor_list                                           =[ 0.2  ,   0.25 ,   0.3  ,   0.35 ,   0.4  ,   0.6  ,   0.7  ,   0.75 ]
+            # pass
+            # if dim == 1000,   
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[ 15.710,  15.723,  15.700,  15.683,  15.650,  15.712,  15.709,  15.688]
+            # result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 15.734,  15.744,  15.723,  15.709,  15.675,  15.727,  15.724,  15.703]
+            # halfway_mat__vs__log4__min                                   =[ 15.820,  15.823,  15.818,  15.814,  15.810,  15.777,  15.767,  15.757]
+            # halfway_mat__vs__log4__avg                                   =[ 15.823,  15.824,  15.819,  15.817,  15.813,  15.783,  15.771,  15.764]
+            # result_length__log14_mul_result_length__log14__vs__log14__min=[ 9.107,   9.107,   9.093,   9.100,   9.116,   9.108,   9.099,   9.087]
+            # result_length__log14_mul_result_length__log14__vs__log14__avg=[ 9.137,   9.130,   9.129,   9.125,   9.134,   9.128,   9.127,   9.129]
+            # result_mat__vs__random_result_mat__min                       =[ 9.835,   9.732,   9.642,   9.585,   9.534,   9.357,   9.280,   9.237]
+            # result_mat__vs__random_result_mat__avg                       =[ 9.858,   9.754,   9.675,   9.607,   9.558,   9.377,   9.306,   9.278]
+            # length_factor_list                                           =[ 0.2  ,   0.25 ,   0.3  ,   0.35 ,   0.4  ,   0.6  ,   0.7  ,   0.75 ]
+            # pass
+
+
             # 1w 测量一下到底差距是多少。
             # 现在系数不能超过0.5。
             
@@ -1061,40 +1097,23 @@ if "length correction only" and __DEBUG_ME__() and True:
             # 是否
             
             # scan this extra_factor = 2.
-            # extra_factor = 2.
-            # extra_factor = 2.
-            # extra_factor = 2.
             
-            1w 查一下这两个0是什么地方出来的。
+            #1w 查一下这两个0是什么地方出来的。
             
-            if dim == 5
-result_length__log2_mul_result_length__log2__vs__log2__max   =[ 0.000,  14.459]
-result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 15.524,  15.661]
-halfway_mat__vs__log4__max                                   =[ 0.000,  15.440]
-halfway_mat__vs__log4__avg                                   =[ 15.660,  15.854]
-result_length__log14_mul_result_length__log14__vs__log14__max=[ 7.656,  7.648]
-result_length__log14_mul_result_length__log14__vs__log14__avg=[ 8.103,  8.094]
-result_mat__vs__random_result_mat__max                       =[ 8.347,  8.236]
-result_mat__vs__random_result_mat__avg                       =[ 8.770,  8.659]
-pass
-10
-if dim == 10
-result_length__log2_mul_result_length__log2__vs__log2__max   =[ 15.600,  15.406]
-result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 15.699,  15.661]
-halfway_mat__vs__log4__max                                   =[ 15.674,  15.547]
-halfway_mat__vs__log4__avg                                   =[ 15.831,  15.825]
-result_length__log14_mul_result_length__log14__vs__log14__max=[ 7.920,  8.020]
-result_length__log14_mul_result_length__log14__vs__log14__avg=[ 8.216,  8.156]
-result_mat__vs__random_result_mat__max                       =[ 8.753,  8.586]
-result_mat__vs__random_result_mat__avg                       =[ 8.941,  8.794]
-pass
-            
-            
-            dim_list = [5,10]
-            test_time_list = [100,10]
+            #--------------------#--------------------#--------------------
+            dim_list = [3,10,100,1000,]
+            test_time_list = [200,200,150,15]
             for outter_param_set in range(dim_list.__len__()):
                 dim = dim_list[outter_param_set]
                 test_time = test_time_list[outter_param_set]
+                if dim>100:#tested. <100 cpu, >100 cuda.
+                    device = 'cuda'
+                    pass
+                else:
+                    device = 'cpu'
+                    pass
+            #--------------------#--------------------#--------------------
+                time_start = datetime.datetime.now()
                 print(test_time)
                 
                 result_length__log2_mul_result_length__log2__vs__log2__min   = []#don't modify here.
@@ -1106,11 +1125,12 @@ pass
                 result_mat__vs__random_result_mat__min                       = []#don't modify here.
                 result_mat__vs__random_result_mat__avg                       = []#don't modify here.
                 
+                #--------------------#--------------------#--------------------
                 length_factor_list = [0.2,0.25,0.3,0.35,0.4, 0.6,0.7,0.75]
-                for inner_param_set in range(dim_list.__len__()):
+                for inner_param_set in range(length_factor_list.__len__()):
                     length_factor = length_factor_list[inner_param_set]
+                #--------------------#--------------------#--------------------
                     how_much_is_left = (0.5-length_factor)/0.5# pow(length_sqr, this_nubmer)
-                    
                     
                     _raw_result_of__result_length__log2_mul_result_length__log2__vs__log2    = torch.empty(size=[test_time])#don't modify here.
                     _raw_result_of__halfway_mat__vs__log4                                    = torch.empty(size=[test_time])#don't modify here.
@@ -1118,7 +1138,10 @@ pass
                     _raw_result_of__result_mat__vs__random_result_mat                        = torch.empty(size=[test_time])#don't modify here.
                     
                     for test_count in range(test_time):
-                        random_result_mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
+                        #--------------------#--------------------#--------------------
+                        random_result_mat = torch.randn(size=[dim,dim], device=device)/math.sqrt(dim)
+                        # random_result_mat *= random.random()*2.3+0.2# 0.2 to 2.5 no, not needed.
+                        
                         # random_result_mat *= random.random()*1.5+0.5# 0.5 to 2. to scale it a bit.
                         # random_result_mat *= extra_factor
                         
@@ -1140,7 +1163,7 @@ pass
                                                     length_factor = length_factor, angle_factor=0., iter_count=1, 
                                             dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
                         #</ forward>
-                        
+                        #--------------------#--------------------#--------------------
                         if "all the prints" and False:
                             #<  assertion, 1>
                             print("---------------------------------------------------------------------")
@@ -1157,27 +1180,29 @@ pass
                             print(result_mat)#, random_result_mat)
                             print(result_mat - random_result_mat)
                             pass
-                        
-                        
-                        #<  measurement>
+                        #<  measurement>  
                         #<  assertion, 1>
                         _result_is_valid, the_difference = log10_avg__how_similar(_result_length__log2*_result_length__log2, _log[2][1])
                         if _result_is_valid:
+                            assert the_difference!=0.
                             _raw_result_of__result_length__log2_mul_result_length__log2__vs__log2[test_count] = the_difference
                             pass
                         #<  assertion, 2>
                         _result_is_valid, the_difference = log10_avg__how_similar(halfway_mat, _log[4][1])
                         if _result_is_valid:
+                            assert the_difference!=0.
                             _raw_result_of__halfway_mat__vs__log4[test_count] = the_difference
                             pass
                         #<  assertion, 3>
                         _result_is_valid, the_difference = log10_avg__how_similar(_result_length__log14*_result_length__log14, _log[14][1])
                         if _result_is_valid:
+                            assert the_difference!=0.
                             _raw_result_of__result_length__log14_mul_result_length__log14__vs__log14[test_count] = the_difference
                             pass
                         #<  assertion, 4>
                         _result_is_valid, the_difference = log10_avg__how_similar(result_mat, random_result_mat)
                         if _result_is_valid:
+                            assert the_difference!=0.
                             _raw_result_of__result_mat__vs__random_result_mat[test_count] = the_difference
                             pass
                         #</ measurement>
@@ -1194,7 +1219,9 @@ pass
                     
                     pass#for inner_param_set
                 
-                print(f"if dim == {dim}")
+                time_end = datetime.datetime.now()
+                
+                print(f"if dim == {dim},   with time {(time_end - time_start)} and {(time_end - time_start)/test_time} per test")
                 print(f"result_length__log2_mul_result_length__log2__vs__log2__min   ={str_the_list(result_length__log2_mul_result_length__log2__vs__log2__min, 3)}")
                 print(f"result_length__log2_mul_result_length__log2__vs__log2__avg   ={str_the_list(result_length__log2_mul_result_length__log2__vs__log2__avg, 3)}")
                 print(f"halfway_mat__vs__log4__min                                   ={str_the_list(halfway_mat__vs__log4__min                                   , 3)}")
@@ -1203,10 +1230,10 @@ pass
                 print(f"result_length__log14_mul_result_length__log14__vs__log14__avg={str_the_list(result_length__log14_mul_result_length__log14__vs__log14__avg, 3)}")
                 print(f"result_mat__vs__random_result_mat__min                       ={str_the_list(result_mat__vs__random_result_mat__min                       , 3)}")
                 print(f"result_mat__vs__random_result_mat__avg                       ={str_the_list(result_mat__vs__random_result_mat__avg                       , 3)}")
+                print(f"length_factor_list                                           ={str_the_list(length_factor_list                       , 3)}")
                 print("pass")
                 
                 pass# for outter_param_set
-                
                 
             if "the old assertions" and False:
                 # maybe still useful.
@@ -1219,47 +1246,409 @@ pass
                 # #<  assertion, 4>
                 # assert _tensor_equal(result_mat, random_result_mat)
                 pass
-            pass
+            
+            pass#/ test
             
             fds=432
             
-            
-            
-            
-            
-            
-            # assert _tensor_equal(result_mat, torch.tensor([[ 4, 4],
-            #                                                 [3, 3]]), epsilon=0.001)
-            
-            #assert _tensor_equal(_log[14][1], torch.tensor([25*25, 25*25]), epsilon=0.001)
-            
-            # assert _log[4][0] == 'MATRIX   Length corrected by row'
-            # assert _tensor_equal(_log[4][1], torch.tensor([[ 4*5, 4*5],
-            #                                                 [3*5, 3*5]]), epsilon=0.001)
-            
-            # assert _tensor_equal(_log[2][1], torch.tensor([16*16*25*25.*4, 9*9*25*25 *4]))
-            
-            # assert _tensor_equal(mat, [[16*25*2*0.7071, 16*25*2*0.7071],
-            #                             [9*25*2*0.7071,  9*25*2*0.7071]], epsilon=0.01)
             pass
         
-        
-        
-        
-        
-        
-        
-        if "reverse test" and True:
-            #dim = ???
-            # length_factor = random.random()*0.2+0.2#0.2 to 0.4
-            # if random.random()<0.2:
-            #     length_factor = random.random()*0.15+0.6#0.6 to 0.75
-            #     pass
-            # actual_pow = (0.5-length_factor)/0.5# pow(length_sqr, this_nubmer)
+        if "reverse test    style 2" and False:
+            # result
+            # the problem in the previous test is solved... In this test, it's forward and then backward...
+            # no matter what param, the difference is at least 5 orders of magnitudes smaller. 
+            # Some are 7, basically the max precision of fp32.
             
-            # random_result_mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
-            # random_result_mat *= random.random()*1.5+0.5# 0.5 to 2.
-            pass
+            # if dim == 3,   with time 0:00:11.239046 and 0:00:00.056195 per test
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[ 6.525,  6.299,  6.029,  5.675,  5.502,  5.387,  5.969,  6.090]
+            # result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 7.130,  6.911,  6.738,  6.540,  6.212,  6.086,  6.666,  6.752]
+            # halfway_mat__vs__log4__min                                   =[ 7.090,  6.975,  6.772,  6.591,  6.534,  6.441,  6.667,  6.762]
+            # halfway_mat__vs__log4__avg                                   =[ 7.552,  7.473,  7.350,  7.227,  7.028,  6.969,  7.255,  7.289]
+            # result_length__log14_mul_result_length__log14__vs__log14__min=[ 6.600,  6.518,  6.422,  6.184,  6.193,  6.193,  6.472,  6.581]
+            # result_length__log14_mul_result_length__log14__vs__log14__avg=[ 7.225,  7.137,  7.037,  6.899,  6.724,  6.730,  7.064,  7.134]
+            # ori_mat__vs__calculated_ori_mat__min                         =[ 6.868,  6.617,  6.423,  6.168,  5.840,  5.629,  6.272,  6.302]
+            # ori_mat__vs__calculated_ori_mat__max                         =[ 7.359,  7.224,  7.039,  6.832,  6.510,  6.327,  6.846,  6.938]
+            # length_factor_list                                           =[ 0.2  ,  0.25 ,  0.3  ,  0.35 ,  0.4  ,  0.6  ,  0.7  ,  0.75 ]
+            # pass
+            # 200
+            # if dim == 10,   with time 0:00:23.553592 and 0:00:00.117768 per test
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[ 6.726,  6.646,  6.447,  6.174,  5.882,  5.738,  6.212,  6.541]
+            # result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 7.070,  6.970,  6.829,  6.626,  6.307,  6.269,  6.754,  6.928]
+            # halfway_mat__vs__log4__min                                   =[ 7.322,  7.179,  7.034,  6.950,  6.734,  6.649,  6.964,  6.937]
+            # halfway_mat__vs__log4__avg                                   =[ 7.528,  7.444,  7.343,  7.236,  7.027,  6.982,  7.235,  7.317]
+            # result_length__log14_mul_result_length__log14__vs__log14__min=[ 6.901,  6.739,  6.633,  6.562,  6.395,  6.331,  6.716,  6.696]
+            # result_length__log14_mul_result_length__log14__vs__log14__avg=[ 7.174,  7.084,  6.986,  6.891,  6.676,  6.700,  7.014,  7.118]
+            # ori_mat__vs__calculated_ori_mat__min                         =[ 7.177,  6.975,  6.819,  6.554,  6.259,  6.034,  6.493,  6.772]
+            # ori_mat__vs__calculated_ori_mat__max                         =[ 7.367,  7.271,  7.136,  6.949,  6.636,  6.505,  6.912,  7.050]
+            # length_factor_list                                           =[ 0.2  ,  0.25 ,  0.3  ,  0.35 ,  0.4  ,  0.6  ,  0.7  ,  0.75 ]
+            # pass
+            # 150
+            # if dim == 100,   with time 0:00:23.769360 and 0:00:00.158462 per test
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[ 7.044,  6.957,  6.831,  6.677,  6.422,  6.268,  6.827,  6.923]
+            # result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 7.159,  7.066,  6.962,  6.816,  6.587,  6.557,  6.943,  7.054]
+            # halfway_mat__vs__log4__min                                   =[ 7.468,  7.386,  7.268,  7.113,  6.941,  6.822,  7.066,  7.192]
+            # halfway_mat__vs__log4__avg                                   =[ 7.535,  7.459,  7.354,  7.222,  7.026,  6.951,  7.206,  7.284]
+            # result_length__log14_mul_result_length__log14__vs__log14__min=[ 7.020,  6.963,  6.869,  6.695,  6.570,  6.532,  6.823,  6.980]
+            # result_length__log14_mul_result_length__log14__vs__log14__avg=[ 7.143,  7.069,  6.972,  6.847,  6.664,  6.672,  6.973,  7.077]
+            # ori_mat__vs__calculated_ori_mat__min                         =[ 7.354,  7.275,  7.166,  7.005,  6.718,  6.582,  6.987,  7.067]
+            # ori_mat__vs__calculated_ori_mat__max                         =[ 7.395,  7.317,  7.209,  7.067,  6.846,  6.733,  7.044,  7.127]
+            # length_factor_list                                           =[ 0.2  ,  0.25 ,  0.3  ,  0.35 ,  0.4  ,  0.6  ,  0.7  ,  0.75 ]
+            # pass
+            # 15
+            # if dim == 1000,   with time 0:00:06.247949 and 0:00:00.416530 per test
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[ 7.151,  7.073,  6.985,  6.859,  6.682,  6.655,  6.979,  7.081]
+            # result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 7.182,  7.095,  7.004,  6.878,  6.699,  6.687,  7.001,  7.104]
+            # halfway_mat__vs__log4__min                                   =[ 7.523,  7.445,  7.346,  7.219,  7.025,  6.948,  7.205,  7.280]
+            # halfway_mat__vs__log4__avg                                   =[ 7.538,  7.462,  7.356,  7.232,  7.038,  6.961,  7.223,  7.303]
+            # result_length__log14_mul_result_length__log14__vs__log14__min=[ 7.132,  7.064,  6.957,  6.846,  6.662,  6.662,  6.966,  7.052]
+            # result_length__log14_mul_result_length__log14__vs__log14__avg=[ 7.157,  7.080,  6.975,  6.862,  6.679,  6.679,  6.990,  7.085]
+            # ori_mat__vs__calculated_ori_mat__min                         =[ 7.392,  7.311,  7.219,  7.089,  6.893,  6.813,  7.087,  7.163]
+            # ori_mat__vs__calculated_ori_mat__max                         =[ 7.402,  7.324,  7.225,  7.097,  6.907,  6.832,  7.095,  7.175]
+            # length_factor_list                                           =[ 0.2  ,  0.25 ,  0.3  ,  0.35 ,  0.4  ,  0.6  ,  0.7  ,  0.75 ]
+            # pass
+            
+            # scan this extra_factor = 2.
+            
+            #--------------------#--------------------#--------------------
+            dim_list = [3,10,100,1000,]
+            test_time_list = [200,200,150,15]
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                test_time = test_time_list[outter_param_set]
+                if dim>100:#tested. <100 cpu, >100 cuda.
+                    device = 'cuda'
+                    pass
+                else:
+                    device = 'cpu'
+                    pass
+            #--------------------#--------------------#--------------------
+                time_start = datetime.datetime.now()
+                print(test_time)
+                
+                result_length__log2_mul_result_length__log2__vs__log2__min   = []#don't modify here.
+                result_length__log2_mul_result_length__log2__vs__log2__avg   = []#don't modify here.
+                halfway_mat__vs__log4__min                                   = []#don't modify here.
+                halfway_mat__vs__log4__avg                                   = []#don't modify here.
+                result_length__log14_mul_result_length__log14__vs__log14__min= []#don't modify here.
+                result_length__log14_mul_result_length__log14__vs__log14__avg= []#don't modify here.
+                ori_mat__vs__calculated_ori_mat__min                         = []#don't modify here.
+                ori_mat__vs__calculated_ori_mat__max                         = []#don't modify here.
+                
+                #--------------------#--------------------#--------------------
+                length_factor_list = [0.2,0.25,0.3,0.35,0.4, 0.6,0.7,0.75]
+                for inner_param_set in range(length_factor_list.__len__()):
+                    length_factor = length_factor_list[inner_param_set]
+                #--------------------#--------------------#--------------------
+                    how_much_is_left = (0.5-length_factor)/0.5# pow(length_sqr, this_nubmer)
+                    
+                    _raw_result_of__result_length__log2_mul_result_length__log2__vs__log2    = torch.empty(size=[test_time])#don't modify here.
+                    _raw_result_of__halfway_mat__vs__log4                                    = torch.empty(size=[test_time])#don't modify here.
+                    _raw_result_of__result_length__log14_mul_result_length__log14__vs__log14 = torch.empty(size=[test_time])#don't modify here.
+                    _raw_result_of__ori_mat__vs__calculated_ori_mat                       = torch.empty(size=[test_time])#don't modify here.
+                    
+                    for test_count in range(test_time):
+                        #--------------------#--------------------#--------------------
+                        ori_mat = torch.randn(size=[dim,dim], device=device)/math.sqrt(dim)
+                        # ori_mat *= extra_factor
+                        
+                        
+                        #<  forward>
+                        result_mat, _log = correct_the_matrix___version_2(ori_mat.detach().clone(),
+                                                    length_factor = length_factor, angle_factor=0., iter_count=1, 
+                                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                        #</ forward>
+                        
+                        
+                        
+                        #<  backward, 3>
+                        _vec_len_in_step_2 = get_vector_length(result_mat.T)
+                        _result_length__log14 = _vec_len_in_step_2.pow(1/how_much_is_left)#1/
+                        #<  backward, 2>
+                        _step_2_scale_factor = _vec_len_in_step_2.pow(1/how_much_is_left -1)#1/   -1
+                        halfway_mat = result_mat*(_step_2_scale_factor.reshape([1,-1]).expand([dim,-1]))
+                        #<  backward, 1>
+                        _vec_len_in_step_1 = get_vector_length(halfway_mat)
+                        _result_length__log2 = _vec_len_in_step_1.pow(1/how_much_is_left)#1/
+                        #<  backward, 0>
+                        _step_1_scale_factor = _vec_len_in_step_1.pow(1/how_much_is_left -1)#1/   -1
+                        calculated_ori_mat = halfway_mat*(_step_1_scale_factor.reshape([-1, 1]).expand([-1,dim]))
+                        
+                        
+                        #--------------------#--------------------#--------------------
+                        if "all the prints" and False:
+                            #<  assertion, 1>
+                            print("---------------------------------------------------------------------")
+                            print(_result_length__log2*_result_length__log2)#, _log[2][1])
+                            print(_result_length__log2*_result_length__log2 - _log[2][1])
+                            #<  assertion, 2>
+                            print(halfway_mat)#, _log[4][1])
+                            print(halfway_mat - _log[4][1])
+                            #<  assertion, 3>
+                            print("-------------")
+                            print(_result_length__log14*_result_length__log14)#, _log[14][1])
+                            print(_result_length__log14*_result_length__log14 - _log[14][1])
+                            #<  assertion, 4>
+                            print(result_mat)#, random_result_mat)
+                            print(result_mat - random_result_mat)
+                            pass
+                        #<  measurement>  
+                        #<  assertion, 1>
+                        _result_is_valid, the_difference = log10_avg__how_similar(_result_length__log2*_result_length__log2, _log[2][1])
+                        if _result_is_valid:
+                            assert the_difference!=0.
+                            _raw_result_of__result_length__log2_mul_result_length__log2__vs__log2[test_count] = the_difference
+                            pass
+                        #<  assertion, 2>
+                        _result_is_valid, the_difference = log10_avg__how_similar(halfway_mat, _log[4][1])
+                        if _result_is_valid:
+                            assert the_difference!=0.
+                            _raw_result_of__halfway_mat__vs__log4[test_count] = the_difference
+                            pass
+                        #<  assertion, 3>
+                        _result_is_valid, the_difference = log10_avg__how_similar(_result_length__log14*_result_length__log14, _log[14][1])
+                        if _result_is_valid:
+                            assert the_difference!=0.
+                            _raw_result_of__result_length__log14_mul_result_length__log14__vs__log14[test_count] = the_difference
+                            pass
+                        #<  assertion, 4>
+                        _result_is_valid, the_difference = log10_avg__how_similar(ori_mat, calculated_ori_mat)
+                        if _result_is_valid:
+                            assert the_difference!=0.
+                            _raw_result_of__ori_mat__vs__calculated_ori_mat[test_count] = the_difference
+                            pass
+                        #</ measurement>
+                        pass#for test_count
+                    
+                    result_length__log2_mul_result_length__log2__vs__log2__min   .append(_raw_result_of__result_length__log2_mul_result_length__log2__vs__log2.min())
+                    result_length__log2_mul_result_length__log2__vs__log2__avg   .append(_raw_result_of__result_length__log2_mul_result_length__log2__vs__log2.mean())
+                    halfway_mat__vs__log4__min                                   .append(_raw_result_of__halfway_mat__vs__log4.min())
+                    halfway_mat__vs__log4__avg                                   .append(_raw_result_of__halfway_mat__vs__log4.mean())
+                    result_length__log14_mul_result_length__log14__vs__log14__min.append(_raw_result_of__result_length__log14_mul_result_length__log14__vs__log14.min())
+                    result_length__log14_mul_result_length__log14__vs__log14__avg.append(_raw_result_of__result_length__log14_mul_result_length__log14__vs__log14.mean())
+                    ori_mat__vs__calculated_ori_mat__min                         .append(_raw_result_of__ori_mat__vs__calculated_ori_mat.min())
+                    ori_mat__vs__calculated_ori_mat__max                         .append(_raw_result_of__ori_mat__vs__calculated_ori_mat.mean())
+                    
+                    pass#for inner_param_set
+                
+                time_end = datetime.datetime.now()
+                
+                print(f"if dim == {dim},   with time {(time_end - time_start)} and {(time_end - time_start)/test_time} per test")
+                print(f"result_length__log2_mul_result_length__log2__vs__log2__min   ={str_the_list(result_length__log2_mul_result_length__log2__vs__log2__min, 3)}")
+                print(f"result_length__log2_mul_result_length__log2__vs__log2__avg   ={str_the_list(result_length__log2_mul_result_length__log2__vs__log2__avg, 3)}")
+                print(f"halfway_mat__vs__log4__min                                   ={str_the_list(halfway_mat__vs__log4__min                                   , 3)}")
+                print(f"halfway_mat__vs__log4__avg                                   ={str_the_list(halfway_mat__vs__log4__avg                                   , 3)}")
+                print(f"result_length__log14_mul_result_length__log14__vs__log14__min={str_the_list(result_length__log14_mul_result_length__log14__vs__log14__min, 3)}")
+                print(f"result_length__log14_mul_result_length__log14__vs__log14__avg={str_the_list(result_length__log14_mul_result_length__log14__vs__log14__avg, 3)}")
+                print(f"ori_mat__vs__calculated_ori_mat__min                         ={str_the_list(ori_mat__vs__calculated_ori_mat__min                       , 3)}")
+                print(f"ori_mat__vs__calculated_ori_mat__max                         ={str_the_list(ori_mat__vs__calculated_ori_mat__max                       , 3)}")
+                print(f"length_factor_list                                           ={str_the_list(length_factor_list                       , 3)}")
+                print("pass")
+                
+                pass# for outter_param_set
+            
+            pass#/ test
+        
+        if "reverse test    scan the extra scaling_factor" and False:
+            # result
+            # in this test, only the difference from the previous "style 2" is kept.
+            
+            # extra_factor = 0.01
+            # if dim == 3,   
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[ 3.425,  0.821,  0.000,  0.000,  0.000]
+            # result_length__log2_mul_result_length__log2__vs__log2__avg   =[ 6.246,  5.688,  0.053,  0.000,  0.000]
+            # ori_mat__vs__calculated_ori_mat__min                         =[ 4.597,  2.713, -4.350, -3.330, -3.121]
+            # ori_mat__vs__calculated_ori_mat__max                         =[ 6.541,  6.087, -2.235, -2.218, -2.164]
+            # length_factor_list                                           =[ 0.350,  0.400,  0.600,  0.700,  0.750]
+            # if dim == 10,  
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[  0.000,  0.000,  0.000]
+            # result_length__log2_mul_result_length__log2__vs__log2__avg   =[  0.000,  0.000,  0.000]
+            # ori_mat__vs__calculated_ori_mat__min                         =[ -2.553, -2.316, -2.418]
+            # ori_mat__vs__calculated_ori_mat__max                         =[ -2.100, -2.058, -2.053]
+            # length_factor_list                                           =[  0.600,  0.700,  0.750]
+            # if dim == 100,  
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[  0.000,  0.000,  0.000]
+            # result_length__log2_mul_result_length__log2__vs__log2__avg   =[  0.000,  0.000,  0.000]
+            # ori_mat__vs__calculated_ori_mat__min                         =[ -2.044, -2.028, -2.030]
+            # ori_mat__vs__calculated_ori_mat__max                         =[ -2.003, -2.002, -2.003]
+            # length_factor_list                                           =[  0.600,  0.700,  0.750]
+            # if dim == 1000,   with time 0:00:04.264423 and 0:00:00.284295 per test
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[   0.000,  0.000,  0.000]
+            # result_length__log2_mul_result_length__log2__vs__log2__avg   =[   0.000,  0.000,  0.000]
+            # ori_mat__vs__calculated_ori_mat__min                         =[  -2.001, -1.999, -1.999]
+            # ori_mat__vs__calculated_ori_mat__max                         =[  -1.997, -1.997, -1.996]
+            # length_factor_list                                           =[   0.600,  0.700,  0.750]
+            
+            
+            # extra_factor = 0.1
+            # if dim == 3
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[3.711,  3.108,  0.056]
+            # ori_mat__vs__calculated_ori_mat__min                         =[3.275,  1.847, -0.723]
+            # length_factor_list                                           =[0.600,  0.700,  0.750]
+            # pass
+            
+            
+            # extra_factor = 10.
+            # if dim == 3
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[ 1.736, -0.175]
+            # result_length__log14_mul_result_length__log14__vs__log14__min=[ 4.906,  5.536]
+            # ori_mat__vs__calculated_ori_mat__min                         =[ 1.159, -0.400]
+            # length_factor_list                                           =[ 0.700,  0.750]
+            
+            
+            # extra_factor = 100.
+            # if dim == 3
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[ 0.567, -3.137]
+            # halfway_mat__vs__log4__min                                   =[ 5.245,  3.202]
+            # result_length__log14_mul_result_length__log14__vs__log14__min=[ 4.958,  3.977]
+            # ori_mat__vs__calculated_ori_mat__min                         =[ 0.319, -0.032]
+            # length_factor_list                                           =[ 0.700,  0.750]
+            # if dim == 10
+            # result_length__log2_mul_result_length__log2__vs__log2__min   =[ 1.416]
+            # ori_mat__vs__calculated_ori_mat__min                         =[ 1.464]
+            # length_factor_list                                           =[ 0.750]
+            
+            # scan this extra_factor
+            extra_factor = 100.#0.01 to 100.
+            
+            #--------------------#--------------------#--------------------
+            dim_list = [3,10,100,1000,]
+            test_time_list = [200,200,150,15]
+            #test_time_list = [20,20,15,3]
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                test_time = test_time_list[outter_param_set]
+                if dim>100:#tested. <100 cpu, >100 cuda.
+                    device = 'cuda'
+                    pass
+                else:
+                    device = 'cpu'
+                    pass
+            #--------------------#--------------------#--------------------
+                time_start = datetime.datetime.now()
+                print(test_time)
+                
+                result_length__log2_mul_result_length__log2__vs__log2__min   = []#don't modify here.
+                result_length__log2_mul_result_length__log2__vs__log2__avg   = []#don't modify here.
+                halfway_mat__vs__log4__min                                   = []#don't modify here.
+                halfway_mat__vs__log4__avg                                   = []#don't modify here.
+                result_length__log14_mul_result_length__log14__vs__log14__min= []#don't modify here.
+                result_length__log14_mul_result_length__log14__vs__log14__avg= []#don't modify here.
+                ori_mat__vs__calculated_ori_mat__min                         = []#don't modify here.
+                ori_mat__vs__calculated_ori_mat__max                         = []#don't modify here.
+                
+                #--------------------#--------------------#--------------------
+                length_factor_list = [0.2,0.25,0.3,0.35,0.4, 0.6,0.7,0.75]
+                for inner_param_set in range(length_factor_list.__len__()):
+                    length_factor = length_factor_list[inner_param_set]
+                #--------------------#--------------------#--------------------
+                    how_much_is_left = (0.5-length_factor)/0.5# pow(length_sqr, this_nubmer)
+                    
+                    _raw_result_of__result_length__log2_mul_result_length__log2__vs__log2    = torch.empty(size=[test_time])#don't modify here.
+                    _raw_result_of__halfway_mat__vs__log4                                    = torch.empty(size=[test_time])#don't modify here.
+                    _raw_result_of__result_length__log14_mul_result_length__log14__vs__log14 = torch.empty(size=[test_time])#don't modify here.
+                    _raw_result_of__ori_mat__vs__calculated_ori_mat                       = torch.empty(size=[test_time])#don't modify here.
+                    
+                    for test_count in range(test_time):
+                        #--------------------#--------------------#--------------------
+                        ori_mat = torch.randn(size=[dim,dim], device=device)/math.sqrt(dim)
+                        ori_mat *= extra_factor
+                        
+                        
+                        #<  forward>
+                        result_mat, _log = correct_the_matrix___version_2(ori_mat.detach().clone(),
+                                                    length_factor = length_factor, angle_factor=0., iter_count=1, 
+                                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                        #</ forward>
+                        
+                        
+                        
+                        #<  backward, 3>
+                        _vec_len_in_step_2 = get_vector_length(result_mat.T)
+                        _result_length__log14 = _vec_len_in_step_2.pow(1/how_much_is_left)#1/
+                        #<  backward, 2>
+                        _step_2_scale_factor = _vec_len_in_step_2.pow(1/how_much_is_left -1)#1/   -1
+                        halfway_mat = result_mat*(_step_2_scale_factor.reshape([1,-1]).expand([dim,-1]))
+                        #<  backward, 1>
+                        _vec_len_in_step_1 = get_vector_length(halfway_mat)
+                        _result_length__log2 = _vec_len_in_step_1.pow(1/how_much_is_left)#1/
+                        #<  backward, 0>
+                        _step_1_scale_factor = _vec_len_in_step_1.pow(1/how_much_is_left -1)#1/   -1
+                        calculated_ori_mat = halfway_mat*(_step_1_scale_factor.reshape([-1, 1]).expand([-1,dim]))
+                        
+                        
+                        #--------------------#--------------------#--------------------
+                        if "all the prints" and False:
+                            #<  assertion, 1>
+                            print("---------------------------------------------------------------------")
+                            print(_result_length__log2*_result_length__log2)#, _log[2][1])
+                            print(_result_length__log2*_result_length__log2 - _log[2][1])
+                            #<  assertion, 2>
+                            print(halfway_mat)#, _log[4][1])
+                            print(halfway_mat - _log[4][1])
+                            #<  assertion, 3>
+                            print("-------------")
+                            print(_result_length__log14*_result_length__log14)#, _log[14][1])
+                            print(_result_length__log14*_result_length__log14 - _log[14][1])
+                            #<  assertion, 4>
+                            print(result_mat)#, random_result_mat)
+                            print(result_mat - random_result_mat)
+                            pass
+                        #<  measurement>  
+                        #<  assertion, 1>
+                        _result_is_valid, the_difference = log10_avg__how_similar(_result_length__log2*_result_length__log2, _log[2][1])
+                        if _result_is_valid:
+                            assert the_difference!=0.
+                            _raw_result_of__result_length__log2_mul_result_length__log2__vs__log2[test_count] = the_difference
+                            pass
+                        #<  assertion, 2>
+                        _result_is_valid, the_difference = log10_avg__how_similar(halfway_mat, _log[4][1])
+                        if _result_is_valid:
+                            assert the_difference!=0.
+                            _raw_result_of__halfway_mat__vs__log4[test_count] = the_difference
+                            pass
+                        #<  assertion, 3>
+                        _result_is_valid, the_difference = log10_avg__how_similar(_result_length__log14*_result_length__log14, _log[14][1])
+                        if _result_is_valid:
+                            assert the_difference!=0.
+                            _raw_result_of__result_length__log14_mul_result_length__log14__vs__log14[test_count] = the_difference
+                            pass
+                        #<  assertion, 4>
+                        _result_is_valid, the_difference = log10_avg__how_similar(ori_mat, calculated_ori_mat)
+                        if _result_is_valid:
+                            assert the_difference!=0.
+                            _raw_result_of__ori_mat__vs__calculated_ori_mat[test_count] = the_difference
+                            pass
+                        #</ measurement>
+                        pass#for test_count
+                    
+                    result_length__log2_mul_result_length__log2__vs__log2__min   .append(_raw_result_of__result_length__log2_mul_result_length__log2__vs__log2.min())
+                    result_length__log2_mul_result_length__log2__vs__log2__avg   .append(_raw_result_of__result_length__log2_mul_result_length__log2__vs__log2.mean())
+                    halfway_mat__vs__log4__min                                   .append(_raw_result_of__halfway_mat__vs__log4.min())
+                    halfway_mat__vs__log4__avg                                   .append(_raw_result_of__halfway_mat__vs__log4.mean())
+                    result_length__log14_mul_result_length__log14__vs__log14__min.append(_raw_result_of__result_length__log14_mul_result_length__log14__vs__log14.min())
+                    result_length__log14_mul_result_length__log14__vs__log14__avg.append(_raw_result_of__result_length__log14_mul_result_length__log14__vs__log14.mean())
+                    ori_mat__vs__calculated_ori_mat__min                         .append(_raw_result_of__ori_mat__vs__calculated_ori_mat.min())
+                    ori_mat__vs__calculated_ori_mat__max                         .append(_raw_result_of__ori_mat__vs__calculated_ori_mat.mean())
+                    
+                    pass#for inner_param_set
+                
+                time_end = datetime.datetime.now()
+                
+                print(f"if dim == {dim}")#,   with time {(time_end - time_start)} and {(time_end - time_start)/test_time} per test")
+                print(f"result_length__log2_mul_result_length__log2__vs__log2__min   ={str_the_list(result_length__log2_mul_result_length__log2__vs__log2__min, 3)}")
+                print(f"result_length__log2_mul_result_length__log2__vs__log2__avg   ={str_the_list(result_length__log2_mul_result_length__log2__vs__log2__avg, 3)}")
+                print(f"halfway_mat__vs__log4__min                                   ={str_the_list(halfway_mat__vs__log4__min                                   , 3)}")
+                print(f"halfway_mat__vs__log4__avg                                   ={str_the_list(halfway_mat__vs__log4__avg                                   , 3)}")
+                print(f"result_length__log14_mul_result_length__log14__vs__log14__min={str_the_list(result_length__log14_mul_result_length__log14__vs__log14__min, 3)}")
+                print(f"result_length__log14_mul_result_length__log14__vs__log14__avg={str_the_list(result_length__log14_mul_result_length__log14__vs__log14__avg, 3)}")
+                print(f"ori_mat__vs__calculated_ori_mat__min                         ={str_the_list(ori_mat__vs__calculated_ori_mat__min                       , 3)}")
+                print(f"ori_mat__vs__calculated_ori_mat__max                         ={str_the_list(ori_mat__vs__calculated_ori_mat__max                       , 3)}")
+                print(f"length_factor_list                                           ={str_the_list(length_factor_list                       , 3)}")
+                print("pass")
+                
+                pass# for outter_param_set
+            
+            pass#/ test
         
         
         
@@ -1269,9 +1658,6 @@ pass
         ########################################################
         ########################################################
         ########################################################
-        
-        
-        
         
         
         
@@ -1386,6 +1772,11 @@ pass
     ____test____correct_the_matrix___version_2____length_correction()
     pass
 if "angle correction only" and __DEBUG_ME__() and True:
+    1w
+    1w
+    1w
+    1w继续。
+    
     def ____test____correct_the_matrix___version_2____angle_correction():
         import random, math
         if True:

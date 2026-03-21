@@ -456,6 +456,119 @@ if "I also found some explaination from 3b1b" and False:
     pass
 
 
+if "maybe it's better to do it outside???" and False:
+
+    def random_standard_vector__len_in_range(dim:int, min_length:float|torch.Tensor, dtype = torch.float32, device='cpu')->torch.Tensor:
+        '''generates a random vector with geometric length between min_length and 1.
+        
+        The random number generator for vector is randn(normal distribution) (rand for length), 
+        this makes it doesn't need any further 
+        randomly rotation to be uniformly on angle, but the clue is only some rough test. If you really
+        need the angle to be very well uniformly distributes, you may need to make sure it by yourself.'''
+        
+        assert min_length>0.01 and min_length<1.
+        
+        result = torch.randn(size=[dim], dtype=dtype, device=device).\
+                                    div(torch.tensor(dim, dtype=torch.float64).sqrt().to(dtype))
+        length_sqr = result.dot(result).sum()
+        while True:
+            if length_sqr>0.001 and length_sqr<1000.:
+                break
+            #tail
+            result = torch.randn(size=[dim], dtype=dtype, device=device).\
+                                    div(torch.tensor(dim, dtype=torch.float64).sqrt().to(dtype))
+            length_sqr = result.dot(result).sum()
+            pass
+        
+        target_length = torch.rand(size=[])*(1-min_length)+min_length#cpu, min_length to 1.
+        mul_this = target_length/(length_sqr.sqrt())
+        
+        result = result*mul_this
+        return result
+    if "basic test" and __DEBUG_ME__() and True:
+        def ____test_____random_standard_vector__len_in_range():
+            for _ in range(16):
+                dim = random.randint(2,300)
+                min_len = random.random()*0.9+0.1
+                vec = random_standard_vector__len_in_range(dim, min_length=min_len)
+                assert vec.dtype == torch.float32
+                assert get_vector_length(vec)>=min_len
+                assert get_vector_length(vec)<=1.
+                pass
+            
+            vec = random_standard_vector__len_in_range(5, 0.1, dtype = torch.float64, device = 'cuda')
+            assert vec.dtype == torch.float64
+            assert vec.device.type == 'cuda'
+            return
+        ____test_____random_standard_vector__len_in_range()
+        pass
+    if "log10 test    copy pasted from Util.py" and __DEBUG_ME__() and False:
+        assert False, "unfinished."
+        
+        #result: basically the log10 of a standard vec is -0.5*log10(dim)-0.21
+        def ____test____log10_avg_safe____standard_vec():
+            import math, random
+            from pytorch_yagaodirac_v2.Util import log10_avg_safe
+                
+            if "measure the log10" and True:
+                # output:
+                # the_min_gt_this_list =[-1.470, -1.821, -2.285]
+                # the_max_lt_this_list =[-1.170, -1.740, -2.266]
+                # the_mean_eq_this_list=[-1.275, -1.775, -2.275]
+                # epsilon_list       =[ 0.194,  0.046,  0.010]
+                # -0.5*log10(dim)-0.275, basically from randn.
+                print("the log10")
+                device = 'cuda'
+                #--------------------#--------------------#--------------------
+                dim_list = [100,1000,10000]
+                test_time_list = [3000,1000,300]
+                #--------------------#--------------------#--------------------
+                the_min_gt_this_list =  []#don't modify here.
+                the_max_lt_this_list =  []
+                the_mean_eq_this_list = []
+                epsilon_list =          []
+                for inner_iter_count in range(dim_list.__len__()):
+                    dim = dim_list[inner_iter_count]
+                    test_time = test_time_list[inner_iter_count]
+                    print(test_time)
+                
+                    _raw_result = torch.empty(size=[test_time])
+                    for test_count in range(test_time):
+                        #--------------------#--------------------#--------------------
+                        vec = random_standard_vector(dim=dim)
+                        assert _tensor_equal(get_vector_length(vec), [1.])
+                        _this_result = log10_avg_safe(vec)
+                        #--------------------#--------------------#--------------------
+                        _raw_result[test_count] = _this_result
+                        pass
+                    the_min = _raw_result.min()
+                    the_max = _raw_result.max()
+                    the_mean = _raw_result.mean()
+                    the_min_gt_this_list.append(the_min.item())
+                    the_max_lt_this_list.append(the_max.item())
+                    the_mean_eq_this_list.append(the_mean.item())
+                    _delta_1 = the_mean - the_min 
+                    _delta_2 = the_max  - the_mean
+                    epsilon = max(_delta_1, _delta_2)
+                    epsilon_list.append(epsilon.item())    
+                    print(f"dim:{dim}  ///  {the_min:.3f}   {the_max:.3f}   {the_mean:.3f}   ")
+                    pass# for macro_iter_count
+                print(f"the_min_gt_this_list ={str_the_list(the_min_gt_this_list, 3)}")    
+                print(f"the_max_lt_this_list ={str_the_list(the_max_lt_this_list, 3)}")    
+                print(f"the_mean_eq_this_list={str_the_list(the_mean_eq_this_list,3)}")    
+                print(f"epsilon_list       ={    str_the_list(epsilon_list,         3)}")    
+                pass#/test
+            
+            return 
+        ____test____log10_avg_safe____standard_vec()
+        pass
+
+    pass
+
+
+
+
+
 
 
 

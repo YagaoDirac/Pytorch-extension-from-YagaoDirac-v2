@@ -2181,6 +2181,12 @@ def log10_avg__how_similar(host:torch.Tensor, guest:torch.Tensor, )->tuple[bool,
         return (False,torch.empty(size=[]))
     return (True, left_hand_side - right_hand_side)
     #end of function
+    
+# host = torch.randn(size=[3,3])#tensor([1.,2,3])
+# guest = torch.zeros_like(host)#host.detach().clone()
+# aaa = log10_avg__how_similar(host, guest)
+# fds=432
+    
 if "test" and __DEBUG_ME__() and False:
     def ____test____log10_avg_diff_safe():
         #this one is weird.
