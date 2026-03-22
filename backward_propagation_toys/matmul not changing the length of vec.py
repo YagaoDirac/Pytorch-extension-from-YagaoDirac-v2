@@ -613,8 +613,8 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, length_factor = 0.15, an
         
         #<  correct the length for row>
         if _log is not None:
-            _log.append((_line_(),"-------------------------"))
-            _log.append(("MATRIX   ready to correct by row", matrix.detach().clone(), _line_()))
+            _log.append((_line_(),"-------------------------"))#0
+            _log.append(("MATRIX   ready to correct by row", matrix.detach().clone(), _line_()))#1
             pass
         with torch.no_grad():
             #assert False, "is it mean or sum  vvv  here ????"
@@ -644,10 +644,10 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, length_factor = 0.15, an
                 pass
             
             if _log is not None:
-                _log.append(("_temp_len_sqr", _temp_len_sqr.detach().clone(), _line_()))
+                _log.append(("_temp_len_sqr", _temp_len_sqr.detach().clone(), _line_()))#2
                 _log.append(("mul_me_to_correct_length", mul_me_to_correct_length.detach().clone(), _line_()))
-                _log.append(("MATRIX   Length corrected by row", matrix.detach().clone(), _line_()))
-                _log.append((_line_(), "-------------"))
+                _log.append(("MATRIX   Length corrected by row", matrix.detach().clone(), _line_()))#4
+                _log.append((_line_(), "-------------"))#5
                 pass
             pass#no grad
         #</ correct the length for row>
@@ -673,14 +673,14 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, length_factor = 0.15, an
             should_be_eye = mat_after_gramo@(matrix_of_unit_vec_as_rows.T)#.T is on the right
             
             if _log is not None:
-                _log.append(("should_be_eye", should_be_eye.detach().clone(), _line_()))
+                _log.append(("should_be_eye", should_be_eye.detach().clone(), _line_()))#6
                 pass
             
             if dont_correct_length_with_error_prapagation:
                 should_be_eye[_iota_of_dim, _iota_of_dim] = 0.#this op also cuts the grad chain.
                 loss = loss_func(should_be_eye, torch.zeros_like(matrix))
                 if _log is not None:
-                    _log.append(("should_be_eye after diagonal elements into 0.", should_be_eye.detach().clone(), _line_()))
+                    _log.append(("should_be_eye after diagonal elements into 0.", should_be_eye.detach().clone(), _line_()))#7
                     pass
                 #   ^^^^^   optimizable   ^^^^^
                 pass
@@ -692,9 +692,9 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, length_factor = 0.15, an
             loss.backward(inputs = train_them)
             
             if _log is not None:
-                _log.append(("loss", loss.item(), _line_()))
+                _log.append(("loss", loss.item(), _line_()))#8
                 assert matrix.grad is not None
-                _log.append(("ori grad", matrix.grad.detach().clone(), _line_()))
+                _log.append(("ori grad", matrix.grad.detach().clone(), _line_()))#9
                 pass
             
             #1w modify the grad
@@ -715,8 +715,8 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, length_factor = 0.15, an
                 pass
             
             if _log is not None:
-                _log.append(("vector_length_in_matrix", vector_length_in_matrix.detach().clone(), _line_()))
-                _log.append(("scaled grad", matrix.grad.detach().clone(), _line_()))
+                _log.append(("vector_length_in_matrix", vector_length_in_matrix.detach().clone(), _line_()))#10
+                _log.append(("scaled grad", matrix.grad.detach().clone(), _line_()))#11
                 pass
             
             
@@ -732,7 +732,7 @@ def correct_the_matrix___version_2(matrix:torch.Tensor, length_factor = 0.15, an
         
         #<  correct the length for column>
         if _log is not None:
-            _log.append((_line_(),"-------------------------"))
+            _log.append((_line_(),"-------------------------"))#12
             _log.append(("MATRIX   ready to correct by column", matrix.detach().clone(), _line_()))
             pass
         with torch.no_grad():
@@ -1772,22 +1772,196 @@ if "length correction only, finished, mar 21" and __DEBUG_ME__() and False:
     ____test____correct_the_matrix___version_2____length_correction()
     pass
 if "angle correction only" and __DEBUG_ME__() and True:
-    1w
-    1w
-    1w
-    1w继续。
+    
+    
+    特定角度的2维的会被撇到一个特定的新角度？？会不会不是精确的。（只关注一个方向的矫正）
+    高维的有没有办法做上面这一条的相同的操作？？
+    
+    
     
     def ____test____correct_the_matrix___version_2____angle_correction():
         import random, math
-        if True:
-            "orthogonal, nothing is touched."
+        
+        if "zero vector" and True:
+            mat = torch.tensor([[1.,0], [0,0]])
+            angle_factor = 0.1
+            _, _log = correct_the_matrix___version_2(mat_1.detach().clone(), length_factor=0., 
+                                                    angle_factor = angle_factor, iter_count=1, 
+                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            _log[4][1]#only correct by row
+            what# is the result?
+            
+            mat = torch.tensor([[1.,1], [0,0]])
+            angle_factor = 0.1
+            _, _log = correct_the_matrix___version_2(mat_1.detach().clone(), length_factor=0., 
+                                                    angle_factor = angle_factor, iter_count=1, 
+                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            _log[4][1]#only correct by row
+            what# is the result?
+            
+            mat = torch.tensor([[1.,2], [0,0]])
+            angle_factor = 0.1
+            _, _log = correct_the_matrix___version_2(mat_1.detach().clone(), length_factor=0., 
+                                                    angle_factor = angle_factor, iter_count=1, 
+                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            _log[4][1]#only correct by row
+            what# is the result?
+            
+            pass#/ test
+        
+        if "zero vector?  random a bit." and True:
+            mat = torch.randn(size=[2,2])
+            mat[1].fill_(0.)
+            angle_factor = random.random()*0.1
+            
+            _, _log = correct_the_matrix___version_2(mat_1.detach().clone(), length_factor=0., 
+                                                    angle_factor = angle_factor, iter_count=1, 
+                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            what# is the result?
+            _log[4][1]#only correct by row
+            what# is the result?
+            
+            pass#/ test
+        
+        if "length should not affect the result." and True:
+            for _ in range(55):
+                dim = random.randint(2,100)
+                mat_1 = torch.randn(size=[dim,dim])
+                scaling_factor = random.random()*2.+0.5
+                mat_2 = mat_1.detach().clone()*scaling_factor
+                #<  calc/>            
+                angle_factor = random.random()*0.1
+                mat_1_after, _ = correct_the_matrix___version_2(mat_1.detach().clone(), length_factor=0., 
+                                                    angle_factor = angle_factor, iter_count=1, 
+                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                mat_2_after, _ = correct_the_matrix___version_2(mat_2.detach().clone(), length_factor=0., 
+                                                    angle_factor = angle_factor, iter_count=1, 
+                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                #<  assertion>
+                assert _tensor_equal(mat_1_after, mat_2_after/scaling_factor)
+                pass
+            
+            pass#/ test
+        
+        if "[[1,0],[0,1]] is orthogonal, nothing is touched."and True:
             mat = torch.tensor([[1.,0],[0,1]])
-            _result_tuple_tl = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., angle_factor = 0.1, iter_count=1, 
+            #<  calc/>
+            _result_tuple_tl = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
+                                                angle_factor = random.random()*0.1, iter_count=1, 
                         dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
             mat_after = _result_tuple_tl[0]
+            #<  mat is not touched.>
             assert _tensor_equal(mat_after, mat)
+            pass
+        
+        if "2d orthogonal" and True:
+            for _ in range(16):
+                mat = torch.rand(size=[2,2])
+                mat[0,1] = -1.
+                mat[1,1] = mat[0,0] * mat[1,0]
+                #<  are they orthogonal?/>
+                assert _tensor_equal(mat[0]*mat[1].sum(), [0.])
+                assert _tensor_equal(mat[:,0]*mat[:,1].sum(), [0.])
+                #<  calc/>
+                _result_tuple_tl = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
+                                                angle_factor = random.random()*0.1, iter_count=1, 
+                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                mat_after = _result_tuple_tl[0]
+                #<  mat is not touched.>
+                assert _tensor_equal(mat_after, mat)
+                pass
             
-            "2d 45deg, slightly correct it."
+            pass#/ test
+        
+        if "orthogonal" and True:
+            for _ in range(36):
+                dim = random.randint(2,100)
+                mat = torch.eye(n=dim)
+                mat = randomly_rotate__matrix(mat)
+                mat = randomly_permutate__matrix(mat)
+                #<  is orthogonal?>
+                len_loss, angle_loss, _=LOSS__mat_is_standard_orthogonal(mat)
+                assert _tensor_equal(len_loss, [0.])
+                assert _tensor_equal(angle_loss, [0.])
+                #<  calc/>
+                _result_tuple_tl = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
+                                                angle_factor = random.random()*0.1, iter_count=1, 
+                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                mat_after = _result_tuple_tl[0]
+                #<  mat is not touched.>
+                assert _tensor_equal(mat_after, mat)
+                pass
+            
+            pass#/ test
+            
+        if "[[1,0],[sqrt(2)/2, sqrt(2)/2]]" and True:
+            mat = torch.tensor([[1.,0],[math.sqrt(0.5),math.sqrt(0.5)]])
+            #<  calc/>
+            _, _log = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
+                                                angle_factor = random.random()*0.1, iter_count=1, 
+                        dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            halfway_mat = _log[4][1]
+            what # is the result?
+            pass#/ test
+        
+        if "[[1,0,0],[sqrt(2)/2, sqrt(2)/2, 0],[sqrt(2)/2, 0, sqrt(2)/2]]" and True:
+            mat = torch.tensor([[1,0,0],[math.sqrt(0.5), math.sqrt(0.5), 0],
+                                        [math.sqrt(0.5), 0, math.sqrt(0.5)]])
+            #<  calc/>
+            _, _log = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
+                                                angle_factor = random.random()*0.1, iter_count=1, 
+                        dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            halfway_mat = _log[4][1]
+            what # is the result?
+            pass#/ test
+        
+        if "random 2d 45deg" and True:
+            mat = torch.randn(size=[2,2])
+            _cos = torch.tensor(torch.pi/4.).cos()
+            _sin = torch.tensor(torch.pi/4.).sin()
+            
+            mat[1] = mat[0].detach().clone()@torch.tensor([[  _cos.item(), _sin.item()],
+                                                            [-_sin.item(), _cos.item()],])
+            _, _log = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
+                                                angle_factor = random.random()*0.1, iter_count=1, 
+                        dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            halfway_mat = _log[4][1]
+            what # is the result?
+            pass#/ test
+        
+        if "random 3d 45deg" and True:
+            mat = torch.randn(size=[3,3])
+            _cos = torch.tensor(torch.pi/4.).cos()
+            _sin = torch.tensor(torch.pi/4.).sin()
+            
+            mat[1] = mat[0].detach().clone()@torch.tensor([[  _cos.item(), _sin.item(), 0],
+                                                            [-_sin.item(), _cos.item(), 0],
+                                                            [0,            0,           1]])
+            
+            mat[2] = mat[0].detach().clone()@torch.tensor([[  _cos.item(), 0, _sin.item()],
+                                                            [0,            1,           0],
+                                                            [-_sin.item(), 0, _cos.item()]])
+
+            _, _log = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
+                                                angle_factor = random.random()*0.1, iter_count=1, 
+                        dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+            halfway_mat = _log[4][1]
+            what # is the result?
+            pass#/ test
+        
+        
+        
+            
+            
+            
+            
+            
+            
+        1w
+        1w这个是怎么写的？？？？
+            
+            
+        if "2d 45deg, slightly correct it." and True:
             for _ in range(5):
                 #<  rand angle>
                 _angle = (torch.rand([]))*0.1+0.05
@@ -1796,11 +1970,14 @@ if "angle correction only" and __DEBUG_ME__() and True:
                     pass
                 _angle += torch.pi/4.
                 #</ rand angle>
-                dont_correct_length_with_error_prapagation = random.choice([True, False])
+                #dont_correct_length_with_error_prapagation = random.choice([True, False])
+                dont_correct_length_with_error_prapagation = True
                 
                 #<  calc>
                 mat = torch.tensor([[_angle.sin().item(),_angle.cos().item()],
-                                    [1./math.sqrt(2.), -1./math.sqrt(2.)]])#trigonometric func in rad
+                                    [1./math.sqrt(2.),   -1./math.sqrt(2.)]])#trigonometric func in rad
+                1w感觉这个mat是错的。不是45度。
+                
                 _result_tuple_tl = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., angle_factor = 0.01, iter_count=1, 
                         dont_correct_length_with_error_prapagation = dont_correct_length_with_error_prapagation, __debug__need_log = True)
                 mat_after = _result_tuple_tl[0]
@@ -1822,6 +1999,11 @@ if "angle correction only" and __DEBUG_ME__() and True:
                 #</ assertions>
                 pass# for _
             
+            
+            
+            
+            
+            dont_correct_length_with_error_prapagation 的测试。
             
             "the same direction, the length optimizes, if the flag is set to false."
             lr = 0.1
