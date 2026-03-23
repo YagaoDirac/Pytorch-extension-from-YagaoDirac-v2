@@ -1771,109 +1771,262 @@ if "length correction only, finished, mar 21" and __DEBUG_ME__() and False:
     
     ____test____correct_the_matrix___version_2____length_correction()
     pass
+
+
 if "angle correction only" and __DEBUG_ME__() and True:
     
     
-    特定角度的2维的会被撇到一个特定的新角度？？会不会不是精确的。（只关注一个方向的矫正）
-    高维的有没有办法做上面这一条的相同的操作？？
+    #特定角度的2维的会被撇到一个特定的新角度？？会不会不是精确的。（只关注一个方向的矫正）
+#    高维的有没有办法做上面这一条的相同的操作？？
     
     
     
     def ____test____correct_the_matrix___version_2____angle_correction():
         import random, math
         
-        if "zero vector" and True:
+        "if padding with all zeros, nothing changes."
+        
+        "if dim is 2 or 3, the length sometimes matters... idk the reason."
+        if "length should not affect the result." and False:
+            #result 
+            # how_similar__min =[  0.000,  0.000,  6.665,  6.941,  2.101,  4.165]
+            # how_similar__max =[  8.241,  8.738,  7.971,  7.318,  6.830,  6.755]
+            # how_similar__avg =[  6.527,  7.138,  7.130,  7.102,  3.073,  5.033]
+            # dim_list        =[   2.000,  3.000,  4.000,  10.000,  100.000,  1000.]
+            #for dim >=4, it's stable.
+                
+            how_similar__min   = []#don't modify here.
+            how_similar__max   = []#don't modify here.
+            how_similar__avg   = []#don't modify here.
+                
+            #--------------------#--------------------#--------------------
+            dim_list =         [2,   3,   4,   10, 100,1000]
+            test_time_list = [2000,2000,2000,2000,1500, 150]
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                test_time = test_time_list[outter_param_set]
+                if dim>100:#tested. <100 cpu, >100 cuda.
+                    device = 'cuda'
+                    pass
+                else:
+                    device = 'cpu'
+                    pass
+                print(f"{test_time}, {device}")
+            #--------------------#--------------------#--------------------
+                
+                _raw_result = torch.empty(size=[test_time])#don't modify here.
+                
+                for test_count in range(test_time):
+                    #--------------------#--------------------#--------------------
+                    mat_1 = torch.randn(size=[dim,dim])/math.sqrt(dim)
+                    scaling_factor = random.random()*2.+0.5
+                    mat_2 = mat_1.detach().clone()*scaling_factor
+                    #<  calc/>            
+                    angle_factor = random.random()*0.1
+                    mat_1_after, _log = correct_the_matrix___version_2(mat_1.detach().clone(), length_factor=0., 
+                                                        angle_factor = angle_factor, iter_count=1, 
+                                dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                    mat_2_after, _log = correct_the_matrix___version_2(mat_2.detach().clone(), length_factor=0., 
+                                                        angle_factor = angle_factor, iter_count=1, 
+                                dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                    #<  assertion>
+                    mat_2_after_scaled_back = mat_2_after/scaling_factor
+                    _result_is_valid, the_difference = log10_avg__how_similar(mat_1_after, mat_2_after_scaled_back)
+                    #--------------------#--------------------#--------------------
+                    if _result_is_valid:
+                        _raw_result[test_count] = the_difference
+                        pass
+                    pass#for test_count
+                
+                how_similar__min.append(_raw_result.min())
+                how_similar__max.append(_raw_result.max())
+                how_similar__avg.append(_raw_result.mean())
+                
+                pass# for outter_param_set
+            
+            print(f"how_similar__min ={str_the_list(how_similar__min, 3)}")
+            print(f"how_similar__max ={str_the_list(how_similar__max, 3)}")
+            print(f"how_similar__avg ={str_the_list(how_similar__avg, 3)}")
+            print(f"dim_list        ={str_the_list(dim_list, 3)}")
+        
+            pass#/ test
+        
+        if "zero vector" and False:
             mat = torch.tensor([[1.,0], [0,0]])
             angle_factor = 0.1
-            _, _log = correct_the_matrix___version_2(mat_1.detach().clone(), length_factor=0., 
+            _, _log = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
                                                     angle_factor = angle_factor, iter_count=1, 
                             dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-            _log[4][1]#only correct by row
-            what# is the result?
-            
+            assert _log[13][0] == 'MATRIX   ready to correct by column'
+            assert _tensor_equal(_log[13][1], mat)#only correct by row
+            del mat
+                        
             mat = torch.tensor([[1.,1], [0,0]])
             angle_factor = 0.1
-            _, _log = correct_the_matrix___version_2(mat_1.detach().clone(), length_factor=0., 
+            _, _log = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
                                                     angle_factor = angle_factor, iter_count=1, 
                             dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-            _log[4][1]#only correct by row
-            what# is the result?
+            assert _tensor_equal(_log[13][1], mat)#only correct by row
+            del mat
             
             mat = torch.tensor([[1.,2], [0,0]])
             angle_factor = 0.1
-            _, _log = correct_the_matrix___version_2(mat_1.detach().clone(), length_factor=0., 
+            _, _log = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
                                                     angle_factor = angle_factor, iter_count=1, 
                             dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-            _log[4][1]#only correct by row
-            what# is the result?
+            assert _tensor_equal(_log[13][1], mat)#only correct by row
+            del mat
             
             pass#/ test
         
-        if "zero vector?  random a bit." and True:
-            mat = torch.randn(size=[2,2])
-            mat[1].fill_(0.)
-            angle_factor = random.random()*0.1
-            
-            _, _log = correct_the_matrix___version_2(mat_1.detach().clone(), length_factor=0., 
-                                                    angle_factor = angle_factor, iter_count=1, 
-                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-            what# is the result?
-            _log[4][1]#only correct by row
-            what# is the result?
-            
-            pass#/ test
-        
-        if "length should not affect the result." and True:
-            for _ in range(55):
-                dim = random.randint(2,100)
-                mat_1 = torch.randn(size=[dim,dim])
-                scaling_factor = random.random()*2.+0.5
-                mat_2 = mat_1.detach().clone()*scaling_factor
-                #<  calc/>            
+        if "zero vector in 2d?  random a bit." and False:
+            for _ in range(432):
+                mat = torch.randn(size=[2,2])
+                mat[1].fill_(0.)
                 angle_factor = random.random()*0.1
-                mat_1_after, _ = correct_the_matrix___version_2(mat_1.detach().clone(), length_factor=0., 
-                                                    angle_factor = angle_factor, iter_count=1, 
-                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-                mat_2_after, _ = correct_the_matrix___version_2(mat_2.detach().clone(), length_factor=0., 
-                                                    angle_factor = angle_factor, iter_count=1, 
-                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-                #<  assertion>
-                assert _tensor_equal(mat_1_after, mat_2_after/scaling_factor)
+                
+                _, _log = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
+                                                        angle_factor = angle_factor, iter_count=1, 
+                                dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                assert _log[13][0] == 'MATRIX   ready to correct by column'
+                assert _tensor_equal(_log[13][1], mat)#only correct by row
+                del mat
                 pass
             
             pass#/ test
         
-        if "[[1,0],[0,1]] is orthogonal, nothing is touched."and True:
-            mat = torch.tensor([[1.,0],[0,1]])
-            #<  calc/>
-            _result_tuple_tl = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
-                                                angle_factor = random.random()*0.1, iter_count=1, 
-                        dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-            mat_after = _result_tuple_tl[0]
-            #<  mat is not touched.>
-            assert _tensor_equal(mat_after, mat)
-            pass
+        "when dim < 40 it's a bit unstable."
+        if "with an extra dim of all zeroes?" and False:
+            #result 
+            # how_similar_halfway__min=[-0.000,  0.000,  0.000,  0.000,  0.000,  0.000, -0.304,  7.132,  7.131,  7.121,  7.074,  5.444]
+            # how_similar_halfway__max=[ 8.566,  10.17,  10.08,  9.415,  9.437,  9.776,  9.936,  8.833,  9.039,  10.39,  10.05,  7.300]
+            # how_similar_halfway__avg=[ 2.241,  5.293,  6.115,  7.402,  7.469,  7.428,  7.410,  7.428,  7.405,  7.409,  7.335,  5.889]
+            # how_similar__min        =[-0.000,  0.000,  0.000,  0.000,  0.000,  0.000, -0.304,  7.132,  7.131,  7.121,  7.074,  5.444]
+            # how_similar__max        =[ 8.566,  10.17,  10.08,  9.415,  9.437,  9.776,  9.936,  8.833,  9.039,  10.39,  10.05,  7.300]
+            # how_similar__avg        =[ 2.241,  5.293,  6.115,  7.402,  7.469,  7.428,  7.410,  7.428,  7.405,  7.409,  7.335,  5.889]
+            # dim_list               =[  2.000,  3.000,  4.000,  10.00,  20.00,  30.00,  35.00,  40.00,  45.00,  50.00,  100.0,  1000.]
+            
+            how_similar_halfway__min   = []#don't modify here.
+            how_similar_halfway__max   = []#don't modify here.
+            how_similar_halfway__avg   = []#don't modify here.
+            how_similar__min   = []#don't modify here.
+            how_similar__max   = []#don't modify here.
+            how_similar__avg   = []#don't modify here.
+            #--------------------#--------------------#--------------------
+            dim_list =         [2,   3,   4,   10, 100,1000]
+            test_time_list = [2000,2000,2000,2000,1500, 150]
+            dim_list =         [30,  35,  40, 45,  50,]
+            test_time_list = [1000,1000,1000,1000,1000]
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                test_time = test_time_list[outter_param_set]
+                if dim>100:#tested. <100 cpu, >100 cuda.
+                    device = 'cuda'
+                    pass
+                else:
+                    device = 'cpu'
+                    pass
+                print(f"{test_time}, {device}")
+            #--------------------#--------------------#--------------------
+            
+                _raw_result_halfway = torch.empty(size=[test_time])#don't modify here.
+                _raw_result = torch.empty(size=[test_time])#don't modify here.
+                
+                for test_count in range(test_time):
+                    #--------------------#--------------------#--------------------
+                    angle_factor = random.random()*0.1
+                    #<  init>
+                    mat_small = torch.randn(size=[dim,dim])
+                    mat_big = torch.zeros(size=[dim+1,dim+1])
+                    mat_big[:dim,:dim] = mat_small.detach()
+                    #<  bit mat has a dim of zeros comparing to the small mat.
+                    aaa = mat_big[  -1]
+                    assert mat_big[  -1].eq(0.).all()
+                    assert mat_big[:,-1].eq(0.).all()
+                    #<  calc>
+                    mat_small_after, _log_small = correct_the_matrix___version_2(mat_small.detach().clone(), length_factor=0., 
+                                                            angle_factor = angle_factor, iter_count=1, 
+                                    dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                    mat_big_after, _log_big = correct_the_matrix___version_2(mat_big.detach().clone(), length_factor=0., 
+                                                            angle_factor = angle_factor, iter_count=1, 
+                                    dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                    #<  assertion>
+                    assert _log_small[4][0] == 'MATRIX   Length corrected by row'
+                    
+                    _result_is_valid, the_difference = log10_avg__how_similar(_log_small[4][1], _log_big[4][1][:dim,:dim])
+                    if _result_is_valid:
+                        _raw_result_halfway[test_count] = the_difference
+                        pass
+                    _result_is_valid, the_difference = log10_avg__how_similar(mat_small_after, mat_big_after[:dim,:dim])
+                    if _result_is_valid:
+                        _raw_result[test_count] = the_difference
+                        pass
+                    pass
+                
+                how_similar_halfway__min.append(_raw_result.min())
+                how_similar_halfway__max.append(_raw_result.max())
+                how_similar_halfway__avg.append(_raw_result.mean())
+                how_similar__min.append(_raw_result.min())
+                how_similar__max.append(_raw_result.max())
+                how_similar__avg.append(_raw_result.mean())
+            pass# for outter_param_set
+            
+            print(f"how_similar_halfway__min={str_the_list(how_similar_halfway__min, 3)}")
+            print(f"how_similar_halfway__max={str_the_list(how_similar_halfway__max, 3)}")
+            print(f"how_similar_halfway__avg={str_the_list(how_similar_halfway__avg, 3)}")
+            print(f"how_similar__min        ={str_the_list(how_similar__min, 3)}")
+            print(f"how_similar__max        ={str_the_list(how_similar__max, 3)}")
+            print(f"how_similar__avg        ={str_the_list(how_similar__avg, 3)}")
+            print(f"dim_list               ={str_the_list(dim_list, 3)}")
+            
+            del mat_small, mat_big
+            pass#/ test
         
-        if "2d orthogonal" and True:
+        "orthogonal below."
+        
+        if "[[1,0],[0,1]] is orthogonal, nothing is touched."and False:
+            for _ in range(6):
+                
+                mat = torch.tensor([[1.,0],[0,1]])
+                #<  calc/>
+                _result_tuple_tl = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
+                                                    angle_factor = random.random()*0.1, iter_count=1, 
+                            dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
+                mat_after = _result_tuple_tl[0]
+                #<  mat is not touched.>
+                assert _tensor_equal(mat_after, mat)
+                del mat, mat_after
+                pass
+            
+            pass#/ test
+        
+        if "2d orthogonal only by row." and False:
             for _ in range(16):
                 mat = torch.rand(size=[2,2])
                 mat[0,1] = -1.
                 mat[1,1] = mat[0,0] * mat[1,0]
                 #<  are they orthogonal?/>
-                assert _tensor_equal(mat[0]*mat[1].sum(), [0.])
-                assert _tensor_equal(mat[:,0]*mat[:,1].sum(), [0.])
+                
+                assert _tensor_equal((mat[0]*mat[1]).sum(), [0.])
+                #assert _tensor_equal((mat[:,0]*mat[:,1]).sum(), [0.]) no wrong. only by-row is orthogonal
                 #<  calc/>
                 _result_tuple_tl = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
                                                 angle_factor = random.random()*0.1, iter_count=1, 
                             dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
                 mat_after = _result_tuple_tl[0]
-                #<  mat is not touched.>
-                assert _tensor_equal(mat_after, mat)
+                _log = _result_tuple_tl[1]
+                #<  mat is not touched only halfway.>
+                
+                assert _log[13][0] == 'MATRIX   ready to correct by column'
+                assert _tensor_equal(mat, _log[13][1])# only by row.
+                
+                #assert _tensor_equal(mat_after, mat) no, wrong.
+                del mat, mat_after
                 pass
             
             pass#/ test
         
-        if "orthogonal" and True:
+        if "orthogonal" and False:
             for _ in range(36):
                 dim = random.randint(2,100)
                 mat = torch.eye(n=dim)
@@ -1890,18 +2043,26 @@ if "angle correction only" and __DEBUG_ME__() and True:
                 mat_after = _result_tuple_tl[0]
                 #<  mat is not touched.>
                 assert _tensor_equal(mat_after, mat)
+                del mat, mat_after
                 pass
             
             pass#/ test
+            
+        torch.triu() function to optimize.
+            
             
         if "[[1,0],[sqrt(2)/2, sqrt(2)/2]]" and True:
             mat = torch.tensor([[1.,0],[math.sqrt(0.5),math.sqrt(0.5)]])
             #<  calc/>
             _, _log = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
-                                                angle_factor = random.random()*0.1, iter_count=1, 
+                                                angle_factor = 0.1, iter_count=1, 
                         dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-            halfway_mat = _log[4][1]
-            what # is the result?
+            assert _log[13][0] == 'MATRIX   ready to correct by column'
+            halfway_mat = _log[13][1]
+            print(mat)
+            print(halfway_mat)
+            手动推一下这个公式。
+            del mat, halfway_mat
             pass#/ test
         
         if "[[1,0,0],[sqrt(2)/2, sqrt(2)/2, 0],[sqrt(2)/2, 0, sqrt(2)/2]]" and True:
@@ -1911,7 +2072,7 @@ if "angle correction only" and __DEBUG_ME__() and True:
             _, _log = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
                                                 angle_factor = random.random()*0.1, iter_count=1, 
                         dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-            halfway_mat = _log[4][1]
+            halfway_mat = _log[13][1]
             what # is the result?
             pass#/ test
         
@@ -1925,7 +2086,7 @@ if "angle correction only" and __DEBUG_ME__() and True:
             _, _log = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
                                                 angle_factor = random.random()*0.1, iter_count=1, 
                         dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-            halfway_mat = _log[4][1]
+            halfway_mat = _log[13][1]
             what # is the result?
             pass#/ test
         
@@ -1945,22 +2106,13 @@ if "angle correction only" and __DEBUG_ME__() and True:
             _, _log = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., 
                                                 angle_factor = random.random()*0.1, iter_count=1, 
                         dont_correct_length_with_error_prapagation = True, __debug__need_log = True)
-            halfway_mat = _log[4][1]
+            halfway_mat = _log[13][1]
             what # is the result?
             pass#/ test
         
         
         
-            
-            
-            
-            
-            
-            
-        1w
-        1w这个是怎么写的？？？？
-            
-            
+        这个是怎么写的#？？？？
         if "2d 45deg, slightly correct it." and True:
             for _ in range(5):
                 #<  rand angle>
@@ -1976,7 +2128,7 @@ if "angle correction only" and __DEBUG_ME__() and True:
                 #<  calc>
                 mat = torch.tensor([[_angle.sin().item(),_angle.cos().item()],
                                     [1./math.sqrt(2.),   -1./math.sqrt(2.)]])#trigonometric func in rad
-                1w感觉这个mat是错的。不是45度。
+                感觉这个mat是错的#。不是45度。
                 
                 _result_tuple_tl = correct_the_matrix___version_2(mat.detach().clone(), length_factor=0., angle_factor = 0.01, iter_count=1, 
                         dont_correct_length_with_error_prapagation = dont_correct_length_with_error_prapagation, __debug__need_log = True)
@@ -2003,7 +2155,7 @@ if "angle correction only" and __DEBUG_ME__() and True:
             
             
             
-            dont_correct_length_with_error_prapagation 的测试。
+            dont_correct_length_with_error_prapagation = 的测试
             
             "the same direction, the length optimizes, if the flag is set to false."
             lr = 0.1
@@ -2083,6 +2235,7 @@ if "angle correction only" and __DEBUG_ME__() and True:
     ____test____correct_the_matrix___version_2____angle_correction()
         
 if "param scan         the old test" and __DEBUG_ME__() and True:
+    完事了回来看看
     def ____test____correct_the_matrix___version_2____param_scan():
         "let's scan param a bit."
         #   dim    lr
