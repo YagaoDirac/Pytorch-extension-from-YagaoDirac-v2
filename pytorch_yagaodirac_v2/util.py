@@ -695,7 +695,6 @@ def debug_strong_grad_ratio(parameter:torch.nn.parameter.Parameter, log10_diff =
 
 
 
-
 # Here I provide 2 versions.
 # the old version is on top. It's better but not a pure gpu implementation.
 # Then I made a new torch-specified version. It's faster.
@@ -1844,9 +1843,11 @@ if "test" and __DEBUG_ME__() and False:
     ____test____log10_avg_safe__with_batch()
     pass
 
-# ^^^ old   ///   vvv new
+" ^^^ version 1.   ///   vvv version 2."
+" ^^^ version 1.   ///   vvv version 2."
+" ^^^ version 1.   ///   vvv version 2."
 
-def avg_of_top(input:torch.Tensor, top_ratio = 0.9, greater_true_smaller_false = True)->torch.Tensor:
+def ____avg_of_top____v2(input:torch.Tensor, top_ratio = 0.9, greater_true_smaller_false = True)->torch.Tensor:
     assert input.shape.__len__() == 1
     n_elements_needed = int(input.nelement()*top_ratio+0.5)
     if n_elements_needed < 1:
@@ -1857,41 +1858,152 @@ def avg_of_top(input:torch.Tensor, top_ratio = 0.9, greater_true_smaller_false =
     _before_mean = _sorted[:n_elements_needed]
     the_mean = _before_mean.mean()#last dim
     return the_mean
+
+" ^^^ version 2.   ///   vvv version 3. the top k version"
+" ^^^ version 2.   ///   vvv version 3. the top k version"
+" ^^^ version 2.   ///   vvv version 3. the top k version"
+" I only need to change this one function....."
+
+def avg_of_top(input:torch.Tensor, top_ratio = 0.9, greater_true_smaller_false = True)->torch.Tensor:
+    "v3 of this function."
+    
+    assert input.shape.__len__() == 1# or <=2????
+    n_elements_needed = int(input.nelement()*top_ratio+0.5)
+    if n_elements_needed < 1:
+        n_elements_needed = 1
+        pass
+    
+    _before_mean = input.topk(n_elements_needed, dim=-1, largest=greater_true_smaller_false,sorted=False).values
+    the_mean = _before_mean.mean()#last dim
+    return the_mean
+
+if "test v2 vs v3" and False:
+    def ____test____v2_vs_v3():
+        if "are they the same.     don't run this." and False:
+            assert False, "the log10_avg__how_similar is recursive????"
+            # assertion only test. no print.
+            for dim in [2,3,4,10,100,1000]:
+                if dim <100:
+                    test_time = 1000
+                    pass
+                else:
+                    test_time = 100
+                    pass
+                for test_count in range(test_time):
+                    input = torch.rand(size=[100])
+                    result_v2 = ____avg_of_top____v2(input)
+                    result_v3 = avg_of_top(input)
+                    assert _tensor_equal(result_v2, result_v3)
+                    if result_v2.ne(result_v3):
+                        _result_is_valid, the_difference = log10_avg__how_similar(result_v2, result_v3)
+                        assert the_difference>5.
+                        pass
+                    pass
+                pass#for test_count
+            
+            pass#/ test
+        
+        if "performance test" and True:
+            from pytorch_yagaodirac_v2.timeit_yagaodirac import timeit
+            # device cpu
+            # v2_time = [ 0.00108272669,  0.00149213650,  0.07766181688,  13.09609061965]
+            # v3_time = [ 0.00066916173,  0.00080774480,  0.01565510492,  1.72210222969]
+            # dim_list = [ 2.00000000,  100.00000000,  10000.00000000,  1000000.00000000]
+            
+            # device cuda
+            # v2_time = [ 0.24382240805,  0.00649701804,  0.17482644962,  0.08778678276]
+            # v3_time = [ 0.00196404489,  0.00213772431,  0.00546183334,  0.03368567326]
+            # dim_list = [ 2.00000000,  100.00000000,  10000.00000000,  1000000.00000000]
+            
+            v2_time = []#don't modify this.
+            v3_time = []#don't modify this.
+            
+            device = 'cuda'
+            time_at_most = 0.2
+            loop_time = 100
+            dim_list =       [  2,   100,10000,int(1e6)]
+            for outter_iter_count in range(dim_list.__len__()):
+                dim = dim_list[outter_iter_count]
+                print(device)
+            
+                input = torch.rand(size=[dim], device=device)
+                def func_null():
+                    for _ in range(loop_time):
+                        pass
+                    return 
+                null_time,_ = timeit(func_null, time_at_most = time_at_most)
+                del func_null
+                
+                def func_v2():
+                    for _ in range(loop_time):
+                        result_v2 = ____avg_of_top____v2(input)
+                        pass
+                    return 
+                raw__result_v2,_ = timeit(func_v2, time_at_most = time_at_most)
+                v2_time.append(raw__result_v2 - null_time)
+                del func_v2
+                
+                def func_v3():
+                    for _ in range(loop_time):
+                        result_v3 = avg_of_top(input)
+                        pass
+                    return 
+                raw__result_v3,_ = timeit(func_v3, time_at_most = time_at_most)
+                v3_time.append(raw__result_v3 - null_time)
+                del func_v3
+                
+                pass #for outter_iter_count
+            print(f"device {device}")
+            print(f"v2_time = {str_the_list(v2_time, 11)}")    
+            print(f"v3_time = {str_the_list(v3_time, 11)}")    
+            print(f"dim_list = {str_the_list(dim_list, 8)}")    
+            
+            pass#/ test
+        
+        return 
+        
+    ____test____v2_vs_v3()
+    pass    
+
 def avg_of_bottom(input:torch.Tensor, bottom_ratio = 0.9)->torch.Tensor:
     return avg_of_top(input, bottom_ratio, False)
 if "test" and __DEBUG_ME__() and False:
     def ____test____avg_of_one_side():
-        "avg_of_top"
-        _temp_random = torch.rand(size=[90])+1.
-        _ref = _temp_random.mean()
-        _temp_list = (_temp_random).tolist()
-        _temp_list.extend((torch.rand(size=[10])).tolist())
-        random.shuffle(_temp_list)
-        random.shuffle(_temp_list)
-        random.shuffle(_temp_list)
-        input = torch.tensor(_temp_list)
-        result = avg_of_top(input)
-        assert _tensor_equal(result, _ref)
+        if "avg_of_top":
+            for _ in range(123):
+                _temp_random = torch.rand(size=[90])+1.
+                _ref = _temp_random.mean()
+                _temp_list = (_temp_random).tolist()
+                _temp_list.extend((torch.rand(size=[10])).tolist())
+                random.shuffle(_temp_list)
+                random.shuffle(_temp_list)
+                random.shuffle(_temp_list)
+                input = torch.tensor(_temp_list)
+                result = avg_of_top(input)
+                assert _tensor_equal(result, _ref)
+                pass
+            pass
         
-        "avg_of_bottom"
-        _temp_random = torch.rand(size=[90])
-        _ref = _temp_random.mean()
-        _temp_list = (_temp_random).tolist()
-        _temp_list.extend((torch.rand(size=[10])+1.).tolist())
-        random.shuffle(_temp_list)
-        random.shuffle(_temp_list)
-        random.shuffle(_temp_list)
-        input = torch.tensor(_temp_list)
-        result = avg_of_bottom(input)
-        assert _tensor_equal(result, _ref)
-        result = avg_of_top(input, greater_true_smaller_false = False)
-        assert _tensor_equal(result, _ref)
+        if "avg_of_bottom":
+            for _ in range(123):
+                _temp_random = torch.rand(size=[90])
+                _ref = _temp_random.mean()
+                _temp_list = (_temp_random).tolist()
+                _temp_list.extend((torch.rand(size=[10])+1.).tolist())
+                random.shuffle(_temp_list)
+                random.shuffle(_temp_list)
+                random.shuffle(_temp_list)
+                input = torch.tensor(_temp_list)
+                result = avg_of_bottom(input)
+                assert _tensor_equal(result, _ref)
+                result = avg_of_top(input, greater_true_smaller_false = False)
+                assert _tensor_equal(result, _ref)
+                pass
+            pass
         
         return 
     
-    for _ in range(1):
-        ____test____avg_of_one_side()
-        pass
+    ____test____avg_of_one_side()
     pass
 
 def _raw_log10_avg_safe(input:torch.Tensor, top_ratio = 0.9, recommended_gpu_device:torch.device = 'cuda')->torch.Tensor:
@@ -2283,6 +2395,8 @@ if "test" and __DEBUG_ME__() and False:
     ____test____log10_avg_diff_safe()
     
     pass
+
+
 
 
 

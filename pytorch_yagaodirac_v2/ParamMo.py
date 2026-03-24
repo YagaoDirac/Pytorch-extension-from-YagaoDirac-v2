@@ -2387,185 +2387,187 @@ if '''init test''' and __DEBUG_ME__() and True:
 
 
 
+if "to fold the code" and False:
 
+    # class XModificationFunction(torch.autograd.Function):
+    # maybe this is a forward version of abs mean to 1??? If I see any use case of it, I'll get it ready.
+    #     r'''input param:
+    #     >>> x:torch.Tensor (must be set as require_grad = True)
+    #     >>> scaling_factor = torch.tensor([1.])
+    #     >>> epsilon = torch.tensor([1e-5])
+    #     >>> div_me_when_g_too_small = torch.tensor([1e-3])
 
-# class XModificationFunction(torch.autograd.Function):
-# maybe this is a forward version of abs mean to 1??? If I see any use case of it, I'll get it ready.
-#     r'''input param:
-#     >>> x:torch.Tensor (must be set as require_grad = True)
-#     >>> scaling_factor = torch.tensor([1.])
-#     >>> epsilon = torch.tensor([1e-5])
-#     >>> div_me_when_g_too_small = torch.tensor([1e-3])
+    #     retur type: torch.Tensor
+    #     '''
+    #     @staticmethod
+    #     def forward(ctx: Any, *args: Any, **kwargs: Any)->Any:
+    #         #I tried to write like:
+    #         #def forward(ctx, x:torch.Tensor, scaling_factor:float = torch.tensor([1.]), \
+    #         #               epsilon=torch.tensor([1e-5]), \
+    #         #               div_me_when_g_too_small = torch.tensor([1e-3]))->torch.Tensor:
+    #         #but python grammar punched me.
+    #         x_in:torch.Tensor = args[0]
+    #         scaling_factor = args[1]
+    #         epsilon = args[2]
+    #         div_me_when_g_too_small = args[3]
+    #         # the default values:
+    #         # scaling_factor = torch.tensor([1.])
+    #         # epsilon = torch.tensor([0.00001])
+    #         # div_me_when_g_too_small = torch.tensor([0.001])
+    #         # the definition of the 3 param are different from the previous version
+            #assert_param_shape_... (x_in)
 
-#     retur type: torch.Tensor
-#     '''
-#     @staticmethod
-#     def forward(ctx: Any, *args: Any, **kwargs: Any)->Any:
-#         #I tried to write like:
-#         #def forward(ctx, x:torch.Tensor, scaling_factor:float = torch.tensor([1.]), \
-#         #               epsilon=torch.tensor([1e-5]), \
-#         #               div_me_when_g_too_small = torch.tensor([1e-3]))->torch.Tensor:
-#         #but python grammar punched me.
-#         x_in:torch.Tensor = args[0]
-#         scaling_factor = args[1]
-#         epsilon = args[2]
-#         div_me_when_g_too_small = args[3]
-#         # the default values:
-#         # scaling_factor = torch.tensor([1.])
-#         # epsilon = torch.tensor([0.00001])
-#         # div_me_when_g_too_small = torch.tensor([0.001])
-#         # the definition of the 3 param are different from the previous version
-        #assert_param_shape_... (x_in)
+    #         length:torch.Tensor = x_in.mul(x_in).sum(dim=1,).sqrt()
+    #         too_small:torch.Tensor = length.le(epsilon)
+    #         div_me = too_small.logical_not()*length + too_small*div_me_when_g_too_small
+    #         div_me = div_me.unsqueeze(dim=1)
+    #         div_me = div_me.to(x_in.dtype)
+    #         x_out:torch.Tensor = x_in/div_me
 
-#         length:torch.Tensor = x_in.mul(x_in).sum(dim=1,).sqrt()
-#         too_small:torch.Tensor = length.le(epsilon)
-#         div_me = too_small.logical_not()*length + too_small*div_me_when_g_too_small
-#         div_me = div_me.unsqueeze(dim=1)
-#         div_me = div_me.to(x_in.dtype)
-#         x_out:torch.Tensor = x_in/div_me
+    #         scaling_factor = scaling_factor.to(x_in.dtype)
+    #         if 1.!=scaling_factor.item():
+    #             x_out *= scaling_factor
+    #             pass
+            
+    #         return x_out
 
-#         scaling_factor = scaling_factor.to(x_in.dtype)
-#         if 1.!=scaling_factor.item():
-#             x_out *= scaling_factor
-#             pass
-        
-#         return x_out
+    #     @staticmethod
+    #     def backward(ctx, g):
+    #         #super().backward()
+    #         return g, None, None, None
 
-#     @staticmethod
-#     def backward(ctx, g):
-#         #super().backward()
-#         return g, None, None, None
-
-#     pass  # class
-
-
-
-# # '''dtype adaption.'''
-# # scaling_factor = torch.tensor([1.], dtype=torch.float64)
-# # epsilon=torch.tensor([1e-5], dtype=torch.float32)
-# # div_me_when_g_too_small = torch.tensor([1e-3], dtype=torch.float16)
-# # a = torch.tensor([[0.]], dtype=torch.float16)
-# # original_dtype = a.dtype
-# # prin(XModificationFunction.apply(a,scaling_factor,epsilon,div_me_when_g_too_small))
-# # prin("should be ", original_dtype)
-# # fds=432
-
-# # '''when x_in is too small.'''
-# # scaling_factor = torch.tensor([1.])
-# # epsilon=torch.tensor([1e-5])
-# # div_me_when_g_too_small = torch.tensor([1e-3])
-# # input = torch.tensor([[0.0000012]])
-# # prin(XModificationFunction.apply(input,scaling_factor,epsilon,div_me_when_g_too_small))
-# # prin("should be ", input/div_me_when_g_too_small)
-
-# # '''when x_in is NOT too small.'''
-# # scaling_factor = torch.tensor([1.])
-# # epsilon=torch.tensor([1e-5])
-# # div_me_when_g_too_small = torch.tensor([1e-3])
-# # input = torch.tensor([[0.12]])
-# # prin(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
-# # prin("should be 1.")
-# # fds=432
-
-# # '''The shape is [batches, inside a batch]. Computation is limited inside each batch.'''
-# # scaling_factor = torch.tensor([1.])
-# # epsilon=torch.tensor([1e-5])
-# # div_me_when_g_too_small = torch.tensor([1e-3])
-# # input = torch.tensor([[0.12, 0.12]])
-# # prin(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
-# # prin("should be 0.7, 0.7")
-
-# # input = torch.tensor([[0.12], [0.12]])
-# # prin(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
-# # prin("should be 1., 1.")
-
-
-# # input = torch.tensor([[0.1, 0.173], [0.12, 0.12]])
-# # prin(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
-# # prin("should be 0.5, 0.86, 0.7, 0.7")
-# # fds=432
-
-# # '''Other 3 input besides the main input x.'''
-# # input = torch.tensor([[0.0001, 0.0001], [0.12, 0.12]])
-# # prin(XModificationFunction.apply(input, torch.tensor([1.]), torch.tensor([0.001]),torch.tensor([0.1])))
-# # prin("should be 0.001, 0.001, 0.7, 0.7")
-
-# # input = torch.tensor([[0.0001, 0.0001], [0.12, 0.12]])
-# # prin(XModificationFunction.apply(input, torch.tensor([2.]), torch.tensor([0.001]),torch.tensor([0.1])))
-# # prin("should be 0.002, 0.002, 1.4, 1.4")
-# # fds=432
+    #     pass  # class
 
 
 
+    # # '''dtype adaption.'''
+    # # scaling_factor = torch.tensor([1.], dtype=torch.float64)
+    # # epsilon=torch.tensor([1e-5], dtype=torch.float32)
+    # # div_me_when_g_too_small = torch.tensor([1e-3], dtype=torch.float16)
+    # # a = torch.tensor([[0.]], dtype=torch.float16)
+    # # original_dtype = a.dtype
+    # # prin(XModificationFunction.apply(a,scaling_factor,epsilon,div_me_when_g_too_small))
+    # # prin("should be ", original_dtype)
+    # # fds=432
 
-# class XModification(torch.nn.Module):
-#     r"""Remember to set learning rate every iteration(or at least when learning rate is changed.)
-#     To access the learning rate, you usually need some thing like:
-#     lr:float = optimizer.param_groups[0]["lr"]
-#     """
-#     def __init__(self, scaling_factor:float = 1., \
-#                        epsilon=1e-5, \
-#                        div_me_when_g_too_small = 1e-3, \
-#                         *args, **kwargs) -> None:
-#         super().__init__(*args, **kwargs)
-#         self.scaling_factor = torch.nn.Parameter(torch.tensor([scaling_factor]), requires_grad=False)
-#         self.scaling_factor.requires_grad_(False)
-#         self.epsilon=torch.nn.Parameter(torch.tensor([epsilon]), requires_grad=False)
-#         self.epsilon.requires_grad_(False)
-#         self.div_me_when_g_too_small = torch.nn.Parameter(torch.tensor([div_me_when_g_too_small]), requires_grad=False)
-#         self.div_me_when_g_too_small.requires_grad_(False)
-#         #raise Exception("untested")
-#         pass
-#     def forward(self, x:torch.Tensor)->torch.Tensor:
-#         # If you know how pytorch works, you can comment this checking out.
-#        assert_param_shape__batch_dim(x)
+    # # '''when x_in is too small.'''
+    # # scaling_factor = torch.tensor([1.])
+    # # epsilon=torch.tensor([1e-5])
+    # # div_me_when_g_too_small = torch.tensor([1e-3])
+    # # input = torch.tensor([[0.0000012]])
+    # # prin(XModificationFunction.apply(input,scaling_factor,epsilon,div_me_when_g_too_small))
+    # # prin("should be ", input/div_me_when_g_too_small)
 
-#         #forward(ctx, x:torch.Tensor, scaling_factor:torch.Tensor, epsilon=torch.Tensor, \
-#         #div_me_when_g_too_small:torch.Tensor)->torch.Tensor:
-#         return XModificationFunction.apply(x, self.scaling_factor, self.epsilon, \
-#                                                    self.div_me_when_g_too_small)
-#     def set_scaling_factor(self, scaling_factor:float)->None:
-#         the_device = self.scaling_factor.device
-#         the_dtype = self.scaling_factor.dtype
-#         self.scaling_factor.data = torch.tensor([scaling_factor], device=the_device, dtype=the_dtype)
-#         self.scaling_factor.requires_grad_(False)
-#         pass
-#     def set_epsilon(self, epsilon:float)->None:
-#         the_device = self.epsilon.device
-#         the_dtype = self.epsilon.dtype
-#         self.epsilon.data = torch.tensor([epsilon], device=the_device, dtype=the_dtype)
-#         self.epsilon.requires_grad_(False)
-#         pass
-#     def set_div_me_when_g_too_small(self, div_me_when_g_too_small:float)->None:
-#         the_device = self.div_me_when_g_too_small.device
-#         the_dtype = self.div_me_when_g_too_small.dtype
-#         self.div_me_when_g_too_small.data = torch.tensor([div_me_when_g_too_small], device=the_device, dtype=the_dtype)
-#         self.div_me_when_g_too_small.requires_grad_(False)
-#         pass
+    # # '''when x_in is NOT too small.'''
+    # # scaling_factor = torch.tensor([1.])
+    # # epsilon=torch.tensor([1e-5])
+    # # div_me_when_g_too_small = torch.tensor([1e-3])
+    # # input = torch.tensor([[0.12]])
+    # # prin(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
+    # # prin("should be 1.")
+    # # fds=432
 
-#     def extra_repr(self) -> str:
-#         return f'scaling_factor={self.scaling_factor.item():.4e}, epsilon={self.epsilon.item():.4e}, div_me_when_g_too_small={self.div_me_when_g_too_small.item():.4e}'
+    # # '''The shape is [batches, inside a batch]. Computation is limited inside each batch.'''
+    # # scaling_factor = torch.tensor([1.])
+    # # epsilon=torch.tensor([1e-5])
+    # # div_me_when_g_too_small = torch.tensor([1e-3])
+    # # input = torch.tensor([[0.12, 0.12]])
+    # # prin(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
+    # # prin("should be 0.7, 0.7")
 
-#     pass#end of class
-# #No tests currently.
+    # # input = torch.tensor([[0.12], [0.12]])
+    # # prin(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
+    # # prin("should be 1., 1.")
 
 
+    # # input = torch.tensor([[0.1, 0.173], [0.12, 0.12]])
+    # # prin(XModificationFunction.apply(input, scaling_factor,epsilon,div_me_when_g_too_small))
+    # # prin("should be 0.5, 0.86, 0.7, 0.7")
+    # # fds=432
 
-# class DoubleModification(torch.nn.Module):
-#     r"""Remember to set learning rate every iteration(or at least when learning rate is changed.)
-#     To access the learning rate, you usually need some thing like:
-#     lr:float = optimizer.param_groups[0]["lr"]
-#     """
-#     def __init__(self, *args, **kwargs) -> None:
-#         super().__init__(*args, **kwargs)
-#         self.xmo = XModification()
-#         self.gramo = GradientModification()
-#         pass
-#     def forward(self, x:torch.Tensor)->torch.Tensor:
-#         x = self.xmo(x)
-#         x = self.gramo(x)
-#         return x
-#     pass #end of class.
+    # # '''Other 3 input besides the main input x.'''
+    # # input = torch.tensor([[0.0001, 0.0001], [0.12, 0.12]])
+    # # prin(XModificationFunction.apply(input, torch.tensor([1.]), torch.tensor([0.001]),torch.tensor([0.1])))
+    # # prin("should be 0.001, 0.001, 0.7, 0.7")
+
+    # # input = torch.tensor([[0.0001, 0.0001], [0.12, 0.12]])
+    # # prin(XModificationFunction.apply(input, torch.tensor([2.]), torch.tensor([0.001]),torch.tensor([0.1])))
+    # # prin("should be 0.002, 0.002, 1.4, 1.4")
+    # # fds=432
+
+
+
+
+    # class XModification(torch.nn.Module):
+    #     r"""Remember to set learning rate every iteration(or at least when learning rate is changed.)
+    #     To access the learning rate, you usually need some thing like:
+    #     lr:float = optimizer.param_groups[0]["lr"]
+    #     """
+    #     def __init__(self, scaling_factor:float = 1., \
+    #                        epsilon=1e-5, \
+    #                        div_me_when_g_too_small = 1e-3, \
+    #                         *args, **kwargs) -> None:
+    #         super().__init__(*args, **kwargs)
+    #         self.scaling_factor = torch.nn.Parameter(torch.tensor([scaling_factor]), requires_grad=False)
+    #         self.scaling_factor.requires_grad_(False)
+    #         self.epsilon=torch.nn.Parameter(torch.tensor([epsilon]), requires_grad=False)
+    #         self.epsilon.requires_grad_(False)
+    #         self.div_me_when_g_too_small = torch.nn.Parameter(torch.tensor([div_me_when_g_too_small]), requires_grad=False)
+    #         self.div_me_when_g_too_small.requires_grad_(False)
+    #         #raise Exception("untested")
+    #         pass
+    #     def forward(self, x:torch.Tensor)->torch.Tensor:
+    #         # If you know how pytorch works, you can comment this checking out.
+    #        assert_param_shape__batch_dim(x)
+
+    #         #forward(ctx, x:torch.Tensor, scaling_factor:torch.Tensor, epsilon=torch.Tensor, \
+    #         #div_me_when_g_too_small:torch.Tensor)->torch.Tensor:
+    #         return XModificationFunction.apply(x, self.scaling_factor, self.epsilon, \
+    #                                                    self.div_me_when_g_too_small)
+    #     def set_scaling_factor(self, scaling_factor:float)->None:
+    #         the_device = self.scaling_factor.device
+    #         the_dtype = self.scaling_factor.dtype
+    #         self.scaling_factor.data = torch.tensor([scaling_factor], device=the_device, dtype=the_dtype)
+    #         self.scaling_factor.requires_grad_(False)
+    #         pass
+    #     def set_epsilon(self, epsilon:float)->None:
+    #         the_device = self.epsilon.device
+    #         the_dtype = self.epsilon.dtype
+    #         self.epsilon.data = torch.tensor([epsilon], device=the_device, dtype=the_dtype)
+    #         self.epsilon.requires_grad_(False)
+    #         pass
+    #     def set_div_me_when_g_too_small(self, div_me_when_g_too_small:float)->None:
+    #         the_device = self.div_me_when_g_too_small.device
+    #         the_dtype = self.div_me_when_g_too_small.dtype
+    #         self.div_me_when_g_too_small.data = torch.tensor([div_me_when_g_too_small], device=the_device, dtype=the_dtype)
+    #         self.div_me_when_g_too_small.requires_grad_(False)
+    #         pass
+
+    #     def extra_repr(self) -> str:
+    #         return f'scaling_factor={self.scaling_factor.item():.4e}, epsilon={self.epsilon.item():.4e}, div_me_when_g_too_small={self.div_me_when_g_too_small.item():.4e}'
+
+    #     pass#end of class
+    # #No tests currently.
+
+
+
+    # class DoubleModification(torch.nn.Module):
+    #     r"""Remember to set learning rate every iteration(or at least when learning rate is changed.)
+    #     To access the learning rate, you usually need some thing like:
+    #     lr:float = optimizer.param_groups[0]["lr"]
+    #     """
+    #     def __init__(self, *args, **kwargs) -> None:
+    #         super().__init__(*args, **kwargs)
+    #         self.xmo = XModification()
+    #         self.gramo = GradientModification()
+    #         pass
+    #     def forward(self, x:torch.Tensor)->torch.Tensor:
+    #         x = self.xmo(x)
+    #         x = self.gramo(x)
+    #         return x
+    #     pass #end of class.
+    
+    pass
 
 
 

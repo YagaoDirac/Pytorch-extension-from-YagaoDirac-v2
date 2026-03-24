@@ -550,18 +550,158 @@ if "test" and False:
 
 
 
+if "a bit algo test" and False:
+    def ____a_bit_algo_test__with_triu_function():
+        import random
+        from pytorch_yagaodirac_v2.timeit_yagaodirac import timeit
+        if "special value" and False:
+            dim = 2
+            iota_of_dim = iota(dim)
+            #<  no triu>
+            no_triu__a = torch.tensor([[1.,2],[3,4]], requires_grad=True)    
+            no_triu__b = no_triu__a@(no_triu__a.T)
+            no_triu__b[iota_of_dim, iota_of_dim] = 0.
+            assert no_triu__b[0,0] == 0
+            assert no_triu__b[1,1] == 0
+            no_triu__b.backward(gradient = torch.ones_like(no_triu__b), inputs=[no_triu__a,],)
+            #<  with triu>
+            triu__a = torch.tensor([[1.,2],[3,4]], requires_grad=True)    
+            triu__b = triu__a@(triu__a.T)
+            triu__b[iota_of_dim, iota_of_dim] = 0.
+            assert triu__b[0,0] == 0
+            assert triu__b[1,1] == 0
+            triu__c = triu__b.triu()
+            triu__c.backward(gradient = torch.ones_like(triu__c), inputs=[triu__a,],)
+            #<  assertion>
+            assert _tensor_equal(no_triu__a.grad, triu__a.grad*2)
+            pass
+        
+        if "random value" and False:
+            "row"
+            for _ in range(321):
+                dim = random.randint(2,100)
+                iota_of_dim = iota(dim)
+                #<  no triu>
+                no_triu__a = torch.randn(size=[dim,dim], requires_grad=True)    
+                no_triu__b = no_triu__a@(no_triu__a.T)
+                no_triu__b[iota_of_dim, iota_of_dim] = 0.
+                assert no_triu__b[0,0] == 0
+                assert no_triu__b[1,1] == 0
+                no_triu__b.backward(gradient = torch.ones_like(no_triu__b), inputs=[no_triu__a,],)
+                #<  with triu>
+                triu__a = no_triu__a.detach().clone()
+                triu__a.requires_grad_()
+                triu__b = triu__a@(triu__a.T)
+                triu__b[iota_of_dim, iota_of_dim] = 0.
+                assert triu__b[0,0] == 0
+                assert triu__b[1,1] == 0
+                triu__c = triu__b.triu()
+                triu__c.backward(gradient = torch.ones_like(triu__c), inputs=[triu__a,],)
+                #<  assertion>
+                assert _tensor_equal(no_triu__a.grad, triu__a.grad*2)
+                pass
+            
+            "colomn"
+            for _ in range(321):
+                dim = random.randint(2,100)
+                iota_of_dim = iota(dim)
+                #<  no triu>
+                no_triu__a = torch.randn(size=[dim,dim], requires_grad=True)    
+                no_triu__b = (no_triu__a.T)@no_triu__a
+                no_triu__b[iota_of_dim, iota_of_dim] = 0.
+                assert no_triu__b[0,0] == 0
+                assert no_triu__b[1,1] == 0
+                no_triu__b.backward(gradient = torch.ones_like(no_triu__b), inputs=[no_triu__a,],)
+                #<  with triu>
+                triu__a = no_triu__a.detach().clone()
+                triu__a.requires_grad_()
+                triu__b = (triu__a.T)@triu__a
+                triu__b[iota_of_dim, iota_of_dim] = 0.
+                assert triu__b[0,0] == 0
+                assert triu__b[1,1] == 0
+                triu__c = triu__b.triu()
+                triu__c.backward(gradient = torch.ones_like(triu__c), inputs=[triu__a,],)
+                #<  assertion>
+                assert _tensor_equal(no_triu__a.grad, triu__a.grad*2)
+                pass
+            
+            pass#/ test
+        
+        if "performance" and False:
+            #result 
+            # device cpu
+            # no_triu_time= [ 0.0002010,  0.0001952,  0.0005363,  0.0549269]
+            # triu_time   = [ 0.0003532,  0.0003611,  0.0005957,  0.0547258]
+            # dim_list   = [ 2.0000,  10.0000,  100.0000,  1000.0000]
+            # device cuda
+            # no_triu_time = [ 0.0004202,  0.0003848,  0.0012290,  0.0041735]
+            # triu_time    = [ 0.0004546,  0.0004451,  0.0011438,  0.0034562]
+            # dim_list     = [ 2.00000,  10.0000,  100.000,  1000.00]
+            no_triu_time = []#don't modify this.
+            triu_time = []#don't modify this.
+            
+            device = 'cpu'
+            time_at_most = 1.
+            loop_time = 100
+            dim_list =       [  2, 10,  100,1000,]
+            for outter_iter_count in range(dim_list.__len__()):
+                dim = dim_list[outter_iter_count]
+                iota_of_dim = iota(dim, device=device)
+                
+                print(device)
 
+                def func_null():
+                    for _ in range(loop_time):
+                        pass
+                    return 
+                null_time,_ = timeit(func_null, time_at_most = time_at_most)
+                del func_null
+                
+                def func_no_triu():
+                    for _ in range(loop_time):
+                        #<  no triu>
+                        no_triu__a = torch.randn(size=[dim,dim], requires_grad=True, device=device)    
+                        no_triu__b = no_triu__a@(no_triu__a.T)
+                        no_triu__b[iota_of_dim, iota_of_dim] = 0.
+                        no_triu__b.backward(gradient = torch.ones_like(no_triu__b), inputs=[no_triu__a,],)
+                        pass
+                    return 
+                raw__no_triu,_ = timeit(func_no_triu, time_at_most = time_at_most)
+                no_triu_time.append(raw__no_triu - null_time)
+                del func_no_triu
+                
+                def func_triu():
+                    for _ in range(loop_time):
+                        #<  no triu>
+                        triu__a = torch.randn(size=[dim,dim], requires_grad=True, device=device)    
+                        triu__b = triu__a@(triu__a.T)
+                        triu__b[iota_of_dim, iota_of_dim] = 0.
+                        triu__c = triu__b.triu()
+                        triu__c.backward(gradient = torch.ones_like(triu__c), inputs=[triu__a,],)
+                        pass
+                    return 
+                raw__triu,_ = timeit(func_triu, time_at_most = time_at_most)
+                triu_time.append(raw__triu - null_time)
+                del func_triu
+                
+                pass #for outter_iter_count
+            print(f"device {device}")
+            print(f"no_triu_time= {str_the_list(no_triu_time, 5)}")    
+            print(f"triu_time   = {str_the_list(triu_time   , 5)}")    
+            print(f"dim_list   = {str_the_list( dim_list    , 4)}")    
+            
+            pass#/ test
+        
+        return 
+    
+    ____a_bit_algo_test__with_triu_function()
+    pass
+"But maybe I still have to modify the gramo??? That's a lot of work. The performance increase is too little."
+"So let's use this version for now."
 
-
-
-
-
-
-
-
-
-
-
+if "a bit algo test 2" and True:
+    昨天推了公式了。积累的梯度是很有规律的，用更简化的方法计算。
+    
 
 
 
@@ -2047,10 +2187,24 @@ if "angle correction only" and __DEBUG_ME__() and True:
                 pass
             
             pass#/ test
+        
+        
+        
+        if "manually dirived the formula" and True:
+            mat = torch.rand(size=[2,2])
+            iota_of_dim = iota(2)
+            should_be_eye = mat@(mat.T)
+            should_be_eye__diagonal_into_0 = should_be_eye[iota_of_dim, iota_of_dim] = 0.
+            #<  manually calc them?>
+            assert _tensor_equal(should_be_eye__diagonal_into_0[0,1], should_be_eye__diagonal_into_0[1,0])
+            assert _tensor_equal(should_be_eye__diagonal_into_0[0,1], mat[0].dot(mat[1]))
             
-        torch.triu() function to optimize.
+            等公式测试
             
             
+        
+        
+        
         if "[[1,0],[sqrt(2)/2, sqrt(2)/2]]" and True:
             mat = torch.tensor([[1.,0],[math.sqrt(0.5),math.sqrt(0.5)]])
             #<  calc/>
@@ -2061,7 +2215,7 @@ if "angle correction only" and __DEBUG_ME__() and True:
             halfway_mat = _log[13][1]
             print(mat)
             print(halfway_mat)
-            手动推一下这个公式。
+            手动推一下这个公式
             del mat, halfway_mat
             pass#/ test
         
