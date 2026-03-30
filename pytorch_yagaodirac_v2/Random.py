@@ -574,7 +574,7 @@ if "maybe it's better to do it outside???" and False:
 
 "not very important."
 
-def _get_2_diff_rand_int(dim:int, device , devide_in_this_function = 'cpu')->tuple[torch.Tensor,torch.Tensor]:
+def random_2_diff_index(dim:int, device , devide_in_this_function = 'cpu')->tuple[torch.Tensor,torch.Tensor]:
     '''return index_tensor.
     
     shape:torch.Size([2])
@@ -594,7 +594,7 @@ if "test" and __DEBUG_ME__() and False:
         for _ in range(155):
             dim = random.randint(2,300)
             #-------------------#-------------------#-------------------
-            index_tensor = _get_2_diff_rand_int(dim, 'cpu')
+            index_tensor = random_2_diff_index(dim, 'cpu')
             #-------------------#-------------------#-------------------
             assert index_tensor.dtype == torch.int64
             assert index_tensor.shape == torch.Size([2])
@@ -703,7 +703,7 @@ def randomly_rotate__matrix(input:torch.Tensor, times:int|None = None)->torch.Te
         times_by_row = torch.randint(0,times+1,size=[])
         times_by_column = times-times_by_row
         for _ in range(times_by_row):# each ROW vec into a new rotated ROW vec
-            index_tensor = _get_2_diff_rand_int(dim, device=the_device)
+            index_tensor = random_2_diff_index(dim, device=the_device)
             angle = torch.rand(size=[], dtype = the_dtype,device=the_device)*torch.pi*2.
             the_only_modified_part = input.index_select(dim=1,index=index_tensor)#new tensor.
             the_only_modified_part = the_only_modified_part@angle_to_rotation_matrix_2d(angle)
@@ -712,7 +712,7 @@ def randomly_rotate__matrix(input:torch.Tensor, times:int|None = None)->torch.Te
             pass
         
         for _ in range(times_by_column):# each COLUMN vec into a new rotated COLUMN vec
-            index_tensor  = _get_2_diff_rand_int(dim, device=the_device)
+            index_tensor  = random_2_diff_index(dim, device=the_device)
             angle = torch.rand(size=[], dtype = the_dtype,device=the_device)*torch.pi*2.
             the_only_modified_part = input.index_select(dim=0,index=index_tensor)#new tensor.
             the_only_modified_part = angle_to_rotation_matrix_2d(angle)@the_only_modified_part
@@ -753,7 +753,7 @@ def randomly_rotate__vector(input:torch.Tensor, times:int|None = None)->torch.Te
     
     with torch.no_grad():
         for _ in range(times):# each ROW vec into a new rotated ROW vec
-            index_tensor = _get_2_diff_rand_int(dim, device=the_device)
+            index_tensor = random_2_diff_index(dim, device=the_device)
             angle = torch.rand(size=[], dtype = the_dtype,device=the_device)*torch.pi*2.
             the_only_modified_part = input.index_select(dim=0,index=index_tensor)#new tensor.
             the_only_modified_part = the_only_modified_part@angle_to_rotation_matrix_2d(angle)
@@ -787,7 +787,7 @@ def random_rotation_matrix__by_once(dim:int, dtype = torch.float32, device = Non
     '''Basically it's a eye_tensor, but with some rotation. This rotation only affects 2 dimentions.'''
     
     device_in_this_function = 'cpu'
-    index_tensor = _get_2_diff_rand_int(dim, device=device_in_this_function)
+    index_tensor = random_2_diff_index(dim, device=device_in_this_function)
     _angle = torch.rand(size=[], dtype = dtype,device=device_in_this_function)*torch.pi*2.
     _cos = _angle.cos()
     _sin = _angle.sin()
@@ -1353,13 +1353,13 @@ if "when I made this, I didn't know the torch.randperm function. Now I dont need
         
         with torch.no_grad():
             for _ in range(times_by_row):
-                rand_index_1,rand_index_2 = _get_2_diff_rand_int(dim, device=the_device)
+                rand_index_1,rand_index_2 = random_2_diff_index(dim, device=the_device)
                 _temp = input[rand_index_1].clone()
                 input[rand_index_1] = input[rand_index_2]
                 input[rand_index_2] = _temp
                 pass
             for _ in range(times_by_column):
-                rand_index_1,rand_index_2 = _get_2_diff_rand_int(dim, device=the_device)
+                rand_index_1,rand_index_2 = random_2_diff_index(dim, device=the_device)
                 _temp = input[:,rand_index_1].clone()
                 input[:,rand_index_1] = input[:,rand_index_2]
                 input[:,rand_index_2] = _temp
@@ -1407,7 +1407,7 @@ if "when I made this, I didn't know the torch.randperm function. Now I dont need
 
     def random_permutation_matrix__by_once(dim:int, dtype = torch.float32, device = 'cpu')->torch.Tensor:
         result = torch.eye(n=dim, dtype=dtype, device=device)
-        rand_index_1,rand_index_2 = _get_2_diff_rand_int(dim, device=device)
+        rand_index_1,rand_index_2 = random_2_diff_index(dim, device=device)
         result[rand_index_1,rand_index_1] = 0.
         result[rand_index_2,rand_index_2] = 0.
         result[rand_index_1,rand_index_2] = 1.

@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Literal
 import torch
 import math, random
 import sys
@@ -69,7 +69,9 @@ def _tensor_equal(  a:torch.Tensor|list[float]|list[list[float]], \
         assert a.shape == b.shape
         pass
     
-    
+    # maybe I should not do this???
+    # if a.device.type!=b.device.type or a.device.index!=b.device.index:
+    #     proxy_of_a = a.detach().clone().to(b.device)
     with torch.inference_mode():
         diff = a-b
         abs_of_diff = diff.abs()
@@ -96,8 +98,11 @@ if "test" and __DEBUG_ME__() and False:
     assert _tensor_equal(torch.tensor(0.), torch.tensor(0.))
     pass
 
-def str_the_list(the_list:list, precision = 3)->str:
-    result = "["
+
+
+"stringify the number list."
+
+def str_the_list(the_list:list, precision = 3, segment = ", ")->str:
     command_str = "{:."+str(precision)+"f}"
     all_the_sub_strings = [command_str.format(the_number) for the_number in the_list]
     for ii in range(all_the_sub_strings.__len__()):
@@ -107,17 +112,155 @@ def str_the_list(the_list:list, precision = 3)->str:
             pass
         pass
             
-    mid_str = ", ".join(all_the_sub_strings)
+    mid_str = segment.join(all_the_sub_strings)
     result = f"[{mid_str}]"
     return result
-if "test":
+
+if "test" and __DEBUG_ME__() and True:
     def ____test____str_the_list():
         the_str = str_the_list([1.23467,-2.23467], 3)
         assert the_str == "[ 1.235, -2.235]"
         
+        the_str = str_the_list([1.23467,-2.23467], 3, segment="...")
+        assert the_str == "[ 1.235...-2.235]"
+        
         return
     ____test____str_the_list()
     pass
+
+def str_the_list__probability(the_list:list, precision = 3,
+                good_prefix = "  ", bad_prefix  = "XX", segment = ", ", white_space_in_mid = 1,
+                flag__offset_by50 = False, flag__mul_2_after_offset = False, )->str:
+    assert good_prefix.__len__() == bad_prefix.__len__()
+    assert white_space_in_mid>=1
+    if not flag__offset_by50:
+        assert not flag__mul_2_after_offset, "when flag__offset_by50=False, this flag__mul_2_after_offset doesn't do anything."
+    
+    _format_str = "{:."+str(precision)+"f}"
+    _perfect_str = " v"+" "*(precision+white_space_in_mid+2)
+    _worst_str   = "XX"+" "*(precision+white_space_in_mid+2)
+    str_white_space_in_mid = " "*white_space_in_mid
+    str_white_space_in_mid__shorter = " "*(white_space_in_mid-1)
+    
+    all_the_sub_strings:list[str] = []
+    for item in the_list:
+        if item == 1.:
+            all_the_sub_strings.append(_perfect_str)
+            pass
+        elif item == 0.:
+            all_the_sub_strings.append(_worst_str)
+            pass
+        else:
+            #<  number_str
+            print_this_number = item
+            if flag__offset_by50:
+                print_this_number -= 0.5
+                if flag__mul_2_after_offset:
+                    print_this_number*=2.
+                    pass
+                pass
+            number_str = _format_str.format(print_this_number)
+            
+            #<  prefix
+            if item>0.5:
+                prefix = good_prefix
+                pass
+            else:
+                prefix = bad_prefix
+                pass
+            
+            if number_str[0] == '-':
+                all_the_sub_strings.append(prefix+str_white_space_in_mid__shorter+number_str)
+                pass
+            else:
+                all_the_sub_strings.append(prefix+str_white_space_in_mid+number_str)
+                pass
+            pass
+        
+        pass
+    
+    #debug test. Turn off after test.
+    # assert all_the_sub_strings.__len__() == the_list.__len__()
+    # for sub_str in all_the_sub_strings:
+    #     assert sub_str.__len__() == all_the_sub_strings[0].__len__()
+    #     pass
+    
+    mid_str = segment.join(all_the_sub_strings)
+    result = f"[{mid_str}]"
+    return result
+
+if "test" and __DEBUG_ME__() and True:
+    def ____test____str_the_list__probability():
+        the_str = str_the_list__probability([0.,0.1,0.9,1.], 2)
+        assert the_str == "[XX     , XX 0.10,    0.90,  v     ]"
+        
+        the_str = str_the_list__probability([0.,0.1,0.9,1.], 3)
+        assert the_str == "[XX      , XX 0.100,    0.900,  v      ]"
+        
+        the_str = str_the_list__probability([0.,0.1,0.9,1.], 2, good_prefix = "gg")
+        assert the_str == "[XX     , XX 0.10, gg 0.90,  v     ]"
+        
+        the_str = str_the_list__probability([0.,0.1,0.9,1.], 2, bad_prefix = "gg")
+        assert the_str == "[XX     , gg 0.10,    0.90,  v     ]"
+            
+        the_str = str_the_list__probability([0.,0.1,0.9,1.], 2, white_space_in_mid = 2)
+        assert the_str == "[XX      , XX  0.10,     0.90,  v      ]"
+        
+        the_str = str_the_list__probability([0.,0.1,0.9,1.], 2, flag__offset_by50 = True)
+        assert the_str == "[XX     , XX-0.40,    0.40,  v     ]"
+        
+        the_str = str_the_list__probability([0.,0.1,0.9,1.], 2, flag__offset_by50 = True, flag__mul_2_after_offset=True)
+        assert the_str == "[XX     , XX-0.80,    0.80,  v     ]"
+        
+        the_str = str_the_list__probability([0.,0.1,0.9,1.], 2, segment="..")
+        assert the_str == "[XX     ..XX 0.10..   0.90.. v     ]"
+        
+        return
+    ____test____str_the_list__probability()
+    pass
+
+
+
+
+"smart expand."
+
+def expand_vec_to_matrix(input:torch.Tensor, each_element_to:Literal["row", "col", "column"])->torch.Tensor:
+    assert input.shape.__len__() == 1, "batch feature not implemented yet."
+    dim = input.shape[0]
+    if each_element_to.lower() == "row":
+        return input.reshape([-1,1]).expand([-1,dim])
+    if each_element_to.lower() in ["col", "column"]:
+        return input.reshape([1,-1]).expand([dim,-1])
+    assert False, "bad param: each_element_to. Only "
+    #end of function.
+
+if "test" and __DEBUG_ME__() and False:
+    def ____test____expand_vec_to_matrix():
+        the_vec = torch.tensor([2.,3])
+        the_matrix = expand_vec_to_matrix(the_vec, each_element_to="row")
+        assert the_matrix.eq(torch.tensor([[ 2., 2],
+                                            [3,  3]])).all()
+        
+        the_vec = torch.tensor([2.,3])
+        the_matrix = expand_vec_to_matrix(the_vec, each_element_to="col")
+        assert the_matrix.eq(torch.tensor([[ 2., 3],
+                                            [2,  3]])).all()
+        
+        #<  device adaption.
+        
+        the_vec = torch.tensor([2.,3], device='cuda')
+        the_matrix = expand_vec_to_matrix(the_vec, each_element_to="col")
+        assert the_matrix.device.type == 'cuda'        
+        
+        return
+    
+    ____test____expand_vec_to_matrix()
+    pass
+
+
+
+
+"check the matrix"
 
 def have_same_elements(tensor_1:torch.Tensor, tensor_2:torch.Tensor)->bool:
     assert tensor_1.shape == tensor_2.shape
@@ -242,6 +385,8 @@ if "can it be index?" and __DEBUG_ME__() and False:
 
 
 
+"vector length"
+
 def vector_length_norm(input:torch.Tensor, epi = 0.000001, dtype_inner = torch.float64)->torch.Tensor:
     r'''The shape must be [batch, dim]'''
     if len(input.shape)!=2:
@@ -307,6 +452,17 @@ if "test get_vector_length" and __DEBUG_ME__() and False:
         output = get_vector_length(input)
         assert output.shape == torch.Size([2])
         assert _tensor_equal(output, [1.4142,2.2361])
+        
+        input = torch.tensor([[0.71, 0.71],[1,0]])
+        output = get_vector_length(input)
+        assert output.shape == torch.Size([2])
+        assert _tensor_equal(output, [1., 1], epsilon=0.01)
+        
+        input = torch.tensor([[  0.71, 1],
+                                [0.71, 0]])
+        output = get_vector_length(input.T)
+        assert output.shape == torch.Size([2])
+        assert _tensor_equal(output, [1., 1], epsilon=0.01)
         
         input = torch.tensor([[[1.,1],[1,2]],[[2,1],[2,2]],[[3,1],[3,2]]])
         output = get_vector_length(input)
@@ -637,63 +793,9 @@ if "probably the old gramo???" and False:
 
 
 
-def debug_zero_grad_ratio(parameter:torch.nn.parameter.Parameter, \
-    print_out:float = False)->float:
-    if parameter.grad is None:
-        if print_out:
-            print(f"{0.}, inside debug_zero_grad_ratio function __line {_line_()}")
-            pass
-        return 0.
-    with torch.no_grad():
-        result = 0.
-        if not parameter.grad is None:
-            flags = parameter.grad.eq(0.)
-            total_amount = flags.sum().item()
-            result = float(total_amount)/parameter.nelement()
-        if print_out:
-            print("get_zero_grad_ratio:", result)
-        return result
-
-def debug_strong_grad_ratio(parameter:torch.nn.parameter.Parameter, log10_diff = 0., \
-            epi_for_w = 0.01, epi_for_g = 0.01, print_out = False)->float:
-    r'''the log10_diff should be approximately calculated like, 
-    >>> log10(planned_epoch * learning_rate)
-    I my test, I usually plan <3k epoch, and use 0.001 as lr, 
-    so the default value for log10_diff  is 0.'''
-    #epi_for_w/epi_for_g<math.pow(10, log10_diff)*0.999??????
-    if parameter.grad is None:
-        if print_out:
-            print(0., "inside debug_strong_grad_ratio function __line 1082")
-            pass
-        return 0.
-
-    the_device=parameter.device
-    epi_for_w_tensor = torch.tensor([epi_for_w], device=the_device)
-    raw_weight_abs = parameter.abs()
-    flag_w_big_enough = raw_weight_abs.gt(epi_for_w_tensor)
-
-    epi_for_g_tensor = torch.tensor([epi_for_g], device=the_device)
-    raw_weight_grad_abs = parameter.grad.abs()
-    flag_g_big_enough = raw_weight_grad_abs.gt(epi_for_g_tensor)
-
-    ten = torch.tensor([10.], device=the_device)
-    log10_diff_tensor = torch.tensor([log10_diff], device=the_device)
-    corresponding_g = raw_weight_grad_abs*torch.pow(ten, log10_diff_tensor)
-    flag_w_lt_corresponding_g = raw_weight_abs.lt(corresponding_g)
-
-    flag_useful_g = flag_w_big_enough.logical_and(flag_g_big_enough).logical_and(flag_w_lt_corresponding_g)
-    result = (flag_useful_g.sum().to(torch.float32)/parameter.nelement()).item()
-    if print_out:
-        print(result, "inside debug_micro_grad_ratio function __line 1082")
-        pass
-    return result
 
 
-
-
-
-
-
+"log10 tool"
 
 # Here I provide 2 versions.
 # the old version is on top. It's better but not a pure gpu implementation.
@@ -2404,9 +2506,59 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
+"grad tool"
 
+def debug_zero_grad_ratio(parameter:torch.nn.parameter.Parameter, \
+    print_out:float = False)->float:
+    if parameter.grad is None:
+        if print_out:
+            print(f"{0.}, inside debug_zero_grad_ratio function __line {_line_()}")
+            pass
+        return 0.
+    with torch.no_grad():
+        result = 0.
+        if not parameter.grad is None:
+            flags = parameter.grad.eq(0.)
+            total_amount = flags.sum().item()
+            result = float(total_amount)/parameter.nelement()
+        if print_out:
+            print("get_zero_grad_ratio:", result)
+        return result
+#where is the test???
+def debug_strong_grad_ratio(parameter:torch.nn.parameter.Parameter, log10_diff = 0., \
+            epi_for_w = 0.01, epi_for_g = 0.01, print_out = False)->float:
+    r'''the log10_diff should be approximately calculated like, 
+    >>> log10(planned_epoch * learning_rate)
+    I my test, I usually plan <3k epoch, and use 0.001 as lr, 
+    so the default value for log10_diff  is 0.'''
+    #epi_for_w/epi_for_g<math.pow(10, log10_diff)*0.999??????
+    if parameter.grad is None:
+        if print_out:
+            print(0., "inside debug_strong_grad_ratio function __line 1082")
+            pass
+        return 0.
 
+    the_device=parameter.device
+    epi_for_w_tensor = torch.tensor([epi_for_w], device=the_device)
+    raw_weight_abs = parameter.abs()
+    flag_w_big_enough = raw_weight_abs.gt(epi_for_w_tensor)
 
+    epi_for_g_tensor = torch.tensor([epi_for_g], device=the_device)
+    raw_weight_grad_abs = parameter.grad.abs()
+    flag_g_big_enough = raw_weight_grad_abs.gt(epi_for_g_tensor)
+
+    ten = torch.tensor([10.], device=the_device)
+    log10_diff_tensor = torch.tensor([log10_diff], device=the_device)
+    corresponding_g = raw_weight_grad_abs*torch.pow(ten, log10_diff_tensor)
+    flag_w_lt_corresponding_g = raw_weight_abs.lt(corresponding_g)
+
+    flag_useful_g = flag_w_big_enough.logical_and(flag_g_big_enough).logical_and(flag_w_lt_corresponding_g)
+    result = (flag_useful_g.sum().to(torch.float32)/parameter.nelement()).item()
+    if print_out:
+        print(result, "inside debug_micro_grad_ratio function __line 1082")
+        pass
+    return result
+#where is the test???
 def make_grad_noisy(model:torch.nn.Module, noise_base:float = 1.5):
     for p in model.parameters():
         if p.requires_grad and (not p.grad is None):

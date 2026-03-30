@@ -43,6 +43,9 @@ def LOSS__vec_len_retention__of_a_mat_in_matmul(matrix:torch.Tensor,
     dim = matrix.shape[0]
     if test_time is None:
         test_time=int((dim+30)*1.2)
+        if test_time>100:
+            test_time = 100
+            pass
         pass
     assert test_time>=1
     assert at_least<0.

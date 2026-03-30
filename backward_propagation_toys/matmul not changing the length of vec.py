@@ -699,9 +699,226 @@ if "a bit algo test" and False:
 "But maybe I still have to modify the gramo??? That's a lot of work. The performance increase is too little."
 "So let's use this version for now."
 
-if "a bit algo test 2" and True:
-    昨天推了公式了。积累的梯度是很有规律的，用更简化的方法计算。
+
+
+
+
+if "a bit algo test" and True:
     
+    if "scale to unit vec and measure the grad_length" and True:
+        
+        # result
+        # min_element_____min = [ 0.0002,  0.0086,  0.0003,  0.0000]
+        # min_element_____max = [ 1.0000,  0.0563,  0.0005,  0.0000]
+        # min_element_____avg = [ 0.6420,  0.0281,  0.0004,  0.0000]
+        # max_element_____min = [ 0.0002,  0.0391,  0.0006,  0.0000]
+        # max_element_____max = [ 1.0000,  0.1243,  0.0008,  0.0000]
+        # max_element_____avg = [ 0.6420,  0.0671,  0.0007,  0.0000]
+        # median_element__min = [ 0.0002,  0.0258,  0.0005,  0.0000]
+        # median_element__max = [ 1.0000,  0.0934,  0.0006,  0.0000]
+        # median_element__avg = [ 0.6420,  0.0472,  0.0006,  0.0000]
+        # dim_list           = [ 2.000,  10.000,  100.000,  1000.000]
+        
+        1w  log10看看。
+        
+        max_element_____min = []#dont modify this 
+        max_element_____max = []#dont modify this 
+        max_element_____avg = []#dont modify this   
+        min_element_____min = []#dont modify this
+        min_element_____max = []#dont modify this
+        min_element_____avg = []#dont modify this
+        median_element__min = []#dont modify this
+        median_element__max = []#dont modify this
+        median_element__avg = []#dont modify this
+        
+        dim_list =        [2,   10,  100, 1000]
+        test_time_list = [1000,1000,1000,200]
+        for outter_param_set in range(dim_list.__len__()):
+            dim = dim_list[outter_param_set]
+            test_time = test_time_list[outter_param_set]
+            
+            iota_of_dim = iota(dim)
+            print(test_time,)#device..
+            
+            raw_result__min_element    = torch.empty(size=[test_time])#dont modify this 
+            raw_result__max_element    = torch.empty(size=[test_time])#dont modify this 
+            raw_result__median_element = torch.empty(size=[test_time])#dont modify this 
+            
+            for test_count in range(test_time):
+                #--------------#--------------#--------------
+                ori_random_mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
+                
+                mat = ori_random_mat.detach().clone()
+                
+                _temp_len_sqr = mat.mul(mat).sum(dim=1)#mean(dim=1)#mul and then sum, it's a dot.
+                mul_me___to_get_unit_length = (_temp_len_sqr).pow(-0.5)
+                matrix_of_unit_vec_as_rows = mat * (mul_me___to_get_unit_length.reshape([-1,1]).expand([-1,dim]))
+                matrix_of_unit_vec_as_rows.requires_grad_()
+                assert matrix_of_unit_vec_as_rows.abs().flatten().max()<=1.00001
+                
+                #<  neural net infra>
+                train_it = [matrix_of_unit_vec_as_rows]
+                optim = torch.optim.SGD(params=train_it, lr=0.1)
+                loss_func = torch.nn.MSELoss()#mse, otherwise the formula for grad is a bit weird.
+                #</ neural net infra>
+                
+                should_be_eye = matrix_of_unit_vec_as_rows@(matrix_of_unit_vec_as_rows.T)#.T is on the right
+                should_be_eye[iota_of_dim, iota_of_dim] = 0.#this op also cuts the grad chain.
+                assert should_be_eye.abs().flatten().max()<=1.00001
+                
+                loss = loss_func(should_be_eye, torch.zeros_like(should_be_eye))
+                #   ^^^^^   optimizable   ^^^^^
+                optim.zero_grad()
+                loss.backward(inputs = train_it)
+                assert matrix_of_unit_vec_as_rows.grad is not None
+                assert matrix_of_unit_vec_as_rows.grad.abs().flatten().max()<=(4./(dim*dim)*(dim-1))*1.00001
+                
+                grad_len_sqr = matrix_of_unit_vec_as_rows.grad.mul(matrix_of_unit_vec_as_rows.grad).sum(dim=1)
+                
+                #--------------#--------------#--------------
+                raw_result__min_element   [test_count] = grad_len_sqr.min   ().sqrt()
+                raw_result__max_element   [test_count] = grad_len_sqr.max   ().sqrt()
+                raw_result__median_element[test_count] = grad_len_sqr.median().sqrt()
+                pass#for test_count
+            
+            min_element_____min.append(raw_result__min_element.min ())
+            min_element_____max.append(raw_result__min_element.max ())
+            min_element_____avg.append(raw_result__min_element.mean())
+            max_element_____min.append(raw_result__max_element.min ())
+            max_element_____max.append(raw_result__max_element.max ())
+            max_element_____avg.append(raw_result__max_element.mean())
+            median_element__min.append(raw_result__median_element.min ())
+            median_element__max.append(raw_result__median_element.max ())
+            median_element__avg.append(raw_result__median_element.mean())
+            pass#for outter_param_set
+        
+        print(f"min_element_____min = {str_the_list(min_element_____min, 4)}")
+        print(f"min_element_____max = {str_the_list(min_element_____max, 4)}")
+        print(f"min_element_____avg = {str_the_list(min_element_____avg, 4)}")
+        print(f"max_element_____min = {str_the_list(max_element_____min, 4)}")
+        print(f"max_element_____max = {str_the_list(max_element_____max, 4)}")
+        print(f"max_element_____avg = {str_the_list(max_element_____avg, 4)}")
+        print(f"median_element__min = {str_the_list(median_element__min, 4)}")
+        print(f"median_element__max = {str_the_list(median_element__max, 4)}")
+        print(f"median_element__avg = {str_the_list(median_element__avg, 4)}")
+        print(f"dim_list           = {str_the_list(dim_list, 3)}")
+            
+        pass#/ test
+    
+    
+    if "[[1,2,3],...,[7,8,9]]" and False:
+        
+        dim = 3
+        iota_of_dim = iota(dim)
+        #ori_random_mat = torch.randn(size=[dim,dim])
+        ori_random_mat = torch.linspace(1,dim*dim,dim*dim,dtype=torch.float32).reshape(shape=[dim,dim])
+        assert ori_random_mat[0].eq(torch.tensor([1.,2,3])).all()
+        
+        #<  no scale>  as a ref
+        mat = ori_random_mat.detach().clone()
+        mat.requires_grad_()
+
+        #<  neural net infra>
+        train_it = [mat]
+        optim = torch.optim.SGD(params=train_it, lr=0.1)
+        loss_func = torch.nn.MSELoss()
+        #</ neural net infra>
+        
+        #old mat_after_gramo:torch.Tensor = gramo(matrix.reshape([1,-1])).reshape([dim,dim])
+        #1w
+        mat_after_gramo:torch.Tensor = mat#no .T, this is row.
+        
+        should_be_eye = mat_after_gramo@(mat_after_gramo.T)#.T is on the right
+        
+        should_be_eye[iota_of_dim, iota_of_dim] = 0.#this op also cuts the grad chain.
+        loss = loss_func(should_be_eye, torch.zeros_like(mat))
+        #   ^^^^^   optimizable   ^^^^^
+        optim.zero_grad()
+        loss.backward(inputs = train_it)
+        #</ no scale>
+        
+        #<  manually>
+        grad_buffer = torch.zeros(size=[dim,dim])
+        for ii in range(dim):
+            for jj in range(dim):
+                if ii == jj :
+                    continue
+                dot_prod = ori_random_mat[ii].dot(ori_random_mat[jj])
+                grad_buffer[ii] += ori_random_mat[jj]*dot_prod  *2/(dim*dim)
+                grad_buffer[jj] += ori_random_mat[ii]*dot_prod  *2/(dim*dim)
+                pass#jj
+            pass#ii
+        assert _tensor_equal(mat.grad, grad_buffer)
+        
+        fds=432
+        
+        
+        
+        
+        # #<  with scale>
+        # mat_scaled = ori_random_mat.detach().clone()*2.
+        # mat_scaled.requires_grad_()
+
+        # #<  neural net infra>
+        # train_it = [mat_scaled]
+        # optim = torch.optim.SGD(params=train_it, lr=0.1)
+        # loss_func = torch.nn.MSELoss()
+        # #</ neural net infra>
+        
+        # #old mat_after_gramo:torch.Tensor = gramo(matrix.reshape([1,-1])).reshape([dim,dim])
+        # #1w
+        # mat_after_gramo:torch.Tensor = mat_scaled#gramo(mat_v2)#no .T, this is row.
+        
+        # should_be_eye = mat_after_gramo@(mat_after_gramo.T)#.T is on the right
+        
+        # should_be_eye[iota_of_dim, iota_of_dim] = 0.#this op also cuts the grad chain.
+        # loss = loss_func(should_be_eye, torch.zeros_like(mat_scaled))
+        # #   ^^^^^   optimizable   ^^^^^
+        # optim.zero_grad()
+        # loss.backward(inputs = train_it)
+        # #</ with scale>
+        # assert _tensor_equal(mat.grad*8, mat_scaled.grad)
+        
+        
+        
+        
+        #<  with scale>
+        mat_partly_scaled = ori_random_mat.detach().clone()
+        with torch.no_grad():
+            mat_partly_scaled[0].mul_(2.)
+            pass
+        assert mat_partly_scaled[0].eq(torch.tensor([2.,4,6])).all()
+        mat_partly_scaled.requires_grad_()
+
+        #<  neural net infra>
+        train_it = [mat_partly_scaled]
+        optim = torch.optim.SGD(params=train_it, lr=0.1)
+        loss_func = torch.nn.MSELoss()
+        #</ neural net infra>
+        
+        #old mat_after_gramo:torch.Tensor = gramo(matrix.reshape([1,-1])).reshape([dim,dim])
+        #1w
+        mat_after_gramo:torch.Tensor = mat_partly_scaled#gramo(mat_v2)#no .T, this is row.
+        
+        should_be_eye = mat_after_gramo@(mat_after_gramo.T)#.T is on the right
+        
+        should_be_eye[iota_of_dim, iota_of_dim] = 0.#this op also cuts the grad chain.
+        loss = loss_func(should_be_eye, torch.zeros_like(mat_partly_scaled))
+        #   ^^^^^   optimizable   ^^^^^
+        optim.zero_grad()
+        loss.backward(inputs = train_it)
+        #</ with scale>
+        print(mat.grad)
+        print(mat.grad*9./4.)
+        print(mat_partly_scaled.grad)
+        print(mat_partly_scaled.grad*9./4.)
+        assert _tensor_equal(mat.grad*8, mat_partly_scaled.grad)
+        
+        
+        pass#/ test
+
+
+
 
 
 
@@ -3169,4 +3386,117 @@ def does_1_self_dot_with_1_cross_dot_work():
         optim.step()
         pass
     return
+
+
+if "a wrong algo test" and False:
+    if "[[1,2],[3,4]]" and False:
+        dim = 2
+        iota_of_dim = iota(dim)
+        #ori_random_mat = torch.randn(size=[dim,dim])
+        ori_random_mat = torch.tensor([[1., 2],[3,4]])
         
+        #<  v2 style>
+        mat_v2 = ori_random_mat.detach().clone()
+        mat_v2.requires_grad_()
+
+        #<  neural net infra>
+        #gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False,per_what="vector")
+        
+        #1w sum?
+        train_them = [mat_v2]
+        optim = torch.optim.SGD(params=train_them, lr=0.1)
+        loss_func = torch.nn.MSELoss()
+        #</ neural net infra>
+        
+        #old mat_after_gramo:torch.Tensor = gramo(matrix.reshape([1,-1])).reshape([dim,dim])
+        #1w
+        mat_after_gramo:torch.Tensor = mat_v2#gramo(mat_v2)#no .T, this is row.
+        assert is_square_matrix(mat_after_gramo)
+        #should_be_eye = mat@(mat.T)
+        
+        
+        should_be_eye = mat_after_gramo@(mat_after_gramo.T)#.T is on the right
+        
+        should_be_eye[iota_of_dim, iota_of_dim] = 0.#this op also cuts the grad chain.
+        loss = loss_func(should_be_eye, torch.zeros_like(mat_v2))
+        #   ^^^^^   optimizable   ^^^^^
+        optim.zero_grad()
+        loss.backward(inputs = train_them)
+        #</ v2 style>
+        
+        
+        
+        #<  v3 style>
+        mat_v3 = ori_random_mat.detach().clone()
+        mat_v3.requires_grad_()
+        
+        #<  neural net infra/>
+        #gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False,per_what="vector")
+        
+        
+        mat_after_gramo:torch.Tensor = mat_v3#gramo(mat_v3)#no .T, this is row.
+        
+        sum_by_col = mat_after_gramo.sum(dim=0)
+        sum_by_col = sum_by_col.reshape([1,-1]).expand([dim,-1])
+        grad = sum_by_col-mat_after_gramo
+        assert _tensor_equal(grad[0], mat_v3[1])
+        assert _tensor_equal(grad[1], mat_v3[0])
+        
+        mat_after_gramo.backward(gradient=grad, inputs = [mat_v3])
+
+        #<  v2 vs v3???
+        assert _tensor_equal(mat_v2.grad, mat_v3.grad*11.)
+        
+        pass#/ test
+    
+    
+    if "[[1,2,3],...,[7,8,9]]" and True:
+        
+        dim = 3
+        iota_of_dim = iota(dim)
+        #ori_random_mat = torch.randn(size=[dim,dim])
+        ori_random_mat = torch.linspace(1,dim*dim,dim*dim,dtype=torch.float32).reshape(shape=[dim,dim])
+        
+        #<  v2 style>
+        mat_v2 = ori_random_mat.detach().clone()
+        mat_v2.requires_grad_()
+
+        #<  neural net infra>
+        optim = torch.optim.SGD(params=[mat_v2], lr=0.1)
+        loss_func = torch.nn.MSELoss()
+        #</ neural net infra>
+        
+        #old mat_after_gramo:torch.Tensor = gramo(matrix.reshape([1,-1])).reshape([dim,dim])
+        #1w
+        mat_after_gramo:torch.Tensor = mat_v2#gramo(mat_v2)#no .T, this is row.
+        
+        should_be_eye = mat_after_gramo@(mat_after_gramo.T)#.T is on the right
+        
+        should_be_eye[iota_of_dim, iota_of_dim] = 0.#this op also cuts the grad chain.
+        loss = loss_func(should_be_eye, torch.zeros_like(mat_v2))
+        #   ^^^^^   optimizable   ^^^^^
+        optim.zero_grad()
+        loss.backward(inputs = [mat_v2])
+        #</ v2 style>
+        
+        
+        
+        #<  v3 style>
+        mat_v3 = ori_random_mat.detach().clone()
+        mat_v3.requires_grad_()
+        
+        mat_after_gramo:torch.Tensor = mat_v3#gramo(mat_v3)#no .T, this is row.
+        
+        sum_by_col = mat_after_gramo.sum(dim=0)
+        sum_by_col = sum_by_col.reshape([1,-1]).expand([dim,-1])
+        grad = sum_by_col-mat_after_gramo
+        assert _tensor_equal(grad[0], mat_v3[1] +mat_v3[2])
+        assert _tensor_equal(grad[1], mat_v3[0] +mat_v3[2])
+        
+        mat_after_gramo.backward(gradient=grad, inputs = [mat_v3])
+
+        #<  v2 vs v3???
+        assert _tensor_equal(mat_v2.grad, mat_v3.grad*11.)
+        
+        pass#/ test
+

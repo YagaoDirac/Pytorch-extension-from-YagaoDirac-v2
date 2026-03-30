@@ -1533,7 +1533,7 @@ class GradientModificationFunction__mean_len_of_element_to_1(torch.autograd.Func
             #mul_me__b_1:torch.Tensor
             
             if protect_accuracy:
-                mul_me__b_1.log2_().add_(0.5).floor_()# nearest power of 2
+                mul_me__b_1.log2_().add_(0.5).floor_()# nearest power of 2. This floor func returns fp. It works. No need to convert it to integer.
                 mul_me__b_1.exp2_()
                 pass
             
