@@ -535,9 +535,14 @@ if "I still don't understand what happened in this test. No plan now."and False:
 
 
 def LOSS__behavior_similarity(input:torch.Tensor, target:torch.Tensor,
-                            test_time:int|None = None, cap = 5.) \
+                            test_time:int|None = None, cap = 5., _debug__needs_ref_result = False,) \
                 ->tuple[torch.Tensor,torch.Tensor,torch.Tensor,torch.Tensor,torch.Tensor]:
-    '''return length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg
+    '''if _debug__needs_ref_result is True, return length__log_10__diff__abs_avg, angle_diff__avg, 
+    (length__log_10__diff__ori, length__log_10__diff__avg, angle_diff, angle_diff__avg). 
+    
+    else: return length__log_10__diff__abs_avg, angle_diff__avg, None
+    
+    return length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg
     
     The result is always >=0. The smaller the better.
     
@@ -577,24 +582,41 @@ def LOSS__behavior_similarity(input:torch.Tensor, target:torch.Tensor,
             
             to_test.div_(length_of_test)
             as_ref.div_(length_of_ref)
-            assert _tensor_equal(get_vector_length(to_test), [1.])
-            assert _tensor_equal(get_vector_length(as_ref), [1.])
+            assert _tensor_equal(get_vector_length(to_test), torch.tensor([1.],device=input.device))
+            assert _tensor_equal(get_vector_length(as_ref), torch.tensor([1.],device=input.device))
             
             ____temp = to_test.dot(as_ref)
             angle_diff[epoch] = 1.-____temp
             
             pass#/ for
-        length__log_10__diff__ori = length__log_10__diff.detach().clone()
-        length__log_10__diff = length__log_10__diff.clamp_max_(cap)
-        length__log_10__diff = length__log_10__diff.clamp_min_(-cap)
-        #all_score = all_score.cpu()
         
-        length__log_10__diff__avg = length__log_10__diff.mean()
-        length__log_10__diff__abs_avg = length__log_10__diff.abs().mean()
+        if not _debug__needs_ref_result:
+            
+            length__log_10__diff = length__log_10__diff.clamp_max_(cap)
+            length__log_10__diff = length__log_10__diff.clamp_min_(-cap)
+            #all_score = all_score.cpu()
+            
+            length__log_10__diff__abs_avg = length__log_10__diff.abs().mean()
+            
+            angle_diff__avg = angle_diff.mean()
+            
+            return length__log_10__diff__abs_avg, angle_diff__avg, None
         
+        else:
+            length__log_10__diff__ori = length__log_10__diff.detach().clone()
+            length__log_10__diff = length__log_10__diff.clamp_max_(cap)
+            length__log_10__diff = length__log_10__diff.clamp_min_(-cap)
+            #all_score = all_score.cpu()
+            
+            length__log_10__diff__avg = length__log_10__diff.mean()
+            length__log_10__diff__abs_avg = length__log_10__diff.abs().mean()
+            
+            angle_diff__avg = angle_diff.mean()
+            
+            return length__log_10__diff__abs_avg, angle_diff__avg, (length__log_10__diff__ori, length__log_10__diff__avg, angle_diff, angle_diff__avg)
+            #old code 
+            # return length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg
         
-        angle_diff__avg = angle_diff.mean()
-        return length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg
     pass#/function
 
 if "basic behavior test" and __DEBUG_ME__() and False:
@@ -608,15 +630,15 @@ if "basic behavior test" and __DEBUG_ME__() and False:
                                 [0,  1.],
                                 [1., 0 ],
                                 ])
-        length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg = \
-                LOSS__behavior_similarity(mat_1, mat_2,test_time=1)
+        length__log_10__diff__abs_avg, angle_diff__avg, (length__log_10__diff__ori, length__log_10__diff__avg, angle_diff, angle_diff__avg) = \
+                LOSS__behavior_similarity(mat_1, mat_2,test_time=1, _debug__needs_ref_result = True)
         
         return
     
     ____test____basic____LOSS__behavior_similarity()
     pass
 
-if "test" and __DEBUG_ME__() and False:
+if "test" and __DEBUG_ME__() and True:
     def ____test____LOSS__behavior_similarity():
         import random
         "part 1, 2 similar matrixs."
@@ -634,8 +656,8 @@ if "test" and __DEBUG_ME__() and False:
                     to_the_power = (random.random()-0.5)*5.
                     _factor = math.pow(10,to_the_power)
                     mat = mat_ref.detach()*_factor
-                    length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
-                        = LOSS__behavior_similarity(mat, mat_ref)
+                    length__log_10__diff__abs_avg, angle_diff__avg, (length__log_10__diff__ori, length__log_10__diff__avg, angle_diff, angle_diff__avg) = \
+                            LOSS__behavior_similarity(mat, mat_ref, _debug__needs_ref_result = True)
                     assert _tensor_equal(length__log_10__diff__ori, torch.ones(size=length__log_10__diff__ori.shape)*to_the_power)
                     assert _tensor_equal(angle_diff__avg,           torch.zeros(size=angle_diff__avg.shape))
                     #----------------#----------------#----------------
@@ -691,8 +713,9 @@ if "test" and __DEBUG_ME__() and False:
                     mat_1[0,0] = 0.#1.
                     mat_2 = mat_1.detach().clone()
                     mat_1[0,0] = 0.1#1.1
-                    length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
-                        = LOSS__behavior_similarity(mat_1, mat_2)
+                    
+                    length__log_10__diff__abs_avg, angle_diff__avg, (length__log_10__diff__ori, length__log_10__diff__avg, angle_diff, angle_diff__avg) = \
+                            LOSS__behavior_similarity(mat_1, mat_2, _debug__needs_ref_result = True)
                     
                     _raw_result_of__length_diff_min[test_count] = length__log_10__diff__ori.min()
                     _raw_result_of__length_diff_max[test_count] = length__log_10__diff__ori.max()
@@ -765,8 +788,9 @@ if "test" and __DEBUG_ME__() and False:
                     mat_1[0,0] = _base
                     mat_2 = mat_1.detach().clone()
                     mat_1[0,0] = _base + diff
-                    length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
-                        = LOSS__behavior_similarity(mat_1, mat_2)
+                    
+                    length__log_10__diff__abs_avg, angle_diff__avg, (length__log_10__diff__ori, length__log_10__diff__avg, angle_diff, angle_diff__avg) = \
+                            LOSS__behavior_similarity(mat_1, mat_2, _debug__needs_ref_result = True)
                     
                     _raw_result_of__length_diff_min[test_count] = length__log_10__diff__ori.min()
                     _raw_result_of__length_diff_max[test_count] = length__log_10__diff__ori.max()
@@ -834,8 +858,9 @@ if "test" and __DEBUG_ME__() and False:
                     #----------------#----------------#----------------
                     mat_1 = torch.randn(size=[dim,dim])
                     mat_2 = torch.randn(size=[dim,dim])
-                    length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
-                        = LOSS__behavior_similarity(mat_1, mat_2)
+                    
+                    length__log_10__diff__abs_avg, angle_diff__avg, (length__log_10__diff__ori, length__log_10__diff__avg, angle_diff, angle_diff__avg) = \
+                            LOSS__behavior_similarity(mat_1, mat_2, _debug__needs_ref_result = True)
                     
                     _raw_result_of__length_diff_min[test_count] = length__log_10__diff__ori.min()
                     _raw_result_of__length_diff_max[test_count] = length__log_10__diff__ori.max()
@@ -946,8 +971,9 @@ if "test" and __DEBUG_ME__() and False:
                     #----------------#----------------#----------------
                     mat_1 = torch.rand (size=[dim,dim])#rand
                     mat_2 = torch.rand (size=[dim,dim])#rand
-                    length__log_10__diff__ori, length__log_10__diff__avg, length__log_10__diff__abs_avg, angle_diff, angle_diff__avg \
-                        = LOSS__behavior_similarity(mat_1, mat_2)
+                    
+                    length__log_10__diff__abs_avg, angle_diff__avg, (length__log_10__diff__ori, length__log_10__diff__avg, angle_diff, angle_diff__avg) = \
+                            LOSS__behavior_similarity(mat_1, mat_2, _debug__needs_ref_result = True)
                     
                     _raw_result_of__length_diff_min[test_count] = length__log_10__diff__ori.min()
                     _raw_result_of__length_diff_max[test_count] = length__log_10__diff__ori.max()
