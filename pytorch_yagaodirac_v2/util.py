@@ -221,6 +221,173 @@ if "test" and __DEBUG_ME__() and True:
 
 
 
+if "adaptor func    if_number_then_to_tensor" and False:
+    # def if_number_then_to_tensor(input:int|float|torch.Tensor)->torch.Tensor:
+    #     if isinstance(input, int):
+    #         return torch.tensor(input, dtype=torch.int64)
+    #     if isinstance(input, float):
+    #         return torch.tensor(input, dtype=torch.float32)
+    #     return input.detach().clone()
+    # if "test" and __DEBUG_ME__() and True:
+    #     def ____test____if_number_then_to_tensor():
+    #         a = if_number_then_to_tensor(123)
+    #         assert isinstance(a, torch.Tensor)
+    #         assert a == 123
+    #         assert a.dtype == torch.int64
+    #         assert a.device.type == 'cpu'
+            
+    #         b = if_number_then_to_tensor(1234.)
+    #         assert isinstance(b, torch.Tensor)
+    #         assert b == 1234.
+    #         assert b.dtype == torch.float32
+    #         assert b.device.type == 'cpu'
+            
+    #         return 
+    #     ____test____if_number_then_to_tensor()
+    
+    pass
+
+
+
+
+
+
+
+"linear interpolation"
+
+#def interpolation(a:torch.Tensor, b:torch.Tensor, t:torch.Tensor)->torch.Tensor:
+def interpolation(a:torch.Tensor, b:torch.Tensor, t:torch.Tensor)->torch.Tensor:
+    return a*(1.-t)+b*t
+if "test" and __DEBUG_ME__() and True:
+    def ____test____interpolation():
+        a = torch.tensor([0.,4])
+        b = torch.tensor([16.,16])
+        t = torch.tensor([0.])
+        result = interpolation(a,b,t)
+        assert result.eq(a).all()
+        
+        aa = torch.tensor([0.,4])
+        b = torch.tensor([16.,16])
+        t = torch.tensor([1.])
+        result = interpolation(a,b,t)
+        assert result.eq(b).all()
+        
+        a = torch.tensor([0.,4])
+        b = torch.tensor([16.,16])
+        t = torch.tensor([0.5])
+        result = interpolation(a,b,t)
+        assert result.eq(torch.tensor([8.,10])).all()
+        
+        a = torch.tensor([0.,4])
+        b = torch.tensor([16.,16])
+        t = torch.tensor([0.25])
+        result = interpolation(a,b,t)
+        assert result.eq(torch.tensor([4.,7])).all()
+        
+        return 
+        
+    ____test____interpolation()
+    pass
+
+def interpolation_of_list(the_list:torch.Tensor, the_index:torch.Tensor)->torch.Tensor:
+    if the_index == the_list.shape[0] -1:
+        return the_list[-1]
+    
+    index_floor = the_index.floor().to(torch.int64)
+    index_fraction = the_index- index_floor
+    anchor_1 = the_list[index_floor]
+    anchor_2 = the_list[index_floor +1]
+    return interpolation(anchor_1, anchor_2, index_fraction)
+if "test" and __DEBUG_ME__() and True:
+    def ____test____interpolation_of_list():
+        the_list = torch.tensor([12.,16,20,30])
+        result = interpolation_of_list(the_list, torch.tensor(0.))
+        assert result.eq(12)
+        result = interpolation_of_list(the_list, torch.tensor(1.))
+        assert result.eq(16)
+        result = interpolation_of_list(the_list, torch.tensor(2.))
+        assert result.eq(20)
+        result = interpolation_of_list(the_list, torch.tensor(3.))
+        assert result.eq(30)
+        result = interpolation_of_list(the_list, torch.tensor(0.25))
+        assert result.eq(13)
+        result = interpolation_of_list(the_list, torch.tensor(0.5))
+        assert result.eq(14)
+        result = interpolation_of_list(the_list, torch.tensor(0.25))
+        assert result.eq(13)
+        result = interpolation_of_list(the_list, torch.tensor(1.25))
+        assert result.eq(17)
+        result = interpolation_of_list(the_list, torch.tensor(2.25))
+        assert result.eq(22.5)
+        
+        return 
+    
+    ____test____interpolation_of_list()
+    pass
+
+def interpolation_of_list_2d(the_list:torch.Tensor, row_index:torch.Tensor, col_index:torch.Tensor)->torch.Tensor:
+    assert the_list.shape.__len__() == 2
+    index_floor_row = row_index.floor().to(torch.int64)
+    index_floor_col = col_index.floor().to(torch.int64)
+    small_chunk = the_list[index_floor_row:index_floor_row+2, index_floor_col:index_floor_col+2]
+    
+    index_fraction_row = row_index - index_floor_row
+    index_fraction_col = col_index - index_floor_col
+    if small_chunk.shape[0] == 2:
+        halfway = small_chunk[0]*(1.-index_fraction_row) + small_chunk[1]*index_fraction_row
+        pass
+    else:
+        halfway = small_chunk.reshape([-1])
+        pass
+    
+    if halfway.shape[0] == 2:
+        result = halfway[0]*(1.-index_fraction_col) + halfway[1]*index_fraction_col
+        pass
+    else:
+        result = halfway.reshape([])
+        pass
+        
+    return result
+if "test" and __DEBUG_ME__() and True:
+    def ____test____interpolation_of_list_2d():
+        the_list = torch.tensor([[    10.,  20,  70],
+                                    [110., 120, 170],
+                                    [310., 320, 370],])
+        result = interpolation_of_list_2d(the_list, torch.tensor(0.), torch.tensor(0.), )
+        assert result.eq(10)
+        result = interpolation_of_list_2d(the_list, torch.tensor(1.), torch.tensor(0.), )
+        assert result.eq(110)
+        result = interpolation_of_list_2d(the_list, torch.tensor(0.), torch.tensor(1.), )
+        assert result.eq(20)
+        result = interpolation_of_list_2d(the_list, torch.tensor(1.), torch.tensor(1.), )
+        assert result.eq(120)
+        result = interpolation_of_list_2d(the_list, torch.tensor(0.25), torch.tensor(0.), )
+        assert result.eq(35)
+        result = interpolation_of_list_2d(the_list, torch.tensor(0.5), torch.tensor(0.), )
+        assert result.eq(60)
+        result = interpolation_of_list_2d(the_list, torch.tensor(0.), torch.tensor(0.25), )
+        assert result.eq(12.5)
+        result = interpolation_of_list_2d(the_list, torch.tensor(0.), torch.tensor(0.5), )
+        assert result.eq(15)
+        
+        result = interpolation_of_list_2d(the_list, torch.tensor(0.25), torch.tensor(0.25), )
+        assert result.shape.__len__() == 0
+        assert result.eq(37.5)
+        
+        result = interpolation_of_list_2d(the_list, torch.tensor(2.), torch.tensor(0.), )
+        assert result.shape.__len__() == 0
+        assert result.eq(310)
+        result = interpolation_of_list_2d(the_list, torch.tensor(0.), torch.tensor(2.), )
+        assert result.shape.__len__() == 0
+        assert result.eq(70)
+        return 
+    
+    ____test____interpolation_of_list_2d()
+    pass
+
+
+
+
 
 "smart expand."
 
@@ -389,7 +556,7 @@ if "can it be index?" and __DEBUG_ME__() and False:
 
 def vector_length_norm(input:torch.Tensor, epi = 0.000001, dtype_inner = torch.float64)->torch.Tensor:
     r'''The shape must be [batch, dim]'''
-    if len(input.shape)!=2:
+    if input.shape.__len__()!=2:
         raise Exception("The shape must be [batch, dim]")
     with torch.no_grad():
         
@@ -428,7 +595,8 @@ if '''some basic test.''' and __DEBUG_ME__() and False:
     # output = vector_length_norm(input, transform=True)
     # assert _tensor_equal(output,   [[0.9950, 0.9950],
     #                                 [0.0995, 0.0995]], epsilon=0.001)
-    input = torch.tensor([[1.,1],[0.1,0.1]])
+    input = torch.tensor([[  1.,   1],
+                            [0.1,  0.1]])
     output = vector_length_norm(input.T).T
     assert _tensor_equal(output,   [[0.9950, 0.9950],
                                     [0.0995, 0.0995]], epsilon=0.001)
@@ -478,7 +646,11 @@ if "test get_vector_length" and __DEBUG_ME__() and False:
     ____test____get_vector_length()
     pass
     
-    
+
+
+
+
+
 
 
 
