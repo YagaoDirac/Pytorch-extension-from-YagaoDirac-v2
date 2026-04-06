@@ -1,3 +1,4 @@
+from typing import Literal
 import datetime
 from pathlib import Path
 import math, random
@@ -55,25 +56,8 @@ To correct this, and also to add some adaptive expansion, I wrote the 2nd visual
 from pytorch_yagaodirac_v2.measure_for_matrix import LOSS__behavior_similarity, \
     LOSS__mat_is_standard_orthogonal, LOSS__vec_len_retention__of_a_mat_in_matmul
 
-#old code.    maybe remove later.
-# def ____init_mat_with_row_len_is_1(dim:int, device = 'cpu', _debug__assert = False)->torch.Tensor:
-#     mat = torch.randn(size=[dim,dim], device=device)
-#     _temp_len_sqr = mat.mul(mat).sum(dim=1)#mean(dim=1)#mul and then sum, it's a dot.
-#     mul_me___to_get_unit_length = (_temp_len_sqr).pow(-0.5)
-#     mat = mat * (mul_me___to_get_unit_length.reshape([-1,1]).expand([-1,dim]))
-#     mat.requires_grad_()
-#     if _debug__assert:
-#         temp_vec_len = get_vector_length(mat[random.randint(0,dim-1)])
-#         assert _tensor_equal(temp_vec_len, [1.])
-#         pass
-#     return mat
 
-# if "test" and False:
-#     for _ in range(4312):
-#         ____init_mat_with_row_len_is_1(random.randint(2,1000), _debug__assert = True)
-#         pass
-#     pass
-    
+
 
 
 
@@ -2872,85 +2856,586 @@ if "test" and True:
 
 
     def ____test____full_test_version_of_angle_correction__by_row______scan_the_process():
-        #result
-        # the measurement is manual. The fluctuating tail is ignored manually.
-        # format
-        #   hyper_param / result(incr by default)
-        #               /steps_until_fluctuating         min_of_step    
-        # expansion     /               first_step
-        #        cap_to /                     max_of_accumulate
-        # 0.0     0.05  /    23 steps     0.118     1.518   0.006
-        # 0.0     0.10  /     9 steps     0.225     1.442   0.026
-        # 0.0     0.15  /     6 steps     0.326     1.28    0.018
-        # 0.0     0.20  /     5 steps     0.417     1.19    0.035
-        # 0.0     0.30  /     5 steps     0.541     1.10    0.011
-        # 0.0     0.40  /     3 steps     0.569     0.94    0.040    
         
-        # 1.0     0.10  /    14 steps     0.178     1.48    0.01
-        # 1.0     0.20  /     9 steps     0.337     1.35
-        expansion_factor = 1.
-        cap_to = 0.2
-        steps = 21
-        1w  继续。
-        dim = 100
-        iota_of_dim = iota(dim)
-        #<  device
-        if dim>100:
-            device = 'cuda'
-            pass
-        else:
-            device = 'cpu'
-            pass
-        #</ device
+        if "style doesn't matter......a rough test. To build up intuition." and False:
+            #result
+            # the measurement is manual. The fluctuating tail is ignored manually.
+            # format
+            #   hyper_param / result(incr by default)
+            #               /steps_until_fluctuating         min_of_step    
+            # expansion     /               first_step
+            #        cap_to /                     max_of_accumulate
+            # 0.0     0.05  /    23 steps     0.118     1.518   0.006
+            # 0.0     0.10  /     9 steps     0.225     1.442   0.026
+            # 0.0     0.15  /     6 steps     0.326     1.28    0.018
+            # 0.0     0.20  /     5 steps     0.417     1.19    0.035
+            # 0.0     0.30  /     5 steps     0.541     1.10    0.011
+            # 0.0     0.40  /     3 steps     0.569     0.94    0.040    
+            
+            # 1.0     0.10  /    14 steps     0.178     1.48    0.01
+            # 1.0     0.20  /     9 steps     0.337     1.35
+            
+            # conclusion.
+            # The score_incr for each step doesn't show too much. 
+            # sometimes it's negative.
+            # Every test ends with a very clear 2-step fluctuation.
+            style_list = ["r", "rr", "rc", "rrr", "rrc" ]
+            for style in style_list:
+                expansion_factor = 0.
+                cap_to = 0.3
+                steps = 11
+                
+                dim = 100
+                iota_of_dim = iota(dim)
+                #<  device
+                if dim>100:
+                    device = 'cuda'
+                    pass
+                else:
+                    device = 'cpu'
+                    pass
+                #</ device
+                
+                test_time = 100
+                print(test_time)
+                _raw_result__total__score_incr = torch.empty(size=[test_time, steps])
+                _raw_result__step__score_incr  = torch.empty(size=[test_time, steps])
+                
+                for _test_count in range(test_time):
+                    
+                    #<  init
+                    mat = torch.randn(size=[dim,dim])#, device=device)
+                    _, angle_loss__in_the_beginning, _ = LOSS__mat_is_standard_orthogonal(mat)
+                    angle_loss__last_step = angle_loss__in_the_beginning.detach().clone()
+                    
+                    #<  calc
+                    for _step_count in range(steps):
+                        #----------------#----------------#----------------
+                        #only use one of them.
+                        if style == "r":
+                            mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim)
+                            pass
+                        elif style == "rr":
+                            mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim)
+                            mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim)
+                            pass
+                        elif style == "rc":
+                            mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim)
+                            mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                    expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim).T
+                            pass
+                        elif style == "rrr":
+                            mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                            mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                            mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                            pass
+                        elif style == "rrc":
+                            mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                            mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                            mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim).T
+                            pass
+                        else:
+                            assert False, "bad param: style"
+                        #----------------#----------------#----------------
+                        
+                        #<  measure
+                        _, angle_loss__of_this_step, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        
+                        #<  save result.
+                        _raw_result__total__score_incr[_test_count, _step_count] = \
+                                angle_loss__in_the_beginning - angle_loss__of_this_step
+                        _raw_result__step__score_incr [_test_count, _step_count] = \
+                                angle_loss__last_step        - angle_loss__of_this_step
+                        
+                        #tail
+                        angle_loss__last_step = angle_loss__of_this_step
+                        
+                        pass#for _step_count
+                    
+                    pass#for _test_count
+                    
+                total__score_incr = _raw_result__total__score_incr.mean(dim=0)
+                step__score_incr  = _raw_result__step__score_incr .mean(dim=0)
+                # print()
+                # print()
+                # print(f"# {expansion_factor:.1f}     {cap_to:.2f}  /      steps     {step__score_incr[0].item():.3f}     ")
+                # print()
+                # print()
+                assert total__score_incr.shape.__len__() == 1
+                assert total__score_incr.shape[0] == steps
+                x_axis = torch.linspace(1, steps, steps)
+                
+                from matplotlib import pyplot as plt
+                plt.plot(x_axis, total__score_incr)#, x_axis, step__score_incr)
+                plt.title(f"{style}  expansion_factor {expansion_factor:.2f}   cap_to {cap_to:.2f}")
+                plt.show()
+                
+                pass#for style
+            
+            pass#/ test
         
-        test_time = 100
-        print(test_time)
-        _raw_result__total__score_incr = torch.empty(size=[test_time, steps])
-        _raw_result__step__score_incr  = torch.empty(size=[test_time, steps])
+        if "scan it a bit. all row-wise" and False:
+            #result
+            
+            if False:
+                
+                # expansion_factor 0.0      dim 100      threshold_factor 0.01
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5650,  1.5158,  1.4277,  1.3429,  1.2584,  1.1763,  1.1024]
+                # total__step__avg              = [ 49.96,    20.41,    11.20,    7.97,    6.31,    5.32,    5.79]
+                # total__score_incr_per_step__avg = [ 0.0314,  0.0745,  0.1287,  0.1727,  0.2049,  0.2263,  0.1962]
+                # ------------                                                                         
+                # expansion_factor 0.0      dim 100      threshold_factor 0.02
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5647,  1.5154,  1.4239,  1.3430,  1.2588,  1.1704,  1.1008]
+                # total__step__avg              = [ 49.88,    20.36,    11.01,    7.83,    6.17,    5.04,    5.48]
+                # total__score_incr_per_step__avg = [ 0.0314,  0.0746,  0.1307,  0.1745,  0.2083,  0.2358,  0.2049]
+                # ------------                                                                         
+                # expansion_factor 0.0      dim 100      threshold_factor 0.05
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5687,  1.5189,  1.4166,  1.3168,  1.2364,  1.1558,  1.0800]
+                # total__step__avg              = [ 49.49,    20.62,    10.65,    6.97,    5.55,    4.72,    4.70]
+                # total__score_incr_per_step__avg = [ 0.0317,  0.0738,  0.1341,  0.1922,  0.2290,  0.2523,  0.2333]
+                # ------------                                                                         
+                # expansion_factor 0.0      dim 100      threshold_factor 0.1
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5577,  1.5126,  1.3987,  1.3008,  1.1840,  1.0835,  1.0372]
+                # total__step__avg              = [ 49.19,    20.28,    10.05,    6.43,    4.50,    3.40,    3.62]
+                # total__score_incr_per_step__avg = [ 0.0317,  0.0748,  0.1401,  0.2044,  0.2687,  0.3288,  0.2914]
+                # ------------                                                                         
+                # expansion_factor 0.0      dim 100      threshold_factor 0.15
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5586,  1.5050,  1.3864,  1.2809,  1.1660,  1.0554,  1.0020]
+                # total__step__avg              = [ 48.85,    19.95,    9.64,    6.08,    4.05,    3.00,    3.06]
+                # total__score_incr_per_step__avg = [ 0.0319,  0.0756,  0.1445,  0.2111,  0.2884,  0.3518,  0.3288]
+                # ------------                                                                         
+                # expansion_factor 0.0      dim 100      threshold_factor 0.2
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5559,  1.4886,  1.3746,  1.2788,  1.1564,  1.0588,  0.9651]
+                # total__step__avg              = [ 48.54,    19.56,    9.30,    5.99,    4.00,    3.00,    2.69]
+                # total__score_incr_per_step__avg = [ 0.0321,  0.0763,  0.1481,  0.2136,  0.2891,  0.3529,  0.3673]
+                # ------------                                                                         
+                # expansion_factor 0.0      dim 100      threshold_factor 0.3
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5411,  1.4621,  1.3547,  1.2488,  1.1599,  1.0533,  0.8827]
+                # total__step__avg              = [ 48.18,    18.73,    8.97,    5.66,    4.00,    3.00,    2.00]
+                # total__score_incr_per_step__avg = [ 0.0320,  0.0781,  0.1511,  0.2215,  0.2900,  0.3511,  0.4414]
+                # ------------                                                                         
+                # expansion_factor 0.0      dim 100      threshold_factor 0.5
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.4241,  1.3850,  1.2487,  1.1445,  0.9814,  0.8539,  0.8786]
+                # total__step__avg              = [ 43.05,    17.23,    7.86,    4.84,    3.00,    2.09,    2.00]
+                # total__score_incr_per_step__avg = [ 0.0331,  0.0804,  0.1590,  0.2369,  0.3271,  0.4108,  0.4393]
+                # ------------                                                    
+                
+                
+                # expansion_factor 1.0      dim 100      threshold_factor 0.02
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5834,  1.5755,  1.5120,  1.4165,  1.3427,  1.2857,  1.2409]
+                # total__step__avg              = [ 65.62,    27.02,    13.84,    9.21,    7.40,    6.64,    6.42]
+                # total__score_incr_per_step__avg = [ 0.0242,  0.0585,  0.1097,  0.1558,  0.1868,  0.2011,  0.2004]
+                # ------------                                                                         
+                # expansion_factor 1.0      dim 100      threshold_factor 0.05
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5753,  1.5631,  1.5049,  1.3979,  1.3249,  1.2569,  1.2188]
+                # total__step__avg              = [ 65.34,    26.44,    13.45,    8.66,    6.65,    5.77,    5.73]
+                # total__score_incr_per_step__avg = [ 0.0242,  0.0593,  0.1124,  0.1626,  0.2027,  0.2269,  0.2176]
+                # ------------                                                                         
+                # expansion_factor 1.0      dim 100      threshold_factor 0.1
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5694,  1.5694,  1.5008,  1.3923,  1.3007,  1.1991,  1.1648]
+                # total__step__avg              = [ 64.64,    26.32,    13.26,    8.41,    6.11,    4.58,    4.50]
+                # total__score_incr_per_step__avg = [ 0.0243,  0.0598,  0.1136,  0.1666,  0.2144,  0.2681,  0.2710]
+                # ------------                                                                         
+                # expansion_factor 1.0      dim 100      threshold_factor 0.15
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5551,  1.5468,  1.5001,  1.3894,  1.2902,  1.1780,  1.0882]
+                # total__step__avg              = [ 63.05,    25.87,    13.11,    8.27,    5.83,    4.14,    3.45]
+                # total__score_incr_per_step__avg = [ 0.0247,  0.0600,  0.1147,  0.1686,  0.2224,  0.2863,  0.3246]
+                # ------------                                                                         
+                # expansion_factor 1.0      dim 100      threshold_factor 0.2
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5477,  1.5349,  1.4869,  1.3805,  1.2711,  1.1707,  1.0628]
+                # total__step__avg              = [ 62.82,    25.45,    12.86,    8.03,    5.49,    4.02,    3.12]
+                # total__score_incr_per_step__avg = [ 0.0247,  0.0604,  0.1159,  0.1723,  0.2328,  0.2914,  0.3431]
+                # ------------                                                                         
+                # expansion_factor 1.0      dim 100      threshold_factor 0.3
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.4799,  1.4977,  1.4426,  1.3511,  1.2418,  1.1679,  1.0565]
+                # total__step__avg              = [ 58.13,    24.29,    12.04,    7.57,    5.16,    4.00,    3.00]
+                # total__score_incr_per_step__avg = [ 0.0255,  0.0618,  0.1202,  0.1790,  0.2413,  0.2920,  0.3522]
+                # ------------                                                                         
+                # expansion_factor 1.0      dim 100      threshold_factor 0.5
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.2613,  1.3385,  1.2705,  1.2140,  1.1129,  1.0044,  0.9406]
+                # total__step__avg              = [ 46.06,    20.39,    9.73,    6.26,    4.28,    3.05,    2.50]
+                # total__score_incr_per_step__avg = [ 0.0275,  0.0658,  0.1309,  0.1945,  0.2610,  0.3299,  0.3824]
+                # ------------                            
+                
+                
+                # expansion_factor 2.0      dim 100      threshold_factor 0.02
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5770,  1.5657,  1.5491,  1.5357,  1.5331,  1.5219,  1.5010]
+                # total__step__avg              = [ 78.15,    32.66,    16.89,    13.41,    11.85,    11.24,    11.13]
+                # total__score_incr_per_step__avg = [ 0.0203,  0.0483,  0.0927,  0.1180,  0.1329,  0.1396,  0.1413]
+                # ------------                                                                         
+                # expansion_factor 2.0      dim 100      threshold_factor 0.05
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5691,  1.5543,  1.5440,  1.5202,  1.5101,  1.5097,  1.4730]
+                # total__step__avg              = [ 77.30,    31.66,    16.68,    12.27,    10.73,    10.06,    8.76]
+                # total__score_incr_per_step__avg = [ 0.0204,  0.0493,  0.0931,  0.1265,  0.1436,  0.1531,  0.1716]
+                # ------------                                                                         
+                # expansion_factor 2.0      dim 100      threshold_factor 0.1
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5624,  1.5435,  1.5331,  1.4976,  1.4893,  1.4551,  1.4254]
+                # total__step__avg              = [ 75.97,    30.81,    16.28,    11.21,    9.49,    8.03,    7.16]
+                # total__score_incr_per_step__avg = [ 0.0206,  0.0503,  0.0947,  0.1352,  0.1594,  0.1833,  0.2016]
+                # ------------                                                                         
+                # expansion_factor 2.0      dim 100      threshold_factor 0.15
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5504,  1.5213,  1.5043,  1.4821,  1.4544,  1.3998,  1.3780]
+                # total__step__avg              = [ 74.44,    29.64,    15.37,    10.65,    8.62,    6.99,    6.29]
+                # total__score_incr_per_step__avg = [ 0.0209,  0.0515,  0.0983,  0.1401,  0.1711,  0.2039,  0.2221]
+                # ------------                                                                         
+                # expansion_factor 2.0      dim 100      threshold_factor 0.2
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.5151,  1.5083,  1.4995,  1.4613,  1.4082,  1.3523,  1.2994]
+                # total__step__avg              = [ 71.69,    29.47,    15.06,    10.23,    7.67,    6.25,    5.29]
+                # total__score_incr_per_step__avg = [ 0.0212,  0.0513,  0.1000,  0.1438,  0.1852,  0.2202,  0.2511]
+                # ------------                                                                         
+                # expansion_factor 2.0      dim 100      threshold_factor 0.3
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.4672,  1.4687,  1.4497,  1.4204,  1.3329,  1.2598,  1.1907]
+                # total__step__avg              = [ 65.75,    27.45,    14.13,    9.44,    6.60,    5.09,    4.21]
+                # total__score_incr_per_step__avg = [ 0.0224,  0.0537,  0.1032,  0.1511,  0.2027,  0.2480,  0.2849]
+                # ------------                                                                         
+                # expansion_factor 2.0      dim 100      threshold_factor 0.5
+                # cap_to_list                    = [ 0.02,    0.05,    0.10,    0.15,    0.20,    0.25,    0.30]
+                # total__score_incr__avg      = [ 1.2410,  1.3066,  1.3038,  1.2678,  1.1943,  1.1255,  1.0306]
+                # total__step__avg              = [ 51.74,    22.57,    11.70,    7.65,    5.43,    4.10,    3.19]
+                # total__score_incr_per_step__avg = [ 0.0241,  0.0580,  0.1119,  0.1665,  0.2207,  0.2755,  0.3251]
+                # ------------   
+                
+                pass
+            
+            # conclusion:
+            # threshold_factor can be 0.0001 to 0.2, and 0.1 works well. It actually can be any number.
+            # I'll use 0.1 for a while and see what happens.
+            # and from the data, it looks possible to use a big cap_to to reduce the calling time, which saves the calc.
+            
+            
+            dim = 100
+            iota_of_dim = iota(dim)
+            #<  device
+            if dim>100:
+                device = 'cuda'
+                pass
+            else:
+                device = 'cpu'
+                pass
+            #</ device
+            
+            test_time = 100
+            print(test_time)
+            
+            
+            #-------------------#-------------------#-------------------
+            #threshold_factor_list = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5]
+            threshold_factor_list = [0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5]
+            for threshold_factor in threshold_factor_list:
+            #-------------------#-------------------#-------------------
+                
+                total__score_incr__min          = []#dont modify this.
+                total__score_incr__max          = []#dont modify this.
+                total__score_incr__avg          = []#dont modify this.
+                total__step__min                = []#dont modify this.
+                total__step__max                = []#dont modify this.
+                total__step__avg                = []#dont modify this.
+                total__score_incr_per_step__min = []#dont modify this.
+                total__score_incr_per_step__max = []#dont modify this.
+                total__score_incr_per_step__avg = []#dont modify this.
+                
+                #-------------------#-------------------#-------------------
+                max_steps = 100
+                expansion_factor = 1.
+                cap_to_list = [0.02,0.05,0.1,0.15,0.2,0.25,0.3]
+                for param_set_count in range(cap_to_list.__len__()):
+                    cap_to = cap_to_list[param_set_count]
+                #-------------------#-------------------#-------------------
+                    
+                    _raw_result__total__score_incr = torch.empty(size=[test_time])
+                    _raw_result__total__step = torch.empty(size=[test_time])
+                    _raw_result__total__score_incr_per_step = torch.empty(size=[test_time])
+                    
+                    for _test_count in range(test_time):
+                        
+                        #-------------------#-------------------#-------------------
+                        #<  init
+                        mat = torch.randn(size=[dim,dim])#, device=device)
+                        _, angle_loss__in_the_beginning, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        
+                        mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim)
+                        _, angle_loss__of_step_1, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        init_incr_speed = angle_loss__in_the_beginning - angle_loss__of_step_1
+                        assert init_incr_speed>0.
+                        
+                        angle_loss__last_step = angle_loss__of_step_1.detach().clone()
+                        del angle_loss__of_step_1
+                        
+                        #<  calc
+                        for _step_count_minus_2 in range(max_steps):
+                            mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim)
+                            
+                            #<  measure
+                            _, angle_loss__of_this_step, _ = LOSS__mat_is_standard_orthogonal(mat)
+                            score_incr__of_this_step = angle_loss__last_step - angle_loss__of_this_step
+                            
+                            #<  break contidion.
+                            if score_incr__of_this_step< init_incr_speed*threshold_factor:
+                                _total_steps = _step_count_minus_2+1.
+                                _total_incr = angle_loss__in_the_beginning - angle_loss__last_step
+                                
+                                _raw_result__total__score_incr[_test_count] = _total_incr
+                                _raw_result__total__step[_test_count] = _total_steps
+                                _raw_result__total__score_incr_per_step[_test_count] = _total_incr/_total_steps
+                                break
+                                pass
+                            
+                            #tail
+                            angle_loss__last_step = angle_loss__of_this_step
+                            
+                            assert _step_count_minus_2 < max_steps -2#other wise the test doesn't stop in given steps.
+                            
+                            pass#for _step_count
+                        #-------------------#-------------------#-------------------
+                        
+                        pass#for _test_count
+                    
+                    # total__score_incr__min         .append(_raw_result__total__score_incr         .min ())
+                    # total__score_incr__max         .append(_raw_result__total__score_incr         .max ())
+                    total__score_incr__avg         .append(_raw_result__total__score_incr         .mean())
+                    # total__step__min               .append(_raw_result__total__step               .min ())
+                    # total__step__max               .append(_raw_result__total__step               .max ())
+                    total__step__avg               .append(_raw_result__total__step               .mean())
+                    # total__score_incr_per_step__min.append(_raw_result__total__score_incr_per_step.min ())
+                    # total__score_incr_per_step__max.append(_raw_result__total__score_incr_per_step.max ())
+                    total__score_incr_per_step__avg.append(_raw_result__total__score_incr_per_step.mean())
+                    
+                    pass#for param_set_count 
+                
+                print(f"# expansion_factor {expansion_factor}      dim {dim}      threshold_factor {threshold_factor}")
+                print(f"# cap_to_list                    = {str_the_list(cap_to_list         , 2, segment=",   ")}")
+                #print(f"# total__score_incr__min         = {str_the_list(total__score_incr__min         , 4)}")
+                #print(f"# total__score_incr__max         = {str_the_list(total__score_incr__max         , 4)}")
+                print(f"# total__score_incr__avg      = {str_the_list(total__score_incr__avg         , 4)}")
+                #print(f"# total__step__min               = {str_the_list(total__step__min               , 0, segment=",      ")}")
+                #print(f"# total__step__max               = {str_the_list(total__step__max               , 0, segment=",      ")}")
+                print(f"# total__step__avg              = {str_the_list(total__step__avg               , 2, segment=",   ")}")
+                #print(f"# total__score_incr_per_step__min= {str_the_list(total__score_incr_per_step__min, 4)}")
+                #print(f"# total__score_incr_per_step__max= {str_the_list(total__score_incr_per_step__max, 4)}")
+                print(f"# total__score_incr_per_step__avg = {str_the_list(total__score_incr_per_step__avg, 4)}")
+                print(f"# ------------                                                                         ")
+                pass# for threshold_factor
+            
+            pass#/ test
         
-        for _test_count in range(test_time):
-            
-            #<  init
-            mat = torch.randn(size=[dim,dim])#, device=device)
-            _, angle_loss__in_the_beginning, _ = LOSS__mat_is_standard_orthogonal(mat)
-            angle_loss__last_step = angle_loss__in_the_beginning.detach().clone()
-            
-            #<  calc
-            for _step_count in range(steps):
-                mat = full_test_version_of_angle_correction__by_row(mat,
-                        expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim)
+        #好像用不到了。
+        #暂时没跑。我在第一个里面试过了，style完全不影响。调用函数的次数会有影响。
+        if "different -wise comparison" and False:
+            #---------------#---------------#---------------
+            dim_list =       [ 10, 100,1000]
+            test_time_list = [200, 100, 30]
+            dim_list =        [100]
+            test_time_list = [ 100]
+            for outter_iter_count in range(dim_list.__len__()):
+                dim = dim_list[outter_iter_count]
+                test_time = test_time_list[outter_iter_count]
+                print(test_time)
+                iota_of_dim = iota(dim)
+                #<  device
+                if dim>100:
+                    device = 'cuda'
+                    pass
+                else:
+                    device = 'cpu'
+                    pass
+            #---------------#---------------#---------------
                 
-                #<  measure
-                _, angle_loss__of_this_step, _ = LOSS__mat_is_standard_orthogonal(mat)
+                #---------------#---------------#---------------
+                expansion_factor_list = [0., 1., 2.]
+                for expansion_factor in expansion_factor_list:
+                #---------------#---------------#---------------
+                    
+                    
+                    assert False
+                    #_raw_result__??? = torch.empty(size=[test_time])
+                    
+                    
+                    #---------------#---------------#---------------
+                    cap_to_list = [0.1, 0.2, 0.3, 0.4]
+                    for cap_to in cap_to_list:
+                    #---------------#---------------#---------------
                 
-                #<  save result.
-                _raw_result__total__score_incr[_test_count, _step_count] = \
-                        angle_loss__in_the_beginning - angle_loss__of_this_step
-                _raw_result__step__score_incr [_test_count, _step_count] = \
-                        angle_loss__last_step        - angle_loss__of_this_step
-                
-                #tail
-                angle_loss__last_step = angle_loss__of_this_step
-                
-                pass#for _step_count
-            
-            pass#for _test_count
-            
-        total__score_incr = _raw_result__total__score_incr.mean(dim=0)
-        step__score_incr  = _raw_result__step__score_incr .mean(dim=0)
-        print()
-        print()
-        print(f"# {expansion_factor:.1f}     {cap_to:.2f}  /      steps     {step__score_incr[0].item():.3f}     ")
-        print()
-        print()
-        assert total__score_incr.shape.__len__() == 1
-        assert total__score_incr.shape[0] == steps
-        x_axis = torch.linspace(1, steps, steps)
+                        #---------------#---------------#---------------
+                        
+                        #<  init
+                        ori_mat = torch.randn(size=[dim,dim])
+                        half__cap_to = cap_to/2.
+                        
+                        #<  row
+                        #<  col
+                        #<  r r
+                        #<  r c
+                        #<  c r
+                        #<  r r
+                        
+                        
+                        
+                            # mat = full_test_version_of_angle_correction__by_row(mat,
+                            #             expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim)
+                            # mat = full_test_version_of_angle_correction__by_row(mat.T,
+                            #             expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim).T# .T in and .T out, this is col-wise
         
-        from matplotlib import pyplot as plt
-        plt.plot(x_axis, total__score_incr, x_axis, step__score_incr)
-        plt.title(f"expansion_factor {expansion_factor:.2f}   cap_to {cap_to:.2f}")
-        plt.show()
+        1w
+        直接来这个
+        if "scan it a bit. row and col wise alternating." and False:
+            # a bit 
+            #result
+            
+            dim = 100
+            iota_of_dim = iota(dim)
+            #<  device
+            if dim>100:
+                device = 'cuda'
+                pass
+            else:
+                device = 'cpu'
+                pass
+            #</ device
+            
+            test_time = 100
+            print(test_time)
+            
+            
+            #-------------------#-------------------#-------------------
+            #threshold_factor_list = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5]
+            threshold_factor_list = [0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5]
+            for threshold_factor in threshold_factor_list:
+            #-------------------#-------------------#-------------------
+                
+                total__score_incr__min          = []#dont modify this.
+                total__score_incr__max          = []#dont modify this.
+                total__score_incr__avg          = []#dont modify this.
+                total__step__min                = []#dont modify this.
+                total__step__max                = []#dont modify this.
+                total__step__avg                = []#dont modify this.
+                total__score_incr_per_step__min = []#dont modify this.
+                total__score_incr_per_step__max = []#dont modify this.
+                total__score_incr_per_step__avg = []#dont modify this.
+                
+                #-------------------#-------------------#-------------------
+                max_steps = 100
+                expansion_factor = 1.
+                cap_to_list = [0.02,0.05,0.1,0.15,0.2,0.25,0.3]
+                for param_set_count in range(cap_to_list.__len__()):
+                    assert False
+                    cap_to = cap_to_list[param_set_count] 
+                #-------------------#-------------------#-------------------
+                    
+                    _raw_result__total__score_incr = torch.empty(size=[test_time])
+                    _raw_result__total__step = torch.empty(size=[test_time])
+                    _raw_result__total__score_incr_per_step = torch.empty(size=[test_time])
+                    
+                    for _test_count in range(test_time):
+                        
+                        #-------------------#-------------------#-------------------
+                        #<  init
+                        mat = torch.randn(size=[dim,dim])#, device=device)
+                        _, angle_loss__in_the_beginning, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        
+                        mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim)
+                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                    expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim).T# .T in and .T out, this is col-wise
+                        
+                        _, angle_loss__of_step_1, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        init_incr_speed = angle_loss__in_the_beginning - angle_loss__of_step_1
+                        assert init_incr_speed>0.
+                        
+                        angle_loss__last_step = angle_loss__of_step_1.detach().clone()
+                        del angle_loss__of_step_1
+                        
+                        #<  calc
+                        for _step_count_minus_2 in range(max_steps):
+                            mat = full_test_version_of_angle_correction__by_row(mat,
+                                    expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim)
+                            mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                        expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim).T# .T in and .T out, this is col-wise
+                            
+                            #<  measure
+                            _, angle_loss__of_this_step, _ = LOSS__mat_is_standard_orthogonal(mat)
+                            score_incr__of_this_step = angle_loss__last_step - angle_loss__of_this_step
+                            
+                            #<  break contidion.
+                            if score_incr__of_this_step< init_incr_speed*threshold_factor:
+                                _total_steps = _step_count_minus_2+1.
+                                _total_incr = angle_loss__in_the_beginning - angle_loss__last_step
+                                
+                                _raw_result__total__score_incr[_test_count] = _total_incr
+                                _raw_result__total__step[_test_count] = _total_steps
+                                _raw_result__total__score_incr_per_step[_test_count] = _total_incr/_total_steps
+                                break
+                                pass
+                            
+                            #tail
+                            angle_loss__last_step = angle_loss__of_this_step
+                            
+                            assert _step_count_minus_2 < max_steps -2#other wise the test doesn't stop in given steps.
+                            
+                            pass#for _step_count
+                        #-------------------#-------------------#-------------------
+                        
+                        pass#for _test_count
+                    
+                    # total__score_incr__min         .append(_raw_result__total__score_incr         .min ())
+                    # total__score_incr__max         .append(_raw_result__total__score_incr         .max ())
+                    total__score_incr__avg         .append(_raw_result__total__score_incr         .mean())
+                    # total__step__min               .append(_raw_result__total__step               .min ())
+                    # total__step__max               .append(_raw_result__total__step               .max ())
+                    total__step__avg               .append(_raw_result__total__step               .mean())
+                    # total__score_incr_per_step__min.append(_raw_result__total__score_incr_per_step.min ())
+                    # total__score_incr_per_step__max.append(_raw_result__total__score_incr_per_step.max ())
+                    total__score_incr_per_step__avg.append(_raw_result__total__score_incr_per_step.mean())
+                    
+                    pass#for param_set_count 
+                
+                print(f"# expansion_factor {expansion_factor}      dim {dim}      threshold_factor {threshold_factor}")
+                print(f"# cap_to_list                    = {str_the_list(cap_to_list         , 2, segment=",   ")}")
+                #print(f"# total__score_incr__min         = {str_the_list(total__score_incr__min         , 4)}")
+                #print(f"# total__score_incr__max         = {str_the_list(total__score_incr__max         , 4)}")
+                print(f"# total__score_incr__avg      = {str_the_list(total__score_incr__avg         , 4)}")
+                #print(f"# total__step__min               = {str_the_list(total__step__min               , 0, segment=",      ")}")
+                #print(f"# total__step__max               = {str_the_list(total__step__max               , 0, segment=",      ")}")
+                print(f"# total__step__avg              = {str_the_list(total__step__avg               , 2, segment=",   ")}")
+                #print(f"# total__score_incr_per_step__min= {str_the_list(total__score_incr_per_step__min, 4)}")
+                #print(f"# total__score_incr_per_step__max= {str_the_list(total__score_incr_per_step__max, 4)}")
+                print(f"# total__score_incr_per_step__avg = {str_the_list(total__score_incr_per_step__avg, 4)}")
+                print(f"# ------------                                                                         ")
+                pass# for threshold_factor
+            
+            pass#/ test
         
         return 
         
@@ -2962,7 +3447,7 @@ if "test" and True:
 
 
 
-
+    #以下暂停，补上面的。
     def ____test____full_test_version_of_angle_correction__by_row______scan_param_for_init():
         
         if "randn, then row-wise as the init. Then test the row-wise" and True:
