@@ -2618,7 +2618,7 @@ if "test" and False:
     pass    
 
 
-def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_factor:float, 
+def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_factor = 1., 
                         cap_to:float|None = None, iota_of_dim:torch.Tensor|None = None, 
                         #_debug__allow_any_param = False
                         )->torch.Tensor:
@@ -2727,7 +2727,347 @@ def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_
     mat = vector_length_norm(mat)
     
     return mat
-if "test" and True:
+
+def random_dummy_mat(dim:int, init__cap_to = 0.2, noise_strength = 0.2, 
+                    device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
+    '''
+    init__cap_to in[0.1, 0.5], recommended[0.2, 0.3]
+    noise_strength in[0, 3], recommended[0.2, 0.5]
+    or if you know what you are doing.
+    '''
+    if iota_of_dim is None:
+        iota_of_dim = iota(dim)
+        pass
+    
+    #<  real job
+    mat = torch.randn(size=[dim,dim], device=device)/math.sqrt(dim)
+    
+    #<  dummy op it a bit.
+    mat = full_test_version_of_angle_correction__by_row(mat, 
+                cap_to=init__cap_to/2., iota_of_dim=iota_of_dim)
+    mat = full_test_version_of_angle_correction__by_row(mat.T,
+                cap_to=init__cap_to/2., iota_of_dim=iota_of_dim).T# .T in and .T out, this is col-wise
+    
+    #<  some noise to mimic the learning update.
+    mat += torch.randn_like(mat)/math.sqrt(dim)*noise_strength
+    return mat
+if "test   random_dummy_mat" and False:
+    def ____test____random_dummy_mat():
+        
+        if "how to init a noisy mat for test" and True:
+            #result 
+            
+            if "the length is affected too slightly, no need to correct it back." and False:          
+                
+                # dim 10    init__cap_to 0.1
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9754,  0.9759,  0.9768,  0.9759,  0.9796,  0.9745,  0.9808,  0.9776,  0.9792,  0.9799]
+                # length_0_std   = [ 0.2134,  0.2071,  0.2128,  0.2104,  0.2110,  0.2103,  0.2129,  0.2128,  0.2125,  0.2123]
+                # length_1_avg   = [ 0.9821,  0.9826,  0.9818,  0.9825,  0.9821,  0.9824,  0.9822,  0.9820,  0.9821,  0.9826]
+                # length_1_std   = [ 0.1930,  0.1905,  0.1949,  0.1920,  0.1936,  0.1914,  0.1928,  0.1936,  0.1930,  0.1901]
+                # length_2_avg   = [ 0.9980,  0.9981,  0.9980,  0.9980,  0.9980,  0.9980,  0.9980,  0.9980,  0.9979,  0.9980]
+                # length_2_std   = [ 0.0636,  0.0627,  0.0632,  0.0637,  0.0634,  0.0642,  0.0638,  0.0629,  0.0646,  0.0644]
+                # angle_loss__min= [ 0.9613,  0.9958,  0.9282,  1.0402,  1.0533,  1.1147,  1.1184,  1.1690,  1.2772,  1.2035]
+                # angle_loss__max= [ 1.7960,  1.8114,  1.8044,  1.9181,  1.8995,  2.0109,  2.0356,  2.0359,  2.1694,  2.2320]
+                # angle_loss__avg= [ 1.3553,  1.3545,  1.3600,  1.3737,  1.4202,  1.4731,  1.5229,  1.5418,  1.6011,  1.5930]
+                # --------------                                          
+                # dim 10    init__cap_to 0.2
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9718,  0.9732,  0.9776,  0.9808,  0.9706,  0.9761,  0.9692,  0.9737,  0.9773,  0.9735]
+                # length_0_std   = [ 0.2085,  0.2128,  0.2097,  0.2100,  0.2114,  0.2108,  0.2103,  0.2116,  0.2118,  0.2102]
+                # length_1_avg   = [ 0.9840,  0.9835,  0.9840,  0.9846,  0.9835,  0.9838,  0.9837,  0.9845,  0.9835,  0.9840]
+                # length_1_std   = [ 0.1824,  0.1856,  0.1825,  0.1793,  0.1855,  0.1835,  0.1844,  0.1796,  0.1847,  0.1828]
+                # length_2_avg   = [ 0.9982,  0.9982,  0.9982,  0.9984,  0.9982,  0.9983,  0.9982,  0.9983,  0.9981,  0.9982]
+                # length_2_std   = [ 0.0606,  0.0603,  0.0602,  0.0576,  0.0600,  0.0588,  0.0608,  0.0590,  0.0615,  0.0601]
+                # angle_loss__min= [ 0.7895,  0.8701,  0.7809,  0.9154,  1.0082,  1.0538,  1.1477,  1.1934,  1.1174,  1.1375]
+                # angle_loss__max= [ 1.6789,  1.6768,  1.7559,  1.6691,  1.8454,  1.7588,  1.9716,  1.9601,  2.1236,  2.2380]
+                # angle_loss__avg= [ 1.2129,  1.2330,  1.2464,  1.2636,  1.3318,  1.4145,  1.4858,  1.5262,  1.5991,  1.5905]
+                # --------------                                          
+                # dim 10    init__cap_to 0.3
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9783,  0.9840,  0.9760,  0.9787,  0.9744,  0.9742,  0.9774,  0.9776,  0.9778,  0.9724]
+                # length_0_std   = [ 0.2106,  0.2127,  0.2127,  0.2125,  0.2108,  0.2124,  0.2123,  0.2106,  0.2113,  0.2119]
+                # length_1_avg   = [ 0.9853,  0.9857,  0.9854,  0.9853,  0.9854,  0.9855,  0.9850,  0.9852,  0.9850,  0.9850]
+                # length_1_std   = [ 0.1755,  0.1724,  0.1743,  0.1750,  0.1749,  0.1737,  0.1767,  0.1755,  0.1766,  0.1766]
+                # length_2_avg   = [ 0.9983,  0.9984,  0.9983,  0.9984,  0.9983,  0.9983,  0.9982,  0.9984,  0.9984,  0.9984]
+                # length_2_std   = [ 0.0585,  0.0572,  0.0582,  0.0583,  0.0587,  0.0583,  0.0602,  0.0575,  0.0573,  0.0577]
+                # angle_loss__min= [ 0.7352,  0.6961,  0.6257,  0.7330,  0.9395,  1.0568,  1.0648,  1.1442,  1.2190,  1.2386]
+                # angle_loss__max= [ 1.5433,  1.5080,  1.5331,  1.5242,  1.6165,  1.8457,  1.9148,  2.0419,  2.1348,  2.1178]
+                # angle_loss__avg= [ 1.1048,  1.0998,  1.1118,  1.1472,  1.2566,  1.3644,  1.4398,  1.5080,  1.6206,  1.6102]
+                # --------------                                          
+                # dim 10    init__cap_to 0.4
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9720,  0.9783,  0.9716,  0.9737,  0.9741,  0.9755,  0.9779,  0.9754,  0.9798,  0.9717]
+                # length_0_std   = [ 0.2096,  0.2144,  0.2097,  0.2111,  0.2115,  0.2141,  0.2145,  0.2129,  0.2141,  0.2101]
+                # length_1_avg   = [ 0.9869,  0.9865,  0.9871,  0.9867,  0.9868,  0.9867,  0.9862,  0.9864,  0.9866,  0.9862]
+                # length_1_std   = [ 0.1648,  0.1677,  0.1634,  0.1661,  0.1655,  0.1658,  0.1689,  0.1684,  0.1673,  0.1697]
+                # length_2_avg   = [ 0.9984,  0.9983,  0.9984,  0.9984,  0.9984,  0.9984,  0.9984,  0.9983,  0.9984,  0.9983]
+                # length_2_std   = [ 0.0577,  0.0587,  0.0571,  0.0579,  0.0575,  0.0581,  0.0581,  0.0586,  0.0579,  0.0591]
+                # angle_loss__min= [ 0.5207,  0.6458,  0.6222,  0.6651,  0.8242,  0.9458,  1.0810,  1.0690,  1.2239,  1.1546]
+                # angle_loss__max= [ 1.4020,  1.4933,  1.4732,  1.4718,  1.4961,  1.6351,  1.8532,  2.1960,  2.1345,  2.1180]
+                # angle_loss__avg= [ 0.9856,  0.9939,  1.0056,  1.0501,  1.1743,  1.3200,  1.4224,  1.4858,  1.5952,  1.5979]
+                # --------------                                          
+                # dim 10    init__cap_to 0.5
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9769,  0.9738,  0.9801,  0.9745,  0.9783,  0.9752,  0.9754,  0.9748,  0.9755,  0.9700]
+                # length_0_std   = [ 0.2104,  0.2114,  0.2125,  0.2096,  0.2133,  0.2103,  0.2119,  0.2131,  0.2111,  0.2093]
+                # length_1_avg   = [ 0.9884,  0.9880,  0.9877,  0.9878,  0.9874,  0.9883,  0.9880,  0.9877,  0.9882,  0.9880]
+                # length_1_std   = [ 0.1551,  0.1574,  0.1596,  0.1590,  0.1611,  0.1564,  0.1573,  0.1603,  0.1563,  0.1573]
+                # length_2_avg   = [ 0.9983,  0.9982,  0.9982,  0.9982,  0.9982,  0.9982,  0.9982,  0.9982,  0.9983,  0.9983]
+                # length_2_std   = [ 0.0600,  0.0606,  0.0616,  0.0614,  0.0618,  0.0609,  0.0608,  0.0611,  0.0599,  0.0595]
+                # angle_loss__min= [ 0.4467,  0.3069,  0.4991,  0.6172,  0.6195,  0.9831,  1.0288,  1.1059,  1.2220,  1.2384]
+                # angle_loss__max= [ 1.3827,  1.3150,  1.3200,  1.4077,  1.5719,  1.7404,  1.7933,  1.9522,  2.3370,  2.2437]
+                # angle_loss__avg= [ 0.8885,  0.8941,  0.9153,  0.9576,  1.1149,  1.2771,  1.3871,  1.4559,  1.5971,  1.6093]
+                # --------------                                          
+                # -------------------------------------                                        
+                # dim 100   test_time 300  cpu
+                # dim 100    init__cap_to 0.1
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9974,  0.9971,  0.9971,  0.9974,  0.9981,  0.9977,  0.9974,  0.9977,  0.9969,  0.9973]
+                # length_0_std   = [ 0.0704,  0.0702,  0.0703,  0.0703,  0.0702,  0.0704,  0.0704,  0.0705,  0.0702,  0.0702]
+                # length_1_avg   = [ 0.9978,  0.9978,  0.9978,  0.9978,  0.9978,  0.9978,  0.9978,  0.9978,  0.9978,  0.9978]
+                # length_1_std   = [ 0.0660,  0.0661,  0.0661,  0.0661,  0.0659,  0.0662,  0.0662,  0.0662,  0.0659,  0.0660]
+                # length_2_avg   = [ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000]
+                # length_2_std   = [ 0.0092,  0.0093,  0.0093,  0.0092,  0.0092,  0.0093,  0.0092,  0.0093,  0.0093,  0.0093]
+                # angle_loss__min= [ 1.3726,  1.3693,  1.3793,  1.3832,  1.4226,  1.4645,  1.4874,  1.5185,  1.5493,  1.5522]
+                # angle_loss__max= [ 1.4629,  1.4665,  1.4675,  1.4688,  1.5048,  1.5556,  1.5787,  1.6016,  1.6363,  1.6389]
+                # angle_loss__avg= [ 1.4147,  1.4178,  1.4182,  1.4275,  1.4631,  1.4988,  1.5305,  1.5535,  1.5937,  1.5966]
+                # --------------                                          
+                # dim 100    init__cap_to 0.2
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9975,  0.9968,  0.9968,  0.9976,  0.9971,  0.9973,  0.9978,  0.9979,  0.9974,  0.9982]
+                # length_0_std   = [ 0.0704,  0.0703,  0.0705,  0.0704,  0.0702,  0.0702,  0.0704,  0.0705,  0.0703,  0.0702]
+                # length_1_avg   = [ 0.9981,  0.9980,  0.9980,  0.9981,  0.9981,  0.9981,  0.9981,  0.9981,  0.9981,  0.9981]
+                # length_1_std   = [ 0.0620,  0.0626,  0.0626,  0.0624,  0.0622,  0.0625,  0.0624,  0.0624,  0.0620,  0.0621]
+                # length_2_avg   = [ 0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999]
+                # length_2_std   = [ 0.0104,  0.0104,  0.0105,  0.0105,  0.0104,  0.0104,  0.0104,  0.0104,  0.0105,  0.0103]
+                # angle_loss__min= [ 1.2153,  1.2186,  1.2132,  1.2348,  1.3141,  1.3870,  1.4415,  1.4788,  1.5516,  1.5538]
+                # angle_loss__max= [ 1.3100,  1.2947,  1.3136,  1.3336,  1.4011,  1.4710,  1.5289,  1.5598,  1.6406,  1.6394]
+                # angle_loss__avg= [ 1.2578,  1.2567,  1.2629,  1.2852,  1.3516,  1.4233,  1.4783,  1.5179,  1.5957,  1.5965]
+                # --------------                                          
+                # dim 100    init__cap_to 0.3
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9971,  0.9972,  0.9985,  0.9980,  0.9974,  0.9974,  0.9972,  0.9974,  0.9974,  0.9976]
+                # length_0_std   = [ 0.0703,  0.0704,  0.0703,  0.0705,  0.0705,  0.0705,  0.0704,  0.0702,  0.0707,  0.0702]
+                # length_1_avg   = [ 0.9983,  0.9983,  0.9983,  0.9983,  0.9983,  0.9983,  0.9983,  0.9983,  0.9983,  0.9983]
+                # length_1_std   = [ 0.0586,  0.0590,  0.0589,  0.0592,  0.0585,  0.0588,  0.0588,  0.0587,  0.0590,  0.0588]
+                # length_2_avg   = [ 0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999]
+                # length_2_std   = [ 0.0127,  0.0128,  0.0129,  0.0128,  0.0128,  0.0128,  0.0129,  0.0129,  0.0127,  0.0128]
+                # angle_loss__min= [ 1.0593,  1.0648,  1.0729,  1.1107,  1.2069,  1.3235,  1.3945,  1.4325,  1.5561,  1.5535]
+                # angle_loss__max= [ 1.1661,  1.1576,  1.1731,  1.2121,  1.2889,  1.3929,  1.4847,  1.5334,  1.6306,  1.6312]
+                # angle_loss__avg= [ 1.1098,  1.1119,  1.1217,  1.1536,  1.2528,  1.3548,  1.4363,  1.4903,  1.5929,  1.5962]
+                # --------------                                          
+                # dim 100    init__cap_to 0.4
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9979,  0.9977,  0.9975,  0.9970,  0.9972,  0.9972,  0.9977,  0.9976,  0.9979,  0.9976]
+                # length_0_std   = [ 0.0703,  0.0705,  0.0704,  0.0701,  0.0700,  0.0701,  0.0705,  0.0702,  0.0697,  0.0705]
+                # length_1_avg   = [ 0.9985,  0.9984,  0.9985,  0.9985,  0.9985,  0.9985,  0.9985,  0.9985,  0.9985,  0.9985]
+                # length_1_std   = [ 0.0557,  0.0558,  0.0555,  0.0554,  0.0550,  0.0551,  0.0555,  0.0552,  0.0550,  0.0556]
+                # length_2_avg   = [ 0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999]
+                # length_2_std   = [ 0.0158,  0.0159,  0.0159,  0.0159,  0.0160,  0.0160,  0.0159,  0.0159,  0.0159,  0.0158]
+                # angle_loss__min= [ 0.9372,  0.9294,  0.9490,  0.9828,  1.1343,  1.2686,  1.3659,  1.4292,  1.5533,  1.5506]
+                # angle_loss__max= [ 1.0369,  1.0325,  1.0416,  1.0851,  1.2040,  1.3412,  1.4394,  1.5093,  1.6351,  1.6401]
+                # angle_loss__avg= [ 0.9808,  0.9822,  0.9962,  1.0393,  1.1695,  1.3011,  1.4012,  1.4676,  1.5943,  1.5961]
+                # --------------                                          
+                # dim 100    init__cap_to 0.5
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9979,  0.9979,  0.9971,  0.9976,  0.9974,  0.9971,  0.9976,  0.9969,  0.9973,  0.9976]
+                # length_0_std   = [ 0.0701,  0.0706,  0.0704,  0.0702,  0.0701,  0.0703,  0.0702,  0.0706,  0.0701,  0.0702]
+                # length_1_avg   = [ 0.9987,  0.9986,  0.9986,  0.9986,  0.9986,  0.9986,  0.9986,  0.9986,  0.9987,  0.9987]
+                # length_1_std   = [ 0.0520,  0.0526,  0.0526,  0.0521,  0.0524,  0.0523,  0.0525,  0.0529,  0.0520,  0.0520]
+                # length_2_avg   = [ 0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998]
+                # length_2_std   = [ 0.0197,  0.0197,  0.0197,  0.0198,  0.0196,  0.0196,  0.0196,  0.0196,  0.0198,  0.0196]
+                # angle_loss__min= [ 0.8243,  0.8291,  0.8388,  0.8845,  1.0727,  1.2249,  1.3344,  1.4121,  1.5544,  1.5486]
+                # angle_loss__max= [ 0.9314,  0.9206,  0.9439,  1.0175,  1.1476,  1.2941,  1.4167,  1.4968,  1.6350,  1.6376]
+                # angle_loss__avg= [ 0.8706,  0.8745,  0.8921,  0.9466,  1.1042,  1.2576,  1.3733,  1.4499,  1.5920,  1.5953]
+                # --------------                                          
+                # -------------------------------------                                        
+                # dim 1000   test_time 50  cuda
+                # dim 1000    init__cap_to 0.1
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9999,  0.9998,  0.9997,  0.9997,  0.9997,  0.9999,  0.9996,  0.9998,  0.9998,  0.9997]
+                # length_0_std   = [ 0.0223,  0.0223,  0.0223,  0.0224,  0.0223,  0.0224,  0.0223,  0.0223,  0.0224,  0.0223]
+                # length_1_avg   = [ 0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998]
+                # length_1_std   = [ 0.0209,  0.0208,  0.0209,  0.0210,  0.0209,  0.0209,  0.0209,  0.0208,  0.0209,  0.0209]
+                # length_2_avg   = [ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000]
+                # length_2_std   = [ 0.0016,  0.0016,  0.0016,  0.0016,  0.0016,  0.0016,  0.0016,  0.0016,  0.0016,  0.0016]
+                # angle_loss__min= [ 1.3956,  1.3947,  1.3969,  1.4092,  1.4480,  1.4898,  1.5206,  1.5456,  1.5910,  1.5923]
+                # angle_loss__max= [ 1.4046,  1.4043,  1.4072,  1.4195,  1.4550,  1.4965,  1.5298,  1.5515,  1.5994,  1.5988]
+                # angle_loss__avg= [ 1.3994,  1.3995,  1.4027,  1.4156,  1.4520,  1.4923,  1.5255,  1.5489,  1.5946,  1.5958]
+                # --------------                                          
+                # dim 1000    init__cap_to 0.2
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9998,  0.9997,  0.9996,  0.9999,  0.9997,  0.9998,  0.9997,  0.9997,  0.9996,  0.9999]
+                # length_0_std   = [ 0.0223,  0.0223,  0.0223,  0.0223,  0.0224,  0.0223,  0.0223,  0.0223,  0.0223,  0.0224]
+                # length_1_avg   = [ 0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998]
+                # length_1_std   = [ 0.0196,  0.0195,  0.0194,  0.0195,  0.0195,  0.0195,  0.0195,  0.0196,  0.0195,  0.0195]
+                # length_2_avg   = [ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000]
+                # length_2_std   = [ 0.0028,  0.0028,  0.0028,  0.0028,  0.0028,  0.0028,  0.0028,  0.0028,  0.0028,  0.0028]
+                # angle_loss__min= [ 1.2113,  1.2128,  1.2234,  1.2456,  1.3223,  1.4004,  1.4638,  1.5074,  1.5894,  1.5917]
+                # angle_loss__max= [ 1.2247,  1.2264,  1.2330,  1.2569,  1.3319,  1.4080,  1.4723,  1.5146,  1.5967,  1.5990]
+                # angle_loss__avg= [ 1.2181,  1.2200,  1.2279,  1.2515,  1.3260,  1.4047,  1.4675,  1.5104,  1.5929,  1.5957]
+                # --------------                                          
+                # dim 1000    init__cap_to 0.3
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9999,  0.9998,  0.9996,  0.9998,  0.9997,  0.9997,  0.9996,  0.9997,  0.9998,  0.9997]
+                # length_0_std   = [ 0.0224,  0.0223,  0.0223,  0.0223,  0.0223,  0.0223,  0.0222,  0.0224,  0.0224,  0.0224]
+                # length_1_avg   = [ 0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998,  0.9998]
+                # length_1_std   = [ 0.0183,  0.0183,  0.0183,  0.0182,  0.0182,  0.0182,  0.0182,  0.0182,  0.0184,  0.0182]
+                # length_2_avg   = [ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000]
+                # length_2_std   = [ 0.0041,  0.0041,  0.0041,  0.0041,  0.0040,  0.0041,  0.0041,  0.0041,  0.0041,  0.0040]
+                # angle_loss__min= [ 1.0516,  1.0532,  1.0632,  1.1016,  1.2134,  1.3291,  1.4155,  1.4762,  1.5884,  1.5899]
+                # angle_loss__max= [ 1.0666,  1.0683,  1.0831,  1.1151,  1.2245,  1.3356,  1.4233,  1.4835,  1.5957,  1.5981]
+                # angle_loss__avg= [ 1.0581,  1.0595,  1.0711,  1.1082,  1.2191,  1.3327,  1.4200,  1.4799,  1.5919,  1.5955]
+                # --------------                                          
+                # dim 1000    init__cap_to 0.4
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9997,  0.9999,  0.9998,  0.9997,  0.9995,  0.9998,  0.9998,  0.9996,  0.9997,  0.9998]
+                # length_0_std   = [ 0.0223,  0.0223,  0.0224,  0.0224,  0.0224,  0.0224,  0.0223,  0.0223,  0.0224,  0.0224]
+                # length_1_avg   = [ 0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999]
+                # length_1_std   = [ 0.0171,  0.0171,  0.0171,  0.0170,  0.0171,  0.0171,  0.0171,  0.0170,  0.0172,  0.0170]
+                # length_2_avg   = [ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000]
+                # length_2_std   = [ 0.0055,  0.0055,  0.0055,  0.0055,  0.0055,  0.0055,  0.0055,  0.0055,  0.0055,  0.0055]
+                # angle_loss__min= [ 0.9121,  0.9127,  0.9325,  0.9815,  1.1286,  1.2720,  1.3804,  1.4543,  1.5877,  1.5934]
+                # angle_loss__max= [ 0.9384,  0.9372,  0.9464,  0.9967,  1.1393,  1.2794,  1.3876,  1.4611,  1.5951,  1.5990]
+                # angle_loss__avg= [ 0.9213,  0.9229,  0.9385,  0.9871,  1.1330,  1.2755,  1.3843,  1.4568,  1.5912,  1.5960]
+                # --------------                                          
+                # dim 1000    init__cap_to 0.5
+                # noise_strength_=[ 0.01,    0.03,    0.10,    0.20,    0.40,    0.60,    0.80,    1.00,    3.16,    10.00]
+                # length_0_avg   = [ 0.9998,  0.9998,  0.9999,  0.9998,  0.9997,  0.9997,  0.9998,  0.9998,  0.9995,  0.9997]
+                # length_0_std   = [ 0.0223,  0.0224,  0.0224,  0.0223,  0.0224,  0.0223,  0.0224,  0.0224,  0.0223,  0.0224]
+                # length_1_avg   = [ 0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999,  0.9999]
+                # length_1_std   = [ 0.0161,  0.0160,  0.0161,  0.0162,  0.0160,  0.0160,  0.0161,  0.0160,  0.0160,  0.0161]
+                # length_2_avg   = [ 1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000,  1.0000]
+                # length_2_std   = [ 0.0071,  0.0071,  0.0071,  0.0071,  0.0071,  0.0071,  0.0071,  0.0070,  0.0071,  0.0071]
+                # angle_loss__min= [ 0.8031,  0.8049,  0.8244,  0.8872,  1.0645,  1.2314,  1.3544,  1.4380,  1.5874,  1.5920]
+                # angle_loss__max= [ 0.8194,  0.8229,  0.8444,  0.8991,  1.0763,  1.2370,  1.3627,  1.4439,  1.5939,  1.5983]
+                # angle_loss__avg= [ 0.8102,  0.8122,  0.8333,  0.8938,  1.0686,  1.2348,  1.3583,  1.4403,  1.5910,  1.5956]
+                # --------------                                          
+                pass
+            
+            # conclusion
+            # init__cap_to 0.2 - 0.3
+            # noise_strength_ 0.2 - 0.5
+            
+            
+            expansion_factor = 1.#as a const
+            #-------------------#-------------------#-------------------
+            dim_list =       [ 10,100,1000]
+            test_time_list = [500,300,50]
+            for outter_iter_count in range(dim_list.__len__()):
+                dim = dim_list[outter_iter_count]
+                test_time = test_time_list[outter_iter_count]
+                iota_of_dim = iota(dim)
+                #<  device
+                if dim>100:
+                    device = 'cuda'
+                    pass
+                else:
+                    device = 'cpu'
+                    pass
+                #</ device
+                print(f"dim {dim}   test_time {test_time}  {device}")
+            #-------------------#-------------------#-------------------
+            
+                #-------------------#-------------------#-------------------
+                init__cap_to_list = [0.1, 0.2, 0.3, 0.4, 0.5]
+                for init__cap_to in init__cap_to_list:
+                #-------------------#-------------------#-------------------
+                    
+                    length_0_avg    = []#dont modify this.
+                    length_0_std    = []#dont modify this.
+                    length_1_avg    = []#dont modify this.
+                    length_1_std    = []#dont modify this.
+                    length_2_avg    = []#dont modify this.
+                    length_2_std    = []#dont modify this.
+                    
+                    angle_loss__min = []#dont modify this.
+                    angle_loss__max = []#dont modify this.
+                    angle_loss__avg = []#dont modify this.
+                    
+                    #-------------------#-------------------#-------------------
+                    noise_strength_list = [0.01, 0.0316, 0.1, 0.2, 0.4, 0.6, 0.8, 1., 3.16, 10]#x axis
+                    for noise_strength in noise_strength_list:
+                    #-------------------#-------------------#-------------------
+                        
+                        _raw_result__len_0_avg = torch.empty(size=[test_time])
+                        _raw_result__len_0_std = torch.empty(size=[test_time])
+                        _raw_result__len_1_avg = torch.empty(size=[test_time])
+                        _raw_result__len_1_std = torch.empty(size=[test_time])
+                        _raw_result__len_2_avg = torch.empty(size=[test_time])
+                        _raw_result__len_2_std = torch.empty(size=[test_time])
+                        
+                        _raw_result__angle_loss = torch.empty(size=[test_time])
+                        
+                        for _test_count in range(test_time):
+                            
+                            #-------------------#-------------------#-------------------
+                            mat = torch.randn(size=[dim,dim], device=device)/math.sqrt(dim)
+                            
+                            _temp_len_0__d2 = torch.empty(size=[dim*2])
+                            _temp_len_0__d2[:dim] = get_vector_length(mat)
+                            _temp_len_0__d2[dim:] = get_vector_length(mat.T)
+                            
+                            
+                            mat = full_test_version_of_angle_correction__by_row(mat,
+                                        expansion_factor=expansion_factor, cap_to=init__cap_to/2., iota_of_dim=iota_of_dim)
+                            _temp_len_1__d = get_vector_length(mat.T)
+                            mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                        expansion_factor=expansion_factor, cap_to=init__cap_to/2., iota_of_dim=iota_of_dim).T# .T in and .T out, this is col-wise
+                            _temp_len_2__d = get_vector_length(mat)
+                            
+                            mat += torch.randn_like(mat)/math.sqrt(dim)*noise_strength
+                            _, angle_loss__in_the_beginning, _ = LOSS__mat_is_standard_orthogonal(mat)
+                            #-------------------#-------------------#-------------------
+                            
+                            _raw_result__len_0_avg[_test_count] = _temp_len_0__d2.mean()
+                            _raw_result__len_0_std[_test_count] = _temp_len_0__d2.std()
+                            _raw_result__len_1_avg[_test_count] = _temp_len_1__d.mean()
+                            _raw_result__len_1_std[_test_count] = _temp_len_1__d.std()
+                            _raw_result__len_2_avg[_test_count] = _temp_len_2__d.mean()
+                            _raw_result__len_2_std[_test_count] = _temp_len_2__d.std()
+                            
+                            _raw_result__angle_loss[_test_count] = angle_loss__in_the_beginning
+                            pass# for _test_count
+                        
+                        
+                        length_0_avg.append(_raw_result__len_0_avg.mean())
+                        length_0_std.append(_raw_result__len_0_std.mean())
+                        length_1_avg.append(_raw_result__len_1_avg.mean())
+                        length_1_std.append(_raw_result__len_1_std.mean())
+                        length_2_avg.append(_raw_result__len_2_avg.mean())
+                        length_2_std.append(_raw_result__len_2_std.mean())
+                        
+                        angle_loss__min.append(_raw_result__angle_loss.min ())
+                        angle_loss__max.append(_raw_result__angle_loss.max ())
+                        angle_loss__avg.append(_raw_result__angle_loss.mean())
+                        pass# for noise_strength   #x axis
+                    
+                    print(f"dim {dim}    init__cap_to {init__cap_to}")
+                    print(f"noise_strength_={str_the_list(noise_strength_list, 2, segment=",   ")}")
+                    print(f"length_0_avg   = {str_the_list(length_0_avg, 4)}")
+                    print(f"length_0_std   = {str_the_list(length_0_std, 4)}")
+                    print(f"length_1_avg   = {str_the_list(length_1_avg, 4)}")
+                    print(f"length_1_std   = {str_the_list(length_1_std, 4)}")
+                    print(f"length_2_avg   = {str_the_list(length_2_avg, 4)}")
+                    print(f"length_2_std   = {str_the_list(length_2_std, 4)}")
+                    print(f"angle_loss__min= {str_the_list(angle_loss__min, 4)}")
+                    print(f"angle_loss__max= {str_the_list(angle_loss__max, 4)}")
+                    print(f"angle_loss__avg= {str_the_list(angle_loss__avg, 4)}")
+                    print(f"--------------                                          ")
+                    
+                    pass#for init__cap_to
+                print(f"-------------------------------------                                        ")
+                
+                pass# for outter_iter_count
+            pass#/ test
+        
+        return 
+        
+    ____test____random_dummy_mat()
+    pass
+
+if "test      full_test_version_of_angle_correction__by_row" and True:
     def ____test____full_test_version_of_angle_correction__by_row______basic():
         
         if "basic behavior" and False:
@@ -2849,10 +3189,6 @@ if "test" and True:
         return 
     
     #____test____full_test_version_of_angle_correction__by_row______basic()
-
-
-
-
 
 
     def ____test____full_test_version_of_angle_correction__by_row______scan_the_process():
@@ -3308,132 +3644,170 @@ if "test" and True:
                             # mat = full_test_version_of_angle_correction__by_row(mat.T,
                             #             expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim).T# .T in and .T out, this is col-wise
         
-        1w
-        直接来这个
-        if "scan it a bit. row and col wise alternating." and False:
-            # a bit 
+        if "scan it a bit. row and col wise alternating." and True:
             #result
             
-            dim = 100
-            iota_of_dim = iota(dim)
-            #<  device
-            if dim>100:
-                device = 'cuda'
-                pass
-            else:
-                device = 'cpu'
-                pass
-            #</ device
+            1w 继续。
             
-            test_time = 100
-            print(test_time)
-            
+            #          expansion_factor 1.0      dim 10
+            # cap_to_list = [ 0.70,    0.80,    0.90,    1.00,    1.10,    1.20]
+            # rc____score = [ 0.6693,  0.6600,  0.6277,  0.5540,  0.5341,  0.4566]
+            # rcr___score = [ 0.7431,  0.7828,  0.8147,  0.7881,  0.7845,  0.7093]
+            # rcrc__score = [ 0.7630,  0.8183,  0.8744,  0.8747,  0.9063,  0.8484]
+            # rCr___score = [ 0.7336,  0.7786,  0.8337,  0.8358,  0.8883,  0.8402]
+            # ------------                                                                         
+            #          expansion_factor 1.0      dim 100
+            # cap_to_list = [ 0.70,    0.80,    0.90,    1.00,    1.10,    1.20]
+            # rc____score = [ 0.6782,  0.6346,  0.5804,  0.5312,  0.4771,  0.4017]
+            # rcr___score = [ 0.8084,  0.8298,  0.8024,  0.7543,  0.7178,  0.7019]
+            # rcrc__score = [ 0.8441,  0.9021,  0.9246,  0.8945,  0.8540,  0.8422]
+            # rCr___score = [ 0.7834,  0.8159,  0.8424,  0.8559,  0.8441,  0.7860]
+            # ------------                                                                         
+            #          expansion_factor 1.0      dim 1000
+            # cap_to_list = [ 0.70,    0.80,    0.90,    1.00,    1.10,    1.20]
+            # rc____score = [ 0.6146,  0.5482,  0.4905,  0.4204,  0.3292,  0.2062]
+            # rcr___score = [ 0.8068,  0.7698,  0.7080,  0.6703,  0.6474,  0.6226]
+            # rcrc__score = [ 0.8788,  0.8918,  0.8472,  0.8132,  0.8059,  0.8034]
+            # rCr___score = [ 0.7921,  0.8210,  0.8385,  0.8183,  0.7413,  0.6088]
+            # ------------     
             
             #-------------------#-------------------#-------------------
-            #threshold_factor_list = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5]
-            threshold_factor_list = [0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5]
-            for threshold_factor in threshold_factor_list:
+            expansion_factor = 1. # as a const
+            
+            dim_list =       [ 10,100,1000]
+            test_time_list = [500,500,100]
+            for outter_param_count in range(dim_list.__len__()):
+                dim = dim_list[outter_param_count]
+                test_time = test_time_list[outter_param_count]
+                iota_of_dim = iota(dim)
+                #<  device
+                if dim>100:
+                    device = 'cuda'
+                    pass
+                else:
+                    device = 'cpu'
+                    pass
+                #</ device
+                print(f"dim {dim}   test_time {test_time}  {device}")
             #-------------------#-------------------#-------------------
                 
-                total__score_incr__min          = []#dont modify this.
-                total__score_incr__max          = []#dont modify this.
-                total__score_incr__avg          = []#dont modify this.
-                total__step__min                = []#dont modify this.
-                total__step__max                = []#dont modify this.
-                total__step__avg                = []#dont modify this.
-                total__score_incr_per_step__min = []#dont modify this.
-                total__score_incr_per_step__max = []#dont modify this.
-                total__score_incr_per_step__avg = []#dont modify this.
+                rc____score = []#dont modify this.
+                rcr___score = []#dont modify this.
+                rcrc__score = []#dont modify this.
+                rCr___score = []#dont modify this.
+                #bad_1_score = []#dont modify this.
+                #bad_2_score = []#dont modify this.
                 
                 #-------------------#-------------------#-------------------
-                max_steps = 100
-                expansion_factor = 1.
-                cap_to_list = [0.02,0.05,0.1,0.15,0.2,0.25,0.3]
-                for param_set_count in range(cap_to_list.__len__()):
-                    assert False
-                    cap_to = cap_to_list[param_set_count] 
+                #cap_to_list = [0.02,0.05,0.1,0.15,0.2,0.25,0.3]#x axis
+                #cap_to_list = [0.1,0.3, 0.5, 0.7, 1., 1.2, 1.5]#x axis
+                cap_to_list = [0.7, 0.8, 0.9, 1., 1.1, 1.2,]#x axis
+                for cap_to in cap_to_list:
                 #-------------------#-------------------#-------------------
                     
-                    _raw_result__total__score_incr = torch.empty(size=[test_time])
-                    _raw_result__total__step = torch.empty(size=[test_time])
-                    _raw_result__total__score_incr_per_step = torch.empty(size=[test_time])
+                    _raw_result__rc____score = torch.empty(size=[test_time])
+                    _raw_result__rcr___score = torch.empty(size=[test_time])
+                    _raw_result__rcrc__score = torch.empty(size=[test_time])
+                    _raw_result__rCr___score = torch.empty(size=[test_time])
+                    #_raw_result__bad_1_score = torch.empty(size=[test_time])
+                    #_raw_result__bad_2_score = torch.empty(size=[test_time])
                     
                     for _test_count in range(test_time):
                         
                         #-------------------#-------------------#-------------------
                         #<  init
-                        mat = torch.randn(size=[dim,dim])#, device=device)
-                        _, angle_loss__in_the_beginning, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        ori_mat = random_dummy_mat(dim, device=device, iota_of_dim=iota_of_dim)#or maybe the noise_0.5
+                        _, angle_loss__in_the_beginning, _ = LOSS__mat_is_standard_orthogonal(ori_mat)
+                        #</ init
                         
+                        
+                        # rc
+                        mat = ori_mat.detach().clone()
                         mat = full_test_version_of_angle_correction__by_row(mat,
-                                    expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim)
+                                expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim)
                         mat = full_test_version_of_angle_correction__by_row(mat.T,
-                                    expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim).T# .T in and .T out, this is col-wise
+                                expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim).T
+                        _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        _raw_result__rc____score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
-                        _, angle_loss__of_step_1, _ = LOSS__mat_is_standard_orthogonal(mat)
-                        init_incr_speed = angle_loss__in_the_beginning - angle_loss__of_step_1
-                        assert init_incr_speed>0.
+                        # rcr
+                        mat = ori_mat.detach().clone()
+                        mat = full_test_version_of_angle_correction__by_row(mat,
+                                expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim).T
+                        mat = full_test_version_of_angle_correction__by_row(mat,
+                                expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                        _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        _raw_result__rcr___score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
-                        angle_loss__last_step = angle_loss__of_step_1.detach().clone()
-                        del angle_loss__of_step_1
+                        # rcrc
+                        mat = ori_mat.detach().clone()
+                        mat = full_test_version_of_angle_correction__by_row(mat,
+                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim)
+                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim).T
+                        mat = full_test_version_of_angle_correction__by_row(mat,
+                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim)
+                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim).T
+                        _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        _raw_result__rcrc__score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
-                        #<  calc
-                        for _step_count_minus_2 in range(max_steps):
-                            mat = full_test_version_of_angle_correction__by_row(mat,
-                                    expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim)
-                            mat = full_test_version_of_angle_correction__by_row(mat.T,
-                                        expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim).T# .T in and .T out, this is col-wise
-                            
-                            #<  measure
-                            _, angle_loss__of_this_step, _ = LOSS__mat_is_standard_orthogonal(mat)
-                            score_incr__of_this_step = angle_loss__last_step - angle_loss__of_this_step
-                            
-                            #<  break contidion.
-                            if score_incr__of_this_step< init_incr_speed*threshold_factor:
-                                _total_steps = _step_count_minus_2+1.
-                                _total_incr = angle_loss__in_the_beginning - angle_loss__last_step
-                                
-                                _raw_result__total__score_incr[_test_count] = _total_incr
-                                _raw_result__total__step[_test_count] = _total_steps
-                                _raw_result__total__score_incr_per_step[_test_count] = _total_incr/_total_steps
-                                break
-                                pass
-                            
-                            #tail
-                            angle_loss__last_step = angle_loss__of_this_step
-                            
-                            assert _step_count_minus_2 < max_steps -2#other wise the test doesn't stop in given steps.
-                            
-                            pass#for _step_count
-                        #-------------------#-------------------#-------------------
+                        # rCr
+                        mat = ori_mat.detach().clone()
+                        mat = full_test_version_of_angle_correction__by_row(mat,
+                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim)
+                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim).T
+                        mat = full_test_version_of_angle_correction__by_row(mat,
+                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim)
+                        _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        _raw_result__rCr___score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
+                        
+                        # # bad 1
+                        # mat = ori_mat.detach().clone()
+                        # mat = full_test_version_of_angle_correction__by_row(mat,
+                        #         expansion_factor=expansion_factor, cap_to=cap_to*0.9, iota_of_dim=iota_of_dim)
+                        # mat = full_test_version_of_angle_correction__by_row(mat.T,
+                        #         expansion_factor=expansion_factor, cap_to=cap_to*0.1, iota_of_dim=iota_of_dim).T
+                        # _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        # _raw_result__bad_1_score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
+                        
+                        # #bad 2":
+                        # mat = ori_mat.detach().clone()
+                        # mat = full_test_version_of_angle_correction__by_row(mat,
+                        #         expansion_factor=expansion_factor, cap_to=cap_to*0.1, iota_of_dim=iota_of_dim)
+                        # mat = full_test_version_of_angle_correction__by_row(mat.T,
+                        #         expansion_factor=expansion_factor, cap_to=cap_to*0.9, iota_of_dim=iota_of_dim).T
+                        # _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        # _raw_result__bad_2_score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
+                        
                         
                         pass#for _test_count
                     
-                    # total__score_incr__min         .append(_raw_result__total__score_incr         .min ())
-                    # total__score_incr__max         .append(_raw_result__total__score_incr         .max ())
-                    total__score_incr__avg         .append(_raw_result__total__score_incr         .mean())
-                    # total__step__min               .append(_raw_result__total__step               .min ())
-                    # total__step__max               .append(_raw_result__total__step               .max ())
-                    total__step__avg               .append(_raw_result__total__step               .mean())
-                    # total__score_incr_per_step__min.append(_raw_result__total__score_incr_per_step.min ())
-                    # total__score_incr_per_step__max.append(_raw_result__total__score_incr_per_step.max ())
-                    total__score_incr_per_step__avg.append(_raw_result__total__score_incr_per_step.mean())
+                    rc____score.append(_raw_result__rc____score.mean())
+                    rcr___score.append(_raw_result__rcr___score.mean())
+                    rcrc__score.append(_raw_result__rcrc__score.mean())
+                    rCr___score.append(_raw_result__rCr___score.mean())
+                    #bad_1_score.append(_raw_result__bad_1_score.mean())
+                    #bad_2_score.append(_raw_result__bad_2_score.mean())
                     
-                    pass#for param_set_count 
+                    pass#for cap_to  #x axis
                 
-                print(f"# expansion_factor {expansion_factor}      dim {dim}      threshold_factor {threshold_factor}")
-                print(f"# cap_to_list                    = {str_the_list(cap_to_list         , 2, segment=",   ")}")
-                #print(f"# total__score_incr__min         = {str_the_list(total__score_incr__min         , 4)}")
-                #print(f"# total__score_incr__max         = {str_the_list(total__score_incr__max         , 4)}")
-                print(f"# total__score_incr__avg      = {str_the_list(total__score_incr__avg         , 4)}")
-                #print(f"# total__step__min               = {str_the_list(total__step__min               , 0, segment=",      ")}")
-                #print(f"# total__step__max               = {str_the_list(total__step__max               , 0, segment=",      ")}")
-                print(f"# total__step__avg              = {str_the_list(total__step__avg               , 2, segment=",   ")}")
-                #print(f"# total__score_incr_per_step__min= {str_the_list(total__score_incr_per_step__min, 4)}")
-                #print(f"# total__score_incr_per_step__max= {str_the_list(total__score_incr_per_step__max, 4)}")
-                print(f"# total__score_incr_per_step__avg = {str_the_list(total__score_incr_per_step__avg, 4)}")
+                print(f"#          expansion_factor {expansion_factor}      dim {dim}")
+                print(f"# cap_to_list = {str_the_list(cap_to_list         , 2, segment=",   ")}")
+                # print(f"# angle_score_incr__min = {str_the_list(angle_score_incr__min, 4)}")
+                # print(f"# angle_score_incr__max = {str_the_list(angle_score_incr__max, 4)}")
+                print(f"# rc____score = {str_the_list(rc____score, 4)}")
+                print(f"# rcr___score = {str_the_list(rcr___score, 4)}")
+                print(f"# rcrc__score = {str_the_list(rcrc__score, 4)}")
+                print(f"# rCr___score = {str_the_list(rCr___score, 4)}")
+                #print(f"# bad_1_score = {str_the_list(bad_1_score, 4)}")
+                #print(f"# bad_2_score = {str_the_list(bad_2_score, 4)}")
                 print(f"# ------------                                                                         ")
-                pass# for threshold_factor
+                
+                pass# for style
             
             pass#/ test
         
@@ -3618,10 +3992,10 @@ if "test" and True:
 
 
 
-一横一竖的参数扫一下
-
 
 #还有一个修正长度的时候会破坏角度。。。可能也要测。。。。。。。。
 #还有一个修正长度的时候会破坏角度。。。可能也要测。。。。。。。。
 #还有一个修正长度的时候会破坏角度。。。可能也要测。。。。。。。。
+
+#最后就是两个合并起来测。
 
