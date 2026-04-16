@@ -29,10 +29,14 @@ def _line_():
 
 
 
-
-def LOSS__vec_len_retention__of_a_mat_in_matmul(matrix:torch.Tensor,
-                        test_time:int|None = None, at_least = -7.)->tuple[torch.Tensor, tuple[torch.Tensor,torch.Tensor,torch.Tensor]]:
-    '''return length_retention_loss, (score__len_sqr, score_log10_div2, score_log10_div2__abs)
+assert False, "改了返回值格式了。稍微跑一下。"
+def LOSS__vec_len_retention__of_a_mat_in_matmul(matrix:torch.Tensor, test_time:int|None = None, 
+                    at_least = -7., _debug__needs_log = False)->tuple[torch.Tensor, tuple[torch.Tensor]|None]:
+    
+    '''return length_retention_score, None
+    
+    if needs log, then return length_retention_score, (no_abs__length_retention_score,)
+    
     
     The score_log10_div2 and score_log10_div2__abs maybe empty. If so, the length_retention_score is nan.
     
@@ -72,17 +76,19 @@ def LOSS__vec_len_retention__of_a_mat_in_matmul(matrix:torch.Tensor,
         score_log10_div2__abs___maybe_test_time = score_log10_div2___maybe_test_time.abs()
         length_retention_score = score_log10_div2__abs___maybe_test_time.mean()
         
-        return length_retention_score, \
-            (score__len_sqr___test_time, score_log10_div2___maybe_test_time, score_log10_div2__abs___maybe_test_time)
+        if _debug__needs_log:
+            no_abs__length_retention_score = score_log10_div2___maybe_test_time.mean()
+            return length_retention_score, (no_abs__length_retention_score,)
+        return length_retention_score, (None,)
+            #(score__len_sqr___test_time, score_log10_div2___maybe_test_time, score_log10_div2__abs___maybe_test_time)
     pass#/function
 
-if "basic test" and __DEBUG_ME__() and False:
+if "basic test" and __DEBUG_ME__() and True:
     def ____test____LOSS__vec_len_retention__of_a_mat_in_matmul():
         import random, math
         if "what is too small" and True:
             mat = torch.eye(n=3)/10000.
-            length_retention_score, (score__len_sqr___test_time, \
-                score_log10_div2___maybe_test_time, score_log10_div2__abs___maybe_test_time) = \
+            length_retention_score, _ = \
                         LOSS__vec_len_retention__of_a_mat_in_matmul(mat,test_time=2, at_least= -2)
             assert length_retention_score.isnan()
             pass
@@ -91,10 +97,10 @@ if "basic test" and __DEBUG_ME__() and False:
             for dim in range(3, 15):
                 test_time = 10
                 for test_count in range(test_time):
-                    mat = torch.eye(n=dim)
-                    length_retention_score, (score__len_sqr, score_log10_div2, score_log10_div2__abs) = \
-                                LOSS__vec_len_retention__of_a_mat_in_matmul(mat,test_time=100)
-                    assert _tensor_equal(score__len_sqr.log10()/2., torch.zeros(size=[100]), epsilon=1e-6)
+                    mat = torch.eye(n=dim)  
+                    length_retention_score, (no_abs__length_retention_score,) = \
+                                LOSS__vec_len_retention__of_a_mat_in_matmul(mat,test_time=100, _debug__needs_log = True)
+                    assert _tensor_equal(no_abs__length_retention_score, [0.], epsilon=1e-6)
                     pass
                 pass#for dim
             pass#/test
@@ -105,9 +111,9 @@ if "basic test" and __DEBUG_ME__() and False:
                     _to_the_power = (torch.rand(size=[])*2-1)*3.
                     _factor = torch.pow(10, _to_the_power)
                     mat = torch.eye(n=dim)*_factor
-                    length_retention_score, (score__len_sqr, score_log10_div2, score_log10_div2__abs) = \
-                                LOSS__vec_len_retention__of_a_mat_in_matmul(mat, test_time=100)
-                    assert _tensor_equal(score__len_sqr.log10()/2., torch.ones(size=[100])*_to_the_power)
+                    length_retention_score, (no_abs__length_retention_score,) = \
+                                LOSS__vec_len_retention__of_a_mat_in_matmul(mat, test_time=100, _debug__needs_log = True)
+                    assert _tensor_equal(no_abs__length_retention_score, [_to_the_power], epsilon=1e-6)
                     pass
                 pass#for dim
             pass#/test
@@ -126,9 +132,9 @@ if "basic test" and __DEBUG_ME__() and False:
                     _to_the_power = (torch.rand(size=[])*2.-1.)*3.
                     _factor = torch.pow(10, _to_the_power)
                     mat.mul_(_factor)
-                    length_retention_score, (score__len_sqr, score_log10_div2, score_log10_div2__abs) = \
-                                LOSS__vec_len_retention__of_a_mat_in_matmul(mat, test_time=100)
-                    assert _tensor_equal(score__len_sqr.log10()/2., torch.ones(size=[100])*_to_the_power)
+                    length_retention_score, (no_abs__length_retention_score,) = \
+                                LOSS__vec_len_retention__of_a_mat_in_matmul(mat, test_time=100, _debug__needs_log = True)
+                    assert _tensor_equal(no_abs__length_retention_score, [_to_the_power], epsilon=1e-6)
                     pass
                 pass#for dim
             pass#/test
@@ -161,11 +167,11 @@ if "basic test" and __DEBUG_ME__() and False:
                         mat_2 = randomly_rotate__matrix(mat_2)
                         pass
                     #</ prepare the vec>
-                    _, (score__len_sqr, mat_1__score_log10_div2, score_log10_div2__abs) = \
+                    _, (mat_1__no_abs__length_retention_score,) = \
                             LOSS__vec_len_retention__of_a_mat_in_matmul(mat_1, test_time=100)
-                    _, (score__len_sqr, mat_2__score_log10_div2, score_log10_div2__abs) = \
+                    _, (mat_2__no_abs__length_retention_score,) = \
                             LOSS__vec_len_retention__of_a_mat_in_matmul(mat_2, test_time=100)
-                    _this_result = mat_1__score_log10_div2.mean()-mat_2__score_log10_div2.mean()
+                    _this_result = mat_1__no_abs__length_retention_score-mat_2__no_abs__length_retention_score
                     #----------------#----------------#----------------
                     _raw_result_of__diff[test_count] = _this_result
                     pass
@@ -191,7 +197,7 @@ if "basic test" and __DEBUG_ME__() and False:
 
 # rand*2-1       >>> 0.5*log10(dim)-0.24
 # rand*2-1 @ rand*2-1 >>> 1.*log10(dim)-0.26
-if "measure the random init" and __DEBUG_ME__() and False:
+if "measure the random init" and __DEBUG_ME__() and True:
     def ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10___2():
         import math
         if "small example" and False:
@@ -236,10 +242,10 @@ if "measure the random init" and __DEBUG_ME__() and False:
                 for test_count in range(test_time):
                     #--------------------#--------------------#--------------------
                     rand_mat = torch.randn(size=[dim,dim], device=device)#/math.sqrt(dim)
-                    _, (_, score_log10_div2, _) = \
+                    _, (no_abs__length_retention_score,) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
                     
-                    _this_result = score_log10_div2.mean()
+                    _this_result = no_abs__length_retention_score
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
                     
@@ -279,10 +285,10 @@ if "measure the random init" and __DEBUG_ME__() and False:
                     #--------------------#--------------------#--------------------
                     rand_mat = torch.randn(size=[dim,dim], device=device)
                     rand_mat = rand_mat@torch.randn(size=[dim,dim], device=device)
-                    _, (_, score_log10_div2, _) = \
+                    _, (no_abs__length_retention_score) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
                     
-                    _this_result = score_log10_div2.mean()
+                    _this_result = no_abs__length_retention_score
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
                     
@@ -322,10 +328,10 @@ if "measure the random init" and __DEBUG_ME__() and False:
                 for test_count in range(test_time):
                     #--------------------#--------------------#--------------------
                     rand_mat = torch.rand (size=[dim,dim], device=device)#rand
-                    _, (_, score_log10_div2, _) = \
+                    _, (no_abs__length_retention_score) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
                     
-                    _this_result = score_log10_div2.mean()
+                    _this_result = no_abs__length_retention_score
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
                     
@@ -366,10 +372,10 @@ if "measure the random init" and __DEBUG_ME__() and False:
                     #--------------------#--------------------#--------------------
                     rand_mat = torch.rand (size=[dim,dim], device=device)#rand
                     rand_mat = rand_mat @ torch.rand (size=[dim,dim], device=device)#rand
-                    _, (_, score_log10_div2, _) = \
+                    _, (no_abs__length_retention_score) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
                     
-                    _this_result = score_log10_div2.mean()
+                    _this_result = no_abs__length_retention_score
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
                     
@@ -409,10 +415,10 @@ if "measure the random init" and __DEBUG_ME__() and False:
                 for test_count in range(test_time):
                     #--------------------#--------------------#--------------------
                     rand_mat = torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
-                    _, (_, score_log10_div2, _) = \
+                    _, (no_abs__length_retention_score) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
                     
-                    _this_result = score_log10_div2.mean()
+                    _this_result = no_abs__length_retention_score
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
                     
@@ -453,10 +459,10 @@ if "measure the random init" and __DEBUG_ME__() and False:
                     #--------------------#--------------------#--------------------
                     rand_mat = torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
                     rand_mat = rand_mat @ torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
-                    _, (_, score_log10_div2, _) = \
+                    _, (no_abs__length_retention_score) = \
                                 LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
                     
-                    _this_result = score_log10_div2.mean()
+                    _this_result = no_abs__length_retention_score
                     #--------------------#--------------------#--------------------
                     _raw_result[test_count] = _this_result
                     
@@ -1645,9 +1651,11 @@ if "test" and __DEBUG_ME__() and True:
                 print(test_time)
             #------------------#------------------#------------------
                 for test_count in range(test_time):
+                    #<  init a standard orthogonal matrix.
                     mat = torch.eye(n=dim)
                     mat = randomly_rotate__matrix(mat)
                     mat = randomly_permutate__matrix(mat)
+                    #</ init a standard orthogonal matrix.
                     
                     len_score, angle_score, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
                     assert _log[2][0] == 'hor_sum__as_len_sqr___1_is_good__dim'
@@ -2281,7 +2289,7 @@ if "test" and __DEBUG_ME__() and True:
             # angle_score_max   = [ 0.000,  0.352,  0.671,  0.932,  1.133,  1.373,  1.487,  1.540,  1.568,  1.587,  1.592,  1.599,  1.598,  1.598]
             # angle_score_avg   = [ 0.000,  0.352,  0.670,  0.931,  1.130,  1.372,  1.485,  1.539,  1.564,  1.584,  1.590,  1.596,  1.596,  1.595]
             # randn_factor_list = [ 0.000,  0.005,  0.010,  0.015,  0.020,  0.030,  0.040,  0.050,  0.060,  0.080,  0.100,  0.200,  0.500,  1.000]
-            #                                                                                                                       ^^^^^
+            #                                                                                                       ^^^^^
             # pass
             
             
@@ -2468,4 +2476,43 @@ if "angle_similarity but the assuption is a bit wrong." and False:
         pass
     
     pass
+
+
+
+
+
+def full_length_info_test(input:torch.Tensor, needs_no_abs_result = True) \
+                ->tuple[torch.Tensor, torch.Tensor|None, torch.Tensor, torch.Tensor|None]:
+    '''return len_loss, _raw_result__no_abs__len_loss, length_retention_loss, no_abs__length_retention_score  
+    
+    or 
+    
+    return len_loss, None, length_retention_loss, None'''
+
+    len_loss, _, _log = LOSS__mat_is_standard_orthogonal(input, _debug__needs_log = needs_no_abs_result)
+    len_loss#################################
+    
+    length_retention_loss, (no_abs__length_retention_score,) = LOSS__vec_len_retention__of_a_mat_in_matmul(\
+                                                input, _debug__needs_log = needs_no_abs_result)
+    if needs_no_abs_result:
+        assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
+        _raw_result__no_abs__len_loss = _log[0][1]###############################
+        return len_loss, _raw_result__no_abs__len_loss, length_retention_loss, no_abs__length_retention_score
+    
+    return len_loss, None, length_retention_loss, no_abs__length_retention_score
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
