@@ -246,16 +246,25 @@ def ____test____basic_order_of_magnitude_test():
         del mat
         pass#/ test
     
-    if "len=1 vec, what is the grad*(dim*dim)/(4*(dim-1))" and False:
+    # mean grad row vector length/( 4*(dim-1)/(dim*dim)) == 1.41/dim  
+    # mean grad row vector length*(dim*dim*dim)/( 4*1.41*(dim-1)) == 1
+    # mean grad row vector length == 4*1.41*(dim-1)/(dim*dim*dim)       (backward style)
+    # 1.41 is from measure, probably sqrt(2)
+    if "calc from a set of standard vec. What is the avg len of grad*_mul_me" and False:
+        print("calc from a set of standard vec. What is the avg len of grad*_mul_me")
+        
         # result
-        # length__min         = [ 0.00021,  0.08963,  0.07170,  0.01312,  0.00141]
-        # length__max         = [ 1.00000,  0.67096,  0.27833,  0.01517,  0.00142]
-        # length__avg         = [ 0.63007,  0.26032,  0.13508,  0.01406,  0.00141]
-        # log10_of_length__min= [-3.68059, -1.04756, -1.14450, -1.88192, -2.85189]
-        # log10_of_length__max= [ 0.00000, -0.17330, -0.55544, -1.81894, -2.84737]
-        # log10_of_length__avg= [-0.30635, -0.60295, -0.87554, -1.85211, -2.84978]
+        # length__min         = [ 0.00088,  0.30414,  0.55985,  0.91967,  0.99667]
+        # length__max         = [ 1.41844,  2.28061,  2.21400,  1.08100,  1.00781]
+        # length__avg         = [ 0.89991,  0.91720,  0.96060,  0.99669,  1.00265]
+        # log10_of_length__min= [-3.05713, -0.51693, -0.25193, -0.03637, -0.00145]
+        # log10_of_length__max= [ 0.15181,  0.35805,  0.34518,  0.03382,  0.00338]
+        # log10_of_length__avg= [-0.14775, -0.05548, -0.02355, -0.00153,  0.00115]
         # dim_list             = [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.0000]
-        #log10 is -1.*log10(dim)+0.15
+        #
+        
+        # mean grad row vector length/_div_me == 1.41/dim
+        # mean grad row vector length/( 4*(dim-1)/(dim*dim)) == 1.41/dim
         
         length__min          = []#dont modify this
         length__max          = []#dont modify this
@@ -266,11 +275,12 @@ def ____test____basic_order_of_magnitude_test():
         
         #--------------------#--------------------#--------------------
         device = 'cpu'
-        dim_list =        [ 2,  5, 10,100,1000]
-        test_time_list = [10000,5000,5000,5000, 100]
+        dim_list =        [ 2,   5,  10,  100,1000]
+        test_time_list = [2000,1000,5000,5000, 100]
         for outter_iter_count in range(dim_list.__len__()):
             dim = dim_list[outter_iter_count]
-            _div_me = 4*(dim-1)/(dim*dim)
+            _mul_me = dim*dim*dim/(4*1.41*(dim-1))
+            
             iota_of_dim = iota(dim)
             test_time = test_time_list[outter_iter_count]
             print(f"dim {dim}   test_time {test_time}  {device}")
@@ -283,6 +293,7 @@ def ____test____basic_order_of_magnitude_test():
                 #--------------------#--------------------#--------------------
                 mat = torch.randn(size=[dim,dim], device=device)
                 mat = vector_length_norm(mat)
+                mat.requires_grad_(True)
                 # old code mat = ____init_mat_with_row_len_is_1(dim)
                 
                 #<  neural net infra>
@@ -302,7 +313,8 @@ def ____test____basic_order_of_magnitude_test():
                 #<  measure>
                 grad_len_sqr = mat.grad.mul(mat.grad).sum(dim=1)#mean(dim=1)#mul and then sum, it's a dot.
                 avg_grad_len = grad_len_sqr.sqrt().mean()
-                scaled_avg_grad_len = avg_grad_len/_div_me
+                #scaled_avg_grad_len = avg_grad_len/_div_me old version.
+                scaled_avg_grad_len = avg_grad_len*_mul_me
                 #--------------------#--------------------#--------------------
                 
                 _raw_result_of__scaled_avg_grad_len[test_count] = scaled_avg_grad_len
@@ -327,6 +339,8 @@ def ____test____basic_order_of_magnitude_test():
         
         pass#/test
     
+    # notice the "manually__mul_me = 4./(dim*dim)" is only the difference between the 
+    # backward style and the manual style.
     if "to replace the error propagation style" and False:
         "assertion only test. No print"
         #device??
@@ -379,18 +393,21 @@ def ____test____basic_order_of_magnitude_test():
         
         pass#/ test
     
+    # _mul_me = dim*dim*dim/( 4*1.41*(dim-1))    (backward style)
     if "visualization of origin" and False:
         dim = 1000
-        _div_me = 4*(dim-1)/(dim*dim)    *    (dim/1.42)    * 2.
-        #    part 1111111111111111111    part 2222222222      ??
-        #part 1 is from formula, part 2 is from tested distribution.
+        
+        _mul_me = dim*dim*dim/( 4*1.41*(dim-1))
         # so the result should be around 1.
+        
         iota_of_dim = iota(dim)
         for test_count in range(123123123):
             
             #--------------------#--------------------#--------------------
-            mat = torch.randn(size=[dim,dim], device=device)
-            mat = vector_length_norm(mat)
+            mat = torch.randn(size=[dim,dim])
+            mat = vector_length_norm(mat)#by row only
+            mat.requires_grad_(True)
+            assert mat.requires_grad
             # old code mat = ____init_mat_with_row_len_is_1(dim)
             
             #<  neural net infra>
@@ -410,14 +427,17 @@ def ____test____basic_order_of_magnitude_test():
             #<  scale it a bit>
             grad_len_sqr = mat.grad.mul(mat.grad).sum(dim=1)#mean(dim=1)#mul and then sum, it's a dot.
             grad_len = grad_len_sqr.sqrt()
-            scaled_grad_len = grad_len/_div_me
+            scaled_grad_len = grad_len*_mul_me
+            
+            _temp_mean = scaled_grad_len.mean()
+            assert 0.5<_temp_mean and _temp_mean<1.8
             
             #<  visualize>
             import matplotlib.pyplot as plt
             fig, ax = plt.subplots(tight_layout=True)
             n_bins = dim//20
-            if n_bins<=3:
-                n_bins = 3
+            if n_bins<=20:
+                n_bins = 20
                 pass
             ax.hist(scaled_grad_len.tolist(), bins=n_bins)
             plt.show()
@@ -480,9 +500,174 @@ def ____test____basic_order_of_magnitude_test():
         
         pass#/ test
 
-#____test____basic_order_of_magnitude_test()
+    # the distribution is very different at different dim.
+    if "max length of row vector        backward prapagation style" and False:
+        # vector_length__max  = [ 2.724,  1.615,  1.180]
+        # vector_length__top90= [ 1.316,  1.141,  1.048]
+        # vector_length__avg  = [ 0.958,  0.997,  1.002]
+        # vector_length__std=[ 0.16471,  0.02041,  0.00213]
+        # dim                  = [ 10,    100,    1000]
+        #conclusion. I need a fixed way to protect the distribution back to smth easy to handle.
+        
+        vector_length__max   = []#don't modify this.
+        vector_length__top90 = []#don't modify this.
+        vector_length__avg   = []#don't modify this.
+        vector_length__std   = []#don't modify this.
+        #----------------#----------------#----------------
+        dim_list =                      [10,  100,  1000]
+        test_time_list = torch.tensor([10000, 5000, 1000])
+        test_time_list = test_time_list.mul(1.).to(torch.int64)
+        for outter_param_count in range(dim_list.__len__()):
+            dim = dim_list[outter_param_count]
+            print(f"dim {dim}")
+            test_time = test_time_list[outter_param_count]
+            device = 'cpu'
+            if dim>100:
+                device = 'cuda'
+                pass
+            iota_of_dim = iota(dim)
+            _mul_me = dim*dim*dim/( 4*1.41*(dim-1))
+            # so the result should be around 1.
+        #----------------#----------------#----------------
+
+            _raw_result_of__vector_length__max   = torch.empty(size=[test_time])
+            _raw_result_of__vector_length__top90 = torch.empty(size=[test_time])
+            _raw_result_of__vector_length__avg   = torch.empty(size=[test_time])
+            for _test_count in range(test_time):
+                
+                #--------------------#--------------------#--------------------
+                mat = torch.randn(size=[dim,dim])
+                mat = vector_length_norm(mat)#by row only
+                mat.requires_grad_(True)
+                assert mat.requires_grad
+                
+                #<  neural net infra>
+                train_it = [mat]
+                optim = torch.optim.SGD(params=train_it, lr=0.1)
+                loss_func = torch.nn.MSELoss()#mse, otherwise the formula for grad is a bit weird.
+                
+                #<  forward
+                should_be_eye = mat@(mat.T)#.T is on the right
+                should_be_eye[iota_of_dim, iota_of_dim] = 0.#this op also cuts the grad chain partly.
+                loss = loss_func(should_be_eye, torch.zeros_like(should_be_eye))
+                
+                #<  backward
+                optim.zero_grad()
+                loss.backward(inputs = train_it)
+                
+                #<  scale it a bit>
+                grad_len_sqr = mat.grad.mul(mat.grad).sum(dim=1)#mean(dim=1)#mul and then sum, it's a dot.
+                grad_len = grad_len_sqr.sqrt()
+                scaled_grad_len = grad_len*_mul_me # so the result should be around 1.
+                #--------------------#--------------------#--------------------
+                
+                #<  measure!!!!!!!!!!!!!!!!!!!!!
+                _raw_result_of__vector_length__max  [_test_count] = scaled_grad_len.max()
+                _raw_result_of__vector_length__top90[_test_count] = scaled_grad_len.topk(int(dim*0.1)).values[-1]
+                _raw_result_of__vector_length__avg  [_test_count] = scaled_grad_len.mean()
+                pass# for test_count
+            vector_length__max  .append(_raw_result_of__vector_length__max.max())
+            vector_length__top90.append(_raw_result_of__vector_length__top90.mean())
+            vector_length__avg  .append(_raw_result_of__vector_length__avg.mean())
+            vector_length__std  .append(_raw_result_of__vector_length__avg.std())
+            pass#for outter_param_count
+        
+        print(f"vector_length__max  = {str_the_list(vector_length__max  , 3)}")
+        print(f"vector_length__top90= {str_the_list(vector_length__top90, 3)}")
+        print(f"vector_length__avg  = {str_the_list(vector_length__avg  , 3)}")
+        print(f"vector_length__std  = {str_the_list(vector_length__std  , 5)}")
+        print(f"dim                  = {str_the_list(dim_list, 0, ",   ")}")
+        
+        pass#/ test
+    
+    
+    # mean grad row vector length == 4*1.41*(dim-1)/(dim*dim*dim)       (backward style)
+    # manually__grad * 4./(dim*dim) == mat.grad
+    # manually__grad                == mat.grad * (dim*dim)/4.
+    # == 4*1.41*(dim-1)/(dim*dim*dim) * (dim*dim)/4.
+    # == 1.41*(dim-1)/dim
+    # mean grad row vector length == 1.41*(dim-1)/dim       (manual style)
+    if "max length of row vector        manual style" and True:
+        # vector_length__max  = [ 2.685,  1.602,  1.185]
+        # vector_length__top90= [ 1.314,  1.141,  1.048]
+        # vector_length__avg  = [ 0.957,  0.997,  1.002]
+        # vector_length__std  = [ 0.16382,  0.02018,  0.00214]
+        # dim                  = [ 10,    100,    1000]
+        # almost the same as the previous test.
+        
+        #conclusion. I need a fixed way to protect the distribution back to smth easy to handle.
+        
+        vector_length__max   = []#don't modify this.
+        vector_length__top90 = []#don't modify this.
+        vector_length__avg   = []#don't modify this.
+        vector_length__std   = []#don't modify this.
+        #----------------#----------------#----------------
+        dim_list =                      [10,  100,  1000]
+        test_time_list = torch.tensor([10000, 5000, 1000])
+        test_time_list = test_time_list.mul(1.).to(torch.int64)
+        for outter_param_count in range(dim_list.__len__()):
+            dim = dim_list[outter_param_count]
+            print(f"dim {dim}")
+            test_time = test_time_list[outter_param_count]
+            device = 'cpu'
+            if dim>100:
+                device = 'cuda'
+                pass
+            iota_of_dim = iota(dim)
+            _mul_me = dim/(1.41*(dim-1))
+            # so the result should be around 1.
+        #----------------#----------------#----------------
+
+            _raw_result_of__vector_length__max   = torch.empty(size=[test_time])
+            _raw_result_of__vector_length__top90 = torch.empty(size=[test_time])
+            _raw_result_of__vector_length__avg   = torch.empty(size=[test_time])
+            for _test_count in range(test_time):
+                
+                #--------------------#--------------------#--------------------
+                mat = torch.randn(size=[dim,dim])
+                mat = vector_length_norm(mat)#by row only
+                mat.requires_grad_(True)
+                assert mat.requires_grad
+                
+                
+                with torch.no_grad():
+                    manually__mat_matmul_mat__d_d = mat@(mat.T)
+                    manually__mat_matmul_mat__d_d[iota_of_dim, iota_of_dim] = 0.
+                    manually__grad = manually__mat_matmul_mat__d_d@mat
+                    pass
+                
+                #<  scale it a bit>
+                grad_len = get_vector_length(manually__grad)
+                scaled_grad_len = grad_len*_mul_me # so the result should be around 1.
+                #--------------------#--------------------#--------------------
+                
+                #<  measure!!!!!!!!!!!!!!!!!!!!!
+                _raw_result_of__vector_length__max  [_test_count] = scaled_grad_len.max()
+                _raw_result_of__vector_length__top90[_test_count] = scaled_grad_len.topk(int(dim*0.1)).values[-1]
+                _raw_result_of__vector_length__avg  [_test_count] = scaled_grad_len.mean()
+                pass# for test_count
+            vector_length__max  .append(_raw_result_of__vector_length__max.max())
+            vector_length__top90.append(_raw_result_of__vector_length__top90.mean())
+            vector_length__avg  .append(_raw_result_of__vector_length__avg.mean())
+            vector_length__std  .append(_raw_result_of__vector_length__avg.std())
+            pass#for outter_param_count
+        
+        print(f"vector_length__max  = {str_the_list(vector_length__max  , 3)}")
+        print(f"vector_length__top90= {str_the_list(vector_length__top90, 3)}")
+        print(f"vector_length__avg  = {str_the_list(vector_length__avg  , 3)}")
+        print(f"vector_length__std  = {str_the_list(vector_length__std  , 5)}")
+        print(f"dim                  = {str_the_list(dim_list, 0, ",   ")}")
+        
+        pass#/ test
+    
+    return 
+
+____test____basic_order_of_magnitude_test()
 
 
+# this part is for the expansion+cap_to style.
+# in later code, since expansion doesn't do too much, it's set to 1.
+# then it's a cap_to only.
 def ____test____correction_method_test():
     #this is a reference. Not a real test.
     # highlight is manually added. It's the best result from the later test.

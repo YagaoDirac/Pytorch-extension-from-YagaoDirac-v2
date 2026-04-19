@@ -195,7 +195,8 @@ if "measure the random gen algo":
             pass#/ test
         
         
-        
+        1w 今天 4 17的。角度里面有一个除以最大长度。重新看看分布，限制一下，感觉1.1就够了，防止出现个别的超级无敌大的。
+        就是自适应里面。
         
         return 
     

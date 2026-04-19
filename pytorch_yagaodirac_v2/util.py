@@ -426,53 +426,324 @@ if "can it be index?" and __DEBUG_ME__() and False:
 
 "vector length"
 
-def vector_length_norm(input:torch.Tensor, epi = 0.000001, dtype_inner = torch.float64)->torch.Tensor:
+def vector_length_norm(input:torch.Tensor, epsilon:float|torch.Tensor = 0.001, dtype_inner = torch.float64)->torch.Tensor:
     r'''The shape must be [batch, dim]'''
     if input.shape.__len__()!=2:
         raise Exception("The shape must be [batch, dim]")
     with torch.no_grad():
         
-        # if not transform:
-        #     length_of_input_b_1 = input.mul(input).sum(dim=1,keepdim=True).sqrt()
-        #     pass
-        # else:
-        #     length_of_input_b_1 = input.mul(input).sum(dim=0,keepdim=True).sqrt()
-        #     pass
-        length_of_input_b_1 = input.mul(input).sum(dim=1,keepdim=True,dtype=dtype_inner).sqrt()
+        if isinstance(epsilon, float):
+            epi_tensor = torch.tensor([epsilon], device=input.device, dtype=dtype_inner)
+            pass
+        else:
+            epi_tensor = epsilon
+            pass
         
-        epi_tensor = torch.tensor([epi], device=length_of_input_b_1.device, dtype=dtype_inner)
+        length_of_input_b_1 = input.mul(input).sum(dim=1,keepdim=True,dtype=dtype_inner).sqrt()
         length_of_input_safe__b = length_of_input_b_1.maximum(epi_tensor)
-        length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b.expand([-1,input.shape[1]])
-        # if not transform:
-        #     result = input/length_of_input_safe_b.expand([-1,input.shape[1]])
-        #     pass
-        # else:
-        #     result = input/length_of_input_safe_b.expand([input.shape[0],-1])
-        #     pass
-        length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b_1EXPANDdim.to(dtype=input.dtype)
-        result = input.div(length_of_input_safe__b_1EXPANDdim)
-        return result
+        
+        if input.device.type == 'cpu':
+            if input.shape[-1]<300:#div version
+                # div version
+                length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b.expand([-1,input.shape[1]])
+                length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b_1EXPANDdim.to(dtype=input.dtype)
+                result = input.div(length_of_input_safe__b_1EXPANDdim)
+                return result
+                
+            # mul version
+            mul_me_before_expand__b = 1./length_of_input_safe__b
+            mul_me_before_expand__b = mul_me_before_expand__b.to(dtype=input.dtype)
+            mul_me___b_1EXPANDdim = mul_me_before_expand__b.expand([-1,input.shape[1]])
+            result = input*mul_me___b_1EXPANDdim
+            return result
+        
+        if input.device.type == 'cuda':
+            if input.nelement()<=1000_000:
+                # div version
+                length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b.expand([-1,input.shape[1]])
+                length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b_1EXPANDdim.to(dtype=input.dtype)
+                result = input.div(length_of_input_safe__b_1EXPANDdim)
+                return result
+                
+            # mul version
+            mul_me_before_expand__b = 1./length_of_input_safe__b
+            mul_me_before_expand__b = mul_me_before_expand__b.to(dtype=input.dtype)
+            mul_me___b_1EXPANDdim = mul_me_before_expand__b.expand([-1,input.shape[1]])
+            result = input*mul_me___b_1EXPANDdim
+            return result
+        
+        assert False, "unknown device. implement it or choose any of my version. The performance test is below."
+        # mul version
+        # mul_me_before_expand__b = 1./length_of_input_safe__b
+        # mul_me_before_expand__b = mul_me_before_expand__b.to(dtype=input.dtype)
+        # mul_me___b_1EXPANDdim = mul_me_before_expand__b.expand([-1,input.shape[1]])
+        # result = input*mul_me___b_1EXPANDdim
+        
+        # div version
+        # length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b.expand([-1,input.shape[1]])
+        # length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b_1EXPANDdim.to(dtype=input.dtype)
+        # result = input.div(length_of_input_safe__b_1EXPANDdim)
+        
     #end of function.
-if '''some basic test.''' and __DEBUG_ME__() and False:
-    input = torch.tensor([[0.,0.],[0.,1.],[1.,1.]])
-    output = vector_length_norm(input)
-    assert _tensor_equal(output, [[0.,0.],[0.,1.],[0.7,0.7]], 0.05)
-    assert output.dtype == torch.float32
-    _vector_len = output.mul(output).sum(dim=1)
-    assert _tensor_equal(_vector_len[0], torch.zeros_like(_vector_len[0]), 0.05)
-    assert _tensor_equal(_vector_len[1:], torch.ones_like(_vector_len[1:]), 0.05)
+if "performance test of two versions" and False:
+    def ____test____performance_test_of_two_versions():
+        from pytorch_yagaodirac_v2.timeit_yagaodirac import timeit
+        if True:
+            # cpu, dim<300, div
+            # gpu, n <= 1e6, div
+            # 10
+            # mul__ver  = [ 0.01038,  0.00968,  0.01900,  0.06659,  0.39719]
+            # div__ver  = [ 0.00796,  0.00811,  0.01620,  0.06072,  0.38007]
+            # mul____gpu= [ 0.04148,  0.03992,  0.03992,  0.03997,  0.05870]
+            # div____gpu= [ 0.03190,  0.03880,  0.03408,  0.03114,  0.05448]
+            # how_many_ = [ 10,      100,      1000,      10000,      100000]
+            # 100
+            # mul__ver  = [ 0.00966,  0.01127,  0.04011,  0.17684,  2.06436]
+            # div__ver  = [ 0.00728,  0.01081,  0.04097,  0.21540,  1.94373]
+            # mul____gpu= [ 0.04303,  0.04036,  0.04051,  0.05185,  0.26671]
+            # div____gpu= [ 0.03606,  0.03435,  0.03272,  0.04809,  0.31185]
+            # how_many_ = [ 10,      100,      1000,      10000,      100000]
+            # 1000
+            # mul__ver  = [ 0.00270,  0.00643,  0.02093,  1.01336]
+            # div__ver  = [ 0.00270,  0.00755,  0.02905,  1.27344]
+            # mul____gpu= [ 0.01474,  0.01578,  0.03572,  0.24063]
+            # div____gpu= [ 0.01103,  0.01267,  0.03782,  0.28381]
+            # how_many_ = [ 10,      100,      1000,      10000]
+            # 10000
+            # mul__ver  = [ 0.00642,  0.02090,  0.99586]
+            # div__ver  = [ 0.00751,  0.03018,  1.26331]
+            # mul____gpu= [ 0.01555,  0.03419,  0.23736]
+            # div____gpu= [ 0.01280,  0.03611,  0.28248]
+            # how_many_ = [ 10,      100,      1000]
+            # 100000
+            # mul__ver  = [ 0.02126,  0.98957]
+            # div__ver  = [ 0.03096,  1.28091]
+            # mul____gpu= [ 0.03366,  0.23825]
+            # div____gpu= [ 0.03579,  0.28197]
+            # how_many_ = [ 10,      100]
+                        
+            
+            
+            
+            
+            
+            
+            
+            #----------------#----------------#----------------
+            loop_time = 100
+            time_at_most = 2.
+            
+            dim_list = [  10, 100, 1000,10000, 100000]
+            for dim in dim_list:
+                print(dim)
+            #----------------#----------------#----------------
+                
+                mul__ver = []#don't modify this.
+                div__ver = []#don't modify this.
+                mul__ver__gpu = []#don't modify this.
+                div__ver__gpu = []#don't modify this.
+                
+                #----------------#----------------#----------------
+                how_many_vec_list = []
+                for _raw_how_many in [  10, 100, 1000,10000, 100000]:
+                    if _raw_how_many*dim<=10_000_000:
+                        how_many_vec_list.append(_raw_how_many)
+                        pass
+                    pass
+                    
+                #for outter_param_count in range(how_many_vec_list.__len__()):
+                    #how_many_vec = how_many_vec_list[outter_param_count]
+                for how_many_vec in how_many_vec_list:
+                #----------------#----------------#----------------
+                    
+                #----------------#----------------#----------------
+                    input = torch.randn(size=[how_many_vec,dim], device='cpu')
+                    epsilon = torch.tensor(0.001)
+                    dtype_inner = torch.float64
+                    
+                    def _timeit_null():
+                        for _ in range(loop_time):
+                            if input.shape.__len__()!=2:
+                                raise Exception("The shape must be [batch, dim]")
+                            with torch.no_grad():
+                                pass
+                            pass
+                        return 
+                    null_time = timeit(_timeit_null, time_at_most=time_at_most)[0]
+                    del _timeit_null
+                    
+                    def _timeit_mul():
+                        for _ in range(loop_time):
+                            
+                            if input.shape.__len__()!=2:
+                                raise Exception("The shape must be [batch, dim]")
+                            with torch.no_grad():
+                                
+                                length_of_input_b_1 = input.mul(input).sum(dim=1,keepdim=True,dtype=dtype_inner).sqrt()
+                                
+                                epi_tensor = torch.tensor([epsilon], device=length_of_input_b_1.device, dtype=dtype_inner)
+                                length_of_input_safe__b = length_of_input_b_1.maximum(epi_tensor)
+                                
+                                #this is the new version but I didn't test the performance.
+                                mul_me_before_expand__b = 1./length_of_input_safe__b
+                                mul_me_before_expand__b = mul_me_before_expand__b.to(dtype=input.dtype)
+                                mul_me___b_1EXPANDdim = mul_me_before_expand__b.expand([-1,input.shape[1]])
+                                result = input*mul_me___b_1EXPANDdim
+                            
+                            pass
+                        return 
+                    _timeit_mul()
+                    raw_mul_time = timeit(_timeit_mul, time_at_most=time_at_most)[0]
+                    mul_time = raw_mul_time-null_time
+                    mul__ver.append(mul_time)
+                    del _timeit_mul, raw_mul_time, mul_time
+                    
+                    def _timeit_div():
+                        for _ in range(loop_time):
+                            
+                            if input.shape.__len__()!=2:
+                                raise Exception("The shape must be [batch, dim]")
+                            with torch.no_grad():
+                                
+                                length_of_input_b_1 = input.mul(input).sum(dim=1,keepdim=True,dtype=dtype_inner).sqrt()
+                                
+                                epi_tensor = torch.tensor([epsilon], device=length_of_input_b_1.device, dtype=dtype_inner)
+                                length_of_input_safe__b = length_of_input_b_1.maximum(epi_tensor)
+                                
+                                #this is the new version but I didn't test the performance.
+                                # mul_me_before_expand__b = 1./length_of_input_safe__b
+                                # mul_me_before_expand__b = mul_me_before_expand__b.to(dtype=input.dtype)
+                                # mul_me___b_1EXPANDdim = mul_me_before_expand__b.expand([-1,input.shape[1]])
+                                # result = input*mul_me___b_1EXPANDdim
+                                
+                                #old code
+                                length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b.expand([-1,input.shape[1]])
+                                length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b_1EXPANDdim.to(dtype=input.dtype)
+                                result = input.div(length_of_input_safe__b_1EXPANDdim)
+                            
+                            pass
+                        return 
+                    _timeit_div()
+                    raw_div_time = timeit(_timeit_div, time_at_most=time_at_most)[0]
+                    div_time = raw_div_time-null_time
+                    div__ver.append(div_time)
+                    del _timeit_div, raw_div_time, div_time
+                    del null_time
+                    
+                    # ^^^^ cpu ^^^^
+                    # vvvv gpu vvvv
+                    
+                    input = torch.randn(size=[how_many_vec,dim], device='cuda')
+                    epsilon = torch.tensor(0.001, device='cuda')
+                    dtype_inner = torch.float64
+                    
+                    def _timeit_null():
+                        for _ in range(loop_time):
+                            if input.shape.__len__()!=2:
+                                raise Exception("The shape must be [batch, dim]")
+                            with torch.no_grad():
+                                pass
+                            pass
+                        return 
+                    null_time = timeit(_timeit_null, time_at_most=time_at_most)[0]
+                    del _timeit_null
+                    
+                    def _timeit_mul():
+                        for _ in range(loop_time):
+                            
+                            if input.shape.__len__()!=2:
+                                raise Exception("The shape must be [batch, dim]")
+                            with torch.no_grad():
+                                
+                                length_of_input_b_1 = input.mul(input).sum(dim=1,keepdim=True,dtype=dtype_inner).sqrt()
+                                
+                                epi_tensor = torch.tensor([epsilon], device=length_of_input_b_1.device, dtype=dtype_inner)
+                                length_of_input_safe__b = length_of_input_b_1.maximum(epi_tensor)
+                                
+                                #this is the new version but I didn't test the performance.
+                                mul_me_before_expand__b = 1./length_of_input_safe__b
+                                mul_me_before_expand__b = mul_me_before_expand__b.to(dtype=input.dtype)
+                                mul_me___b_1EXPANDdim = mul_me_before_expand__b.expand([-1,input.shape[1]])
+                                result = input*mul_me___b_1EXPANDdim
+                            
+                            pass
+                        return 
+                    _timeit_mul()
+                    raw_mul_time = timeit(_timeit_mul, time_at_most=time_at_most)[0]
+                    mul_time = raw_mul_time-null_time
+                    mul__ver__gpu.append(mul_time)
+                    del _timeit_mul, raw_mul_time, mul_time
+                    
+                    def _timeit_div():
+                        for _ in range(loop_time):
+                            
+                            if input.shape.__len__()!=2:
+                                raise Exception("The shape must be [batch, dim]")
+                            with torch.no_grad():
+                                
+                                length_of_input_b_1 = input.mul(input).sum(dim=1,keepdim=True,dtype=dtype_inner).sqrt()
+                                
+                                epi_tensor = torch.tensor([epsilon], device=length_of_input_b_1.device, dtype=dtype_inner)
+                                length_of_input_safe__b = length_of_input_b_1.maximum(epi_tensor)
+                                
+                                #this is the new version but I didn't test the performance.
+                                # mul_me_before_expand__b = 1./length_of_input_safe__b
+                                # mul_me_before_expand__b = mul_me_before_expand__b.to(dtype=input.dtype)
+                                # mul_me___b_1EXPANDdim = mul_me_before_expand__b.expand([-1,input.shape[1]])
+                                # result = input*mul_me___b_1EXPANDdim
+                                
+                                #old code
+                                length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b.expand([-1,input.shape[1]])
+                                length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b_1EXPANDdim.to(dtype=input.dtype)
+                                result = input.div(length_of_input_safe__b_1EXPANDdim)
+                            
+                            pass
+                        return 
+                    _timeit_div()
+                    raw_div_time = timeit(_timeit_div, time_at_most=time_at_most)[0]
+                    div_time = raw_div_time-null_time
+                    div__ver__gpu.append(div_time)
+                    del _timeit_div, raw_div_time, div_time
+                    del null_time
+                    
+                    pass#for outter_param_count
+                print(f"dim {dim}")
+                print(f"mul__ver  = {str_the_list(mul__ver  , 5)}")
+                print(f"div__ver  = {str_the_list(div__ver  , 5)}")
+                print(f"mul____gpu= {str_the_list(mul__ver__gpu  , 5)}")
+                print(f"div____gpu= {str_the_list(div__ver__gpu  , 5)}")
+                print(f"how_many_ = {str_the_list(how_many_vec_list     , 0, ",     ")}")
+                pass# for dim
+            pass#/test
+        
+        return 
     
-    #transform
-    # input = torch.tensor([[1.,1],[0.1,0.1]])
-    # output = vector_length_norm(input, transform=True)
-    # assert _tensor_equal(output,   [[0.9950, 0.9950],
-    #                                 [0.0995, 0.0995]], epsilon=0.001)
-    input = torch.tensor([[  1.,   1],
-                            [0.1,  0.1]])
-    output = vector_length_norm(input.T).T
-    assert _tensor_equal(output,   [[0.9950, 0.9950],
-                                    [0.0995, 0.0995]], epsilon=0.001)
+    ____test____performance_test_of_two_versions()
+    pass
     
+if '''some basic test.''' and __DEBUG_ME__() and True:
+    def ____test____vector_length_norm():
+        input = torch.tensor([[0.,0.],[0.,1.],[1.,1.]])
+        output = vector_length_norm(input)
+        assert _tensor_equal(output, [[0.,0.],[0.,1.],[0.7,0.7]], 0.05)
+        assert output.dtype == torch.float32
+        _vector_len = output.mul(output).sum(dim=1)
+        assert _tensor_equal(_vector_len[0], torch.zeros_like(_vector_len[0]), 0.05)
+        assert _tensor_equal(_vector_len[1:], torch.ones_like(_vector_len[1:]), 0.05)
+        
+        #transform
+        input = torch.tensor([[  1.,   1],
+                                [0.1,  0.1]])
+        output = vector_length_norm(input.T).T
+        assert _tensor_equal(output,   [[0.9950, 0.9950],
+                                        [0.0995, 0.0995]], epsilon=0.001)
+
+        input = torch.tensor([                     [0.],[0.1],[0.01],[0.001],[0.0001],[10],[100],[1000],[10000]])
+        output = vector_length_norm(input, epsilon=0.01)
+        assert _tensor_equal(output, torch.tensor([[0.],[1.], [1.],  [0.1],  [0.01],  [1.],[1.], [1.],  [1.],]))
+
+        return 
+    ____test____vector_length_norm()
     pass
 
 def get_vector_length(input:torch.Tensor, result_dtype = torch.float64)->torch.Tensor:
@@ -517,7 +788,117 @@ if "test get_vector_length" and __DEBUG_ME__() and False:
         return 
     ____test____get_vector_length()
     pass
+
+def get_full_info_of_vector_length__1d(input:torch.Tensor, epi = 0.000001)->torch.Tensor:
+    '''return normalized_vector, length_of_input'''
+    assert input.shape.__len__() == 1# [dim]
     
+    sqr_length_of_input__s = input.mul(input).sum()
+    length_of_input__s = sqr_length_of_input__s.sqrt()
+    epi_tensor = torch.tensor([epi], device=length_of_input__s.device)
+    length_of_input_safe__s = length_of_input__s.maximum(epi_tensor)
+    normalized_vector = input.div(length_of_input_safe__s)
+
+    return normalized_vector, length_of_input__s.squeeze(dim=-1)
+if '''some basic test.''' and __DEBUG_ME__() and True:
+    def ____test____get_full_info_of_vector_length__1d():
+        #this test func is a raw combination of the 2 above.
+        input = torch.tensor([0.,0.])
+        normalized_vector, length_of_input = get_full_info_of_vector_length__1d(input)
+        assert _tensor_equal(normalized_vector, [0.,0.])
+        assert normalized_vector.dtype == torch.float32
+        assert _tensor_equal(get_vector_length(normalized_vector), [0.])
+        assert _tensor_equal(length_of_input, [0.])
+        assert length_of_input.dtype == torch.float32
+        
+        input = torch.tensor([1.,0.])
+        normalized_vector, length_of_input = get_full_info_of_vector_length__1d(input)
+        assert _tensor_equal(normalized_vector, [1.,0.])
+        assert _tensor_equal(get_vector_length(normalized_vector), [1.])
+        assert _tensor_equal(length_of_input, [1.])
+        
+        input = torch.tensor([1.,1.])
+        normalized_vector, length_of_input = get_full_info_of_vector_length__1d(input)
+        assert _tensor_equal(normalized_vector, [0.7071, 0.7071])
+        assert _tensor_equal(get_vector_length(normalized_vector), [1.])
+        assert _tensor_equal(length_of_input, [1.4142])
+        
+        return 
+    
+    ____test____get_full_info_of_vector_length__1d()
+    pass
+
+def get_full_info_of_vector_length__2d(input:torch.Tensor, epi = 0.000001, #dtype_inner = torch.float64,
+                                length_result_dtype = torch.float64)->torch.Tensor:
+    '''return normalized_vector, length_of_input'''
+    assert input.shape.__len__() == 2, "Manully reshape please."# [..., dim]
+    
+    # __bat = input.shape[0]
+    # __dim = input.shape[1]
+    
+    sqr_length_of_input__b_1 = input.mul(input).sum(dim=-1,keepdim=True,dtype=length_result_dtype)
+    #assert sqr_length_of_input__b_1.shape == torch.Size([__bat,1])
+    length_of_input__b_1 = sqr_length_of_input__b_1.sqrt()
+    #assert sqr_length_of_input__b_1.shape == torch.Size([__bat,1])
+    epi_tensor = torch.tensor([epi], device=length_of_input__b_1.device, dtype=length_result_dtype)
+    #assert epi_tensor.shape == torch.Size([1])
+    length_of_input_safe__b_1 = length_of_input__b_1.maximum(epi_tensor)
+    #assert length_of_input_safe__b_1.shape == torch.Size([__bat, 1])
+    length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b_1.expand([-1,input.shape[-1]])
+    length_of_input_safe__b_1EXPANDdim = length_of_input_safe__b_1EXPANDdim.to(dtype=input.dtype)
+    #assert length_of_input_safe__b_1EXPANDdim.shape == torch.Size([__bat, __dim])
+    normalized_vector__b_d = input.div(length_of_input_safe__b_1EXPANDdim)
+    #assert length_of_input_safe__b_1EXPANDdim.shape == torch.Size([__bat, __dim])
+
+    return normalized_vector__b_d, length_of_input__b_1.squeeze(dim=-1)
+if '''some basic test.''' and __DEBUG_ME__() and True:
+    def ____test____get_full_info_of_vector_length__2d():
+        
+        #this test func is a raw combination of the 2 above.
+        input = torch.tensor([[0.,0.],[0.,1.],[1.,1.]])
+        normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input)
+        assert _tensor_equal(normalized_vector, [[0.,0.],[0.,1.],[0.7,0.7]], 0.05)
+        assert normalized_vector.dtype == torch.float32
+        assert _tensor_equal(get_vector_length(normalized_vector), [0., 1., 1.], 0.001)
+        assert _tensor_equal(length_of_input, [0., 1., 1.414], 0.001)
+        assert length_of_input.dtype == torch.float64
+        
+        _vector_len = normalized_vector.mul(normalized_vector).sum(dim=1)
+        assert _tensor_equal(_vector_len[0 ], torch.zeros_like(_vector_len[0 ]), 0.05)
+        assert _tensor_equal(_vector_len[1:], torch.ones_like (_vector_len[1:]), 0.05)
+        
+        input = torch.tensor([[  1.,   1],
+                                [0.1,  0.1]])
+        transpost_of_normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input.T)
+        normalized_vector = transpost_of_normalized_vector.T
+        assert _tensor_equal(normalized_vector,[[0.9950, 0.9950],
+                                                [0.0995, 0.0995]], epsilon=0.001)
+        
+        input = torch.tensor([[1.,1],[1,2]])
+        normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input)
+        assert length_of_input.shape == torch.Size([2])
+        assert _tensor_equal(length_of_input, [1.4142,2.2361])
+        
+        input = torch.tensor([[0.71, 0.71],[1,0]])
+        normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input)
+        assert length_of_input.shape == torch.Size([2])
+        assert _tensor_equal(length_of_input, [1., 1], epsilon=0.01)
+        
+        input = torch.tensor([[  0.71, 1],
+                                [0.71, 0]])
+        normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input.T)
+        assert length_of_input.shape == torch.Size([2])
+        assert _tensor_equal(length_of_input, [1., 1], epsilon=0.01)
+        
+        "dtype"
+        input = torch.tensor([[1.],[1]])
+        normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input, length_result_dtype=torch.float16)
+        assert length_of_input.dtype == torch.float16
+        
+        return 
+    
+    ____test____get_full_info_of_vector_length__2d()
+    pass
 
 
 

@@ -7,7 +7,7 @@ import sys
 sys.path.append(str(Path(__file__).parent.parent))
 from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, \
     iota, is_square_matrix, \
-    vector_length_norm, get_vector_length, expand_vec_to_matrix,\
+    vector_length_norm, get_vector_length, get_full_info_of_vector_length__2d, expand_vec_to_matrix,\
     log10_avg_safe, log10_avg__how_similar, get_mask_of_top_element__rough,\
     str_the_list, str_the_list__probability
         
@@ -30,7 +30,7 @@ def _line_():
 
 def get_device(dim:int, threshold = 101)->Literal['cpu', 'cuda']:
     if dim>threshold:
-        device = 'cuda'
+        device:Literal['cpu', 'cuda'] = 'cuda'
         pass
     else:
         device = 'cpu'
@@ -38,8 +38,8 @@ def get_device(dim:int, threshold = 101)->Literal['cpu', 'cuda']:
     return device
 
 
-from pytorch_yagaodirac_v2.measure_for_matrix import LOSS__behavior_similarity, \
-    LOSS__mat_is_standard_orthogonal, LOSS__vec_len_retention__of_a_mat_in_matmul
+from pytorch_yagaodirac_v2.measure_for_matrix import LOSS__mat_is_standard_orthogonal#, \
+    #LOSS__behavior_similarity, LOSS__vec_len_retention__of_a_mat_in_matmul
 
 
 
@@ -122,9 +122,16 @@ if "test" and False:
 
 def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_factor = 1., 
                         cap_to:float|None = None, iota_of_dim:torch.Tensor|None = None, 
+                        
+                        safe_factor:float|None = None, # None for the style 1, or float for style 2.
+                        
+                        _debug__auto_clamp_in_look_up_function = False
+                        
                         #_debug__allow_any_param = False
                         )->torch.Tensor:
-    '''The length of row vector of input can be anything. I'm not sure if it handles 0 vector correctly.
+    '''The output of this function is only the direction of row vectors. Row vectors are normalized(length == 1).
+    
+    The length of row vector of input can be anything. I'm not sure if it handles 0 vector correctly.
     
     row vectors of return value are 1, unless the input is too close to 0. I believe it's called standard vector???
     '''
@@ -140,7 +147,8 @@ def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_
     
     
     if cap_to is None:
-        cap_to__s = calc__cap_to____ver_1(input.shape[0], expansion_factor__s)
+        cap_to__s = calc__cap_to____ver_1(input.shape[0], expansion_factor__s, 
+                            _debug__auto_clamp = _debug__auto_clamp_in_look_up_function)
         pass
     elif isinstance(cap_to, float):
         cap_to__s = torch.tensor(cap_to)
@@ -172,15 +180,40 @@ def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_
 
     #<  original grad>
     ori__grad__d_d = manual__mat_matmul_mat__d_d@mat
+    
     #<  original grad, but len into 1>
-    len_1__ori_grad__d_d = vector_length_norm(ori__grad__d_d)
-    #assert _tensor_equal(get_vector_length(len_1__ori_grad__d_d), torch.ones(size=[input.shape[0]], device=input.device))
+    len_1__ori_grad__d_d, ori__grad_len__dim = get_full_info_of_vector_length__2d(ori__grad__d_d)
+    #  normalized_vector, length_of_input    the return values
+    # len_1__ori_grad__d_d = vector_length_norm(ori__grad__d_d) old code 
+    
+    # assert _tensor_equal(get_vector_length(len_1__ori_grad__d_d), torch.ones(size=[input.shape[0]], device=input.device))
 
     #<  scale it a bit, to make the distribution a bit wider>
     #otherwise, they are a lot 0.8,0.9. Wider means most are 0.3 to 0.8.
-    #<old code/>xx__grad_len_sqr__dim = ori__grad__d_d.mul(ori__grad__d_d).sum(dim=1)#mul and then sum, it's a dot.
-    ori__grad_len__dim = get_vector_length(ori__grad__d_d)
+    #ori__grad_len__dim = get_vector_length(ori__grad__d_d) old code
+    
+    #<  added in style 2
+    if safe_factor is not None:
+        #assert safe_factor>0.95 and safe_factor<1.2, "I recommend 1.1"#uncommend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        dim = input.shape[0]
+        1w1w1w  
+        ____temp____original = ori__grad_len__dim.detach().clone()#debug only#commend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        _theorically_avg_length = 1.41*(dim-1)/dim
+        
+        # mean grad row vector length == 1.41*(dim-1)/dim       (manual style)
+        
+        ori__grad_len__dim.clamp_max_(safe_factor*_theorically_avg_length)
+        assert ____temp____original.ge(ori__grad_len__dim).all()#debug only#commend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        print(____temp____original)
+        print(ori__grad_len__dim)
+        pass
+    #</ added in style 2
+    
     max_of__ori__grad_len__dim = ori__grad_len__dim.max()
+    
+    # mean grad row vector length == 4*1.41*(dim-1)/(dim*dim*dim)
+    
+    
     ratio_of__grad_len__dim = ori__grad_len__dim/max_of__ori__grad_len__dim
     # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this scaled_to_1__grad_len_sqr__dim is still one 1.0 and a lot 0.xx
     #assert ratio_of__grad_len__dim.le(1.).all()
@@ -230,6 +263,7 @@ def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_
     
     return mat
 
+# ver 1
 def random_dummy_mat(dim:int, init__cap_to = 0.2, noise_strength = 0.2, 
                     device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
     '''
@@ -513,7 +547,7 @@ if "test   random_dummy_mat__v2" and False:
     pass
 
 
-
+# I recommend you use random_dummy_mat__v2.
 if "test   random_dummy_mat" and False:
     
     # basic behavior test of the dummy_mat v1
@@ -1006,7 +1040,7 @@ if "test   random_dummy_mat" and False:
     ____test____random_dummy_mat()
     pass
 
-if "test      full_test_version_of_angle_correction__by_row" and False:
+if "test      full_test_version_of_angle_correction__by_row" and True:
     def ____test____full_test_version_of_angle_correction__by_row______basic():
         
         if "basic behavior" and False:
@@ -1125,9 +1159,23 @@ if "test      full_test_version_of_angle_correction__by_row" and False:
             
             pass#/test
         
+        if "style 2?" and True:
+        
+            #for dim in [3,4,5,10,100,1000]:
+            for dim in [10,100,1000]:
+                for _ in range(22):
+                    input = torch.randn(size=[dim,dim])
+                    result = full_test_version_of_angle_correction__by_row(input,1., safe_factor=1.1,
+                                            _debug__auto_clamp_in_look_up_function = True)
+                    assert _tensor_equal(get_vector_length(result), torch.ones(size=[dim]))
+                    pass
+                pass
+            
+            pass#/ test
+        
         return 
     
-    #____test____full_test_version_of_angle_correction__by_row______basic()
+    ____test____full_test_version_of_angle_correction__by_row______basic()
 
 
     def ____test____full_test_version_of_angle_correction__by_row______scan_the_process():

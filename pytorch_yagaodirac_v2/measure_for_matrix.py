@@ -29,7 +29,6 @@ def _line_():
 
 
 
-assert False, "改了返回值格式了。稍微跑一下。"
 def LOSS__vec_len_retention__of_a_mat_in_matmul(matrix:torch.Tensor, test_time:int|None = None, 
                     at_least = -7., _debug__needs_log = False)->tuple[torch.Tensor, tuple[torch.Tensor]|None]:
     
@@ -83,10 +82,9 @@ def LOSS__vec_len_retention__of_a_mat_in_matmul(matrix:torch.Tensor, test_time:i
             #(score__len_sqr___test_time, score_log10_div2___maybe_test_time, score_log10_div2__abs___maybe_test_time)
     pass#/function
 
-if "basic test" and __DEBUG_ME__() and True:
+if "basic test" and __DEBUG_ME__() and False:
     def ____test____LOSS__vec_len_retention__of_a_mat_in_matmul():
-        import random, math
-        if "what is too small" and True:
+        if "when no halfway result is big enough, they are all eliminated. Then the result is nan" and True:
             mat = torch.eye(n=3)/10000.
             length_retention_score, _ = \
                         LOSS__vec_len_retention__of_a_mat_in_matmul(mat,test_time=2, at_least= -2)
@@ -168,17 +166,17 @@ if "basic test" and __DEBUG_ME__() and True:
                         pass
                     #</ prepare the vec>
                     _, (mat_1__no_abs__length_retention_score,) = \
-                            LOSS__vec_len_retention__of_a_mat_in_matmul(mat_1, test_time=100)
+                            LOSS__vec_len_retention__of_a_mat_in_matmul(mat_1, test_time=100, _debug__needs_log = True)
                     _, (mat_2__no_abs__length_retention_score,) = \
-                            LOSS__vec_len_retention__of_a_mat_in_matmul(mat_2, test_time=100)
+                            LOSS__vec_len_retention__of_a_mat_in_matmul(mat_2, test_time=100, _debug__needs_log = True)
                     _this_result = mat_1__no_abs__length_retention_score-mat_2__no_abs__length_retention_score
                     #----------------#----------------#----------------
                     _raw_result_of__diff[test_count] = _this_result
                     pass
                 result_of__diff.append(_raw_result_of__diff.mean())
                 pass#for dim
-            print(f"result_of__length_diff_mean   = {str_the_list(result_of__diff    , 3)}")
-            print(f"dim_list                       = {str_the_list(dim_list     , 3)}")
+            print(f"result_of__length_diff_mean = {str_the_list(result_of__diff    , 3)}")
+            print(f"dim_list                    = {str_the_list(dim_list     , 3)}")
             pass#/test
         
         
@@ -199,94 +197,206 @@ if "basic test" and __DEBUG_ME__() and True:
 # rand*2-1 @ rand*2-1 >>> 1.*log10(dim)-0.26
 if "measure the random init" and __DEBUG_ME__() and True:
     def ____test____measure_how_much_the_matmul_keeps_the_length_of_vec__output_abs_log10___2():
-        import math
-        if "small example" and False:
-            # dim = 10
-            # rand_mat = torch.randn(size=[dim,dim])#/math.sqrt(dim)
-            # score__len_sqr,score_log10_div2,score_log10_div2__abs = \
-            #             LOSS__for_a_matrix_to_keeps_the_length_of_vec_in_matmul__output_abs_log10(rand_mat, test_time=10)
-            # aaaaa = score__len_sqr.sort().values
-            # bbbbb = log10_avg_safe(aaaaa)/2.
-            pass
         
-        if "randn[dim,dim] with or without /sqrt(dim)" and False:
-            # output:
-            # with "/sqrt(dim)"
-            # the_min_gt_this_list  = [-0.147, -0.013, -0.001]
-            # the_max_lt_this_list  = [ 0.060,  0.007,  0.001]
-            # the_mean_eq_this_list = [-0.025, -0.002, -0.000]
-            # dim_list                   = [10, 100, 1000]
+        if "uniformed test of all above" and False:
             
-            # without "/sqrt(dim)"
-            # the_min_gt_this_list  = [ 0.376,  0.986,  1.499]
-            # the_max_lt_this_list  = [ 0.573,  1.006,  1.500]
-            # the_mean_eq_this_list = [ 0.480,  0.997,  1.500]
-            # dim_list                   = [10, 100, 1000]
+            if True:
+                # randn
+                # the_min_gt_this_list  = [ 0.337,  0.983,  1.497]
+                # the_max_lt_this_list  = [ 0.588,  1.012,  1.502]
+                # the_mean_eq_this_list = [ 0.478,  0.998,  1.500]
+                # dim_list               = [ 10,    100,    1000]
+                # 0.5*log10(dim)
+                
+                # randn / sqrt(dim)
+                # the_min_gt_this_list  = [-0.137, -0.017, -0.003]
+                # the_max_lt_this_list  = [ 0.089,  0.015,  0.002]
+                # the_mean_eq_this_list = [-0.021, -0.002, -0.000]
+                # dim_list               = [ 10,    100,    1000]
+                # 0.*log10(dim), yeah, 0.
+                # higher print precision below.
+                
+                # randn @ randn
+                # the_min_gt_this_list  = [ 0.771,  1.976,  2.995]
+                # the_max_lt_this_list  = [ 1.109,  2.017,  3.003]
+                # the_mean_eq_this_list = [ 0.956,  1.996,  3.000]
+                # dim_list               = [ 10,    100,    1000]
+                # 1.*log10(dim)
+                
+                # rand
+                # the_min_gt_this_list  = [ 0.059,  0.617,  1.140]
+                # the_max_lt_this_list  = [ 0.283,  0.737,  1.230]
+                # the_mean_eq_this_list = [ 0.174,  0.679,  1.181]
+                # dim_list               = [ 10,    100,    1000]
+                # 0.5*log10(dim) -0.32
+                
+                
+                # rand @ rand
+                # the_min_gt_this_list  = [ 0.507,  2.011,  3.515]
+                # the_max_lt_this_list  = [ 0.901,  2.272,  3.747]
+                # the_mean_eq_this_list = [ 0.699,  2.147,  3.631]
+                # dim_list               = [ 10,    100,    1000]
+                # 1.5*log10(dim)-0.86
+                
+                # rand*2-1
+                # the_min_gt_this_list  = [ 0.170,  0.744,  1.259]
+                # the_max_lt_this_list  = [ 0.326,  0.772,  1.265]
+                # the_mean_eq_this_list = [ 0.243,  0.759,  1.261]
+                # dim_list               = [ 10,    100,    1000]
+                # 0.5*log10(dim)-0.24
+                
+                # rand*2-1 @ rand*2-1
+                # the_min_gt_this_list  = [ 0.529,  1.674,  2.702]
+                # the_max_lt_this_list  = [ 1.005,  1.819,  2.789]
+                # the_mean_eq_this_list = [ 0.751,  1.743,  2.740]
+                # dim_list               = [ 10,    100,    1000]
+                # 1.*log10(dim)-0.26
+                pass
             
-            # 0.5 log10(dim)
-            print("randn[dim,dim] with or without /sqrt(dim)")
-            device = 'cuda'
+            from typing import Literal
+            
             #--------------------#--------------------#--------------------
-            dim_list = [10,100,1000]
-            test_time_list = [300,100,20]
+            how_to_gen_the_mat__list:Literal["randn", "randn / sqrt(dim)", "randn @ randn", 
+                    "rand", "rand @ rand", "rand*2-1", "rand*2-1 @ rand*2-1", ] \
+                = [
+                    #"randn",
+                    # rand_mat = torch.randn(size=[dim,dim], device=device)
+                    
+                    #"randn / sqrt(dim)", 
+                    # rand_mat = torch.randn(size=[dim,dim], device=device)/math.sqrt(dim)
+                    
+                    #"randn @ randn",
+                    # rand_mat = torch.randn(size=[dim,dim], device=device)
+                    # rand_mat = rand_mat@torch.randn(size=[dim,dim], device=device)
+                    
+                    #"rand",
+                    # rand_mat = torch.rand (size=[dim,dim], device=device)#rand
+                    
+                    "rand @ rand",
+                    # rand_mat = torch.rand (size=[dim,dim], device=device)#rand
+                    # rand_mat = rand_mat @ torch.rand (size=[dim,dim], device=device)#rand
+                    
+                    "rand*2-1",
+                    # rand_mat = torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
+                    
+                    "rand*2-1 @ rand*2-1",
+                    # rand_mat = torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
+                    # rand_mat = rand_mat @ torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
+                    
+                    ]
+            for how_to_gen_the_mat in how_to_gen_the_mat__list:
+                print(f"{how_to_gen_the_mat}")
             #--------------------#--------------------#--------------------
-            mean_of__score_log10_div2__min =  []#don't modify here.
-            mean_of__score_log10_div2__max =  []#don't modify here.
-            mean_of__score_log10_div2__avg =  []#don't modify here.
-            for inner_iter_count in range(dim_list.__len__()):
-                dim = dim_list[inner_iter_count]
-                test_time = test_time_list[inner_iter_count]
-                print(test_time)
+            
+                mean_of__score_log10_div2__min =  []#don't modify here.
+                mean_of__score_log10_div2__max =  []#don't modify here.
+                mean_of__score_log10_div2__avg =  []#don't modify here.
+                
+                #--------------------#--------------------#--------------------
+                dim_list = [10,100,1000]
+                test_time_list = torch.tensor([2000,1000,200])
+                test_time_list = test_time_list.mul(1).to(torch.int64)
+                with_div_sqrt_of_dim = False
+                for inner_iter_count in range(dim_list.__len__()):
+                    dim = dim_list[inner_iter_count]
+                    test_time = test_time_list[inner_iter_count]
+                    device = 'cpu'
+                    if dim>100:
+                        device = 'cuda'
+                        pass
+                    #print(f"test_time {test_time}    device {device}")
+                #--------------------#--------------------#--------------------
 
-                _raw_result = torch.empty(size=[test_time])
-                for test_count in range(test_time):
-                    #--------------------#--------------------#--------------------
-                    rand_mat = torch.randn(size=[dim,dim], device=device)#/math.sqrt(dim)
-                    _, (no_abs__length_retention_score,) = \
-                                LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
-                    
-                    _this_result = no_abs__length_retention_score
-                    #--------------------#--------------------#--------------------
-                    _raw_result[test_count] = _this_result
-                    
-                    pass
-                mean_of__score_log10_div2__min.append(_raw_result.min() )
-                mean_of__score_log10_div2__max.append(_raw_result.max() )
-                mean_of__score_log10_div2__avg.append(_raw_result.mean())
-                pass# for macro_iter_count
-            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
-            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
-            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
-            print(f"dim_list                   = {  dim_list}")
+                    _raw_result = torch.empty(size=[test_time])
+                    for test_count in range(test_time):
+                        
+                        #--------------------#--------------------#--------------------
+                        if how_to_gen_the_mat == "randn":
+                            rand_mat = torch.randn(size=[dim,dim], device=device)
+                            pass
+                        elif how_to_gen_the_mat == "randn / sqrt(dim)":
+                            rand_mat = torch.randn(size=[dim,dim], device=device)/math.sqrt(dim)
+                            pass
+                        elif how_to_gen_the_mat == "randn @ randn":
+                            rand_mat = torch.randn(size=[dim,dim], device=device)
+                            rand_mat = rand_mat@torch.randn(size=[dim,dim], device=device)
+                            pass
+                        elif how_to_gen_the_mat == "rand":
+                            rand_mat = torch.rand (size=[dim,dim], device=device)#rand
+                            pass
+                        elif how_to_gen_the_mat == "rand @ rand":
+                            rand_mat = torch.rand (size=[dim,dim], device=device)#rand
+                            rand_mat = rand_mat @ torch.rand (size=[dim,dim], device=device)#rand
+                            pass
+                        elif how_to_gen_the_mat == "rand*2-1":
+                            rand_mat = torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
+                            pass
+                        elif how_to_gen_the_mat == "rand*2-1 @ rand*2-1":
+                            rand_mat = torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
+                            rand_mat = rand_mat @ torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
+                            pass
+                        else:
+                            assert False, "bad param: how_to_gen_the_mat"
+                        
+                        _, (no_abs__length_retention_score,) = \
+                                    LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat, _debug__needs_log = True)
+                        
+                        _this_result = no_abs__length_retention_score
+                        #--------------------#--------------------#--------------------
+                        _raw_result[test_count] = _this_result
+                        
+                        pass
+                    mean_of__score_log10_div2__min.append(_raw_result.min() )
+                    mean_of__score_log10_div2__max.append(_raw_result.max() )
+                    mean_of__score_log10_div2__avg.append(_raw_result.mean())
+                    pass# for macro_iter_count
+                
+                print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
+                print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
+                print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
+                print(f"dim_list               = {str_the_list(dim_list, 0, ",   ")}")
+                pass#for how_to_gen_the_mat
+            
             pass#/test
         
-        if "randn@randn" and False:
+        if "the higher print precision here. randn[dim,dim] / sqrt(dim)" and False:
             # output:
-            # the_min_gt_this_list  = [ 0.816,  1.972,  2.998]
-            # the_max_lt_this_list  = [ 1.170,  2.011,  3.001]
-            # the_mean_eq_this_list = [ 0.952,  1.996,  2.999]
-            # dim_list             = [10, 100, 1000]
-            # 1.*log10(dim)
-            print("randn[dim,dim]")
-            device = 'cuda'
-            #--------------------#--------------------#--------------------
-            dim_list = [10,100,1000]
-            test_time_list = [300,100,20]
+            # the_min_gt_this_list  = [-0.14032, -0.01610, -0.00370]
+            # the_max_lt_this_list  = [ 0.07667,  0.01356,  0.00182]
+            # the_mean_eq_this_list = [-0.02223, -0.00216, -0.00042]
+            # dim_list               = [ 10,      100,      1000]
+            
+            print("randn[dim,dim] with or without /sqrt(dim)")
+            
             mean_of__score_log10_div2__min =  []#don't modify here.
             mean_of__score_log10_div2__max =  []#don't modify here.
             mean_of__score_log10_div2__avg =  []#don't modify here.
+            
+            #--------------------#--------------------#--------------------
+            dim_list = [10,100,1000]
+            test_time_list = torch.tensor([2000,1000,200])
+            test_time_list = test_time_list.mul(1).to(torch.int64)
+            with_div_sqrt_of_dim = False
             for inner_iter_count in range(dim_list.__len__()):
                 dim = dim_list[inner_iter_count]
                 test_time = test_time_list[inner_iter_count]
-                print(test_time)
+                device = 'cpu'
+                if dim>100:
+                    device = 'cuda'
+                    pass
+                print(f"test_time {test_time}    device {device}")
+            #--------------------#--------------------#--------------------
 
                 _raw_result = torch.empty(size=[test_time])
                 for test_count in range(test_time):
+                    
                     #--------------------#--------------------#--------------------
                     rand_mat = torch.randn(size=[dim,dim], device=device)
-                    rand_mat = rand_mat@torch.randn(size=[dim,dim], device=device)
-                    _, (no_abs__length_retention_score) = \
-                                LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
+                    if with_div_sqrt_of_dim:
+                        rand_mat = rand_mat/math.sqrt(dim)
+                        pass
+                    _, (no_abs__length_retention_score,) = \
+                                LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat, _debug__needs_log = True)
                     
                     _this_result = no_abs__length_retention_score
                     #--------------------#--------------------#--------------------
@@ -297,184 +407,11 @@ if "measure the random init" and __DEBUG_ME__() and True:
                 mean_of__score_log10_div2__max.append(_raw_result.max() )
                 mean_of__score_log10_div2__avg.append(_raw_result.mean())
                 pass# for macro_iter_count
-            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
-            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
-            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
-            print(f"dim_list             = {  dim_list}")
-            pass#/test
-        
-        if "rand [dim,dim], just for fun" and False:
-            # output:
-            # the_min_gt_this_list  = [ 0.081,  0.650,  1.168]
-            # the_max_lt_this_list  = [ 0.274,  0.721,  1.188]
-            # the_mean_eq_this_list = [ 0.175,  0.679,  1.181]
-            # dim_list                   = [10, 100, 1000]
-            # 0.5*log10(dim) -0.32
-            print("rand [dim,dim], just for fun")
-            device = 'cuda'
-            #--------------------#--------------------#--------------------
-            dim_list = [10,100,1000]
-            test_time_list = [300,100,20]
-            #--------------------#--------------------#--------------------
-            mean_of__score_log10_div2__min =  []#don't modify here.
-            mean_of__score_log10_div2__max =  []#don't modify here.
-            mean_of__score_log10_div2__avg =  []#don't modify here.
-            for inner_iter_count in range(dim_list.__len__()):
-                dim = dim_list[inner_iter_count]
-                test_time = test_time_list[inner_iter_count]
-                print(test_time)
-
-                _raw_result = torch.empty(size=[test_time])
-                for test_count in range(test_time):
-                    #--------------------#--------------------#--------------------
-                    rand_mat = torch.rand (size=[dim,dim], device=device)#rand
-                    _, (no_abs__length_retention_score) = \
-                                LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
-                    
-                    _this_result = no_abs__length_retention_score
-                    #--------------------#--------------------#--------------------
-                    _raw_result[test_count] = _this_result
-                    
-                    pass
-                mean_of__score_log10_div2__min.append(_raw_result.min() )
-                mean_of__score_log10_div2__max.append(_raw_result.max() )
-                mean_of__score_log10_div2__avg.append(_raw_result.mean())
-                pass# for macro_iter_count
-            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
-            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
-            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
-            print(f"dim_list                   = {  dim_list}")
-            pass#/test
-        
-        if "rand @rand, just for fun" and False:
-            # output:
-            # the_min_gt_this_list  = [ 0.482,  2.073,  3.605]
-            # the_max_lt_this_list  = [ 0.841,  2.229,  3.652]
-            # the_mean_eq_this_list = [ 0.696,  2.145,  3.627]
-            # dim_list                   = [10, 100, 1000]
-            # 1.5*log10(dim)-0.86
-            print("rand @rand, just for fun")
-            device = 'cuda'
-            #--------------------#--------------------#--------------------
-            dim_list = [10,100,1000]
-            test_time_list = [300,100,20]
-            #--------------------#--------------------#--------------------
-            mean_of__score_log10_div2__min =  []#don't modify here.
-            mean_of__score_log10_div2__max =  []#don't modify here.
-            mean_of__score_log10_div2__avg =  []#don't modify here.
-            for inner_iter_count in range(dim_list.__len__()):
-                dim = dim_list[inner_iter_count]
-                test_time = test_time_list[inner_iter_count]
-                print(test_time)
-
-                _raw_result = torch.empty(size=[test_time])
-                for test_count in range(test_time):
-                    #--------------------#--------------------#--------------------
-                    rand_mat = torch.rand (size=[dim,dim], device=device)#rand
-                    rand_mat = rand_mat @ torch.rand (size=[dim,dim], device=device)#rand
-                    _, (no_abs__length_retention_score) = \
-                                LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
-                    
-                    _this_result = no_abs__length_retention_score
-                    #--------------------#--------------------#--------------------
-                    _raw_result[test_count] = _this_result
-                    
-                    pass
-                mean_of__score_log10_div2__min.append(_raw_result.min() )
-                mean_of__score_log10_div2__max.append(_raw_result.max() )
-                mean_of__score_log10_div2__avg.append(_raw_result.mean())
-                pass# for macro_iter_count
-            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
-            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
-            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
-            print(f"dim_list                   = {  dim_list}")
-            pass#/test
-        
-        if "measure the rand*2-1 [dim,dim]" and False:
-            # output:
-            # the_min_gt_this_list  = [ 0.181,  0.751,  1.261]
-            # the_max_lt_this_list  = [ 0.298,  0.766,  1.262]
-            # the_mean_eq_this_list = [ 0.242,  0.759,  1.261]
-            # dim_list                   = [10, 100, 1000]
-            # 0.5*log10(dim)-0.24
-            print("rand*2-1")
-            device = 'cuda'
-            #--------------------#--------------------#--------------------
-            dim_list = [10,100,1000]
-            test_time_list = [300,100,20]
-            #--------------------#--------------------#--------------------
-            mean_of__score_log10_div2__min =  []#don't modify here.
-            mean_of__score_log10_div2__max =  []#don't modify here.
-            mean_of__score_log10_div2__avg =  []#don't modify here.
-            for inner_iter_count in range(dim_list.__len__()):
-                dim = dim_list[inner_iter_count]
-                test_time = test_time_list[inner_iter_count]
-                print(test_time)
-
-                _raw_result = torch.empty(size=[test_time])
-                for test_count in range(test_time):
-                    #--------------------#--------------------#--------------------
-                    rand_mat = torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
-                    _, (no_abs__length_retention_score) = \
-                                LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
-                    
-                    _this_result = no_abs__length_retention_score
-                    #--------------------#--------------------#--------------------
-                    _raw_result[test_count] = _this_result
-                    
-                    pass
-                mean_of__score_log10_div2__min.append(_raw_result.min() )
-                mean_of__score_log10_div2__max.append(_raw_result.max() )
-                mean_of__score_log10_div2__avg.append(_raw_result.mean())
-                pass# for macro_iter_count
-            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
-            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
-            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
-            print(f"dim_list                   = {  dim_list}")
-            pass#/test
-        
-        if "measure the rand*2-1 @ rand*2-1[dim,dim]" and False:
-            # output:
-            # the_min_gt_this_list  = [ 0.539,  1.688,  2.725]
-            # the_max_lt_this_list  = [ 0.943,  1.799,  2.757]
-            # the_mean_eq_this_list = [ 0.749,  1.745,  2.743]
-            # dim_list                   = [10, 100, 1000]
-            # 1.*log10(dim)-0.26
-            print("rand*2-1 @ rand*2-1")
-            device = 'cuda'
-            #--------------------#--------------------#--------------------
-            dim_list = [10,100,1000]
-            test_time_list = [300,100,20]
-            #--------------------#--------------------#--------------------
-            mean_of__score_log10_div2__min =  []#don't modify here.
-            mean_of__score_log10_div2__max =  []#don't modify here.
-            mean_of__score_log10_div2__avg =  []#don't modify here.
-            for inner_iter_count in range(dim_list.__len__()):
-                dim = dim_list[inner_iter_count]
-                test_time = test_time_list[inner_iter_count]
-                print(test_time)
-
-                _raw_result = torch.empty(size=[test_time])
-                for test_count in range(test_time):
-                    #--------------------#--------------------#--------------------
-                    rand_mat = torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
-                    rand_mat = rand_mat @ torch.rand (size=[dim,dim], device=device) *2.-1.#rand*2-1
-                    _, (no_abs__length_retention_score) = \
-                                LOSS__vec_len_retention__of_a_mat_in_matmul(rand_mat)
-                    
-                    _this_result = no_abs__length_retention_score
-                    #--------------------#--------------------#--------------------
-                    _raw_result[test_count] = _this_result
-                    
-                    pass
-                mean_of__score_log10_div2__min.append(_raw_result.min() )
-                mean_of__score_log10_div2__max.append(_raw_result.max() )
-                mean_of__score_log10_div2__avg.append(_raw_result.mean())
-                pass# for macro_iter_count
-            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 3)}")    
-            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 3)}")    
-            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 3)}")    
-            print(f"dim_list                   = {  dim_list}")
+            print(f"with_div_sqrt_of_dim {with_div_sqrt_of_dim}")    
+            print(f"the_min_gt_this_list  = {str_the_list(mean_of__score_log10_div2__min, 5)}")    
+            print(f"the_max_lt_this_list  = {str_the_list(mean_of__score_log10_div2__max, 5)}")    
+            print(f"the_mean_eq_this_list = {str_the_list(mean_of__score_log10_div2__avg, 5)}")    
+            print(f"dim_list               = {str_the_list(dim_list, 0, ",     ")}")
             pass#/test
         
         return 
