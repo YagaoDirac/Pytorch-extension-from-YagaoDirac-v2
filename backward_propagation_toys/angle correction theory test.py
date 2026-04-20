@@ -672,6 +672,9 @@ def ____test____correction_method_test():
     #this is a reference. Not a real test.
     # highlight is manually added. It's the best result from the later test.
     if "measure of random 1 to n rows in a standard orthogonal matrix." and False:
+        
+        assert False, "the new len_loss is 0.5* old result. here is old result."
+        
         #result
         # dim = 10
         # random_vec_count_list       = [ 1        2        3        5        7]
@@ -809,7 +812,7 @@ def ____test____correction_method_test():
     
     if "measure of random 1 to n rows in a standard orthogonal matrix.  behavior similarity." and False:
         #result
-        
+        assert False, "the new len_loss is 0.5* old result. here is old result."
         # dim = 10
         # random_vec_count_list       = [ 1        2        3        5        7]
         # len_loss__opt_value     = [-0.03220, -0.04662, -0.05882, -0.07484, -0.07177]
@@ -947,7 +950,7 @@ def ____test____correction_method_test():
     
     if "roughly scan 2 hyperparams." and False:
         # greater is better
-        
+        assert False, "the new len_loss is 0.5* old result. here is old result."
         if "result of   expansion_factor -2 to 0" and False:
             # dim = 10
             # cap_to_list               = [ 0.01,     0.02,     0.05,     0.10,     0.15,     0.20,     0.25,     0.30,     0.35,     0.40,     0.45,     0.50]
@@ -1712,7 +1715,7 @@ def ____test____correction_method_test():
     # behavior similarity doesn't show anything.
     if "behavior similarity" and False:
         # positive is better, greater is better
-        
+        assert False, "the new len_loss is 0.5* old result. here is old result."
         if "original data" and False:
         
             # dim = 10
@@ -2349,7 +2352,7 @@ def ____test____correction_method_test():
     # useful.
     if "accurate scan for the best param combination." and False:
         # greater is better
-        
+        assert False, "the new len_loss is 0.5* old result. here is old result."
         if "result" and False:
             # dim = 10
             # scan_factor_list           = [ 0.70,     0.75,     0.79,     0.84,     0.89,     0.94,     0.98,     1.03,     1.08,     1.12,     1.17,     1.22,     1.26,     1.31,     1.36,     1.41,     1.45,     1.50]

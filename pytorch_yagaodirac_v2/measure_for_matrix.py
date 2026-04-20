@@ -1351,7 +1351,7 @@ def LOSS__mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least
     #</ vertical sub vectors   angle score>    
     
     
-    len_score = hor_len_score+ver_len_score
+    len_score = (hor_len_score+ver_len_score)/2.
     angle_score_raw = hor_angle_score+ver_angle_score
     angle_score = angle_score_raw*math.sqrt(dim + _correct_offset_for_angle_score)
     #              If you don't want to scan this _correct_offset_for_angle_score yourself
@@ -1360,7 +1360,8 @@ def LOSS__mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least
     
     
     if _log is not None:
-        _log[0] = ("sum of two len_score__raw_mean_without_abs", hor_len_score__raw_mean_without_abs + ver_len_score__raw_mean_without_abs)#[0]
+        _log[0] = ("sum of two len_score__raw_mean_without_abs", \
+            (hor_len_score__raw_mean_without_abs + ver_len_score__raw_mean_without_abs)/2.)#[0]
         _log[1] = ("sum of two raw angle_score", angle_score_raw)#[1]
         
         pass
@@ -1410,9 +1411,9 @@ if "test" and __DEBUG_ME__() and True:
             assert _log[11][0] == 'ver_len_score'
             assert _tensor_equal(_log[11][1], [0.])
             
-            assert _tensor_equal(len_score, [math.log10(2.)/2.])
+            assert _tensor_equal(len_score, [math.log10(2.)/4.])# not updated?
             assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
-            assert _tensor_equal(_log[0][1], [math.log10(2.)/2.])
+            assert _tensor_equal(_log[0][1], [math.log10(2.)/4.])# not updated?
             
             assert _log[14][0] == 'hor_angle_score'
             assert _tensor_equal(_log[14][1], [0.])
@@ -1438,11 +1439,11 @@ if "test" and __DEBUG_ME__() and True:
                                 [0,   0]])
             len_score, _, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
             
-            assert _tensor_equal(len_score, [abs(math.log10(2.)/2.-2)])
+            assert _tensor_equal(len_score, [abs(math.log10(2.)/4.-1)])# not updated?
             assert _log[1][0] == 'sum of two raw angle_score'
             assert _tensor_equal(_log[1][1], [1.])
             assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
-            assert _tensor_equal(_log[0][1], [math.log10(2.)/2.-2])
+            assert _tensor_equal(_log[0][1], [math.log10(2.)/4.-1])# not updated?
             
             #1 0
             #1 0
@@ -1464,9 +1465,9 @@ if "test" and __DEBUG_ME__() and True:
             assert _log[11][0] == 'ver_len_score'
             assert _tensor_equal(_log[11][1], [math.log10(2.)/2.])# the neginf is not counted.
             
-            assert _tensor_equal(len_score, [math.log10(2.)/2.])
+            assert _tensor_equal(len_score, [math.log10(2.)/4.])# not updated?
             assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
-            assert _tensor_equal(_log[0][1], [math.log10(2.)/2.])
+            assert _tensor_equal(_log[0][1], [math.log10(2.)/4.])# not updated?
             
             assert _log[14][0] == 'hor_angle_score'
             assert _tensor_equal(_log[14][1], [1.])
@@ -1507,9 +1508,9 @@ if "test" and __DEBUG_ME__() and True:
             assert _log[11][0] == 'ver_len_score'
             assert _tensor_equal(_log[11][1], [math.log10(2.)/2.])
             
-            assert _tensor_equal(len_score, [math.log10(2.)])
+            assert _tensor_equal(len_score, [math.log10(2.)/2.])# not updated?
             assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
-            assert _tensor_equal(_log[0][1], [math.log10(2.)])
+            assert _tensor_equal(_log[0][1], [math.log10(2.)/2.])# not updated?
             
             assert _log[14][0] == 'hor_angle_score'
             assert _tensor_equal(_log[14][1], [1.])
@@ -1551,9 +1552,9 @@ if "test" and __DEBUG_ME__() and True:
             assert _log[11][0] == 'ver_len_score'
             assert _tensor_equal(_log[11][1], [math.log10(4.)/2.])
             
-            assert _tensor_equal(len_score, [math.log10(4.)])
+            assert _tensor_equal(len_score, [math.log10(4.)/2.])# not updated?
             assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
-            assert _tensor_equal(_log[0][1], [math.log10(4.)])
+            assert _tensor_equal(_log[0][1], [math.log10(4./2.)])# not updated?
             
             assert _log[14][0] == 'hor_angle_score'
             assert _tensor_equal(_log[14][1], [0.])
@@ -1570,7 +1571,7 @@ if "test" and __DEBUG_ME__() and True:
                 mat = randomly_rotate__matrix(mat)
                 mat = randomly_permutate__matrix(mat)
                 len_score, _, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
-                assert _tensor_equal(len_score, [math.log10(4.)])
+                assert _tensor_equal(len_score, [math.log10(4.)/2.])# not updated?
                 assert _log[1][0] == 'sum of two raw angle_score'
                 assert _tensor_equal(_log[1][1], [0.])
                 pass
@@ -1700,6 +1701,7 @@ if "test" and __DEBUG_ME__() and True:
         
         if "randn" and False:
             print("randn")
+            assert False, "new len score is 0.5* old score. result is old score."
             #the angle part is repeating. But anyway.
             # randn(size=[dim,dim])/sqrt(dim)
             #result
@@ -1765,6 +1767,7 @@ if "test" and __DEBUG_ME__() and True:
         
         if "rand*2-1" and False:
             #the angle part is very weird. It looks the correction in that function is wrong?
+            assert False, "new len score is 0.5* old score. result is old score."
             # randn(size=[dim,dim])/sqrt(dim)
             #result
             # len_score_min               = [-2.519, -0.653, -0.492, -0.478]
@@ -1830,6 +1833,7 @@ if "test" and __DEBUG_ME__() and True:
         
         if "rand_sign as an extreme case for rand*2-1" and False:
             # rand_sign(size=[dim,dim])/sqrt(dim)
+            assert False, "new len score is 0.5* old score. result is old score."
             #result
             # len_score_min               = [-0.000,  0.000,  0.000,  0.000]
             # len_score_max               = [-0.000,  0.000,  0.000,  0.000]
@@ -1918,7 +1922,7 @@ if "test" and __DEBUG_ME__() and True:
                     if name in [
                         "sum of two len_score__raw_mean_without_abs" # 0.1400 2.1400
                     ]:
-                        assert _tensor_equal(before_entry+2., after_entry)
+                        assert _tensor_equal(before_entry+2., after_entry)# new version is 0.5*old verion?????
                         pass
                     if name in [
                         "sum of two raw angle_score" # 0.8766 0.8766
@@ -1931,7 +1935,7 @@ if "test" and __DEBUG_ME__() and True:
                         "hor_sum__as_len_sqr___1_is_good__dim" # ([2.6050, 0.6573, 1.3940]) tensor([ 65.7252, 260.5022, 139.3987])
                         "ver_sum__as_len_sqr___1_is_good__dim" # ([0.8186, 2.2877, 1.5500]) tensor([155.0018,  81.8580, 228.7663])
                     ]:
-                        assert _tensor_equal(before_entry.flatten().sort().values*100., after_entry.flatten().sort().values)
+                        assert _tensor_equal(before_entry.flatten().sort().values*100., after_entry.flatten().sort().values)# new version is 0.5*old verion?????
                         pass
                     if name in [
                         "hor_sum__as_len_log10___0_is_good__dim" #([ 0.2079, -0.0911,  0.0721]) tensor([0.9089, 1.2079, 1.0721])
@@ -1941,7 +1945,7 @@ if "test" and __DEBUG_ME__() and True:
                         "ver_len_score__raw" #              tensor([-0.0435,  0.1797,  0.0952]) tensor([1.0952, 0.9565, 1.1797])
                         "ver_len_score__raw_mean_without_abs" #0.0771 1.0771
                     ]:
-                        assert _tensor_equal(before_entry.flatten().sort().values+1., after_entry.flatten().sort().values)
+                        assert _tensor_equal(before_entry.flatten().sort().values+1., after_entry.flatten().sort().values)# new version is 0.5*old verion?????
                     if name in [
                         "matrix_into_hor_len_1 before nan_to_num"
                         # tensor([[-0.1599,  0.7765, -0.6095],
@@ -2116,6 +2120,8 @@ if "test" and __DEBUG_ME__() and True:
         
         if "how much does the randomly rotation affect the score." and False:
             # randn(size=[dim,dim])/math.sqrt(dim) * 1000
+            assert False, "# new version is 0.5*old verion, here is old version"
+            
             #result is the abs(diff)
             #theoritically, rotating a matrix should not change the result too much ?
             # diff_of__len_score_min   = [ 0.00000,  0.00000,  0.00000,  0.00000]
@@ -2187,6 +2193,7 @@ if "test" and __DEBUG_ME__() and True:
             # nothing special. The result looks normal. It's a weak evidence for the tool itself.
             # rand_sign(size=[dim,dim])/sqrt(dim)
             #result
+            assert False, "# new version is 0.5*old verion, here is old version"
             
             # if dim == 2:
             # len_score_min       = [-0.000, -0.323, -0.823, -1.597, -1.643, -1.735, -2.038, -1.484, -2.103, -1.523, -1.569]
@@ -2418,7 +2425,7 @@ if "angle_similarity but the assuption is a bit wrong." and False:
 
 
 
-def full_length_info_test(input:torch.Tensor, needs_no_abs_result = True) \
+def full_length_info_test__in_log10(input:torch.Tensor, needs_no_abs_result = True) \
                 ->tuple[torch.Tensor, torch.Tensor|None, torch.Tensor, torch.Tensor|None]:
     '''return len_loss, _raw_result__no_abs__len_loss, length_retention_loss, no_abs__length_retention_score  
     

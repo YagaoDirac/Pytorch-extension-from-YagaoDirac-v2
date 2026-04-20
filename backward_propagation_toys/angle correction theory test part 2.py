@@ -131,6 +131,8 @@ def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_
                         )->torch.Tensor:
     '''The output of this function is only the direction of row vectors. Row vectors are normalized(length == 1).
     
+    about the safe_factor. According to some test, it doesn't do anything significantly.
+    
     The length of row vector of input can be anything. I'm not sure if it handles 0 vector correctly.
     
     row vectors of return value are 1, unless the input is too close to 0. I believe it's called standard vector???
@@ -194,18 +196,16 @@ def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_
     
     #<  added in style 2
     if safe_factor is not None:
-        #assert safe_factor>0.95 and safe_factor<1.2, "I recommend 1.1"#uncommend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        assert safe_factor>=0.95 and safe_factor<=1.2, "I recommend 1.1"#uncommend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         dim = input.shape[0]
-        1w1w1w  
-        ____temp____original = ori__grad_len__dim.detach().clone()#debug only#commend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         _theorically_avg_length = 1.41*(dim-1)/dim
-        
         # mean grad row vector length == 1.41*(dim-1)/dim       (manual style)
         
+        #____temp____original = ori__grad_len__dim.detach().clone()#debug only#commend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ori__grad_len__dim.clamp_max_(safe_factor*_theorically_avg_length)
-        assert ____temp____original.ge(ori__grad_len__dim).all()#debug only#commend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        print(____temp____original)
-        print(ori__grad_len__dim)
+        #assert ____temp____original.ge(ori__grad_len__dim).all()#debug only#commend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #print(____temp____original)
+        #print(ori__grad_len__dim)
         pass
     #</ added in style 2
     
@@ -224,23 +224,10 @@ def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_
     # assert grad_len__after_expansion__dim.eq(1.).sum() == 1 when expansion_factor__s is 0., this is wrong.
     # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this grad_len__after_expansion__dim is still one 1.0 and a lot 0.xx
 
-    # if "visualization" and False:
-    #     #prin(expansion_factor__s)
-    #     visualize_this = grad_len__after_expansion__dim
-    #     import matplotlib.pyplot as plt
-    #     fig, ax = plt.subplots(tight_layout=True)
-    #     n_bins = dim//5
-    #     if n_bins<=3:
-    #         n_bins = 3
-    #         pass
-    #     ax.hist(visualize_this.tolist(), bins=n_bins)
-    #     plt.show()
-    #     pass
-
     #<  target length>
     grad_length_target__dim = grad_len__after_expansion__dim*cap_to__s
     grad_length_target__dim__expand_dim = expand_vec_to_matrix(grad_length_target__dim, each_element_to="row")
-#1w
+
     #<  finally 
     useful_grad__d_d = len_1__ori_grad__d_d.mul(grad_length_target__dim__expand_dim)#row
     # # assert _tensor_equal(get_vector_length(useful_grad__d_d), grad_length_target__dim)
@@ -343,8 +330,31 @@ def _param_for__random_dummy_mat(dim:int, target_angle_score:float)->tuple[float
         pass#if dim
     pass# end of function
 
-def random_dummy_mat__v2(dim:int, noise_strength:float,
-                    device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
+if "old version of v2" and False:
+        
+    def random_dummy_mat__v2____old(dim:int, noise_strength:float,
+                        device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
+        '''docs????
+        '''
+        if iota_of_dim is None:
+            iota_of_dim = iota(dim)
+            pass
+        
+        #<  real job
+        mat = torch.eye(n = dim, device=device)
+        mat = randomly_rotate__matrix(mat)
+        mat = randomly_permutate__matrix(mat)
+        
+        #<  some noise to mimic the learning update.
+        _mul_me = noise_strength/math.sqrt(dim)
+        mat += torch.randn_like(mat)*_mul_me
+        return mat
+    pass
+
+
+def random_dummy_mat__v2(dim:int, noise_strength:float, div_sqrt_1_plus_ns_sqr:bool,
+                    device='cpu', iota_of_dim:torch.Tensor|None = None, 
+                    )->torch.Tensor:
     '''docs????
     '''
     if iota_of_dim is None:
@@ -359,7 +369,16 @@ def random_dummy_mat__v2(dim:int, noise_strength:float,
     #<  some noise to mimic the learning update.
     _mul_me = noise_strength/math.sqrt(dim)
     mat += torch.randn_like(mat)*_mul_me
+    del _mul_me
+    
+    if div_sqrt_1_plus_ns_sqr:
+        _div_me = math.sqrt(1+noise_strength*noise_strength)
+        _mul_me = 1./_div_me
+        del _div_me
+        mat *= _mul_me
+        pass
     return mat
+assert False, "this is new v2, untested. just copied form the length test."
 
 def random_dummy_mat__v2__from_target(dim:int, target_angle_loss:torch.Tensor,
                     device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
@@ -386,10 +405,8 @@ def random_dummy_mat__v2__from_target(dim:int, target_angle_loss:torch.Tensor,
     
     noise_strength = interpolation_of_list(noise_strength_list, _index_float)
     
-    return random_dummy_mat__v2(dim = dim, noise_strength = noise_strength, device = device, iota_of_dim = iota_of_dim)
-
-
-
+    return random_dummy_mat__v2(dim = dim, noise_strength = noise_strength.item(), div_sqrt_1_plus_ns_sqr=True,
+                                device = device, iota_of_dim = iota_of_dim)
 
 if "test   random_dummy_mat__v2" and False:
     def ____test____random_dummy_mat__v2():
@@ -1159,13 +1176,13 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
             
             pass#/test
         
-        if "style 2?" and True:
+        if "style 2.   f12 into the func and read" and False:
         
-            #for dim in [3,4,5,10,100,1000]:
-            for dim in [10,100,1000]:
+            for dim in [2,3,4,5,10,100,1000]:
+            #for dim in [10,100,1000]:
                 for _ in range(22):
                     input = torch.randn(size=[dim,dim])
-                    result = full_test_version_of_angle_correction__by_row(input,1., safe_factor=1.1,
+                    result = full_test_version_of_angle_correction__by_row(input,1., safe_factor=1.05,
                                             _debug__auto_clamp_in_look_up_function = True)
                     assert _tensor_equal(get_vector_length(result), torch.ones(size=[dim]))
                     pass
@@ -1175,11 +1192,13 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
         
         return 
     
-    ____test____full_test_version_of_angle_correction__by_row______basic()
+    #____test____full_test_version_of_angle_correction__by_row______basic()
 
 
     def ____test____full_test_version_of_angle_correction__by_row______scan_the_process():
-        
+        # the style means "r", "rr", "rc", "rrr", "rrc". 
+        # result is manually extracted form visualization.
+        # it's a rough test.
         if "style doesn't matter......a rough test. To build up intuition." and False:
             #result
             # the measurement is manual. The fluctuating tail is ignored manually.
@@ -1202,13 +1221,17 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
             # The score_incr for each step doesn't show too much. 
             # sometimes it's negative.
             # Every test ends with a very clear 2-step fluctuation.
+            
+            safe_factor = 1.1#style 2
+            #safe_factor = None#style 1
+            
             style_list = ["r", "rr", "rc", "rrr", "rrc" ]
             for style in style_list:
-                expansion_factor = 0.
-                cap_to = 0.3
-                steps = 11
+                expansion_factor = 1.
+                cap_to = 0.4
+                dim = 10
                 
-                dim = 100
+                steps = 15
                 iota_of_dim = iota(dim)
                 #<  device
                 if dim>100:
@@ -1237,35 +1260,35 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
                         #only use one of them.
                         if style == "r":
                             mat = full_test_version_of_angle_correction__by_row(mat,
-                                    expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim)
+                                    expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim,safe_factor=safe_factor)
                             pass
                         elif style == "rr":
                             mat = full_test_version_of_angle_correction__by_row(mat,
-                                    expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim)
+                                    expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
                             mat = full_test_version_of_angle_correction__by_row(mat,
-                                    expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim)
+                                    expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
                             pass
                         elif style == "rc":
                             mat = full_test_version_of_angle_correction__by_row(mat,
-                                    expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim)
+                                    expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
                             mat = full_test_version_of_angle_correction__by_row(mat.T,
-                                    expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim).T
+                                    expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim,safe_factor=safe_factor).T
                             pass
                         elif style == "rrr":
                             mat = full_test_version_of_angle_correction__by_row(mat,
-                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
                             mat = full_test_version_of_angle_correction__by_row(mat,
-                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
                             mat = full_test_version_of_angle_correction__by_row(mat,
-                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
                             pass
                         elif style == "rrc":
                             mat = full_test_version_of_angle_correction__by_row(mat,
-                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
                             mat = full_test_version_of_angle_correction__by_row(mat,
-                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
                             mat = full_test_version_of_angle_correction__by_row(mat.T,
-                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim).T
+                                    expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim,safe_factor=safe_factor).T
                             pass
                         else:
                             assert False, "bad param: style"
@@ -1300,13 +1323,14 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
                 
                 from matplotlib import pyplot as plt
                 plt.plot(x_axis, total__score_incr)#, x_axis, step__score_incr)
-                plt.title(f"{style}  expansion_factor {expansion_factor:.2f}   cap_to {cap_to:.2f}")
+                plt.title(f"safe_f {safe_factor}   {style}  expansion_factor {expansion_factor:.2f}   cap_to {cap_to:.2f}")
                 plt.show()
                 
                 pass#for style
             
             pass#/ test
         
+        # some param scan to help decide the step measure result.
         if "scan it a bit. all row-wise" and False:
             #result
             
@@ -1631,44 +1655,93 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
                             # mat = full_test_version_of_angle_correction__by_row(mat.T,
                             #             expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim).T# .T in and .T out, this is col-wise
         
+        # rc, rcr, rcrc, rCr
+        # I didn't find any safe_factor effects.
         if "a rough scan about multiple steps." and False:
+            print("a rough scan about multiple steps.")
             #result
+            #result is from the old init. no safe_factor.
             
-            #          expansion_factor 1.0      dim 10
-            # cap_to_list = [ 0.70,    0.80,    0.90,    1.00,    1.10,    1.20]
-            # rc____score = [ 0.6693,  0.6600,  0.6277,  0.5540,  0.5341,  0.4566]
-            # rcr___score = [ 0.7431,  0.7828,  0.8147,  0.7881,  0.7845,  0.7093]
-            # rcrc__score = [ 0.7630,  0.8183,  0.8744,  0.8747,  0.9063,  0.8484]
-            # rCr___score = [ 0.7336,  0.7786,  0.8337,  0.8358,  0.8883,  0.8402]
+                        
+                        
+            # safe_factor None        expansion_factor 1.0      dim 10
+            # cap_to_list = [ 0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20]
+            # rc____score = [ 0.6598,  0.7795,  0.8373,  0.8264,  0.7848,  0.6774,  0.6190,  0.5511,  0.4909]
+            # rcr___score = [ 0.6887,  0.8370,  0.9209,  0.9214,  0.8952,  0.8121,  0.7437,  0.6853,  0.6434]
+            # rcrc__score = [ 0.6987,  0.8608,  0.9497,  0.9508,  0.9379,  0.8841,  0.8730,  0.8527,  0.8531]
+            # rCr___score = [ 0.6880,  0.8346,  0.9255,  0.9732,  0.9954,  0.9741,  0.9805,  0.9660,  0.8931]
+            # bad_1_score = [ 0.5953,  0.6507,  0.6235,  0.5401,  0.4417,  0.3452,  0.3528,  0.3997,  0.4222]
+            # bad_2_score = [ 0.6191,  0.6349,  0.5543,  0.4367,  0.3335,  0.2334,  0.1816,  0.1377,  0.1001]
             # ------------                                                                         
-            #          expansion_factor 1.0      dim 100
-            # cap_to_list = [ 0.70,    0.80,    0.90,    1.00,    1.10,    1.20]
-            # rc____score = [ 0.6782,  0.6346,  0.5804,  0.5312,  0.4771,  0.4017]
-            # rcr___score = [ 0.8084,  0.8298,  0.8024,  0.7543,  0.7178,  0.7019]
-            # rcrc__score = [ 0.8441,  0.9021,  0.9246,  0.8945,  0.8540,  0.8422]
-            # rCr___score = [ 0.7834,  0.8159,  0.8424,  0.8559,  0.8441,  0.7860]
+            # safe_factor None        expansion_factor 1.0      dim 100
+            # cap_to_list = [ 0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20]
+            # rc____score = [ 0.6750,  0.7788,  0.8279,  0.8031,  0.7347,  0.6450,  0.5589,  0.4462,  0.3478]
+            # rcr___score = [ 0.7059,  0.8451,  0.9529,  0.9720,  0.9035,  0.8062,  0.7499,  0.6986,  0.6902]
+            # rcrc__score = [ 0.7169,  0.8689,  1.0049,  1.0591,  0.9978,  0.8892,  0.8502,  0.8484,  0.8500]
+            # rCr___score = [ 0.6978,  0.8301,  0.9330,  0.9858,  1.0142,  1.0274,  1.0167,  0.9594,  0.8678]
+            # bad_1_score = [ 0.5882,  0.6100,  0.5816,  0.5153,  0.4641,  0.4398,  0.4326,  0.4365,  0.4271]
+            # bad_2_score = [ 0.5815,  0.5716,  0.4988,  0.3982,  0.2931,  0.2166,  0.1591,  0.1122,  0.0923]
             # ------------                                                                         
-            #          expansion_factor 1.0      dim 1000
-            # cap_to_list = [ 0.70,    0.80,    0.90,    1.00,    1.10,    1.20]
-            # rc____score = [ 0.6146,  0.5482,  0.4905,  0.4204,  0.3292,  0.2062]
-            # rcr___score = [ 0.8068,  0.7698,  0.7080,  0.6703,  0.6474,  0.6226]
-            # rcrc__score = [ 0.8788,  0.8918,  0.8472,  0.8132,  0.8059,  0.8034]
-            # rCr___score = [ 0.7921,  0.8210,  0.8385,  0.8183,  0.7413,  0.6088]
-            # ------------    
+            # safe_factor None        expansion_factor 1.0      dim 1000
+            # cap_to_list = [ 0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20]
+            # rc____score = [ 0.7334,  0.8192,  0.8093,  0.7273,  0.6334,  0.5253,  0.4003,  0.2678,  0.1452]
+            # rcr___score = [ 0.7717,  0.9164,  0.9783,  0.9051,  0.7951,  0.7260,  0.6859,  0.6631,  0.6278]
+            # rcrc__score = [ 0.7849,  0.9530,  1.0596,  0.9831,  0.8740,  0.8428,  0.8513,  0.8501,  0.8310]
+            # rCr___score = [ 0.7595,  0.8946,  0.9748,  1.0100,  1.0350,  1.0214,  0.9465,  0.8179,  0.6865]
+            # bad_1_score = [ 0.6054,  0.5898,  0.5255,  0.4677,  0.4377,  0.4368,  0.4414,  0.4130,  0.3615]
+            # bad_2_score = [ 0.5815,  0.5298,  0.4227,  0.3083,  0.2136,  0.1418,  0.0981,  0.0748,  0.0619]
+            # ------------      
+            
+            
+            # safe_factor None        expansion_factor 1.0      dim 10
+            # cap_to_list = [ 0.60,    0.70,    0.80,    0.90,    1.00,  
+            # rcrc__score = [ 0.9497,  0.9508,  0.9379,  
+            # rCr___score = [          0.9732,  0.9954,  0.9741,  0.9805,
+            
+            # safe_factor 0.8        expansion_factor 1.0      dim 10
+            # cap_to_list = [ 0.60,    0.70,    0.80,    0.90,    1.00]
+            # rcrc__score = [ 0.9242,  0.9724,  0.9382, 
+            # rCr___score = [          0.9859,  1.0196,  0.9900,  0.9910]
+            
+            # safe_factor 0.9        expansion_factor 1.0      dim 10
+            # cap_to_list = [ 0.60,    0.70,    0.80,    0.90,    1.00,    
+            # rcrc__score = [ 0.9492,  0.9720,  0.9238,  
+            # rCr___score = [          0.9703,  0.9987,  1.0171,  0.9780,  
+            
+            # safe_factor 1.0        expansion_factor 1.0      dim 10
+            # cap_to_list = [ 0.60,    0.70,    0.80,    0.90,    1.00,  
+            # rcrc__score = [ 0.9335,  0.9606,  0.9334,  
+            # rCr___score = [          0.9707,  1.0010,  0.9879,  0.9990,
+            
+            # safe_factor 1.1        expansion_factor 1.0      dim 10
+            # cap_to_list = [ 0.60,    0.70,    0.80,    0.90,    1.00,  
+            # rcrc__score = [ 0.9757,  0.9698,  0.9215,  
+            # rCr___score = [          0.9761,  0.9909,  0.9979,  0.9842,
+            
+            # safe_factor 1.2        expansion_factor 1.0      dim 10
+            # cap_to_list = [ 0.60,    0.70,    0.80,    0.90,    1.00,  
+            # rcrc__score = [ 0.9305,  0.9790,  0.9060,  
+            # rCr___score = [          0.9754,  0.9708,  1.0020,  0.9933,
+            
+            
+            
             
             # conclusion
             # I need to scan by calling-the-function-2-times or 3 times.
             
             
             #-------------------#-------------------#-------------------
+            safe_factor = 0.8#style 2
+            #safe_factor = None#style 1
+            
             expansion_factor = 1. # as a const
             
-            dim_list =       [ 10,100,1000]
-            test_time_list = [500,500,100]
+            dim_list =       [ 10]#,100,1000]
+            test_time_list = torch.tensor([200,50,20])
+            test_time_list = test_time_list.mul(1.0).to(torch.int32)
             for outter_param_count in range(dim_list.__len__()):
                 dim = dim_list[outter_param_count]
                 test_time = test_time_list[outter_param_count]
-                iota_of_dim = iota(dim)
                 #<  device
                 if dim>100:
                     device = 'cuda'
@@ -1676,6 +1749,7 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
                 else:
                     device = 'cpu'
                     pass
+                iota_of_dim = iota(dim, device=device)
                 #</ device
                 print(f"dim {dim}   test_time {test_time}  {device}")
             #-------------------#-------------------#-------------------
@@ -1684,13 +1758,12 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
                 rcr___score = []#dont modify this.
                 rcrc__score = []#dont modify this.
                 rCr___score = []#dont modify this.
-                #bad_1_score = []#dont modify this.
-                #bad_2_score = []#dont modify this.
+                bad_1_score = []#dont modify this.
+                bad_2_score = []#dont modify this.
                 
                 #-------------------#-------------------#-------------------
-                #cap_to_list = [0.02,0.05,0.1,0.15,0.2,0.25,0.3]#x axis
-                #cap_to_list = [0.1,0.3, 0.5, 0.7, 1., 1.2, 1.5]#x axis
-                cap_to_list = [0.7, 0.8, 0.9, 1., 1.1, 1.2,]#x axis
+                cap_to_list = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2,]#x axis
+                cap_to_list = [0.6, 0.7, 0.8, 0.9, 1., ]#x axis
                 for cap_to in cap_to_list:
                 #-------------------#-------------------#-------------------
                     
@@ -1698,14 +1771,17 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
                     _raw_result__rcr___score = torch.empty(size=[test_time])
                     _raw_result__rcrc__score = torch.empty(size=[test_time])
                     _raw_result__rCr___score = torch.empty(size=[test_time])
-                    #_raw_result__bad_1_score = torch.empty(size=[test_time])
-                    #_raw_result__bad_2_score = torch.empty(size=[test_time])
+                    _raw_result__bad_1_score = torch.empty(size=[test_time])
+                    _raw_result__bad_2_score = torch.empty(size=[test_time])
                     
                     for _test_count in range(test_time):
                         
                         #-------------------#-------------------#-------------------
                         #<  init
-                        ori_mat = random_dummy_mat(dim, device=device, iota_of_dim=iota_of_dim)#or maybe the noise_0.5
+                        #old code ori_mat = random_dummy_mat(dim, device=device, iota_of_dim=iota_of_dim)#or maybe the noise_0.5
+                        
+                        ori_mat = random_dummy_mat__v2__from_target(dim, target_angle_loss=torch.tensor(1.2),
+                                                                    device=device, iota_of_dim=iota_of_dim)
                         _, angle_loss__in_the_beginning, _ = LOSS__mat_is_standard_orthogonal(ori_mat)
                         #</ init
                         
@@ -1713,64 +1789,64 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
                         # rc
                         mat = ori_mat.detach().clone()
                         mat = full_test_version_of_angle_correction__by_row(mat,
-                                expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim)
+                                expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
                         mat = full_test_version_of_angle_correction__by_row(mat.T,
-                                expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim).T
+                                expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
                         _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                         _raw_result__rc____score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
                         # rcr
                         mat = ori_mat.detach().clone()
                         mat = full_test_version_of_angle_correction__by_row(mat,
-                                expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                                expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
                         mat = full_test_version_of_angle_correction__by_row(mat.T,
-                                expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim).T
+                                expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
                         mat = full_test_version_of_angle_correction__by_row(mat,
-                                expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim)
+                                expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
                         _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                         _raw_result__rcr___score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
                         # rcrc
                         mat = ori_mat.detach().clone()
                         mat = full_test_version_of_angle_correction__by_row(mat,
-                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim)
+                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
                         mat = full_test_version_of_angle_correction__by_row(mat.T,
-                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim).T
+                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
                         mat = full_test_version_of_angle_correction__by_row(mat,
-                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim)
+                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
                         mat = full_test_version_of_angle_correction__by_row(mat.T,
-                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim).T
+                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
                         _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                         _raw_result__rcrc__score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
                         # rCr
                         mat = ori_mat.detach().clone()
                         mat = full_test_version_of_angle_correction__by_row(mat,
-                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim)
+                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
                         mat = full_test_version_of_angle_correction__by_row(mat.T,
-                                expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim).T
+                                expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
                         mat = full_test_version_of_angle_correction__by_row(mat,
-                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim)
+                                expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
                         _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                         _raw_result__rCr___score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
-                        # # bad 1
-                        # mat = ori_mat.detach().clone()
-                        # mat = full_test_version_of_angle_correction__by_row(mat,
-                        #         expansion_factor=expansion_factor, cap_to=cap_to*0.9, iota_of_dim=iota_of_dim)
-                        # mat = full_test_version_of_angle_correction__by_row(mat.T,
-                        #         expansion_factor=expansion_factor, cap_to=cap_to*0.1, iota_of_dim=iota_of_dim).T
-                        # _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
-                        # _raw_result__bad_1_score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
+                        # bad 1
+                        mat = ori_mat.detach().clone()
+                        mat = full_test_version_of_angle_correction__by_row(mat,
+                                expansion_factor=expansion_factor, cap_to=cap_to*0.9, iota_of_dim=iota_of_dim, safe_factor=safe_factor)
+                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                expansion_factor=expansion_factor, cap_to=cap_to*0.1, iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
+                        _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        _raw_result__bad_1_score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
-                        # #bad 2":
-                        # mat = ori_mat.detach().clone()
-                        # mat = full_test_version_of_angle_correction__by_row(mat,
-                        #         expansion_factor=expansion_factor, cap_to=cap_to*0.1, iota_of_dim=iota_of_dim)
-                        # mat = full_test_version_of_angle_correction__by_row(mat.T,
-                        #         expansion_factor=expansion_factor, cap_to=cap_to*0.9, iota_of_dim=iota_of_dim).T
-                        # _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
-                        # _raw_result__bad_2_score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
+                        #bad 2":
+                        mat = ori_mat.detach().clone()
+                        mat = full_test_version_of_angle_correction__by_row(mat,
+                                expansion_factor=expansion_factor, cap_to=cap_to*0.1, iota_of_dim=iota_of_dim, safe_factor=safe_factor)
+                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                expansion_factor=expansion_factor, cap_to=cap_to*0.9, iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
+                        _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        _raw_result__bad_2_score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
                         
                         pass#for _test_count
@@ -1779,21 +1855,19 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
                     rcr___score.append(_raw_result__rcr___score.mean())
                     rcrc__score.append(_raw_result__rcrc__score.mean())
                     rCr___score.append(_raw_result__rCr___score.mean())
-                    #bad_1_score.append(_raw_result__bad_1_score.mean())
-                    #bad_2_score.append(_raw_result__bad_2_score.mean())
+                    bad_1_score.append(_raw_result__bad_1_score.mean())
+                    bad_2_score.append(_raw_result__bad_2_score.mean())
                     
                     pass#for cap_to  #x axis
                 
-                print(f"#          expansion_factor {expansion_factor}      dim {dim}")
+                print(f"# safe_factor {safe_factor}        expansion_factor {expansion_factor}      dim {dim}")
                 print(f"# cap_to_list = {str_the_list(cap_to_list         , 2, segment=",   ")}")
-                # print(f"# angle_score_incr__min = {str_the_list(angle_score_incr__min, 4)}")
-                # print(f"# angle_score_incr__max = {str_the_list(angle_score_incr__max, 4)}")
                 print(f"# rc____score = {str_the_list(rc____score, 4)}")
                 print(f"# rcr___score = {str_the_list(rcr___score, 4)}")
                 print(f"# rcrc__score = {str_the_list(rcrc__score, 4)}")
                 print(f"# rCr___score = {str_the_list(rCr___score, 4)}")
-                #print(f"# bad_1_score = {str_the_list(bad_1_score, 4)}")
-                #print(f"# bad_2_score = {str_the_list(bad_2_score, 4)}")
+                print(f"# bad_1_score = {str_the_list(bad_1_score, 4)}")
+                print(f"# bad_2_score = {str_the_list(bad_2_score, 4)}")
                 print(f"# ------------                                                                         ")
                 
                 pass# for style
@@ -2272,7 +2346,8 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
         
         return 
         
-    #____test____full_test_version_of_angle_correction__by_row______scan_the_process()
+    ____test____full_test_version_of_angle_correction__by_row______scan_the_process()
+    pass
 
 if __DEBUG_ME__():
     assert False
