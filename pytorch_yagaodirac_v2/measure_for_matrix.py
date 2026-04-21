@@ -10,8 +10,8 @@ from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, \
     vector_length_norm, get_vector_length,\
     log10_avg_safe, get_mask_of_top_element__rough,\
     str_the_list
-from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_something_to_1
-from pytorch_yagaodirac_v2.Random import random_standard_vector, randomly_permutate__matrix, randomly_rotate__matrix
+from pytorch_yagaodirac_v2.Random import random_standard_vector, randomly_permutate__matrix, randomly_rotate__matrix,\
+    rand_sign
     
 
 
@@ -1629,7 +1629,6 @@ if "test" and __DEBUG_ME__() and True:
     #____test____basic_behavior____LOSS__the_mat_is_standard_orthogonal()
     
     
-    
     def ____test____measure_the_random_init____LOSS__the_mat_is_standard_orthogonal():
         if "the reason to correct the angle_score" and False:
             print("the reason to correct the angle_score")
@@ -1698,204 +1697,127 @@ if "test" and __DEBUG_ME__() and True:
             print(f"dim_list                = {str_the_list(dim_list, 1)}")
             
             pass#/test
+        from pytorch_yagaodirac_v2.Random import rand_sign
         
-        if "randn" and False:
-            print("randn")
-            assert False, "new len score is 0.5* old score. result is old score."
-            #the angle part is repeating. But anyway.
-            # randn(size=[dim,dim])/sqrt(dim)
-            #result
-            # len_score_min   = [-2.438, -0.295, -0.027, -0.002]
-            # len_score_max   = [ 0.705,  0.204,  0.019,  0.001]
-            # len_score_avg   = [-0.250, -0.046, -0.004, -0.000]
-            # angle_score_min = [ 0.020,  1.129,  1.550,  1.591]
-            # angle_score_max = [ 2.530,  2.348,  1.650,  1.599]
-            # angle_score_avg = [ 1.616,  1.605,  1.596,  1.596]
-            # dim_list         = [ 2.00,  10.00,  100.00,  1000.]
+        if "measure all the rand gen" and False:
             
-            # angle_score_avg = [ 1.801,  1.636,  1.601,  1.596]# if the correction offset if 0.
-            # angle_score_avg = [ 1.272,  1.548,  1.592,  1.595]# if the correction offset if -1.
+            if True:
+                # randn
+                # len_score_min   = [-0.771, -0.158, -0.015, -0.001]
+                # len_score_max   = [ 0.321,  0.090,  0.010,  0.001]
+                # len_score_avg   = [-0.132, -0.023, -0.002, -0.000]
+                # angle_score_min = [ 0.051,  1.126,  1.537,  1.591]
+                # angle_score_max = [ 2.530,  2.542,  1.657,  1.601]
+                # angle_score_avg = [ 1.634,  1.606,  1.597,  1.596]
+                # dim_list           = [ 2,    10,    100,    1000]
+                # rand
+                # len_score_min   = [-1.034, -0.339, -0.246, -0.239]
+                # len_score_max   = [-0.027, -0.182, -0.232, -0.238]
+                # len_score_avg   = [-0.313, -0.248, -0.239, -0.239]
+                # angle_score_min = [ 0.292,  4.045,  14.776,  47.372]#bc rand is 0 to 1.
+                # angle_score_max = [ 2.530,  5.312,  15.183,  47.495]
+                # angle_score_avg = [ 2.145,  4.703,  14.985,  47.430]
+                # dim_list           = [ 2,    10,    100,    1000]
+                # rand*2-1
+                # len_score_min   = [-1.165, -0.337, -0.246, -0.239]
+                # len_score_max   = [-0.056, -0.178, -0.233, -0.238]
+                # len_score_avg   = [-0.306, -0.248, -0.239, -0.239]
+                # angle_score_min = [ 0.020,  1.036,  1.535,  1.590]
+                # angle_score_max = [ 2.530,  2.362,  1.661,  1.601]
+                # angle_score_avg = [ 1.610,  1.599,  1.595,  1.596]
+                # dim_list           = [ 2,    10,    100,    1000]
+                # rand_sign
+                # len_score_min   = [-0.000,  0.000,  0.000,  0.000]#bc rand-sign is all +-1.
+                # len_score_max   = [-0.000,  0.000,  0.000,  0.000]
+                # len_score_avg   = [-0.000,  0.000,  0.000,  0.000]
+                # angle_score_min = [ 0.000,  0.936,  1.533,  1.590]
+                # angle_score_max = [ 2.530,  2.506,  1.653,  1.601]
+                # angle_score_avg = [ 1.313,  1.526,  1.588,  1.595]
+                # dim_list           = [ 2,    10,    100,    1000]
+                pass
             
-            #throritically, rotating and permutating a matrix should not change the result too much ?
             
-            len_score_min = []#don't modify this
-            len_score_max = []#don't modify this
-            len_score_avg = []#don't modify this
-            angle_score_min = []#don't modify this
-            angle_score_max = []#don't modify this
-            angle_score_avg = []#don't modify this
-            #------------------#------------------#------------------
-            dim_list =       [2,       10,  100, 1000]
-            test_time_list = [10000, 3000, 1000,  200]
-            #test_time_list = [1000, 300, 100,  20]
-            for inner_param_set in range(dim_list.__len__()):
-                dim = dim_list[inner_param_set]
-                test_time = test_time_list[inner_param_set]
-                print(test_time)
-            #------------------#------------------#------------------
             
-                raw_len_score = torch.empty(size=[test_time])
-                raw_angle_score = torch.empty(size=[test_time])
-                for test_count in range(test_time):
-                    #------------------#------------------#------------------
-                    mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
-                    _, angle_score, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)#,_correct_offset_for_angle_score = -1.)
-                    assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
-                    len_score = _log[0][1]
-                    #------------------#------------------#------------------
-                    
-                    raw_len_score[test_count] = len_score
-                    raw_angle_score[test_count] = angle_score
-                    pass
-                len_score_min   .append(raw_len_score.min ())
-                len_score_max   .append(raw_len_score.max ())
-                len_score_avg   .append(raw_len_score.mean())
-                angle_score_min .append(raw_angle_score.min ())
-                angle_score_max .append(raw_angle_score.max ())
-                angle_score_avg .append(raw_angle_score.mean())
+            print("measure all the rand gen")
+            rand_gen_style_list = [
+                "randn",
+                # mat = torch.randn(size=[dim,dim])/math.sqrt(dim)
+                "rand",
+                # mat = (torch.rand (size=[dim,dim]))/math.sqrt(dim)
+                "rand*2-1",
+                # mat = (torch.rand (size=[dim,dim])*2.-1.)/math.sqrt(dim)
+                "rand_sign",
+                # mat = rand_sign(size=[dim,dim])/math.sqrt(dim)
+            ]
+            for rand_gen_style in rand_gen_style_list:
+            
+                len_score_min = []#don't modify this
+                len_score_max = []#don't modify this
+                len_score_avg = []#don't modify this
+                angle_score_min = []#don't modify this
+                angle_score_max = []#don't modify this
+                angle_score_avg = []#don't modify this
+                #------------------#------------------#------------------
+                dim_list =                    [  2,   10,   100, 1000]
+                test_time_list = torch.tensor([1000,10000, 5000, 2000])
+                test_time_list = test_time_list.mul(1.).to(torch.int32)
+                for inner_param_set in range(dim_list.__len__()):
+                    dim = dim_list[inner_param_set]
+                    device = 'cpu'
+                    if dim>100:
+                        device = 'cuda'
+                        pass
+                    test_time = test_time_list[inner_param_set]
+                    print(test_time)
+                #------------------#------------------#------------------
                 
-                pass#for inner param set
-            print(f"len_score_min   = {str_the_list(len_score_min  , 3)}")
-            print(f"len_score_max   = {str_the_list(len_score_max  , 3)}")
-            print(f"len_score_avg   = {str_the_list(len_score_avg  , 3)}")
-            print(f"angle_score_min = {str_the_list(angle_score_min, 3)}")
-            print(f"angle_score_max = {str_the_list(angle_score_max, 3)}")
-            print(f"angle_score_avg = {str_the_list(angle_score_avg, 3)}")
-            print(f"dim_list      = {str_the_list(dim_list, 2)}")
-            
-            pass#/test
-        
-        if "rand*2-1" and False:
-            #the angle part is very weird. It looks the correction in that function is wrong?
-            assert False, "new len score is 0.5* old score. result is old score."
-            # randn(size=[dim,dim])/sqrt(dim)
-            #result
-            # len_score_min               = [-2.519, -0.653, -0.492, -0.478]
-            # len_score_max               = [-0.075, -0.367, -0.464, -0.476]
-            # len_score_avg               = [-0.621, -0.496, -0.479, -0.477]
-            # angle_score_min             = [ 0.008,  1.137,  1.546,  1.592]
-            # angle_score_max             = [ 2.530,  2.303,  1.658,  1.601]
-            # angle_score_avg             = [ 1.611,  1.600,  1.595,  1.596]
-            # dim_list                  = [ 2.00,  10.00,  100.00,  1000.00]
+                    raw_len_score = torch.empty(size=[test_time])
+                    raw_angle_score = torch.empty(size=[test_time])
+                    for test_count in range(test_time):
+                        #------------------#------------------#------------------
+                        #<  init
+                        if rand_gen_style == "randn":
+                            mat = torch.randn(size=[dim,dim],device =device)/math.sqrt(dim)
+                            pass
+                        elif rand_gen_style == "rand":
+                            mat = torch.rand (size=[dim,dim],device =device)/math.sqrt(dim)
+                            pass
+                        elif rand_gen_style == "rand*2-1":
+                            mat = (torch.rand (size=[dim,dim],device =device)*2.-1.)/math.sqrt(dim)
+                            pass
+                        elif rand_gen_style == "rand_sign":
+                            mat = rand_sign(size=[dim,dim],device =device)/math.sqrt(dim)
+                            pass
+                        else:
+                            assert False, "bad param"
                         
-            # angle_score_avg             = [ 1.796,  1.627,  1.599,  1.596]# if the correction offset if 0.
-            # angle_score_avg             = [ 1.279,  1.547,  1.592,  1.595]# if the correction offset if -1.
-            
-            #throritically, rotating and permutating a matrix should not change the result too much ?
-            print("rand*2-1")
-            len_score_min = []#don't modify this
-            len_score_max = []#don't modify this
-            len_score_avg = []#don't modify this
-            angle_score_min = []#don't modify this
-            angle_score_max = []#don't modify this
-            angle_score_avg = []#don't modify this
-            #------------------#------------------#------------------
-            dim_list =       [2,      10,  100, 1000]
-            test_time_list = [5000, 3000, 1000,  200]
-            test_time_list = [500, 300, 100,  20]
-            for inner_param_set in range(dim_list.__len__()):
-                dim = dim_list[inner_param_set]
-                test_time = test_time_list[inner_param_set]
-                print(test_time)
-            #------------------#------------------#------------------
-            
-                raw_len_score = torch.empty(size=[test_time])
-                raw_angle_score = torch.empty(size=[test_time])
-                raw_angle_score_uncorrected = torch.empty(size=[test_time])
-                for test_count in range(test_time):
-                    #------------------#------------------#------------------
-                    mat = (torch.rand (size=[dim,dim])*2.-1.)/math.sqrt(dim)
-                    _, angle_score, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)#,_correct_offset_for_angle_score = 0.)
-                    assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
-                    len_score = _log[0][1]
-                    #------------------#------------------#------------------
+                        #<  measure
+                        _, angle_score, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)#,_correct_offset_for_angle_score = -1.)
+                        assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
+                        len_score = _log[0][1]
+                        #------------------#------------------#------------------
+                        
+                        raw_len_score[test_count] = len_score
+                        raw_angle_score[test_count] = angle_score
+                        pass
+                    len_score_min   .append(raw_len_score.min ())
+                    len_score_max   .append(raw_len_score.max ())
+                    len_score_avg   .append(raw_len_score.mean())
+                    angle_score_min .append(raw_angle_score.min ())
+                    angle_score_max .append(raw_angle_score.max ())
+                    angle_score_avg .append(raw_angle_score.mean())
                     
-                    raw_len_score[test_count] = len_score
-                    raw_angle_score[test_count] = angle_score
-                    pass
-                len_score_min   .append(raw_len_score.min ())
-                len_score_max   .append(raw_len_score.max ())
-                len_score_avg   .append(raw_len_score.mean())
-                angle_score_min .append(raw_angle_score.min ())
-                angle_score_max .append(raw_angle_score.max ())
-                angle_score_avg .append(raw_angle_score.mean())
+                    pass#for inner param set
+                print(f"{rand_gen_style}")
+                print(f"len_score_min   = {str_the_list(len_score_min  , 3)}")
+                print(f"len_score_max   = {str_the_list(len_score_max  , 3)}")
+                print(f"len_score_avg   = {str_the_list(len_score_avg  , 3)}")
+                print(f"angle_score_min = {str_the_list(angle_score_min, 3)}")
+                print(f"angle_score_max = {str_the_list(angle_score_max, 3)}")
+                print(f"angle_score_avg = {str_the_list(angle_score_avg, 3)}")
+                print(f"dim_list          = {str_the_list(dim_list, 0, ",    ")}")
+                pass#for rand_gen_style
                 
-                pass#for inner param set
-            print(f"len_score_min               = {str_the_list(len_score_min  , 3)}")
-            print(f"len_score_max               = {str_the_list(len_score_max  , 3)}")
-            print(f"len_score_avg               = {str_the_list(len_score_avg  , 3)}")
-            print(f"angle_score_min             = {str_the_list(angle_score_min, 3)}")
-            print(f"angle_score_max             = {str_the_list(angle_score_max, 3)}")
-            print(f"angle_score_avg             = {str_the_list(angle_score_avg, 3)}")
-            print(f"dim_list                  = {str_the_list(dim_list, 2)}")
-            
-            pass#/test
-        
-        if "rand_sign as an extreme case for rand*2-1" and False:
-            # rand_sign(size=[dim,dim])/sqrt(dim)
-            assert False, "new len score is 0.5* old score. result is old score."
-            #result
-            # len_score_min               = [-0.000,  0.000,  0.000,  0.000]
-            # len_score_max               = [-0.000,  0.000,  0.000,  0.000]
-            # len_score_avg               = [-0.000,  0.000,  0.000,  0.000]
-            # angle_score_min             = [ 0.000,  0.991,  1.541,  1.591]
-            # angle_score_max             = [ 2.530,  2.424,  1.641,  1.600]
-            # angle_score_avg             = [ 1.253,  1.531,  1.589,  1.595]
-            # dim_list                  = [ 2.00,  10.00,  100.00,  1000.00]
-            
-            # angle_score_avg             = [ 1.419,  1.563,  1.593,  1.595]# if the correction offset if 0.
-            # angle_score_avg             = [ 0.989,  1.478,  1.584,  1.595]# if the correction offset if -1.
-            
-            #throritically, rotating and permutating a matrix should not change the result too much ?
-            print("rand_sign as an extreme case for rand*2-1")
-            from pytorch_yagaodirac_v2.Random import rand_sign
-            len_score_min = []#don't modify this
-            len_score_max = []#don't modify this
-            len_score_avg = []#don't modify this
-            angle_score_min = []#don't modify this
-            angle_score_max = []#don't modify this
-            angle_score_avg = []#don't modify this
-            #------------------#------------------#------------------
-            dim_list =       [2,      10,  100, 1000]
-            test_time_list = [5000, 3000, 1000,  200]
-            #test_time_list = [500, 300, 100,  20]
-            for inner_param_set in range(dim_list.__len__()):
-                dim = dim_list[inner_param_set]
-                test_time = test_time_list[inner_param_set]
-                print(test_time)
-            #------------------#------------------#------------------
-            
-                raw_len_score = torch.empty(size=[test_time])
-                raw_angle_score = torch.empty(size=[test_time])
-                raw_angle_score_uncorrected = torch.empty(size=[test_time])
-                for test_count in range(test_time):
-                    #------------------#------------------#------------------
-                    mat = rand_sign(size=[dim,dim])/math.sqrt(dim)
-                    assert not mat.eq(0.).any()
-                    _, angle_score, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)#,_correct_offset_for_angle_score = -1.)
-                    assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
-                    len_score = _log[0][1]
-                    #------------------#------------------#------------------
-                    
-                    raw_len_score[test_count] = len_score
-                    raw_angle_score[test_count] = angle_score
-                    pass
-                len_score_min   .append(raw_len_score.min ())
-                len_score_max   .append(raw_len_score.max ())
-                len_score_avg   .append(raw_len_score.mean())
-                angle_score_min .append(raw_angle_score.min ())
-                angle_score_max .append(raw_angle_score.max ())
-                angle_score_avg .append(raw_angle_score.mean())
-                
-                pass#for inner param set
-            print(f"len_score_min               = {str_the_list(len_score_min  , 3)}")
-            print(f"len_score_max               = {str_the_list(len_score_max  , 3)}")
-            print(f"len_score_avg               = {str_the_list(len_score_avg  , 3)}")
-            print(f"angle_score_min             = {str_the_list(angle_score_min, 3)}")
-            print(f"angle_score_max             = {str_the_list(angle_score_max, 3)}")
-            print(f"angle_score_avg             = {str_the_list(angle_score_avg, 3)}")
-            print(f"dim_list                  = {str_the_list(dim_list, 2)}")
-            
             pass#/test
         
         if "permutation doesn't affect the result." and False:
