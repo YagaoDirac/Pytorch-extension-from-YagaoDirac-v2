@@ -2265,7 +2265,7 @@ if "test" and __DEBUG_ME__() and True:
 
 
 
-if "angle_similarity but the assuption is a bit wrong." and False:
+if "angle_similarity but the assuption is a bit wrong."  and False:
     #simply use other measurements
         
     def ____xxxx____LOSS__angle_similarity(input:torch.Tensor, target:torch.Tensor)->torch.Tensor:
@@ -2349,7 +2349,7 @@ if "angle_similarity but the assuption is a bit wrong." and False:
 
 def full_length_info_test__in_log10(input:torch.Tensor, needs_no_abs_result = True) \
                 ->tuple[torch.Tensor, torch.Tensor|None, torch.Tensor, torch.Tensor|None]:
-    '''return len_loss, _raw_result__no_abs__len_loss, length_retention_loss, no_abs__length_retention_score  
+    '''return len_loss, _raw_result__no_abs__len_loss, length_retention_loss, no_abs__length_retention_loss  
     
     or 
     
@@ -2367,9 +2367,259 @@ def full_length_info_test__in_log10(input:torch.Tensor, needs_no_abs_result = Tr
     
     return len_loss, None, length_retention_loss, no_abs__length_retention_score
 
+if "difference between length and length_retension" and __DEBUG_ME__() and True:
+    def ____test____difference_between_length_and_length_retension():
+        import time
+        
+        if "when the angle is not perfect, what's the direction of error." and False:
+            #------------------#------------------#------------------
+            dim_list =                          [ 10, 100, 1000]
+            number_of_tests_list = torch.tensor([100,  50,  10])
+            number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                #iota_of_dim = iota(dim)
+                number_of_tests = number_of_tests_list[outter_param_set]
+                device = 'cpu'
+                if dim>10001:
+                    device = 'cuda'
+                    pass
+                print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+                
+                for _test_count in range(number_of_tests):
+                    
+                    #<  init
+                    mat = torch.empty(size=[dim,dim])
+                    for ii in range(dim):
+                        mat[ii] = random_standard_vector(dim)
+                        pass
+                    
+                    #<  measure
+                    len_loss, _raw_result__no_abs__len_loss, \
+                            length_retention_loss, no_abs__length_retention_score = \
+                                    full_length_info_test__in_log10(mat)
+                    
+                    #<  assertions
+                    assert len_loss >=0.
+                    assert _raw_result__no_abs__len_loss <=0.
+                    assert length_retention_loss >=0.
+                    #assert no_abs__length_retention_score may be any sign.
+                    pass# for _test_count
+                pass# for outter_param_set
+            pass#/ test
+        
+        if "eye distorted" and False:
+            
+            # dim 10
+            # distorting_strength = [ 0.00316,     0.03162,     0.31623,     3.16228]
+            # len_loss             = [ 0.00000022,  0.00002169,  0.00197953,  0.03305548]
+            # no_abs__len_loss     = [-0.00000000, -0.00000001, -0.00009010, -0.01901415]
+            # length_retention_loss= [ 0.00008759,  0.00063449,  0.00948989,  0.01886990]
+            # dim 100
+            # distorting_strength = [ 0.00100,     0.01000,     0.10000,     1.00000]
+            # len_loss             = [ 0.00000000,  0.00000022,  0.00002150,  0.00119280]
+            # no_abs__len_loss     = [-0.00000000,  0.00000000, -0.00000011, -0.00031235]
+            # length_retention_loss= [ 0.00000301,  0.00002798,  0.00028416,  0.00178724]
+            # dim 1000
+            # distorting_strength = [ 0.00032,     0.00316,     0.03162,     0.31623]
+            # len_loss             = [ 0.00000000,  0.00000000,  0.00000022,  0.00001980]
+            # no_abs__len_loss     = [-0.00000000, -0.00000000, -0.00000000, -0.00000090]
+            # length_retention_loss= [ 0.00000009,  0.00000077,  0.00000801,  0.00007549]
+            
+            print(f"{_line_()}     eye distorted")
+            #------------------#------------------#------------------
+            dim_list =                          [ 10, 100, 1000]
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                #iota_of_dim = iota(dim)
+                device = 'cpu'
+                if dim>10001:
+                    device = 'cuda'
+                    pass
+                print(f"dim {dim}   test_time {1}    device {device}")
+            #------------------#------------------#------------------
+                
+                _when_start = time.perf_counter()
+                
+                len_loss              = []#dont modify this. 
+                no_abs__len_loss      = []#dont modify this. 
+                length_retention_loss = []#dont modify this.
+                
+                #------------------#------------------#------------------
+                distorting_strength_list = torch.tensor([0.01, 0.1, 1.,10.])
+                distorting_strength_list *= 1./math.sqrt(dim)
+                for distorting_strength in distorting_strength_list:
+                #------------------#------------------#------------------
 
+                    #------------------#------------------#------------------
+                    #<  init
+                    mat = torch.eye(n=dim)
+                    #<  init       -       rotate row 0 a bit
+                    mat[0,dim-1] = distorting_strength
+                    mat[0] = vector_length_norm(mat[0].reshape([1,-1])).reshape([-1])
+                    assert _tensor_equal(get_vector_length(mat), [1.]*dim)#, epsilon=0.001)#all row vec are len=1.
+                    
+                    #<  measure
+                    this_len_loss, this_no_abs__len_loss, this_length_retention_loss, _ = \
+                                    full_length_info_test__in_log10(mat)
+                    #------------------#------------------#------------------
+                    len_loss.append(this_len_loss)
+                    no_abs__len_loss.append(this_no_abs__len_loss)
+                    length_retention_loss.append(this_length_retention_loss)
+                    
+                    pass# for distorting_strength
+                
+                _when_end = time.perf_counter()
+                
+                print(f"{_when_end - _when_start:.6f}")
+                print(f"dim {dim}")
+                print(f"distorting_strength = {str_the_list(distorting_strength_list , 5, ",    ")}")
+                print(f"len_loss             = {str_the_list(len_loss             , 8)}")
+                print(f"no_abs__len_loss     = {str_the_list(no_abs__len_loss     , 8)}")
+                print(f"length_retention_loss= {str_the_list(length_retention_loss, 8)}")
+                
+                pass# for outter_param_set
+            
+            pass#/ test
+        
+        # i still dont understand it.
+        if "eye rotated distorted by 0.1x of the dim" and False:
+            
+            # distorting_strength_list = torch.tensor([0.1, 1., 3.16, 10., 31.6, 100., 1000.])
+            #     distorting_strength_list *= 1./math.sqrt(dim)
+            
+            # dim 10       how_many_rows_to_rotate 1
+            # distorting_strength      = [ 0.03162,    0.31623,    0.99928,    3.16228,    9.99280,    31.62278,    316.22775]
+            # len_loss__max             = [ 0.024435,   0.010542,   0.011918,   0.028424,   0.036482,   0.033189,   0.036554]
+            # len_loss__avg             = [ 0.003366,   0.002246,   0.009017,   0.017786,   0.019398,   0.019677,   0.019463]
+            # no_abs__len_loss__min     = [-0.0100754, -0.0016914, -0.0031182, -0.0143963, -0.0215390, -0.0181527, -0.0215396]
+            # no_abs__len_loss__max     = [ 0.0000000, -0.0000000, -0.0000039, -0.0000085, -0.0015968, -0.0001980, -0.0003077]
+            # no_abs__len_loss__avg     = [-0.0006202, -0.0001386, -0.0012853, -0.0048658, -0.0055011, -0.0057376, -0.0057321]
+            # length_retention_loss__max= [ 0.031676,   0.032185,   0.035388,   0.050256,   0.039130,   0.040326,   0.040141]
+            # length_retention_loss__avg= [ 0.008154,   0.009962,   0.019184,   0.026414,   0.027154,   0.026090,   0.026718]
+            # len_loss__over__retention = [ 0.412823,   0.225456,   0.470032,   0.673381,   0.714377,   0.754187,   0.728474]
+            # dim 100       how_many_rows_to_rotate 10
+            # distorting_strength      = [ 0.01000,    0.10000,    0.31600,    1.00000,    3.16000,    10.00000,    100.00000]
+            # len_loss__max             = [ 0.001664,   0.001491,   0.001705,   0.008010,   0.016269,   0.020345,   0.025436]
+            # len_loss__avg             = [ 0.000258,   0.000234,   0.001605,   0.007737,   0.014341,   0.016460,   0.016610]
+            # no_abs__len_loss__min     = [-0.0004134, -0.0002493, -0.0003020, -0.0041460, -0.0112513, -0.0151584, -0.0202299]
+            # no_abs__len_loss__max     = [-0.0000000, -0.0000002, -0.0000922, -0.0035130, -0.0083871, -0.0094792, -0.0091458]
+            # no_abs__len_loss__avg     = [-0.0000258, -0.0000094, -0.0002592, -0.0038827, -0.0093437, -0.0112862, -0.0114300]
+            # length_retention_loss__max= [ 0.002108,   0.002466,   0.004372,   0.014578,   0.022794,   0.025741,   0.024676]
+            # length_retention_loss__avg= [ 0.000742,   0.001150,   0.003234,   0.011578,   0.018849,   0.021177,   0.021465]
+            # len_loss__over__retention = [ 0.348139,   0.203920,   0.496302,   0.668209,   0.760815,   0.777278,   0.773824]
+            # dim 1000       how_many_rows_to_rotate 100
+            # distorting_strength      = [ 0.00316,    0.03162,    0.09993,    0.31623,    0.99928,    3.16228,    31.62277]
+            # len_loss__max             = [ 0.000035,   0.000150,   0.000193,   0.001264,   0.006447,   0.012963,   0.015460]
+            # len_loss__avg             = [ 0.000011,   0.000041,   0.000181,   0.001247,   0.006353,   0.012558,   0.014540]
+            # no_abs__len_loss__min     = [-0.0000016, -0.0000252, -0.0000329, -0.0007506, -0.0055930, -0.0119817, -0.0144580]
+            # no_abs__len_loss__max     = [-0.0000000, -0.0000002, -0.0000133, -0.0007054, -0.0054592, -0.0113192, -0.0129988]
+            # no_abs__len_loss__avg     = [-0.0000003, -0.0000034, -0.0000272, -0.0007402, -0.0054993, -0.0115769, -0.0135378]
+            # length_retention_loss__max= [ 0.000092,   0.000200,   0.000430,   0.002461,   0.010934,   0.019357,   0.022320]
+            # length_retention_loss__avg= [ 0.000048,   0.000126,   0.000376,   0.002068,   0.010036,   0.017952,   0.020407]
+            # len_loss__over__retention = [ 0.226436,   0.325047,   0.480736,   0.602928,   0.632987,   0.699556,   0.712479]
+            
+            
+            print(f"{_line_()}     eye rotated distorted by 0.1x of the dim")
+            #------------------#------------------#------------------
+            dim_list =                          [ 10, 100, 1000]
+            number_of_tests_list = torch.tensor([100,  50,  10])
+            number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
+            for ii_outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[ii_outter_param_set]
+                how_many_rows_to_rotate = int(dim*0.1)
+                #iota_of_dim = iota(dim)
+                number_of_tests = number_of_tests_list[ii_outter_param_set]
+                device = 'cpu'
+                if dim>10001:
+                    device = 'cuda'
+                    pass
+                print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+            #------------------#------------------#------------------
+                
+                distorting_strength_list = torch.tensor([0.1, 1., 3.16, 10., 31.6, 100., 1000.])
+                distorting_strength_list *= 1./math.sqrt(dim)
+                
+                len_loss__max              = torch.empty_like(distorting_strength_list)#dont modify this. 
+                len_loss__avg              = torch.empty_like(distorting_strength_list)#dont modify this.  
+                no_abs__len_loss__min      = torch.empty_like(distorting_strength_list)#dont modify this.  
+                no_abs__len_loss__max      = torch.empty_like(distorting_strength_list)#dont modify this.  
+                no_abs__len_loss__avg      = torch.empty_like(distorting_strength_list)#dont modify this.  
+                length_retention_loss__max = torch.empty_like(distorting_strength_list)#dont modify this. 
+                length_retention_loss__avg = torch.empty_like(distorting_strength_list)#dont modify this. 
+                
+                #------------------#------------------#------------------
+                _when_start = time.perf_counter()
+                for ii_distorting_strength_index in range(distorting_strength_list.nelement()):
+                    distorting_strength = distorting_strength_list[ii_distorting_strength_index]
+                #------------------#------------------#------------------
 
-
+                    _raw_result__len_loss               = torch.empty(size=[number_of_tests])
+                    _raw_result__no_abs__len_loss       = torch.empty(size=[number_of_tests])
+                    _raw_result__length_retention_loss  = torch.empty(size=[number_of_tests])
+                    
+                    for ii_test_count in range(number_of_tests):
+                        #------------------#------------------#------------------
+                        #<  init
+                        mat = torch.eye(n=dim)
+                        mat = randomly_rotate__matrix(mat)
+                        mat = randomly_permutate__matrix(mat)
+                        #<  init       -       rotate some rows.
+                        #for ii_row_index in range(int(dim*0.1)):
+                        mat[0:how_many_rows_to_rotate,0] = distorting_strength
+                        mat[0:how_many_rows_to_rotate] = vector_length_norm(mat[0:how_many_rows_to_rotate])
+                        assert _tensor_equal(get_vector_length(mat), [1.]*dim)#, epsilon=0.001)#all row vec are len=1.
+                        
+                        #<  measure
+                        len_loss, no_abs__len_loss, length_retention_loss, _ = \
+                                        full_length_info_test__in_log10(mat)
+                        #------------------#------------------#------------------
+                        
+                        #<  measure
+                        _raw_result__len_loss               [ii_test_count] = len_loss
+                        _raw_result__no_abs__len_loss       [ii_test_count] = no_abs__len_loss
+                        _raw_result__length_retention_loss  [ii_test_count] = length_retention_loss
+                        pass# for _test_count
+                    
+                    len_loss__max             [ii_distorting_strength_index] = _raw_result__len_loss.max ()
+                    len_loss__avg             [ii_distorting_strength_index] = _raw_result__len_loss.mean()
+                    no_abs__len_loss__min     [ii_distorting_strength_index] = _raw_result__no_abs__len_loss.min ()
+                    no_abs__len_loss__max     [ii_distorting_strength_index] = _raw_result__no_abs__len_loss.max ()
+                    no_abs__len_loss__avg     [ii_distorting_strength_index] = _raw_result__no_abs__len_loss.mean()
+                    length_retention_loss__max[ii_distorting_strength_index] = _raw_result__length_retention_loss.max ()
+                    length_retention_loss__avg[ii_distorting_strength_index] = _raw_result__length_retention_loss.mean()
+                    pass# for distorting_strength
+                
+                _when_end = time.perf_counter()
+                
+                print(f"                     {_when_end - _when_start:.2f} , or {(_when_end - _when_start)/number_of_tests:.5f} per test")
+                print(f"dim {dim}       how_many_rows_to_rotate {how_many_rows_to_rotate}")
+                print(f"distorting_strength      = {str_the_list(distorting_strength_list , 5, ",   ")}")
+                print(f"len_loss__max             = {str_the_list(len_loss__max             , 6, ",  ")}")
+                print(f"len_loss__avg             = {str_the_list(len_loss__avg             , 6, ",  ")}")
+                print(f"no_abs__len_loss__min     = {str_the_list(no_abs__len_loss__min     , 7)}")
+                print(f"no_abs__len_loss__max     = {str_the_list(no_abs__len_loss__max     , 7)}")
+                print(f"no_abs__len_loss__avg     = {str_the_list(no_abs__len_loss__avg     , 7)}")
+                print(f"length_retention_loss__max= {str_the_list(length_retention_loss__max, 6, ",  ")}")
+                print(f"length_retention_loss__avg= {str_the_list(length_retention_loss__avg, 6, ",  ")}")
+                print(f"len_loss__over__retention = {str_the_list((len_loss__avg)/(length_retention_loss__avg), 6, ",  ")}")
+                
+                
+                pass# for outter_param_set
+            
+            pass#/ test
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        return 
+    
+    ____test____difference_between_length_and_length_retension()
 
 
 

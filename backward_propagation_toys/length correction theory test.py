@@ -264,7 +264,7 @@ def full_test_version_of_length_correction__by_row(input:torch.Tensor,
     return result
 
 
-if "test" and True:
+if "test" and False:
     def ____test____full_test_version_of_length_correction__by_row____basic():
         
         if "it doesn't touch perfect matrix" and False:
@@ -575,247 +575,105 @@ if "test" and True:
                 pass#for random_generator_style
             pass#/ test
         
-        
-        
-        
-        
-        
-        if "rand dummy v2   protected." and True:
-            if True:
+        #rough result. length protection helps protect length, but only in one direction. 
+        # if protect the row, the col still score poorly.
+        # so the length_loss can be halfed. But the retention_loss is besically the same. Maybe 10% better.
+        # but very little effect on length_retention( in matmul)
+        if "rand dummy v2   protected 1 step." and False:
                 # when noise strength is 0, it's a perfect orthogonal matrix. All measure will be 0.
-            
-            1w
-            1w
-            1w
-            1w来读
-                            
-                # noise_strength 0.1     dim 10
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.010,  0.008,  0.007,  0.008,  0.012,  0.016]
-                # aft__len_loss__avg                = [ 0.007,  0.005,  0.004,  0.005,  0.007,  0.011]
-                # aft__no_abs_len_loss              = [ 0.000, -0.000, -0.000, -0.000, -0.000, -0.001]
-                # aft__length_retention_loss__max   = [ 0.014,  0.014,  0.013,  0.014,  0.013,  0.017]
-                # aft__length_retention_loss__avg   = [ 0.010,  0.009,  0.009,  0.010,  0.010,  0.011]
-                # aft__no_abs__length_retention_loss= [ 0.000, -0.000, -0.000, -0.000, -0.000, -0.001]
-                # noise_strength 0.2     dim 10
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.022,  0.016,  0.016,  0.016,  0.020,  0.035]
-                # aft__len_loss__avg                = [ 0.015,  0.010,  0.009,  0.010,  0.014,  0.022]
-                # aft__no_abs_len_loss              = [ 0.001, -0.000, -0.001, -0.001, -0.001, -0.001]
-                # aft__length_retention_loss__max   = [ 0.026,  0.027,  0.026,  0.027,  0.027,  0.031]
-                # aft__length_retention_loss__avg   = [ 0.019,  0.019,  0.018,  0.018,  0.019,  0.021]
-                # aft__no_abs__length_retention_loss= [ 0.000, -0.001, -0.002, -0.002, -0.002, -0.002]
-                # noise_strength 0.3     dim 10
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.033,  0.030,  0.019,  0.023,  0.031,  0.049]
-                # aft__len_loss__avg                = [ 0.021,  0.014,  0.012,  0.014,  0.020,  0.031]
-                # aft__no_abs_len_loss              = [ 0.001, -0.001, -0.001, -0.002, -0.002, -0.005]
-                # aft__length_retention_loss__max   = [ 0.038,  0.035,  0.037,  0.036,  0.041,  0.053]
-                # aft__length_retention_loss__avg   = [ 0.028,  0.027,  0.027,  0.027,  0.028,  0.031]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.003, -0.003, -0.003, -0.002, -0.006]
-                # noise_strength 0.4     dim 10
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.039,  0.028,  0.025,  0.029,  0.038,  0.066]
-                # aft__len_loss__avg                = [ 0.027,  0.018,  0.016,  0.019,  0.028,  0.040]
-                # aft__no_abs_len_loss              = [ 0.002, -0.001, -0.002, -0.003, -0.004, -0.006]
-                # aft__length_retention_loss__max   = [ 0.051,  0.051,  0.046,  0.050,  0.051,  0.059]
-                # aft__length_retention_loss__avg   = [ 0.037,  0.036,  0.035,  0.035,  0.037,  0.041]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.003, -0.004, -0.006, -0.006, -0.006]
-                # noise_strength 0.5     dim 10
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.052,  0.033,  0.033,  0.034,  0.052,  0.070]
-                # aft__len_loss__avg                = [ 0.033,  0.022,  0.021,  0.023,  0.032,  0.049]
-                # aft__no_abs_len_loss              = [ 0.001, -0.002, -0.003, -0.004, -0.006, -0.007]
-                # aft__length_retention_loss__max   = [ 0.065,  0.061,  0.057,  0.055,  0.062,  0.068]
-                # aft__length_retention_loss__avg   = [ 0.044,  0.041,  0.041,  0.042,  0.044,  0.048]
-                # aft__no_abs__length_retention_loss= [-0.001, -0.004, -0.006, -0.006, -0.010, -0.006]
-                # noise_strength 0.6     dim 10
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.064,  0.043,  0.035,  0.043,  0.058,  0.081]
-                # aft__len_loss__avg                = [ 0.037,  0.025,  0.022,  0.026,  0.037,  0.055]
-                # aft__no_abs_len_loss              = [ 0.002, -0.003, -0.003, -0.005, -0.007, -0.014]
-                # aft__length_retention_loss__max   = [ 0.075,  0.079,  0.068,  0.065,  0.067,  0.077]
-                # aft__length_retention_loss__avg   = [ 0.050,  0.048,  0.047,  0.048,  0.049,  0.054]
-                # aft__no_abs__length_retention_loss= [-0.001, -0.008, -0.007, -0.009, -0.010, -0.012]
+            if True:
+                
                 # noise_strength 0.7     dim 10
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.068,  0.046,  0.045,  0.046,  0.071,  0.096]
-                # aft__len_loss__avg                = [ 0.041,  0.028,  0.026,  0.029,  0.041,  0.059]
-                # aft__no_abs_len_loss              = [ 0.004, -0.003, -0.005, -0.006, -0.009, -0.009]
-                # aft__length_retention_loss__max   = [ 0.079,  0.070,  0.070,  0.070,  0.077,  0.082]
-                # aft__length_retention_loss__avg   = [ 0.055,  0.051,  0.054,  0.053,  0.055,  0.059]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.008, -0.010, -0.012, -0.014, -0.007]
+                # power_me_to_protect_length       = [-0.500,   -0.100,    0.001,    0.100,    0.500,    0.999]
+                # aft__len_loss__max                = [ 0.06710,  0.04227,  0.04167,  0.04954,  0.06577,  0.08943]
+                # aft__len_loss__avg                = [ 0.04053,  0.02858,  0.02617,  0.02790,  0.04204,  0.05887]
+                # aft__no_abs_len_loss              = [ 0.00138, -0.00325, -0.00493, -0.00544, -0.00922, -0.01277]
+                # aft__length_retention_loss__max   = [ 0.08098,  0.07266,  0.07415,  0.07541,  0.07511,  0.08175]
+                # aft__length_retention_loss__avg   = [ 0.05643,  0.05323,  0.05362,  0.05262,  0.05366,  0.05966]
+                # aft__no_abs__length_retention_loss= [-0.00233, -0.00886, -0.00974, -0.01103, -0.01254, -0.01487]
+                # 2.457835 , or 0.024578 per test
                 # noise_strength 0.9     dim 10
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.081,  0.056,  0.054,  0.051,  0.071,  0.094]
-                # aft__len_loss__avg                = [ 0.048,  0.032,  0.029,  0.032,  0.047,  0.067]
-                # aft__no_abs_len_loss              = [ 0.002, -0.004, -0.006, -0.007, -0.013, -0.012]
-                # aft__length_retention_loss__max   = [ 0.086,  0.081,  0.085,  0.087,  0.098,  0.105]
-                # aft__length_retention_loss__avg   = [ 0.062,  0.060,  0.060,  0.059,  0.061,  0.068]
-                # aft__no_abs__length_retention_loss= [-0.001, -0.010, -0.014, -0.015, -0.017, -0.014]
+                # power_me_to_protect_length       = [-0.500,   -0.100,    0.001,    0.100,    0.500,    0.999]
+                # aft__len_loss__max                = [ 0.07935,  0.05172,  0.05005,  0.06018,  0.07469,  0.10100]
+                # aft__len_loss__avg                = [ 0.04760,  0.03267,  0.02936,  0.03288,  0.04723,  0.06731]
+                # aft__no_abs_len_loss              = [ 0.00331, -0.00436, -0.00623, -0.00735, -0.01222, -0.01792]
+                # aft__length_retention_loss__max   = [ 0.09084,  0.08209,  0.08183,  0.08971,  0.09137,  0.09724]
+                # aft__length_retention_loss__avg   = [ 0.06274,  0.06135,  0.06050,  0.06069,  0.06192,  0.06823]
+                # aft__no_abs__length_retention_loss= [-0.00116, -0.01166, -0.01345, -0.01467, -0.01660, -0.01780]
+                # 2.453181 , or 0.024532 per test
                 # noise_strength 1.3     dim 10
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.078,  0.062,  0.062,  0.064,  0.081,  0.126]
-                # aft__len_loss__avg                = [ 0.053,  0.036,  0.033,  0.038,  0.053,  0.078]
-                # aft__no_abs_len_loss              = [ 0.005, -0.005, -0.008, -0.010, -0.016, -0.021]
-                # aft__length_retention_loss__max   = [ 0.094,  0.092,  0.098,  0.094,  0.099,  0.128]
-                # aft__length_retention_loss__avg   = [ 0.070,  0.067,  0.067,  0.068,  0.070,  0.077]
-                # aft__no_abs__length_retention_loss= [-0.002, -0.013, -0.014, -0.018, -0.022, -0.019]
-                
-                # noise_strength 0.1     dim 100
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.003,  0.002,  0.002,  0.002,  0.003,  0.004]
-                # aft__len_loss__avg                = [ 0.002,  0.002,  0.001,  0.002,  0.002,  0.003]
-                # aft__no_abs_len_loss              = [ 0.000, -0.000, -0.000, -0.000,  0.000,  0.000]
-                # aft__length_retention_loss__max   = [ 0.004,  0.004,  0.004,  0.004,  0.004,  0.004]
-                # aft__length_retention_loss__avg   = [ 0.003,  0.003,  0.003,  0.003,  0.003,  0.003]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.000,  0.000, -0.000,  0.000,  0.000]
-                # noise_strength 0.2     dim 100
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.005,  0.004,  0.003,  0.004,  0.005,  0.008]
-                # aft__len_loss__avg                = [ 0.005,  0.003,  0.003,  0.003,  0.005,  0.007]
-                # aft__no_abs_len_loss              = [-0.000, -0.000, -0.000, -0.000, -0.000, -0.000]
-                # aft__length_retention_loss__max   = [ 0.008,  0.008,  0.008,  0.009,  0.008,  0.008]
-                # aft__length_retention_loss__avg   = [ 0.007,  0.007,  0.007,  0.007,  0.007,  0.007]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.000, -0.000, -0.000, -0.000, -0.000]
-                # noise_strength 0.3     dim 100
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.008,  0.006,  0.005,  0.006,  0.008,  0.011]
-                # aft__len_loss__avg                = [ 0.007,  0.005,  0.004,  0.005,  0.007,  0.010]
-                # aft__no_abs_len_loss              = [ 0.000, -0.000, -0.000, -0.000, -0.000, -0.000]
-                # aft__length_retention_loss__max   = [ 0.012,  0.012,  0.011,  0.012,  0.011,  0.012]
-                # aft__length_retention_loss__avg   = [ 0.010,  0.010,  0.010,  0.010,  0.010,  0.010]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.000, -0.000, -0.000, -0.001, -0.000]
-                # noise_strength 0.4     dim 100
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.010,  0.007,  0.006,  0.007,  0.010,  0.015]
-                # aft__len_loss__avg                = [ 0.009,  0.006,  0.005,  0.006,  0.009,  0.013]
-                # aft__no_abs_len_loss              = [ 0.000, -0.000, -0.000, -0.000, -0.001, -0.001]
-                # aft__length_retention_loss__max   = [ 0.016,  0.014,  0.015,  0.015,  0.014,  0.015]
-                # aft__length_retention_loss__avg   = [ 0.012,  0.012,  0.012,  0.013,  0.012,  0.013]
-                # aft__no_abs__length_retention_loss= [ 0.000, -0.000, -0.000, -0.001, -0.001, -0.001]
-                # noise_strength 0.5     dim 100
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.012,  0.008,  0.008,  0.009,  0.012,  0.017]
-                # aft__len_loss__avg                = [ 0.010,  0.007,  0.006,  0.007,  0.011,  0.015]
-                # aft__no_abs_len_loss              = [ 0.000, -0.000, -0.000, -0.000, -0.001, -0.001]
-                # aft__length_retention_loss__max   = [ 0.017,  0.017,  0.018,  0.016,  0.017,  0.017]
-                # aft__length_retention_loss__avg   = [ 0.015,  0.014,  0.015,  0.014,  0.015,  0.015]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.001, -0.001, -0.001, -0.001, -0.002]
-                # noise_strength 0.6     dim 100
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.014,  0.009,  0.009,  0.009,  0.013,  0.019]
-                # aft__len_loss__avg                = [ 0.012,  0.008,  0.008,  0.008,  0.012,  0.017]
-                # aft__no_abs_len_loss              = [-0.000, -0.000, -0.000, -0.000, -0.001, -0.001]
-                # aft__length_retention_loss__max   = [ 0.019,  0.019,  0.019,  0.020,  0.019,  0.020]
-                # aft__length_retention_loss__avg   = [ 0.016,  0.017,  0.016,  0.016,  0.017,  0.017]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.001, -0.000, -0.002, -0.001, -0.001]
+                # power_me_to_protect_length       = [-0.500,   -0.100,    0.001,    0.100,    0.500,    0.999]
+                # aft__len_loss__max                = [ 0.07692,  0.06530,  0.05283,  0.06230,  0.07838,  0.11794]
+                # aft__len_loss__avg                = [ 0.05361,  0.03842,  0.03216,  0.03928,  0.05286,  0.07463]
+                # aft__no_abs_len_loss              = [ 0.00210, -0.00634, -0.00721, -0.01016, -0.01230, -0.01688]
+                # aft__length_retention_loss__max   = [ 0.09522,  0.10334,  0.09078,  0.09271,  0.09429,  0.11439]
+                # aft__length_retention_loss__avg   = [ 0.06880,  0.06913,  0.06705,  0.06806,  0.06927,  0.07533]
+                # aft__no_abs__length_retention_loss= [-0.00453, -0.01568, -0.01605, -0.01756, -0.01720, -0.01910]
+                # dim 100   test_time 50    device cpu
+                # 8.020616 , or 0.160412 per test
                 # noise_strength 0.7     dim 100
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.014,  0.011,  0.010,  0.011,  0.015,  0.020]
-                # aft__len_loss__avg                = [ 0.013,  0.009,  0.008,  0.010,  0.013,  0.018]
-                # aft__no_abs_len_loss              = [ 0.000, -0.000, -0.001, -0.001, -0.001, -0.001]
-                # aft__length_retention_loss__max   = [ 0.021,  0.021,  0.021,  0.022,  0.021,  0.022]
-                # aft__length_retention_loss__avg   = [ 0.018,  0.018,  0.018,  0.018,  0.018,  0.018]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.001, -0.001, -0.001, -0.001, -0.001]
+                # power_me_to_protect_length       = [-0.500,   -0.100,    0.001,    0.100,    0.500,    0.999]
+                # aft__len_loss__max                = [ 0.01394,  0.01072,  0.00959,  0.01072,  0.01490,  0.02011]
+                # aft__len_loss__avg                = [ 0.01298,  0.00922,  0.00836,  0.00931,  0.01317,  0.01821]
+                # aft__no_abs_len_loss              = [ 0.00014, -0.00041, -0.00051, -0.00064, -0.00094, -0.00134]
+                # aft__length_retention_loss__max   = [ 0.02236,  0.02269,  0.02197,  0.02154,  0.02050,  0.02144]
+                # aft__length_retention_loss__avg   = [ 0.01791,  0.01825,  0.01804,  0.01799,  0.01813,  0.01854]
+                # aft__no_abs__length_retention_loss= [-0.00037, -0.00095, -0.00151, -0.00145, -0.00086, -0.00092]
+                # 7.929951 , or 0.158599 per test
                 # noise_strength 0.9     dim 100
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.017,  0.012,  0.011,  0.012,  0.017,  0.023]
-                # aft__len_loss__avg                = [ 0.015,  0.011,  0.009,  0.011,  0.015,  0.020]
-                # aft__no_abs_len_loss              = [ 0.001, -0.001, -0.001, -0.001, -0.001, -0.002]
-                # aft__length_retention_loss__max   = [ 0.023,  0.025,  0.025,  0.025,  0.025,  0.025]
-                # aft__length_retention_loss__avg   = [ 0.021,  0.020,  0.020,  0.020,  0.020,  0.021]
-                # aft__no_abs__length_retention_loss= [ 0.000, -0.001, -0.001, -0.001, -0.002, -0.002]
+                # power_me_to_protect_length       = [-0.500,   -0.100,    0.001,    0.100,    0.500,    0.999]
+                # aft__len_loss__max                = [ 0.01707,  0.01212,  0.01100,  0.01218,  0.01690,  0.02478]
+                # aft__len_loss__avg                = [ 0.01477,  0.01057,  0.00968,  0.01060,  0.01482,  0.02060]
+                # aft__no_abs_len_loss              = [ 0.00070, -0.00053, -0.00067, -0.00078, -0.00125, -0.00124]
+                # aft__length_retention_loss__max   = [ 0.02264,  0.02350,  0.02307,  0.02330,  0.02360,  0.02299]
+                # aft__length_retention_loss__avg   = [ 0.02020,  0.02021,  0.01990,  0.02025,  0.02062,  0.02051]
+                # aft__no_abs__length_retention_loss= [ 0.00055, -0.00112, -0.00054, -0.00144, -0.00193, -0.00123]
+                # 7.898305 , or 0.157966 per test
                 # noise_strength 1.3     dim 100
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.018,  0.014,  0.013,  0.014,  0.020,  0.026]
-                # aft__len_loss__avg                = [ 0.016,  0.012,  0.011,  0.012,  0.017,  0.023]
-                # aft__no_abs_len_loss              = [ 0.000, -0.001, -0.001, -0.001, -0.002, -0.001]
-                # aft__length_retention_loss__max   = [ 0.026,  0.026,  0.026,  0.026,  0.026,  0.027]
-                # aft__length_retention_loss__avg   = [ 0.022,  0.022,  0.022,  0.023,  0.023,  0.023]
-                # aft__no_abs__length_retention_loss= [-0.001, -0.001, -0.002, -0.001, -0.002, -0.001]
-                
-                # noise_strength 0.1     dim 1000
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.001,  0.001,  0.000,  0.001,  0.001,  0.001]
-                # aft__len_loss__avg                = [ 0.001,  0.001,  0.000,  0.001,  0.001,  0.001]
-                # aft__no_abs_len_loss              = [ 0.000,  0.000, -0.000, -0.000, -0.000,  0.000]
-                # aft__length_retention_loss__max   = [ 0.001,  0.001,  0.001,  0.001,  0.001,  0.001]
-                # aft__length_retention_loss__avg   = [ 0.001,  0.001,  0.001,  0.001,  0.001,  0.001]
-                # aft__no_abs__length_retention_loss= [-0.000,  0.000, -0.000, -0.000, -0.000,  0.000]
-                # noise_strength 0.2     dim 1000
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.002,  0.001,  0.001,  0.001,  0.002,  0.002]
-                # aft__len_loss__avg                = [ 0.002,  0.001,  0.001,  0.001,  0.001,  0.002]
-                # aft__no_abs_len_loss              = [-0.000, -0.000, -0.000, -0.000, -0.000, -0.000]
-                # aft__length_retention_loss__max   = [ 0.002,  0.002,  0.002,  0.002,  0.002,  0.002]
-                # aft__length_retention_loss__avg   = [ 0.002,  0.002,  0.002,  0.002,  0.002,  0.002]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.000, -0.000,  0.000,  0.000,  0.000]
-                # noise_strength 0.3     dim 1000
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.002,  0.002,  0.001,  0.002,  0.002,  0.003]
-                # aft__len_loss__avg                = [ 0.002,  0.002,  0.001,  0.002,  0.002,  0.003]
-                # aft__no_abs_len_loss              = [ 0.000, -0.000, -0.000, -0.000, -0.000, -0.000]
-                # aft__length_retention_loss__max   = [ 0.004,  0.004,  0.004,  0.004,  0.003,  0.003]
-                # aft__length_retention_loss__avg   = [ 0.003,  0.003,  0.003,  0.003,  0.003,  0.003]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.000, -0.000, -0.000,  0.000, -0.000]
-                # noise_strength 0.4     dim 1000
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.003,  0.002,  0.002,  0.002,  0.003,  0.004]
-                # aft__len_loss__avg                = [ 0.003,  0.002,  0.002,  0.002,  0.003,  0.004]
-                # aft__no_abs_len_loss              = [ 0.000, -0.000, -0.000, -0.000, -0.000, -0.000]
-                # aft__length_retention_loss__max   = [ 0.005,  0.004,  0.004,  0.004,  0.004,  0.004]
-                # aft__length_retention_loss__avg   = [ 0.004,  0.004,  0.004,  0.004,  0.004,  0.004]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.000,  0.000, -0.000, -0.000, -0.000]
-                # noise_strength 0.5     dim 1000
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.003,  0.002,  0.002,  0.002,  0.003,  0.005]
-                # aft__len_loss__avg                = [ 0.003,  0.002,  0.002,  0.002,  0.003,  0.005]
-                # aft__no_abs_len_loss              = [-0.000, -0.000, -0.000, -0.000, -0.000, -0.000]
-                # aft__length_retention_loss__max   = [ 0.005,  0.005,  0.005,  0.005,  0.005,  0.005]
-                # aft__length_retention_loss__avg   = [ 0.005,  0.005,  0.005,  0.005,  0.005,  0.005]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.000, -0.000, -0.000,  0.000,  0.000]
-                # noise_strength 0.6     dim 1000
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.004,  0.003,  0.003,  0.003,  0.004,  0.005]
-                # aft__len_loss__avg                = [ 0.004,  0.003,  0.002,  0.003,  0.004,  0.005]
-                # aft__no_abs_len_loss              = [ 0.000, -0.000, -0.000, -0.000, -0.000, -0.000]
-                # aft__length_retention_loss__max   = [ 0.006,  0.006,  0.006,  0.006,  0.006,  0.006]
-                # aft__length_retention_loss__avg   = [ 0.005,  0.005,  0.005,  0.005,  0.005,  0.005]
-                # aft__no_abs__length_retention_loss= [-0.000,  0.000, -0.000, -0.001, -0.000, -0.000]
+                # power_me_to_protect_length       = [-0.500,   -0.100,    0.001,    0.100,    0.500,    0.999]
+                # aft__len_loss__max                = [ 0.01818,  0.01406,  0.01286,  0.01383,  0.01909,  0.02701]
+                # aft__len_loss__avg                = [ 0.01667,  0.01191,  0.01097,  0.01233,  0.01686,  0.02323]
+                # aft__no_abs_len_loss              = [ 0.00047, -0.00064, -0.00087, -0.00109, -0.00165, -0.00169]
+                # aft__length_retention_loss__max   = [ 0.02636,  0.02774,  0.02637,  0.02622,  0.02690,  0.02665]
+                # aft__length_retention_loss__avg   = [ 0.02247,  0.02272,  0.02240,  0.02274,  0.02259,  0.02284]
+                # aft__no_abs__length_retention_loss= [-0.00014, -0.00219, -0.00216, -0.00173, -0.00256, -0.00195]
+                # dim 1000   test_time 10    device cpu
+                # 15.929535 , or 1.592954 per test
                 # noise_strength 0.7     dim 1000
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.004,  0.003,  0.003,  0.003,  0.004,  0.006]
-                # aft__len_loss__avg                = [ 0.004,  0.003,  0.003,  0.003,  0.004,  0.006]
-                # aft__no_abs_len_loss              = [ 0.000, -0.000, -0.000, -0.000, -0.000, -0.000]
-                # aft__length_retention_loss__max   = [ 0.006,  0.006,  0.007,  0.006,  0.007,  0.006]
-                # aft__length_retention_loss__avg   = [ 0.006,  0.006,  0.006,  0.006,  0.006,  0.006]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.000, -0.000, -0.000, -0.000, -0.000]
+                # power_me_to_protect_length       = [-0.500,   -0.100,    0.001,    0.100,    0.500,    0.999]
+                # aft__len_loss__max                = [ 0.00423,  0.00301,  0.00272,  0.00304,  0.00423,  0.00598]
+                # aft__len_loss__avg                = [ 0.00412,  0.00292,  0.00264,  0.00294,  0.00416,  0.00574]
+                # aft__no_abs_len_loss              = [ 0.00001, -0.00005, -0.00005, -0.00007, -0.00009, -0.00005]
+                # aft__length_retention_loss__max   = [ 0.00642,  0.00629,  0.00626,  0.00657,  0.00656,  0.00644]
+                # aft__length_retention_loss__avg   = [ 0.00587,  0.00570,  0.00573,  0.00577,  0.00595,  0.00587]
+                # aft__no_abs__length_retention_loss= [-0.00014, -0.00027,  0.00051,  0.00018, -0.00063,  0.00019]
+                # 16.098578 , or 1.609858 per test
                 # noise_strength 0.9     dim 1000
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.005,  0.003,  0.003,  0.003,  0.005,  0.007]
-                # aft__len_loss__avg                = [ 0.005,  0.003,  0.003,  0.003,  0.005,  0.006]
-                # aft__no_abs_len_loss              = [-0.000, -0.000, -0.000, -0.000, -0.000, -0.000]
-                # aft__length_retention_loss__max   = [ 0.007,  0.007,  0.007,  0.007,  0.007,  0.007]
-                # aft__length_retention_loss__avg   = [ 0.006,  0.006,  0.006,  0.006,  0.007,  0.007]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.000, -0.001, -0.001, -0.000, -0.000]
+                # power_me_to_protect_length       = [-0.500,   -0.100,    0.001,    0.100,    0.500,    0.999]
+                # aft__len_loss__max                = [ 0.00475,  0.00355,  0.00313,  0.00349,  0.00480,  0.00661]
+                # aft__len_loss__avg                = [ 0.00463,  0.00338,  0.00304,  0.00338,  0.00472,  0.00642]
+                # aft__no_abs_len_loss              = [ 0.00004, -0.00004, -0.00007, -0.00009, -0.00010, -0.00012]
+                # aft__length_retention_loss__max   = [ 0.00731,  0.00773,  0.00736,  0.00714,  0.00705,  0.00727]
+                # aft__length_retention_loss__avg   = [ 0.00644,  0.00633,  0.00672,  0.00638,  0.00629,  0.00640]
+                # aft__no_abs__length_retention_loss= [-0.00014, -0.00007, -0.00004, -0.00002, -0.00043, -0.00014]
+                # 16.137738 , or 1.613774 per test
                 # noise_strength 1.3     dim 1000
-                # power_me_to_protect_length       = [-0.500, -0.100,  0.001,  0.100,  0.500,  0.999]
-                # aft__len_loss__max                = [ 0.005,  0.004,  0.004,  0.004,  0.005,  0.007]
-                # aft__len_loss__avg                = [ 0.005,  0.004,  0.003,  0.004,  0.005,  0.007]
-                # aft__no_abs_len_loss              = [ 0.000, -0.000, -0.000, -0.000, -0.000, -0.000]
-                # aft__length_retention_loss__max   = [ 0.008,  0.008,  0.008,  0.008,  0.008,  0.008]
-                # aft__length_retention_loss__avg   = [ 0.007,  0.007,  0.007,  0.007,  0.007,  0.007]
-                # aft__no_abs__length_retention_loss= [-0.000, -0.000, -0.000, -0.000,  0.000,  0.001]
-            
-            
-            
-            
-            
-            
-            
-            
+                # power_me_to_protect_length       = [-0.500,   -0.100,    0.001,    0.100,    0.500,    0.999]
+                # aft__len_loss__max                = [ 0.00537,  0.00405,  0.00355,  0.00407,  0.00551,  0.00729]
+                # aft__len_loss__avg                = [ 0.00528,  0.00391,  0.00348,  0.00386,  0.00534,  0.00718]
+                # aft__no_abs_len_loss              = [ 0.00010, -0.00006, -0.00009, -0.00010, -0.00017,  0.00002]
+                # aft__length_retention_loss__max   = [ 0.00879,  0.00771,  0.00794,  0.00807,  0.00813,  0.00803]
+                # aft__length_retention_loss__avg   = [ 0.00728,  0.00708,  0.00718,  0.00716,  0.00719,  0.00739]
+                # aft__no_abs__length_retention_loss= [-0.00022, -0.00006, -0.00033, -0.00034, -0.00007,  0.00001]
+                
                 pass
+            
+            
+            
+            
+            
+            
+            
             
             print("rand dummy v2   protected.")
         
@@ -841,7 +699,8 @@ if "test" and True:
                 #                             [ 0.0000,  0.2234,  0.4377,  0.6346,  0.8075,  0.9575,  1.0838,  1.1826,  1.3292,  1.4228,  1.4859,  1.5540,   ],#dim 100
                 #                             [ 0.0000,  0.2238,  0.4381,  0.6346,  0.8080,  0.9577,  1.0820,  1.1828,  1.3303,  1.4248,  1.4814,  1.5506,   ],])# dim 1000
                 
-                noise_strength_list = [ 0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.30,]
+                #noise_strength_list = [ 0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.30,]
+                noise_strength_list = [ 0.70,    0.90,    1.30,]
                 for kk in range(noise_strength_list.__len__()):
                     noise_strength = noise_strength_list[kk]
             
@@ -871,10 +730,10 @@ if "test" and True:
                         raw_power_me_to_protect_length =  raw_power_me_to_protect_length_list[jj_x_axis]
                         
                         #y axis
-                        _raw_result__ori__len_loss                      = torch.empty(size=[number_of_tests])
-                        _raw_result__ori__no_abs_len_loss               = torch.empty(size=[number_of_tests])
-                        _raw_result__ori__length_retention_loss         = torch.empty(size=[number_of_tests])
-                        _raw_result__ori__no_abs__length_retention_loss = torch.empty(size=[number_of_tests])
+                        # _raw_result__ori__len_loss                      = torch.empty(size=[number_of_tests])
+                        # _raw_result__ori__no_abs_len_loss               = torch.empty(size=[number_of_tests])
+                        # _raw_result__ori__length_retention_loss         = torch.empty(size=[number_of_tests])
+                        # _raw_result__ori__no_abs__length_retention_loss = torch.empty(size=[number_of_tests])
                         _raw_result__after__len_loss                      = torch.empty(size=[number_of_tests])
                         _raw_result__after__no_abs_len_loss               = torch.empty(size=[number_of_tests])
                         _raw_result__after__length_retention_loss         = torch.empty(size=[number_of_tests])
@@ -889,12 +748,12 @@ if "test" and True:
                                     div_sqrt_1_plus_ns_sqr = True, device=device, iota_of_dim = iota_of_dim)
                             
                             #<  perfect should score 0.
-                            len_loss, no_abs_len_loss, length_retention_loss, \
-                                    no_abs__length_retention_loss = full_length_info_test__in_log10(mat)
-                            _raw_result__ori__len_loss                     [ii__test] = len_loss                     
-                            _raw_result__ori__no_abs_len_loss              [ii__test] = no_abs_len_loss              
-                            _raw_result__ori__length_retention_loss        [ii__test] = length_retention_loss        
-                            _raw_result__ori__no_abs__length_retention_loss[ii__test] = no_abs__length_retention_loss
+                            # len_loss, no_abs_len_loss, length_retention_loss, \
+                            #         no_abs__length_retention_loss = full_length_info_test__in_log10(mat)
+                            # _raw_result__ori__len_loss                     [ii__test] = len_loss                     
+                            # _raw_result__ori__no_abs_len_loss              [ii__test] = no_abs_len_loss              
+                            # _raw_result__ori__length_retention_loss        [ii__test] = length_retention_loss        
+                            # _raw_result__ori__no_abs__length_retention_loss[ii__test] = no_abs__length_retention_loss
                             
                             #<  calc
                             mat = full_test_version_of_length_correction__by_row(mat, \
@@ -938,13 +797,13 @@ if "test" and True:
                     # print(f"ori__length_retention_loss__max   = {str_the_list(ori__length_retention_loss__max     , 3)}")
                     # print(f"ori__length_retention_loss__avg   = {str_the_list(ori__length_retention_loss__avg     , 3)}")
                     # print(f"ori__no_abs__length_retention_loss= {str_the_list(ori__no_abs__length_retention_loss  , 3)}")
-                    print(f"power_me_to_protect_length       = {str_the_list(raw_power_me_to_protect_length_list  , 3)}")
-                    print(f"aft__len_loss__max                = {str_the_list(after__len_loss__max                 , 3)}")
-                    print(f"aft__len_loss__avg                = {str_the_list(after__len_loss__avg                 , 3)}")
-                    print(f"aft__no_abs_len_loss              = {str_the_list(after__no_abs_len_loss               , 3)}")
-                    print(f"aft__length_retention_loss__max   = {str_the_list(after__length_retention_loss__max    , 3)}")
-                    print(f"aft__length_retention_loss__avg   = {str_the_list(after__length_retention_loss__avg    , 3)}")
-                    print(f"aft__no_abs__length_retention_loss= {str_the_list(after__no_abs__length_retention_loss , 3)}")
+                    print(f"power_me_to_protect_length       = {str_the_list(raw_power_me_to_protect_length_list  , 3, ",   ")}")
+                    print(f"aft__len_loss__max                = {str_the_list(after__len_loss__max                 , 5)}")
+                    print(f"aft__len_loss__avg                = {str_the_list(after__len_loss__avg                 , 5)}")
+                    print(f"aft__no_abs_len_loss              = {str_the_list(after__no_abs_len_loss               , 5)}")
+                    print(f"aft__length_retention_loss__max   = {str_the_list(after__length_retention_loss__max    , 5)}")
+                    print(f"aft__length_retention_loss__avg   = {str_the_list(after__length_retention_loss__avg    , 5)}")
+                    print(f"aft__no_abs__length_retention_loss= {str_the_list(after__no_abs__length_retention_loss , 5)}")
                     #print(f"dim        = {str_the_list(dim_list, 0, ",    ")}")
                     
                     pass#for outter_param_set
@@ -955,10 +814,288 @@ if "test" and True:
         
         
         
+        return 
+    ____test____full_test_version_of_length_correction__by_row____basic()
+    
+    pass
+
+if "similar test from the angle part2.  Scan the hyper param" and True:
+    def ____test____full_test_version_of_length_correction__by_row____scan_the_hyperparam():
+        # the style means "r", "rr", "rc", "rrr", "rrc". 
+        # result is manually extracted form visualization.
+        # it's a rough test.
+        if "style doesn't matter......a rough test. To build up intuition." and True:
+            #result
+            # r,0.1 == (r,0.316)x2
+            
+            
+            style_list = ["r", "rr", "rc", "rcr", "rCr" ]
+            for style in style_list:
+                raw_power_me_to_protect_length = torch.tensor(0.1)
+                dim = 100
+                init_pow = 1.
+                
+                steps = 5
+                iota_of_dim = iota(dim)
+                
+                device = 'cpu'
+                if dim>10001:
+                    device = 'cuda'
+                    pass
+                
+                test_time = 20###########################################################
+                
+                print(test_time)
+                _raw_result__len_loss                     = torch.empty(size=[test_time, steps])
+                _raw_result__no_abs__len_loss             = torch.empty(size=[test_time, steps])
+                _raw_result__length_retention_loss        = torch.empty(size=[test_time, steps])
+                _raw_result__no_abs__length_retention_loss= torch.empty(size=[test_time, steps])
+                
+                for ii_test_count in range(test_time):
+                    
+                    #<  init
+                    mat = torch.randn(size=[dim,dim])/math.sqrt(dim)*math.pow(10., init_pow)
+                    len_loss__in_the_beginning, no_abs__len_loss__in_the_beginning, length_retention_loss__in_the_beginning, \
+                            no_abs__length_retention_loss__in_the_beginning = full_length_info_test__in_log10(mat)
+                    
+                    _raw_result__len_loss                     [ii_test_count, 0] = len_loss__in_the_beginning
+                    _raw_result__no_abs__len_loss             [ii_test_count, 0] = no_abs__len_loss__in_the_beginning
+                    _raw_result__length_retention_loss        [ii_test_count, 0] = length_retention_loss__in_the_beginning
+                    _raw_result__no_abs__length_retention_loss[ii_test_count, 0] = no_abs__length_retention_loss__in_the_beginning
+                    
+                    #<  calc
+                    for ii_step_count in range(1, steps):
+                        #----------------#----------------#----------------
+                        #only use one of them.
+                        if style == "r":
+                            mat = full_test_version_of_length_correction__by_row(mat,
+                                    raw_power_me_to_protect_length = raw_power_me_to_protect_length, iota_of_dim=iota_of_dim)
+                            pass
+                        elif style == "rr":
+                            mat = full_test_version_of_length_correction__by_row(mat,
+                                    raw_power_me_to_protect_length = raw_power_me_to_protect_length.pow(0.5), iota_of_dim=iota_of_dim)
+                            mat = full_test_version_of_length_correction__by_row(mat,
+                                    raw_power_me_to_protect_length = raw_power_me_to_protect_length.pow(0.5), iota_of_dim=iota_of_dim)
+                            pass
+                        elif style == "rc":
+                            mat = full_test_version_of_length_correction__by_row(mat,
+                                    raw_power_me_to_protect_length = raw_power_me_to_protect_length.pow(0.5), iota_of_dim=iota_of_dim)
+                            mat = full_test_version_of_length_correction__by_row(mat.T,
+                                    raw_power_me_to_protect_length = raw_power_me_to_protect_length.pow(0.5), iota_of_dim=iota_of_dim).T
+                            pass
+                        elif style == "rcr":
+                            mat = full_test_version_of_length_correction__by_row(mat,
+                                    raw_power_me_to_protect_length = raw_power_me_to_protect_length.pow(1./3.), iota_of_dim=iota_of_dim)
+                            mat = full_test_version_of_length_correction__by_row(mat.T,
+                                    raw_power_me_to_protect_length = raw_power_me_to_protect_length.pow(1./3.), iota_of_dim=iota_of_dim).T
+                            mat = full_test_version_of_length_correction__by_row(mat,
+                                    raw_power_me_to_protect_length = raw_power_me_to_protect_length.pow(1./3.), iota_of_dim=iota_of_dim)
+                            pass
+                        elif style == "rCr":
+                            mat = full_test_version_of_length_correction__by_row(mat,
+                                    raw_power_me_to_protect_length = raw_power_me_to_protect_length.pow(0.25), iota_of_dim=iota_of_dim)
+                            mat = full_test_version_of_length_correction__by_row(mat.T,
+                                    raw_power_me_to_protect_length = raw_power_me_to_protect_length.pow(0.5), iota_of_dim=iota_of_dim).T
+                            mat = full_test_version_of_length_correction__by_row(mat,
+                                    raw_power_me_to_protect_length = raw_power_me_to_protect_length.pow(0.25), iota_of_dim=iota_of_dim)
+                            pass
+                        else:
+                            assert False, "bad param: style"
+                        #----------------#----------------#----------------
+                        
+                        #<  measure
+                        len_loss, no_abs__len_loss, length_retention_loss, no_abs__length_retention_loss = \
+                                                    full_length_info_test__in_log10(mat)
+                        
+                        _raw_result__len_loss                     [ii_test_count, ii_step_count] = len_loss
+                        _raw_result__no_abs__len_loss             [ii_test_count, ii_step_count] = no_abs__len_loss
+                        _raw_result__length_retention_loss        [ii_test_count, ii_step_count] = length_retention_loss
+                        _raw_result__no_abs__length_retention_loss[ii_test_count, ii_step_count] = no_abs__length_retention_loss
+                        
+                                #angle_loss__in_the_beginning - angle_loss__of_this_step
+                        # _raw_result__step__score_incr [_test_count, _step_count] = \
+                        #         angle_loss__last_step        - angle_loss__of_this_step
+                        
+                        #tail
+                        #angle_loss__last_step = angle_loss__of_this_step
+                        
+                        pass#for _step_count
+                    
+                    pass#for _test_count
+                    
+                plot_me__len_loss                      = _raw_result__len_loss                     .mean(dim=0)
+                plot_me__no_abs__len_loss              = _raw_result__no_abs__len_loss             .mean(dim=0)
+                plot_me__length_retention_loss         = _raw_result__length_retention_loss        .mean(dim=0)
+                plot_me__no_abs__length_retention_loss = _raw_result__no_abs__length_retention_loss.mean(dim=0)
+                assert plot_me__len_loss.shape.__len__() == 1
+                assert plot_me__len_loss.shape[0] == steps
+                
+                x_axis = torch.linspace(0, steps-1, steps )
+                from matplotlib import pyplot as plt
+                plt.plot(x_axis[1:], plot_me__len_loss                     [1:], "b--,", label='len_loss                     ')#, x_axis, step__score_incr)
+                plt.plot(x_axis[1:], plot_me__no_abs__len_loss             [1:], "r--,", label='no_abs__len_loss             ')#, x_axis, step__score_incr)
+                plt.plot(x_axis[1:], plot_me__length_retention_loss        [1:], "b-." , label='length_retention_loss        ')#, x_axis, step__score_incr)
+                plt.plot(x_axis[1:], plot_me__no_abs__length_retention_loss[1:], "r-." , label='no_abs__length_retention_loss')#, x_axis, step__score_incr)
+                plt.plot(x_axis[1:], torch.zeros_like(x_axis[1:]), 'k-')#, x_axis, step__score_incr)
+                #plt.title(f"safe_f {safe_factor}     {style}      power_me {raw_power_me_to_protect_length:.2f}")
+                plt.title(f"{style}      power_me {raw_power_me_to_protect_length:.2f}")
+                plt.legend()
+                plt.show()
+                
+                pass#for style
+            
+            pass#/ test
+        
+        
+        1w 看看数值。感觉都不用看了。
+        后面看看保护长度和角度，对另外一个指标有没有影响。
+        然后就去综合搜了。
+        
+        
+        # if "style test, r, rc, rcr." and True:
+            
+            
+        #     print(f"{_line_()}        style test, r, rc, rcr.")
+        
+        #     #------------------#------------------#------------------
+        #     dim_list =                          [ 10, 100, 1000]
+        #     number_of_tests_list = torch.tensor([100,  50,  10])
+        #     number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
+        #     for outter_param_set in range(dim_list.__len__()):
+        #         dim = dim_list[outter_param_set]
+        #         iota_of_dim = iota(dim)
+        #         number_of_tests = number_of_tests_list[outter_param_set]
+        #         device = 'cpu'
+        #         if dim>10001:
+        #             device = 'cuda'
+        #             pass
+        #         print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+        #     #------------------#------------------#------------------
+        #         #some other ref
+        #         #                         noise_strength_list = torch.tensor(
+        #         #                             [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ])
+        #         #                         angle_loss_list__full = torch.tensor([
+        #         #                             [ 0.0000,  0.2184,  0.4341,  0.6253,  0.7969,  0.9537,  1.0867,  1.1974,  1.3483,  1.4409,  1.5145,  1.5496,   ],#dim 10
+        #         #                             [ 0.0000,  0.2234,  0.4377,  0.6346,  0.8075,  0.9575,  1.0838,  1.1826,  1.3292,  1.4228,  1.4859,  1.5540,   ],#dim 100
+        #         #                             [ 0.0000,  0.2238,  0.4381,  0.6346,  0.8080,  0.9577,  1.0820,  1.1828,  1.3303,  1.4248,  1.4814,  1.5506,   ],])# dim 1000
+                
+        #         1w
+        #         for kk in range(noise_strength_list.__len__()):
+        #             noise_strength = noise_strength_list[kk]
+            
+        #             raw_power_me_to_protect_length_list = [-0.5, -0.1, 0.001, 0.1, 0.5, 0.999]
+        #             #_size = raw_power_me_to_protect_length_list.__len__()
+
+        #             # ori__len_loss__max                  = torch.empty(size=[_size])#don't modify this
+        #             # ori__len_loss__avg                  = torch.empty(size=[_size])#don't modify this
+        #             # ori__no_abs_len_loss                = torch.empty(size=[_size])#don't modify this
+                    
+        #             # ori__length_retention_loss__max     = torch.empty(size=[_size])#don't modify this
+        #             # ori__length_retention_loss__avg     = torch.empty(size=[_size])#don't modify this
+        #             # ori__no_abs__length_retention_loss  = torch.empty(size=[_size])#don't modify this
+        #             #del _size
+                    
+        #             after__len_loss__max                = []#don't modify this
+        #             after__len_loss__avg                = []#don't modify this
+        #             after__no_abs_len_loss              = []#don't modify this
+                    
+        #             after__length_retention_loss__max   = []#don't modify this
+        #             after__length_retention_loss__avg   = []#don't modify this
+        #             after__no_abs__length_retention_loss= []#don't modify this
+                    
+        #             _when_start = time.perf_counter()
+                    
+        #             for jj_x_axis in range(raw_power_me_to_protect_length_list.__len__()):# x axis
+        #                 raw_power_me_to_protect_length =  raw_power_me_to_protect_length_list[jj_x_axis]
+                        
+        #                 #y axis
+        #                 # _raw_result__ori__len_loss                      = torch.empty(size=[number_of_tests])
+        #                 # _raw_result__ori__no_abs_len_loss               = torch.empty(size=[number_of_tests])
+        #                 # _raw_result__ori__length_retention_loss         = torch.empty(size=[number_of_tests])
+        #                 # _raw_result__ori__no_abs__length_retention_loss = torch.empty(size=[number_of_tests])
+        #                 _raw_result__after__len_loss                      = torch.empty(size=[number_of_tests])
+        #                 _raw_result__after__no_abs_len_loss               = torch.empty(size=[number_of_tests])
+        #                 _raw_result__after__length_retention_loss         = torch.empty(size=[number_of_tests])
+        #                 _raw_result__after__no_abs__length_retention_loss = torch.empty(size=[number_of_tests])
+                        
+                        
+        #                 for ii__test in range(number_of_tests):
+                            
+        #                     #------------------#------------------#------------------
+        #                     #<  init                orthogonal mat.
+        #                     mat = random_dummy_mat__v2(dim=dim, noise_strength = noise_strength,
+        #                             div_sqrt_1_plus_ns_sqr = True, device=device, iota_of_dim = iota_of_dim)
+                            
+        #                     #<  perfect should score 0.
+        #                     # len_loss, no_abs_len_loss, length_retention_loss, \
+        #                     #         no_abs__length_retention_loss = full_length_info_test__in_log10(mat)
+        #                     # _raw_result__ori__len_loss                     [ii__test] = len_loss                     
+        #                     # _raw_result__ori__no_abs_len_loss              [ii__test] = no_abs_len_loss              
+        #                     # _raw_result__ori__length_retention_loss        [ii__test] = length_retention_loss        
+        #                     # _raw_result__ori__no_abs__length_retention_loss[ii__test] = no_abs__length_retention_loss
+                            
+        #                     #<  calc
+        #                     mat = full_test_version_of_length_correction__by_row(mat, \
+        #                             raw_power_me_to_protect_length = raw_power_me_to_protect_length, iota_of_dim = iota_of_dim)
+                            
+        #                     #<  measure
+        #                     len_loss, no_abs_len_loss, length_retention_loss, \
+        #                             no_abs__length_retention_loss = full_length_info_test__in_log10(mat)
+        #                     _raw_result__after__len_loss                     [ii__test] = len_loss                     
+        #                     _raw_result__after__no_abs_len_loss              [ii__test] = no_abs_len_loss              
+        #                     _raw_result__after__length_retention_loss        [ii__test] = length_retention_loss        
+        #                     _raw_result__after__no_abs__length_retention_loss[ii__test] = no_abs__length_retention_loss
+                            
+        #                     pass#for ii__test
+                        
+                        
+        #                 # ori__len_loss__max                  [jj_x_axis] = _raw_result__ori__len_loss       .max()
+        #                 # ori__len_loss__avg                  [jj_x_axis] = _raw_result__ori__len_loss       .mean()
+        #                 # ori__no_abs_len_loss                [jj_x_axis] = _raw_result__ori__no_abs_len_loss.mean()
+
+        #                 # ori__length_retention_loss__max     [jj_x_axis] = _raw_result__ori__length_retention_loss        .max()
+        #                 # ori__length_retention_loss__avg     [jj_x_axis] = _raw_result__ori__length_retention_loss        .mean()
+        #                 # ori__no_abs__length_retention_loss  [jj_x_axis] = _raw_result__ori__no_abs__length_retention_loss.mean()
+
+        #                 after__len_loss__max                .append(_raw_result__after__len_loss       .max())
+        #                 after__len_loss__avg                .append(_raw_result__after__len_loss       .mean())
+        #                 after__no_abs_len_loss              .append(_raw_result__after__no_abs_len_loss.mean())
+
+        #                 after__length_retention_loss__max   .append(_raw_result__after__length_retention_loss        .max())
+        #                 after__length_retention_loss__avg   .append(_raw_result__after__length_retention_loss        .mean())
+        #                 after__no_abs__length_retention_loss.append(_raw_result__after__no_abs__length_retention_loss.mean())
+                        
+        #                 pass#for power_me_to_protect_length
+        #             _when_end = time.perf_counter()
+                    
+        #             print(f"{_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+        #             print(f"noise_strength {noise_strength}     dim {dim}")
+        #             # print(f"ori__len_loss__max                = {str_the_list(ori__len_loss__max                  , 3)}")
+        #             # print(f"ori__len_loss__avg                = {str_the_list(ori__len_loss__avg                  , 3)}")
+        #             # print(f"ori__no_abs_len_loss              = {str_the_list(ori__no_abs_len_loss                , 3)}")
+        #             # print(f"ori__length_retention_loss__max   = {str_the_list(ori__length_retention_loss__max     , 3)}")
+        #             # print(f"ori__length_retention_loss__avg   = {str_the_list(ori__length_retention_loss__avg     , 3)}")
+        #             # print(f"ori__no_abs__length_retention_loss= {str_the_list(ori__no_abs__length_retention_loss  , 3)}")
+        #             print(f"power_me_to_protect_length       = {str_the_list(raw_power_me_to_protect_length_list  , 3, ",   ")}")
+        #             print(f"aft__len_loss__max                = {str_the_list(after__len_loss__max                 , 5)}")
+        #             print(f"aft__len_loss__avg                = {str_the_list(after__len_loss__avg                 , 5)}")
+        #             print(f"aft__no_abs_len_loss              = {str_the_list(after__no_abs_len_loss               , 5)}")
+        #             print(f"aft__length_retention_loss__max   = {str_the_list(after__length_retention_loss__max    , 5)}")
+        #             print(f"aft__length_retention_loss__avg   = {str_the_list(after__length_retention_loss__avg    , 5)}")
+        #             print(f"aft__no_abs__length_retention_loss= {str_the_list(after__no_abs__length_retention_loss , 5)}")
+        #             #print(f"dim        = {str_the_list(dim_list, 0, ",    ")}")
+                    
+        #             pass#for outter_param_set
+                
+        #         pass#for random_generator_style
+        #     pass#/ test
+        
+        
+        
+        
         
         return
-                            
-    ____test____full_test_version_of_length_correction__by_row____basic()
+    ____test____full_test_version_of_length_correction__by_row____scan_the_hyperparam()                            
     pass
         
         

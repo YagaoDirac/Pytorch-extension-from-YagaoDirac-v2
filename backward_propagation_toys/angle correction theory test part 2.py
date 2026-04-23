@@ -378,7 +378,9 @@ def random_dummy_mat__v2(dim:int, noise_strength:float, div_sqrt_1_plus_ns_sqr:b
         mat *= _mul_me
         pass
     return mat
-assert False, "this is new v2, untested. just copied form the length test."
+if __DEBUG_ME__():
+    assert False, "this is new v2, untested. just copied form the length test."
+    pass
 
 def random_dummy_mat__v2__from_target(dim:int, target_angle_loss:torch.Tensor,
                     device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
@@ -1057,7 +1059,7 @@ if "test   random_dummy_mat" and False:
     ____test____random_dummy_mat()
     pass
 
-if "test      full_test_version_of_angle_correction__by_row" and True:
+if "test      full_test_version_of_angle_correction__by_row" and False:
     def ____test____full_test_version_of_angle_correction__by_row______basic():
         
         if "basic behavior" and False:
@@ -1193,13 +1195,15 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
         return 
     
     #____test____full_test_version_of_angle_correction__by_row______basic()
+    pass
 
+if "test scan the hyper param" and True:
 
     def ____test____full_test_version_of_angle_correction__by_row______scan_the_process():
         # the style means "r", "rr", "rc", "rrr", "rrc". 
         # result is manually extracted form visualization.
         # it's a rough test.
-        if "style doesn't matter......a rough test. To build up intuition." and False:
+        if "style doesn't matter......a rough test. To build up intuition." and True:
             #result
             # the measurement is manual. The fluctuating tail is ignored manually.
             # format
@@ -2349,12 +2353,11 @@ if "test      full_test_version_of_angle_correction__by_row" and True:
     ____test____full_test_version_of_angle_correction__by_row______scan_the_process()
     pass
 
-if __DEBUG_ME__():
-    assert False
-    '''
-    下面这个scan里面的第二个，只扫了dim=100的时候。理由是反正还有长度的修正要测。
-    完事之后应该有一个所有东西放在一起的综合的。大概率要上rl来搜。
-    '''
+assert False
+'''
+下面这个scan里面的第二个，只扫了dim=100的时候。理由是反正还有长度的修正要测。
+完事之后应该有一个所有东西放在一起的综合的。大概率要上rl来搜。
+'''
     
     
 if "scan for the adaptive angle correct" and True:
