@@ -571,8 +571,8 @@ if "maybe it's better to do it outside???" and False:
 
 
 
-
-"not very important."
+"random twin indexs"
+#"not very important."
 
 def random_2_diff_index(dim:int, device , devide_in_this_function = 'cpu')->tuple[torch.Tensor,torch.Tensor]:
     '''return index_tensor.
@@ -1493,7 +1493,7 @@ def randomly_permutate__vector(input:torch.Tensor)->torch.Tensor:
     the_rand_permutation_index = torch.randperm(dim)
     result = input[..., the_rand_permutation_index]
     return result
-if "test" and __DEBUG_ME__() and True:
+if "test" and __DEBUG_ME__() and False:
     def ____test____randomly_permutate_this_vector():
         # vec = torch.linspace(1,5,4)
         # ori_sum = vec.sum()
@@ -1560,7 +1560,7 @@ def randomly_permutate__matrix(input:torch.Tensor)->torch.Tensor:
     the_rand_permutation_index = torch.randperm(dim)
     result = result[..., the_rand_permutation_index, :]
     return result
-if "test" and __DEBUG_ME__() and True:
+if "test" and __DEBUG_ME__() and False:
     def ____test____randomly_permutate_this_matrix():
         # at least 2 ways to validate. 
         # sort and check with eq
@@ -1641,6 +1641,130 @@ if "test" and __DEBUG_ME__() and True:
     #     return 
     # ____test____random_permutate()
     # pass
+
+
+
+
+
+
+"   random symmetric"
+def random_symmetric_matrix(dim:int, dtype = None, device = None, iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
+    with torch.no_grad():
+        iota_of_dim = iota_of_dim or iota(dim)
+        mat = torch.randn(size=[dim,dim], dtype = dtype, device = device).triu()
+        mat[iota_of_dim,iota_of_dim] *= 0.5
+        mat = mat + mat.T
+        return mat
+    pass#end of function
+if "test" and __DEBUG_ME__() and False:
+    def ____test____random_symmetric_matrix____basic_behavior():
+        if "basic behavior" and True:
+            for dim in [2,3,5,10,100,1000]:
+                for _ in range(11):
+                    mat = random_symmetric_matrix(dim)
+                    assert mat.eq(mat.T).all()
+                    pass
+                pass
+            pass#/ test
+        
+        if "value range" and True:
+            for dim in [100,1000]:
+                for _ in range(11):
+                    ref_mat = torch.randn(size=[dim,dim])
+                    ref_avg = ref_mat.abs().mean()
+                    
+                    mat = random_symmetric_matrix(dim)
+                    the_avg = mat.abs().mean()
+                    assert ref_avg<the_avg*1.1
+                    assert the_avg<ref_avg*1.1
+                    pass
+                pass
+            pass#/ test
+        
+        return
+    ____test____random_symmetric_matrix____basic_behavior()
+
+def random_symmetric_matrix__rough(dim:int, dtype = None, device = None)->torch.Tensor:
+    with torch.no_grad():
+        mat = torch.randn(size=[dim,dim], dtype = dtype, device = device)
+        mat = (mat + mat.T)*0.5
+        return mat
+if "test" and __DEBUG_ME__() and False:
+    def ____test____random_symmetric_matrix__rough____basic_behavior():
+        if "basic behavior" and True:
+            for dim in [2,3,5,10,100,1000]:
+                for _ in range(11):
+                    mat = random_symmetric_matrix__rough(dim)
+                    assert mat.eq(mat.T).all()
+                    pass
+                pass
+            pass#/ test
+        
+        if "value range" and True:
+            for dim in [100,1000]:
+                for _ in range(11):
+                    ref_mat = torch.randn(size=[dim,dim])
+                    ref_avg = ref_mat.abs().mean()
+                    
+                    mat = random_symmetric_matrix__rough(dim)
+                    the_avg = mat.abs().mean()
+                    assert ref_avg<the_avg*1.5
+                    assert the_avg<ref_avg*1.5
+                    pass
+                pass
+            pass#/ test
+        
+        return
+    ____test____random_symmetric_matrix__rough____basic_behavior()
+
+def random_skew_symmetric_matrix(dim:int, dtype = None, device = None)->torch.Tensor:
+    with torch.no_grad():
+        mat = torch.randn(size=[dim,dim], dtype = dtype, device = device).triu()
+        mat = mat - mat.T
+        return mat
+    pass#end of function
+if "test" and __DEBUG_ME__() and False:
+    def ____test____random_skew_symmetric_matrix____basic_behavior():
+        if "basic behavior" and True:
+            for dim in [2,3,5,10,100,1000]:
+                for _ in range(11):
+                    mat = random_skew_symmetric_matrix(dim)
+                    assert mat.eq(-mat.T).all()
+                    pass
+                pass
+            pass#/ test
+        
+        if "value range" and True:
+            for dim in [100,1000]:
+                for _ in range(11):
+                    ref_mat = torch.randn(size=[dim,dim])
+                    ref_avg = ref_mat.abs().mean()
+                    
+                    mat = random_skew_symmetric_matrix(dim)
+                    the_avg = mat.abs().mean()*(dim/(dim-1))
+                    assert ref_avg<the_avg*1.1
+                    assert the_avg<ref_avg*1.1
+                    pass
+                pass
+            pass#/ test
+        
+        return
+    ____test____random_skew_symmetric_matrix____basic_behavior()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

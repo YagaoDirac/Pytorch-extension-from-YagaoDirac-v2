@@ -67,6 +67,36 @@ def random_dummy_mat__v2(dim:int, noise_strength:float, div_sqrt_1_plus_ns_sqr:b
         pass
     return mat
 #copied from the angle test part 2.py. Already tested behavior there. No basic behavior test here.
+def random_dummy_mat__v2__from_target(dim:int, target_angle_loss:torch.Tensor,
+                    device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
+    '''
+    target_angle_loss inside [0., 1.6]
+    '''
+    assert target_angle_loss >= 0. and target_angle_loss <= 1.6
+    
+    noise_strength_list = torch.tensor(
+        [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ])
+    angle_loss_list__full = torch.tensor([
+        [ 0.0000,  0.2184,  0.4341,  0.6253,  0.7969,  0.9537,  1.0867,  1.1974,  1.3483,  1.4409,  1.5145,  1.5496,   ],#dim 10
+        [ 0.0000,  0.2234,  0.4377,  0.6346,  0.8075,  0.9575,  1.0838,  1.1826,  1.3292,  1.4228,  1.4859,  1.5540,   ],#dim 100
+        [ 0.0000,  0.2238,  0.4381,  0.6346,  0.8080,  0.9577,  1.0820,  1.1828,  1.3303,  1.4248,  1.4814,  1.5506,   ],])# dim 1000
+    
+    log10_of_dim = torch.tensor(dim).log10()
+    log10_of_dim.clamp_(1., 3.)
+    angle_loss_list__for_this_dim = interpolation_of_list(angle_loss_list__full, log10_of_dim -1.)# a row
+    assert angle_loss_list__for_this_dim.shape[0] == angle_loss_list__full.shape[-1]
+    
+    _index_float = reverse_interpolation_of_list__list_must_sorted(angle_loss_list__for_this_dim, list_is_Ascending = True, 
+                                                        the_input=target_angle_loss, Im_sure_the_list_is_sorted=True)
+    assert _index_float <= angle_loss_list__for_this_dim.nelement()-1
+    
+    noise_strength = interpolation_of_list(noise_strength_list, _index_float)
+    
+    return random_dummy_mat__v2(dim = dim, noise_strength = noise_strength.item(), div_sqrt_1_plus_ns_sqr=True,
+                                device = device, iota_of_dim = iota_of_dim)
+#copied from the angle test part 2.py. Already tested behavior there. No basic behavior test here.
+
+
 
 if "measure the random gen algo" and False:
     def ____test____measure_the_random_gen_algo():
@@ -821,21 +851,82 @@ if "test" and False:
 
 if "similar test from the angle part2.  Scan the hyper param" and True:
     def ____test____full_test_version_of_length_correction__by_row____scan_the_hyperparam():
-        # the style means "r", "rr", "rc", "rrr", "rrc". 
+        # the style means "r", "rr", "rc", ....
         # result is manually extracted form visualization.
         # it's a rough test.
-        if "style doesn't matter......a rough test. To build up intuition." and True:
+        
+        #扫2步扫完了再回来看看。
+        if "[[[visual]]] style doesn't matter......a rough test. To build up intuition." and True:
             #result
             # r,0.1 == (r,0.316)x2
+            
+            # 1w
+            # 检查一下如果强行吧no abs len loss 调回0，是不是no abs length retention也一定是0.如果有这个假设的话，可能还有一些思路。
+            # 后面看看保护长度和角度，对另外一个指标有没有影响。
+            # 后面就是综合扫参数了。
+        
+        
+        
+            # style r      raw_power_me_to_protect_length 0.10     dim 1000      
+            # len_loss            = [ 0.99974,  0.09987,  0.01071,  0.00441]
+            # no_abs__len_loss    = [ 0.99974,  0.09987,  0.00989,  0.00089]
+            # length_retention_los= [ 1.00006,  0.10012,  0.01153,  0.00817]
+            # no_abs_length_retent= [ 1.00006,  0.10012,  0.00999,  0.00075]
+            # step                  = [ 0,        1,        2,        3]
+            # len_loss            = [ 0.00773,  0.00429,  0.00396,  0.00395]
+            # no_abs__len_loss    = [ 0.00000,  0.00000,  0.00000, -0.00000]
+            # length_retention_los= [ 0.00796,  0.00785,  0.00766,  0.00783]
+            # no_abs_length_retent= [-0.00047, -0.00022, -0.00037,  0.00023]
+            # style rr      raw_power_me_to_protect_length 0.10     dim 1000      
+            # len_loss            = [ 0.99972,  0.09986,  0.01069,  0.00439]
+            # no_abs__len_loss    = [ 0.99972,  0.09986,  0.00989,  0.00089]
+            # length_retention_los= [ 1.00027,  0.10014,  0.01142,  0.00770]
+            # no_abs_length_retent= [ 1.00027,  0.10014,  0.00959,  0.00163]
+            # step                  = [ 0,        1,        2,        3]
+            # len_loss            = [ 0.00771,  0.00426,  0.00393,  0.00393]
+            # no_abs__len_loss    = [ 0.00000,  0.00000,  0.00000,  0.00000]
+            # length_retention_los= [ 0.00818,  0.00788,  0.00748,  0.00808]
+            # no_abs_length_retent= [ 0.00017, -0.00001, -0.00016, -0.00058]
+            # style rc      raw_power_me_to_protect_length 0.10     dim 1000      
+            # len_loss            = [ 0.99962,  0.09990,  0.00998,  0.00100]
+            # no_abs__len_loss    = [ 0.99962,  0.09990,  0.00998,  0.00100]
+            # length_retention_los= [ 0.99946,  0.10000,  0.01095,  0.00759]
+            # no_abs_length_retent= [ 0.99946,  0.10000,  0.00929,  0.00085]
+            # step                  = [ 0,        1,        2,        3]
+            # len_loss            = [ 0.00780,  0.00247,  0.00079,  0.00025]
+            # no_abs__len_loss    = [-0.00000, -0.00000,  0.00000, -0.00000]
+            # length_retention_los= [ 0.00770,  0.00771,  0.00758,  0.00768]
+            # no_abs_length_retent= [-0.00005,  0.00009, -0.00013, -0.00023]
+            # style rcr      raw_power_me_to_protect_length 0.10     dim 1000      
+            # len_loss            = [ 0.99973,  0.09992,  0.00998,  0.00108]
+            # no_abs__len_loss    = [ 0.99973,  0.09992,  0.00998,  0.00100]
+            # length_retention_los= [ 0.99934,  0.09965,  0.01117,  0.00775]
+            # no_abs_length_retent= [ 0.99934,  0.09965,  0.00928,  0.00143]
+            # step                  = [ 0,        1,        2,        3]
+            # len_loss            = [ 0.00775,  0.00263,  0.00102,  0.00043]
+            # no_abs__len_loss    = [-0.00000, -0.00000,  0.00000, -0.00000]
+            # length_retention_los= [ 0.00764,  0.00759,  0.00774,  0.00722]
+            # no_abs_length_retent= [ 0.00005, -0.00010,  0.00011, -0.00009]
+            # style rCr      raw_power_me_to_protect_length 0.10     dim 1000      
+            # len_loss            = [ 0.99972,  0.09992,  0.00999,  0.00100]
+            # no_abs__len_loss    = [ 0.99972,  0.09992,  0.00999,  0.00100]
+            # length_retention_los= [ 0.99950,  0.09965,  0.01154,  0.00777]
+            # no_abs_length_retent= [ 0.99950,  0.09965,  0.01014,  0.00062]
+            # step                  = [ 0,        1,        2,        3]
+            # len_loss            = [ 0.00772,  0.00244,  0.00078,  0.00025]
+            # no_abs__len_loss    = [ 0.00000, -0.00000,  0.00000, -0.00000]
+            # length_retention_los= [ 0.00777,  0.00762,  0.00766,  0.00756]
+            # no_abs_length_retent= [-0.00003, -0.00025, -0.00015,  0.00010]
+            
             
             
             style_list = ["r", "rr", "rc", "rcr", "rCr" ]
             for style in style_list:
                 raw_power_me_to_protect_length = torch.tensor(0.1)
-                dim = 100
+                dim = 1000
                 init_pow = 1.
                 
-                steps = 5
+                steps = 4
                 iota_of_dim = iota(dim)
                 
                 device = 'cpu'
@@ -843,13 +934,35 @@ if "similar test from the angle part2.  Scan the hyper param" and True:
                     device = 'cuda'
                     pass
                 
-                test_time = 20###########################################################
+                test_time = 10###########################################################
                 
-                print(test_time)
+                print(f"dim {dim}       test_time {test_time}")
+                
+                
                 _raw_result__len_loss                     = torch.empty(size=[test_time, steps])
                 _raw_result__no_abs__len_loss             = torch.empty(size=[test_time, steps])
                 _raw_result__length_retention_loss        = torch.empty(size=[test_time, steps])
                 _raw_result__no_abs__length_retention_loss= torch.empty(size=[test_time, steps])
+                
+                _with_trick_raw_result__len_loss                     = torch.empty(size=[test_time, steps])
+                _with_trick_raw_result__no_abs__len_loss             = torch.empty(size=[test_time, steps])
+                _with_trick_raw_result__length_retention_loss        = torch.empty(size=[test_time, steps])
+                _with_trick_raw_result__no_abs__length_retention_loss= torch.empty(size=[test_time, steps])
+                
+                for _buff in [
+                        _raw_result__len_loss                     ,
+                        _raw_result__no_abs__len_loss             ,
+                        _raw_result__length_retention_loss        ,
+                        _raw_result__no_abs__length_retention_loss,
+                        _with_trick_raw_result__len_loss                     ,
+                        _with_trick_raw_result__no_abs__len_loss             ,
+                        _with_trick_raw_result__length_retention_loss        ,
+                        _with_trick_raw_result__no_abs__length_retention_loss,]:
+                    _buff.fill_(torch.nan)
+                    pass
+                del _buff
+                
+                _when_start = time.perf_counter()
                 
                 for ii_test_count in range(test_time):
                     
@@ -858,10 +971,26 @@ if "similar test from the angle part2.  Scan the hyper param" and True:
                     len_loss__in_the_beginning, no_abs__len_loss__in_the_beginning, length_retention_loss__in_the_beginning, \
                             no_abs__length_retention_loss__in_the_beginning = full_length_info_test__in_log10(mat)
                     
+                    #<  measure    ori
                     _raw_result__len_loss                     [ii_test_count, 0] = len_loss__in_the_beginning
                     _raw_result__no_abs__len_loss             [ii_test_count, 0] = no_abs__len_loss__in_the_beginning
                     _raw_result__length_retention_loss        [ii_test_count, 0] = length_retention_loss__in_the_beginning
                     _raw_result__no_abs__length_retention_loss[ii_test_count, 0] = no_abs__length_retention_loss__in_the_beginning
+                    
+                    #<  measure     with trich
+                    _,_, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+                    assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
+                    pow_this___no_abs__len_loss = _log[0][1]
+                    
+                    mat_for_measure = mat*torch.tensor(10.).pow(-1.*pow_this___no_abs__len_loss)
+                    len_loss, no_abs__len_loss, length_retention_loss, no_abs__length_retention_loss = \
+                            full_length_info_test__in_log10(mat_for_measure)
+                    assert _tensor_equal(no_abs__len_loss, [0.])
+                    
+                    _with_trick_raw_result__len_loss                     [ii_test_count, 0] = len_loss
+                    _with_trick_raw_result__no_abs__len_loss             [ii_test_count, 0] = no_abs__len_loss
+                    _with_trick_raw_result__length_retention_loss        [ii_test_count, 0] = length_retention_loss
+                    _with_trick_raw_result__no_abs__length_retention_loss[ii_test_count, 0] = no_abs__length_retention_loss
                     
                     #<  calc
                     for ii_step_count in range(1, steps):
@@ -905,16 +1034,27 @@ if "similar test from the angle part2.  Scan the hyper param" and True:
                         
                         #<  measure
                         len_loss, no_abs__len_loss, length_retention_loss, no_abs__length_retention_loss = \
-                                                    full_length_info_test__in_log10(mat)
+                                full_length_info_test__in_log10(mat)
                         
                         _raw_result__len_loss                     [ii_test_count, ii_step_count] = len_loss
                         _raw_result__no_abs__len_loss             [ii_test_count, ii_step_count] = no_abs__len_loss
                         _raw_result__length_retention_loss        [ii_test_count, ii_step_count] = length_retention_loss
                         _raw_result__no_abs__length_retention_loss[ii_test_count, ii_step_count] = no_abs__length_retention_loss
                         
-                                #angle_loss__in_the_beginning - angle_loss__of_this_step
-                        # _raw_result__step__score_incr [_test_count, _step_count] = \
-                        #         angle_loss__last_step        - angle_loss__of_this_step
+                        
+                        _,_, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+                        assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
+                        pow_this___no_abs__len_loss = _log[0][1]
+                        
+                        mat_for_measure = mat*torch.tensor(10.).pow(-1.*pow_this___no_abs__len_loss)
+                        len_loss, no_abs__len_loss, length_retention_loss, no_abs__length_retention_loss = \
+                                full_length_info_test__in_log10(mat_for_measure)
+                        assert _tensor_equal(no_abs__len_loss, [0.])
+                        
+                        _with_trick_raw_result__len_loss                     [ii_test_count, ii_step_count] = len_loss
+                        _with_trick_raw_result__no_abs__len_loss             [ii_test_count, ii_step_count] = no_abs__len_loss
+                        _with_trick_raw_result__length_retention_loss        [ii_test_count, ii_step_count] = length_retention_loss
+                        _with_trick_raw_result__no_abs__length_retention_loss[ii_test_count, ii_step_count] = no_abs__length_retention_loss
                         
                         #tail
                         #angle_loss__last_step = angle_loss__of_this_step
@@ -922,6 +1062,8 @@ if "similar test from the angle part2.  Scan the hyper param" and True:
                         pass#for _step_count
                     
                     pass#for _test_count
+                _when_end = time.perf_counter()
+                print(f"{device}    {_when_end-_when_start} per {test_time} runs")
                     
                 plot_me__len_loss                      = _raw_result__len_loss                     .mean(dim=0)
                 plot_me__no_abs__len_loss              = _raw_result__no_abs__len_loss             .mean(dim=0)
@@ -929,166 +1071,161 @@ if "similar test from the angle part2.  Scan the hyper param" and True:
                 plot_me__no_abs__length_retention_loss = _raw_result__no_abs__length_retention_loss.mean(dim=0)
                 assert plot_me__len_loss.shape.__len__() == 1
                 assert plot_me__len_loss.shape[0] == steps
+                plot_me__with_trick__len_loss                      = _with_trick_raw_result__len_loss                     .mean(dim=0)
+                plot_me__with_trick__no_abs__len_loss              = _with_trick_raw_result__no_abs__len_loss             .mean(dim=0)
+                plot_me__with_trick__length_retention_loss         = _with_trick_raw_result__length_retention_loss        .mean(dim=0)
+                plot_me__with_trick__no_abs__length_retention_loss = _with_trick_raw_result__no_abs__length_retention_loss.mean(dim=0)
                 
                 x_axis = torch.linspace(0, steps-1, steps )
-                from matplotlib import pyplot as plt
-                plt.plot(x_axis[1:], plot_me__len_loss                     [1:], "b--,", label='len_loss                     ')#, x_axis, step__score_incr)
-                plt.plot(x_axis[1:], plot_me__no_abs__len_loss             [1:], "r--,", label='no_abs__len_loss             ')#, x_axis, step__score_incr)
-                plt.plot(x_axis[1:], plot_me__length_retention_loss        [1:], "b-." , label='length_retention_loss        ')#, x_axis, step__score_incr)
-                plt.plot(x_axis[1:], plot_me__no_abs__length_retention_loss[1:], "r-." , label='no_abs__length_retention_loss')#, x_axis, step__score_incr)
-                plt.plot(x_axis[1:], torch.zeros_like(x_axis[1:]), 'k-')#, x_axis, step__score_incr)
-                #plt.title(f"safe_f {safe_factor}     {style}      power_me {raw_power_me_to_protect_length:.2f}")
-                plt.title(f"{style}      power_me {raw_power_me_to_protect_length:.2f}")
-                plt.legend()
-                plt.show()
+                if "print out" and False:
+                    print(f"style {style}      raw_power_me_to_protect_length {raw_power_me_to_protect_length.item():.2f}     dim {dim}      ")
+                    print(f"len_loss            = {str_the_list(plot_me__len_loss                     [1:3], 3)}")
+                    #print(f"no_abs__len_loss    = {str_the_list(plot_me__no_abs__len_loss             [1:3], 3)}")
+                    print(f"length_retention_los= {str_the_list(plot_me__length_retention_loss        [1:3], 3)}")
+                    print(f"no_abs_length_retent= {str_the_list(plot_me__no_abs__length_retention_loss[1:3], 3)}")
+                    print(f"step                  = {str_the_list(x_axis                                 [1:3], 0, ",     ")}")
+                    pass
+                
+                if "print out   all" and True:
+                    
+                    print(f"style {style}      raw_power_me_to_protect_length {raw_power_me_to_protect_length.item():.2f}     dim {dim}      ")
+                    print(f"len_loss            = {str_the_list(plot_me__len_loss                                 , 5)}")
+                    print(f"no_abs__len_loss    = {str_the_list(plot_me__no_abs__len_loss                         , 5)}")
+                    print(f"length_retention_los= {str_the_list(plot_me__length_retention_loss                    , 5)}")
+                    print(f"no_abs_length_retent= {str_the_list(plot_me__no_abs__length_retention_loss            , 5)}")
+                    print(f"step                  = {str_the_list(x_axis                                          , 0, ",       ")}")
+                    print(f"len_loss            = {str_the_list(plot_me__with_trick__len_loss                     , 5)}")
+                    print(f"no_abs__len_loss    = {str_the_list(plot_me__with_trick__no_abs__len_loss             , 5)}")
+                    print(f"length_retention_los= {str_the_list(plot_me__with_trick__length_retention_loss        , 5)}")
+                    print(f"no_abs_length_retent= {str_the_list(plot_me__with_trick__no_abs__length_retention_loss, 5)}")
+                    pass
+                
+                if "visualization" and False:
+                    from matplotlib import pyplot as plt
+                    plt.plot(x_axis[1:], plot_me__len_loss                     [1:], "b--,", label='len_loss                     ')#, x_axis, step__score_incr)
+                    #plt.plot(x_axis[1:], plot_me__no_abs__len_loss             [1:], "r--,", label='no_abs__len_loss             ')#, x_axis, step__score_incr)
+                    plt.plot(x_axis[1:], plot_me__length_retention_loss        [1:], "b-." , label='length_retention_loss        ')#, x_axis, step__score_incr)
+                    plt.plot(x_axis[1:], plot_me__no_abs__length_retention_loss[1:], "r-." , label='no_abs__length_retention_loss')#, x_axis, step__score_incr)
+                    plt.plot(x_axis[1:], torch.zeros_like(x_axis[1:]), 'k-')#, x_axis, step__score_incr)
+                    #plt.title(f"safe_f {safe_factor}     {style}      power_me {raw_power_me_to_protect_length:.2f}")
+                    plt.title(f"{style}      power_me {raw_power_me_to_protect_length:.2f}")
+                    plt.legend()
+                    plt.show()
+                    pass# visualization
                 
                 pass#for style
             
             pass#/ test
         
         
-        1w 看看数值。感觉都不用看了。
-        后面看看保护长度和角度，对另外一个指标有没有影响。
-        然后就去综合搜了。
         
         
-        # if "style test, r, rc, rcr." and True:
+        
+        
+        if "rc scan" and True:
             
-            
-        #     print(f"{_line_()}        style test, r, rc, rcr.")
-        
-        #     #------------------#------------------#------------------
-        #     dim_list =                          [ 10, 100, 1000]
-        #     number_of_tests_list = torch.tensor([100,  50,  10])
-        #     number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
-        #     for outter_param_set in range(dim_list.__len__()):
-        #         dim = dim_list[outter_param_set]
-        #         iota_of_dim = iota(dim)
-        #         number_of_tests = number_of_tests_list[outter_param_set]
-        #         device = 'cpu'
-        #         if dim>10001:
-        #             device = 'cuda'
-        #             pass
-        #         print(f"dim {dim}   test_time {number_of_tests}    device {device}")
-        #     #------------------#------------------#------------------
-        #         #some other ref
-        #         #                         noise_strength_list = torch.tensor(
-        #         #                             [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ])
-        #         #                         angle_loss_list__full = torch.tensor([
-        #         #                             [ 0.0000,  0.2184,  0.4341,  0.6253,  0.7969,  0.9537,  1.0867,  1.1974,  1.3483,  1.4409,  1.5145,  1.5496,   ],#dim 10
-        #         #                             [ 0.0000,  0.2234,  0.4377,  0.6346,  0.8075,  0.9575,  1.0838,  1.1826,  1.3292,  1.4228,  1.4859,  1.5540,   ],#dim 100
-        #         #                             [ 0.0000,  0.2238,  0.4381,  0.6346,  0.8080,  0.9577,  1.0820,  1.1828,  1.3303,  1.4248,  1.4814,  1.5506,   ],])# dim 1000
+            print(f"{_line_()}    rc scan")
                 
-        #         1w
-        #         for kk in range(noise_strength_list.__len__()):
-        #             noise_strength = noise_strength_list[kk]
-            
-        #             raw_power_me_to_protect_length_list = [-0.5, -0.1, 0.001, 0.1, 0.5, 0.999]
-        #             #_size = raw_power_me_to_protect_length_list.__len__()
-
-        #             # ori__len_loss__max                  = torch.empty(size=[_size])#don't modify this
-        #             # ori__len_loss__avg                  = torch.empty(size=[_size])#don't modify this
-        #             # ori__no_abs_len_loss                = torch.empty(size=[_size])#don't modify this
-                    
-        #             # ori__length_retention_loss__max     = torch.empty(size=[_size])#don't modify this
-        #             # ori__length_retention_loss__avg     = torch.empty(size=[_size])#don't modify this
-        #             # ori__no_abs__length_retention_loss  = torch.empty(size=[_size])#don't modify this
-        #             #del _size
-                    
-        #             after__len_loss__max                = []#don't modify this
-        #             after__len_loss__avg                = []#don't modify this
-        #             after__no_abs_len_loss              = []#don't modify this
-                    
-        #             after__length_retention_loss__max   = []#don't modify this
-        #             after__length_retention_loss__avg   = []#don't modify this
-        #             after__no_abs__length_retention_loss= []#don't modify this
-                    
-        #             _when_start = time.perf_counter()
-                    
-        #             for jj_x_axis in range(raw_power_me_to_protect_length_list.__len__()):# x axis
-        #                 raw_power_me_to_protect_length =  raw_power_me_to_protect_length_list[jj_x_axis]
-                        
-        #                 #y axis
-        #                 # _raw_result__ori__len_loss                      = torch.empty(size=[number_of_tests])
-        #                 # _raw_result__ori__no_abs_len_loss               = torch.empty(size=[number_of_tests])
-        #                 # _raw_result__ori__length_retention_loss         = torch.empty(size=[number_of_tests])
-        #                 # _raw_result__ori__no_abs__length_retention_loss = torch.empty(size=[number_of_tests])
-        #                 _raw_result__after__len_loss                      = torch.empty(size=[number_of_tests])
-        #                 _raw_result__after__no_abs_len_loss               = torch.empty(size=[number_of_tests])
-        #                 _raw_result__after__length_retention_loss         = torch.empty(size=[number_of_tests])
-        #                 _raw_result__after__no_abs__length_retention_loss = torch.empty(size=[number_of_tests])
-                        
-                        
-        #                 for ii__test in range(number_of_tests):
-                            
-        #                     #------------------#------------------#------------------
-        #                     #<  init                orthogonal mat.
-        #                     mat = random_dummy_mat__v2(dim=dim, noise_strength = noise_strength,
-        #                             div_sqrt_1_plus_ns_sqr = True, device=device, iota_of_dim = iota_of_dim)
-                            
-        #                     #<  perfect should score 0.
-        #                     # len_loss, no_abs_len_loss, length_retention_loss, \
-        #                     #         no_abs__length_retention_loss = full_length_info_test__in_log10(mat)
-        #                     # _raw_result__ori__len_loss                     [ii__test] = len_loss                     
-        #                     # _raw_result__ori__no_abs_len_loss              [ii__test] = no_abs_len_loss              
-        #                     # _raw_result__ori__length_retention_loss        [ii__test] = length_retention_loss        
-        #                     # _raw_result__ori__no_abs__length_retention_loss[ii__test] = no_abs__length_retention_loss
-                            
-        #                     #<  calc
-        #                     mat = full_test_version_of_length_correction__by_row(mat, \
-        #                             raw_power_me_to_protect_length = raw_power_me_to_protect_length, iota_of_dim = iota_of_dim)
-                            
-        #                     #<  measure
-        #                     len_loss, no_abs_len_loss, length_retention_loss, \
-        #                             no_abs__length_retention_loss = full_length_info_test__in_log10(mat)
-        #                     _raw_result__after__len_loss                     [ii__test] = len_loss                     
-        #                     _raw_result__after__no_abs_len_loss              [ii__test] = no_abs_len_loss              
-        #                     _raw_result__after__length_retention_loss        [ii__test] = length_retention_loss        
-        #                     _raw_result__after__no_abs__length_retention_loss[ii__test] = no_abs__length_retention_loss
-                            
-        #                     pass#for ii__test
-                        
-                        
-        #                 # ori__len_loss__max                  [jj_x_axis] = _raw_result__ori__len_loss       .max()
-        #                 # ori__len_loss__avg                  [jj_x_axis] = _raw_result__ori__len_loss       .mean()
-        #                 # ori__no_abs_len_loss                [jj_x_axis] = _raw_result__ori__no_abs_len_loss.mean()
-
-        #                 # ori__length_retention_loss__max     [jj_x_axis] = _raw_result__ori__length_retention_loss        .max()
-        #                 # ori__length_retention_loss__avg     [jj_x_axis] = _raw_result__ori__length_retention_loss        .mean()
-        #                 # ori__no_abs__length_retention_loss  [jj_x_axis] = _raw_result__ori__no_abs__length_retention_loss.mean()
-
-        #                 after__len_loss__max                .append(_raw_result__after__len_loss       .max())
-        #                 after__len_loss__avg                .append(_raw_result__after__len_loss       .mean())
-        #                 after__no_abs_len_loss              .append(_raw_result__after__no_abs_len_loss.mean())
-
-        #                 after__length_retention_loss__max   .append(_raw_result__after__length_retention_loss        .max())
-        #                 after__length_retention_loss__avg   .append(_raw_result__after__length_retention_loss        .mean())
-        #                 after__no_abs__length_retention_loss.append(_raw_result__after__no_abs__length_retention_loss.mean())
-                        
-        #                 pass#for power_me_to_protect_length
-        #             _when_end = time.perf_counter()
-                    
-        #             print(f"{_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
-        #             print(f"noise_strength {noise_strength}     dim {dim}")
-        #             # print(f"ori__len_loss__max                = {str_the_list(ori__len_loss__max                  , 3)}")
-        #             # print(f"ori__len_loss__avg                = {str_the_list(ori__len_loss__avg                  , 3)}")
-        #             # print(f"ori__no_abs_len_loss              = {str_the_list(ori__no_abs_len_loss                , 3)}")
-        #             # print(f"ori__length_retention_loss__max   = {str_the_list(ori__length_retention_loss__max     , 3)}")
-        #             # print(f"ori__length_retention_loss__avg   = {str_the_list(ori__length_retention_loss__avg     , 3)}")
-        #             # print(f"ori__no_abs__length_retention_loss= {str_the_list(ori__no_abs__length_retention_loss  , 3)}")
-        #             print(f"power_me_to_protect_length       = {str_the_list(raw_power_me_to_protect_length_list  , 3, ",   ")}")
-        #             print(f"aft__len_loss__max                = {str_the_list(after__len_loss__max                 , 5)}")
-        #             print(f"aft__len_loss__avg                = {str_the_list(after__len_loss__avg                 , 5)}")
-        #             print(f"aft__no_abs_len_loss              = {str_the_list(after__no_abs_len_loss               , 5)}")
-        #             print(f"aft__length_retention_loss__max   = {str_the_list(after__length_retention_loss__max    , 5)}")
-        #             print(f"aft__length_retention_loss__avg   = {str_the_list(after__length_retention_loss__avg    , 5)}")
-        #             print(f"aft__no_abs__length_retention_loss= {str_the_list(after__no_abs__length_retention_loss , 5)}")
-        #             #print(f"dim        = {str_the_list(dim_list, 0, ",    ")}")
-                    
-        #             pass#for outter_param_set
+            #------------------#------------------#------------------
+            dim_list =                          [ 2,  10,100, 1000]
+            number_of_tests_list = torch.tensor([100,100, 50,  10])
+            number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
+            for ii_dim_list in range(dim_list.__len__()):
+                dim = dim_list[ii_dim_list]
+                iota_of_dim = iota(dim)
+                number_of_tests = number_of_tests_list[ii_dim_list]
+                device = 'cpu'
+                if dim>100:
+                    device = 'cuda'
+                    pass
+                print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+            #------------------#------------------#------------------
                 
-        #         pass#for random_generator_style
-        #     pass#/ test
+                #some other ref
+                #                         noise_strength_list = torch.tensor(
+                #                             [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ])
+                #                         angle_loss_list__full = torch.tensor([
+                #                             [ 0.0000,  0.2184,  0.4341,  0.6253,  0.7969,  0.9537,  1.0867,  1.1974,  1.3483,  1.4409,  1.5145,  1.5496,   ],#dim 10
+                #                             [ 0.0000,  0.2234,  0.4377,  0.6346,  0.8075,  0.9575,  1.0838,  1.1826,  1.3292,  1.4228,  1.4859,  1.5540,   ],#dim 100
+                #                             [ 0.0000,  0.2238,  0.4381,  0.6346,  0.8080,  0.9577,  1.0820,  1.1828,  1.3303,  1.4248,  1.4814,  1.5506,   ],])# dim 1000
+                
+                target__angle_loss__list = [0.3, 0.6, 0.9, 1.2]
+                for ii_target_list in range(target__angle_loss__list.__len__()):
+                    target__angle_loss = target__angle_loss__list[ii_target_list]
+                    
+                    x_axis_length = 16
+                    y_axis_length = 12
+                    
+                    
+                    step_1_pow_me_list = torch.tensor(10.).pow(torch.linspace(-3., -0.2, x_axis_length))# x_axis
+                    step_2_pow_me_list = torch.tensor(10.).pow(torch.linspace(-3., -0.2, y_axis_length))# y_axis
+                    
+                    score_table__y2_x1 = torch.empty(size=[y_axis_length,x_axis_length])
+                    score_table__y2_x1.fill_(torch.nan)
+                    
+                    _when_start = time.perf_counter()
+                    
+                    for ii_step_1_pow_me_list in range(step_1_pow_me_list.nelement()):
+                        step_1_pow_me = step_1_pow_me_list[ii_step_1_pow_me_list]
+                        
+                        for ii_step_2_pow_me_list in range(step_2_pow_me_list.nelement()):
+                            step_2_pow_me = step_2_pow_me_list[ii_step_2_pow_me_list]
+                            
+                            _raw_result__inner__nt = torch.empty(size=[number_of_tests])
+                            _raw_result__inner__nt.fill_(torch.nan)
+                            
+                            for ii_number_of_tests in range(number_of_tests):
+                                
+                                #------------------#------------------#------------------
+                                #<  init        
+                                mat = random_dummy_mat__v2__from_target(dim=dim, target_angle_loss=target__angle_loss)   
+                                
+                                #<  calc
+                                mat = full_test_version_of_length_correction__by_row(mat,
+                                        raw_power_me_to_protect_length=step_1_pow_me,iota_of_dim=iota_of_dim)
+                                mat = full_test_version_of_length_correction__by_row(mat.T,
+                                        raw_power_me_to_protect_length=step_2_pow_me,iota_of_dim=iota_of_dim).T
+                                
+                                #<  measure
+                                _, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+                                assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
+                                pow_me___no_abs__len_loss = _log[0][1]
+                                
+                                mat_to_measure *= torch.tensor(10.).pow(pow_me___no_abs__len_loss)
+                                len_loss, no_abs__len_loss, length_retention_loss, no_abs__length_retention_loss = \
+                                        full_length_info_test__in_log10(mat_to_measure)
+                                assert _tensor_equal(no_abs__len_loss, [0.])
+                                #assert _tensor_equal(no_abs__length_retention_loss, [0.], epsilon=0.001) idk the epsi, but it's almost 0.
+                                
+                                #------------------#------------------#------------------
+                                _raw_result__inner__nt[ii_step_2_pow_me_list,ii_number_of_tests] = len_loss
+                                pass#for ii_number_of_tests
+                            
+                            score_table__y2_x1[ii_step_2_pow_me_list, ii_step_1_pow_me_list] = _raw_result__inner__nt.mean()
+                            #scanned_param_list.append()
+                            
+                            pass#for ii_step_2_pow_me_list
+                        pass#for ii_step_1_pow_me_list
+                    _when_end = time.perf_counter()
+                    
+                    print(f"{_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+                    print(f"dim {dim}       best {score_table__y2_x1.min().values().min().values().item():.4f}")
+                    print(f"step_1_pow_me = {str_the_list(step_1_pow_me_list, 4)}")
+                    for ii_step_2_pow_me_list in range(step_2_pow_me_list.nelement()):
+                        y_axis_float = step_2_pow_me_list[ii_step_2_pow_me_list].item()
+                        row_of_table = score_table__y2_x1[ii_step_2_pow_me_list]
+                        print(f"{y_axis_float:.4f} = {str_the_list(row_of_table, 4)}")
+                        pass
+                    1w 继续
+                    1w 继续
+                    1w 继续
+                    1w 继续
+                    pass#for ii_target_list
+                pass#for ii_outter_param_set
+            pass#/ test
+        
+        
+        
         
         
         
@@ -1100,6 +1237,13 @@ if "similar test from the angle part2.  Scan the hyper param" and True:
         
         
 
+assert False,'''
+搜 扫2步扫完了再回来看看。
+里面还有一些笔记。
+
+是不是可以做一个完美mat，旋转其中一些vec，更新，看看最终的效果。感觉和角度的关系比较大。
+
+'''
 
 
 

@@ -2349,11 +2349,12 @@ if "angle_similarity but the assuption is a bit wrong."  and False:
 
 def full_length_info_test__in_log10(input:torch.Tensor, needs_no_abs_result = True) \
                 ->tuple[torch.Tensor, torch.Tensor|None, torch.Tensor, torch.Tensor|None]:
-    '''return len_loss, _raw_result__no_abs__len_loss, length_retention_loss, no_abs__length_retention_loss  
+    '''return len_loss, no_abs__len_loss, length_retention_loss, no_abs__length_retention_loss  
     
-    or 
+    or return len_loss, None, length_retention_loss, None
     
-    return len_loss, None, length_retention_loss, None'''
+    a combination of LOSS__mat_is_standard_orthogonal and LOSS__vec_len_retention__of_a_mat_in_matmul
+    '''
 
     len_loss, _, _log = LOSS__mat_is_standard_orthogonal(input, _debug__needs_log = needs_no_abs_result)
     len_loss#################################

@@ -25,13 +25,13 @@ if "test" and __DEBUG_ME__() and True:
                 #result
                 pass
             
-            print("by dim")
+            print(f"{_line_()}    by dim")
             
             xxxxxxx = []#don't modify this
             #------------------#------------------#------------------
             dim_list =                          [  2,   10,   100, 1000]
             number_of_tests_list = torch.tensor([1000,10000, 5000, 2000])
-            test_time_list = test_time_list.mul(1.).to(torch.int32)
+            number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
             for outter_param_set in range(dim_list.__len__()):
                 dim = dim_list[outter_param_set]
                 # iota_of_dim = iota(dim)
@@ -62,7 +62,7 @@ if "test" and __DEBUG_ME__() and True:
                 xxxxxxx.append(_raw_result__xxxxxxx.mean())
                 pass#for outter_param_set
             
-            print(f"{_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+            print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
             print(f"xxxxxxx   = {str_the_list(xxxxxxx  , 3)}")
             print(f"dim        = {str_the_list(dim_list, 0, ",    ")}")
             
@@ -76,16 +76,16 @@ if "test" and __DEBUG_ME__() and True:
     def ____test____1_param():
         
         if "scan 1 param" and False:
-            print("scan 1 param")
+            print(f"{_line_()}    scan 1 param")
             
             #------------------#------------------#------------------
             dim_list =                          [ 2,  10,100, 1000]
             number_of_tests_list = torch.tensor([100,100, 50,  10])
             number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
-            for outter_param_set in range(dim_list.__len__()):
-                dim = dim_list[outter_param_set]
+            for ii_outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[ii_outter_param_set]
                 # iota_of_dim = iota(dim)
-                number_of_tests = number_of_tests_list[outter_param_set]
+                number_of_tests = number_of_tests_list[ii_outter_param_set]
                 device = 'cpu'
                 if dim>100:
                     device = 'cuda'
@@ -95,7 +95,7 @@ if "test" and __DEBUG_ME__() and True:
                 
                 _when_start = time.perf_counter()
                 
-                scanned_param_list = []
+                scanned_param_list = []################################################
                 for scanned_param in scanned_param_list:
                     _raw_result__xxxxxxx = torch.empty(size=[number_of_tests])
                     for ii__test in range(number_of_tests):
@@ -110,12 +110,16 @@ if "test" and __DEBUG_ME__() and True:
                         _raw_result__xxxxxxx[ii__test] = _this_result
                         pass#for ii__test
                     
+                    #scanned_param_list.append()
+                    
                     pass#for scanned_param
                 _when_end = time.perf_counter()
                 
-                print(f"{_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+                print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+                print(f"dim {dim}")
+                print(f"scanned_param_list = {str_the_list(scanned_param_list, 3)}")#########################
                 
-                pass#for outter_param_set
+                pass#for ii_outter_param_set
             pass#/ test
         
         return 
