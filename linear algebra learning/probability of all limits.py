@@ -15,7 +15,6 @@ def _line_():
     assert caller_s_line_number is not None
     return caller_s_line_number#######
 
-
 if "dtype test" and False:
     #mat = torch.randn(size=[5], dtype=torch.float8_e4m3fn)
     #mat = torch.randn(size=[5], dtype=torch.float8_e4m3fnuz)
@@ -43,6 +42,10 @@ if "dtype test" and False:
 
 
 
+"inverse"
+# all tested random initialized matrixs are inversable. 
+# But the result is sometimes numerically unstable.
+# so in a rigorous perspective, around 1% cases are non-inversable.
 if "prob of a randn mat is not inversable." and False:
 
     # dim 2      test 10000   fail 0   >5 0.2081   >10 0.1017  >30 0.0333  >100 0.0107
@@ -115,6 +118,11 @@ if "prob of a randn mat is not inversable." and False:
         pass#for dim
     pass#/test
 
+
+
+"eigen"
+# more dimentions, more complex eigen values.
+# totally unreliable.
 if "prob of for a randn mat to have complex eigen values." and False:
     # dim 2      test 10000   complex ratio 0.29
     # dim 10     test 10000   complex ratio 0.71
@@ -158,8 +166,8 @@ if "prob of for a randn mat to have complex eigen values." and False:
         pass#for dim
     pass#/test
 
+# eigen values are around some distribution*sqrt(dim)
 if "prob of for a symmetric randn mat to have complex eigen values." and False:
-    # but notice the init algo is M+M.T.
     #eig_vals.abs().max()  /sqrt(dim) == 1.41   when dim >=100
     #eig_vals.abs().top 90%/sqrt(dim) == 1.14   when dim >=100
     #eig_vals.abs().mean() /sqrt(dim) == 0.60   when dim >=100
@@ -240,6 +248,89 @@ if "prob of for a symmetric randn mat to have complex eigen values." and False:
     pass#/test
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+if "eigen vectors of a real symmetric randn matrix must be orthogonal?????" and True:
+    
+    print(f"__LINE__ {_line_()}")
+    
+    dtype= torch.float
+    dim_list =                          [  10,   100, 1000, 3000]
+    number_of_tests_list = torch.tensor([10000,   300,  15,  2])
+    number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
+    for outter_param_set in range(dim_list.__len__()):
+        dim = dim_list[outter_param_set]
+        iota_of_dim = iota(dim)
+        number_of_tests = int(number_of_tests_list[outter_param_set].item())
+        device = 'cpu'
+        #device = 'cuda'
+        # if dim>100:
+        #     device = 'cuda'
+        #     pass
+        total__complex_eig_value_count = torch.tensor(0, device=device)
+        total__complex_eig_vectors_count = torch.tensor(0, device=device)
+        
+        raw_result__non_orthogonal = torch.empty(size=[number_of_tests])
+        raw_result__non_orthogonal.fill_(torch.nan)
+        
+        _when_start = time.perf_counter()
+        
+        for ii in range(number_of_tests):
+            #<  init
+            mat = random_symmetric_matrix(dim, dtype=dtype, device=device)
+            
+            #<  calc eigen
+            eig_vals_complex, eig_vectors_complex = torch.linalg.eig(mat)
+            assert isinstance(eig_vals_complex, torch.Tensor)
+            
+            #<  measure    
+            #< has complex eigen?
+            _complex_eig_val_count = eig_vals_complex.imag.abs().gt(1e-3).sum()
+            total__complex_eig_value_count +=_complex_eig_val_count
+            del _complex_eig_val_count
+            
+            _complex_eig_vec_count = eig_vectors_complex.imag.abs().gt(1e-3)?????
+            total__complex_eig_value_count +=_complex_eig_val_count
+            del _complex_eig_val_count
+            
+            #< non orthogonal
+            eig_vectors = eig_vectors_complex.real
+            self_mm_self_T = (eig_vectors@(eig_vectors.T)).triu()
+            self_mm_self_T[iota_of_dim,iota_of_dim] = 0.
+            raw_result__non_orthogonal[ii] = self_mm_self_T.abs().gt(1e-3).sum()
+            pass
+        
+        _when_end = time.perf_counter()
+        
+        print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+        
+        _null_str = ""
+        print(f"dim {dim}    total__complex_eig_value_count {total__complex_eig_value_count.item()}"
+                f"    total__complex_eig_vectors_count {total__complex_eig_vectors_count.item()}"
+                f"    raw_result__non_orthogonal {raw_result__non_orthogonal/number_of_tests} "
+                f"    {raw_result__non_orthogonal/number_of_tests/(dim*(dim-1)/2)} ({raw_result__non_orthogonal.item()})")
+        
+        pass#for dim
+    pass#/test
+
+
+
+
+
+
+
+
+1w 还有一个 shi 对称矩阵 按列向量解释，可视化一下。
 
 
 
