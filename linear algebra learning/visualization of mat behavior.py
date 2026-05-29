@@ -44,6 +44,64 @@ if "transpose" and False:
         pass
     pass#/ test
 
+if "inverse" and True:
+    for _ in range(432432):
+        
+        #<  the background
+        plt.scatter([3.28,-3.28], [0,0],marker="x",color="#6c7308", s=5)
+        plt.scatter([2.,-2.], [0,0],marker="x",color="#6c7308", s=5)
+        plt.scatter([1.,-1.], [0,0],marker="x",color="#6c7308", s=5)
+        plt.scatter([0,0], [2.5,-2.5],marker="x",color="#6c7308", s=5)
+        plt.scatter([0,0], [2.,-2.],marker="x",color="#6c7308", s=5)
+        plt.scatter([0,0], [1.,-1.],marker="x",color="#6c7308", s=5)
+        plt.scatter([0],                       [0],marker="x",color="#1E1E1E")
+        
+        while True:
+            mat = torch.randn(size=[2,2])
+            _temp_det = mat.det().abs()
+            _temp_det_sqrt = _temp_det.sqrt()
+            mat /= _temp_det_sqrt
+            #del _temp_det, _temp_det_sqrt
+            if not mat.isnan().any():
+                break
+            pass
+        inv_of_mat = torch.linalg.solve(mat, torch.eye(n=2))
+        assert _tensor_equal(mat@inv_of_mat, torch.eye(n=2))
+        
+        #this only works in 2d.
+        assert _tensor_equal((mat[:,0] - mat[:,1]).dot(inv_of_mat.T[:,0]*-1 - inv_of_mat.T[:,1]), [0.])
+        
+        #<  original
+        plt.scatter(mat[0,0], mat[1,0], marker="o", color="#00000020", s=150)
+        plt.scatter(mat[0,0], mat[1,0], marker="o", color="#e20000", s=65)
+        plt.scatter(mat[0,1], mat[1,1], marker="o", color="#00000020", s=120)
+        plt.scatter(mat[0,1], mat[1,1], marker="^", color="#e20000", s=75)
+        
+        #<  inv
+        plt.scatter(inv_of_mat[0,0], inv_of_mat[1,0], marker="o", label="inv", color="#00ce1f", s=45)
+        plt.scatter(inv_of_mat[0,1], inv_of_mat[1,1], marker="^",              color="#00ce1f", s=45)
+        
+        for ii in range(21):
+            ii-=10
+            plt.scatter(ii/5., ii/5., marker="o", color="#9dd100ff", s=1)
+            pass
+        
+        #<  inv.T
+        plt.scatter(inv_of_mat.T[0,0], inv_of_mat.T[1,0], marker="o", label="inv.T", color="#0089ce", s=45)
+        plt.scatter(inv_of_mat.T[0,1], inv_of_mat.T[1,1], marker="o", color="#00000020", s=120)
+        plt.scatter(inv_of_mat.T[0,1], inv_of_mat.T[1,1], marker="^",                color="#0089ce", s=45)
+        plt.scatter(inv_of_mat.T[0,0]*-1, inv_of_mat.T[1,0]*-1, marker="o", color="#00000020", s=120)
+        plt.scatter(inv_of_mat.T[0,0]*-1, inv_of_mat.T[1,0]*-1, marker="x",                color="#0089ce", s=45)
+        
+        plt.title("gray dots are orthogonal???")
+        plt.legend()
+        plt.show()
+        pass
+    pass#/ test
+
+
+
+
 if "mat mul in col vec" and False:
     for _ in range(432432):
         
