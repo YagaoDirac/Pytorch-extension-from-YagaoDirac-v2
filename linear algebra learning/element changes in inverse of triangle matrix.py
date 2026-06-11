@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 
 
 
+''' In triangle matrix, if 1 element is modified, how do the inversed matrix change correspondingly???'''
+
+
 
 if "dim 3 triu" and False:
 
