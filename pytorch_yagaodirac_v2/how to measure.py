@@ -93,9 +93,9 @@ if "test" and __DEBUG_ME__() and True:
                 print(f"dim {dim}   test_time {number_of_tests}    device {device}")
             #------------------#------------------#------------------
                 
+                scanned_param_list = []################################################
                 _when_start = time.perf_counter()
                 
-                scanned_param_list = []################################################
                 for scanned_param in scanned_param_list:
                     _raw_result__xxxxxxx = torch.empty(size=[number_of_tests])
                     for ii__test in range(number_of_tests):

@@ -2755,8 +2755,8 @@ if "top ratio scan" and __DEBUG_ME__() and False:
                     _raw_result[test_count] = _temp_result
                     pass
                     
-                print(f"scale_factor={scale_factor:6}, top_ratio={top_ratio:.3f}, avg={_raw_result.mean():.3f
-                        }, std={_raw_result.std():.6f}")
+                print(f"scale_factor={scale_factor:6}, top_ratio={top_ratio:.3f}, avg={
+                    _raw_result.mean():.3f}, std={_raw_result.std():.6f}")
                 pass
             pass
         return 
@@ -2792,8 +2792,8 @@ if "test" and __DEBUG_ME__() and False:
                 _raw_result[test_count] = _temp_result
                 pass
                 
-            print(f"scale_factor={scale_factor:6}, avg={_raw_result.mean():.3f
-                    }, std={_raw_result.std():.6f}")
+            print(f"scale_factor={scale_factor:6}, avg={_raw_result.mean():.3f}, std={
+                _raw_result.std():.6f}")
             pass
         return
     ____test____log10_avg_safe()
