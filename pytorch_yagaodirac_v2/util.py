@@ -725,11 +725,11 @@ if '''some basic test.''' and __DEBUG_ME__() and True:
     def ____test____vector_length_norm():
         input = torch.tensor([[0.,0.],[0.,1.],[1.,1.]])
         output = vector_length_norm(input)
-        assert _tensor_equal(output, [[0.,0.],[0.,1.],[0.7,0.7]], 0.05)
+        assert _tensor_equal(output, [[0.,0.],[0.,1.],[0.7,0.7]], epsilon = 0.05)
         assert output.dtype == torch.float32
         _vector_len = output.mul(output).sum(dim=1)
-        assert _tensor_equal(_vector_len[0], torch.zeros_like(_vector_len[0]), 0.05)
-        assert _tensor_equal(_vector_len[1:], torch.ones_like(_vector_len[1:]), 0.05)
+        assert _tensor_equal(_vector_len[0], torch.zeros_like(_vector_len[0]), epsilon = 0.05)
+        assert _tensor_equal(_vector_len[1:], torch.ones_like(_vector_len[1:]), epsilon = 0.05)
         
         #transform
         input = torch.tensor([[  1.,   1],
@@ -899,6 +899,113 @@ if '''some basic test.''' and __DEBUG_ME__() and True:
     
     ____test____get_full_info_of_vector_length__2d()
     pass
+
+
+
+"vector projection"
+
+def standard_vector_proj(input:torch.Tensor, proj_to:torch.Tensor, 
+                needs_error:bool, 
+                )->tuple[torch.Tensor, torch.Tensor|None]:
+    '''return standard_proj_vec, standard_error_vec'''
+    the_cos = input.mul(proj_to).sum(dim=-1, keepdim=True)
+    standard_proj_vec = proj_to.mul(the_cos.expand_as(proj_to))
+    standard_error_vec = None
+    if needs_error:
+        standard_error_vec = input - standard_proj_vec
+        pass
+    return standard_proj_vec, standard_error_vec
+if "test" and __DEBUG_ME__() and True:
+    def ____basic_behavior_test____standard_vector_proj():
+        if "basic" and True:
+            input = vector_length_norm(torch.tensor([[1., 1]]))
+            proj_to = vector_length_norm(torch.tensor([[1., 0]]))
+            result_tuple = standard_vector_proj(input, proj_to, needs_error=True)
+            assert _tensor_equal(result_tuple[0], torch.tensor([[0.7071, 0]]))
+            assert _tensor_equal(result_tuple[1], torch.tensor([[0,      0.7071]]))
+            
+            input = vector_length_norm(torch.tensor([[1., 0]]))
+            proj_to = vector_length_norm(torch.tensor([[1., 1]]))
+            result_tuple = standard_vector_proj(input, proj_to, needs_error=True)
+            assert _tensor_equal(result_tuple[0], torch.tensor([[0.5,  0.5]]))
+            assert _tensor_equal(result_tuple[1], torch.tensor([[0.5, -0.5]]))
+
+            pass#/ test
+        
+        if "batch" and True:
+            for dim in [2, 10, 100]:
+                for batch in [3, 15, 88]:
+                    for _ in range(33):
+                        input = vector_length_norm(torch.randn(size=[batch, dim]))
+                        proj_to = vector_length_norm(torch.randn(size=[batch, dim]))
+                        standard_proj_vec, standard_error_vec = standard_vector_proj(input, proj_to, needs_error=True)
+                        
+                        standard_proj_vec__manually = torch.empty(size=[batch, dim])
+                        standard_error_vec__manually = torch.empty(size=[batch, dim])
+                        for ii in range(batch):
+                            result_tuple = standard_vector_proj(input[ii], proj_to[ii], needs_error=True)
+                            standard_proj_vec__manually[ii] = result_tuple[0]
+                            standard_error_vec__manually[ii] = result_tuple[1]
+                            pass
+                        assert _tensor_equal(standard_proj_vec, standard_proj_vec__manually)
+                        assert _tensor_equal(standard_error_vec, standard_error_vec__manually)
+                        pass# for _
+                    pass#for batch
+                pass#for dim
+
+            pass#/ test
+        
+        return 
+    
+    ____basic_behavior_test____standard_vector_proj()
+    pass
+
+def vector_proj(input:torch.Tensor, proj_to:torch.Tensor, 
+                needs_error:bool, 
+                input__already_scaled_to_1 = False,
+                proj_to__already_scaled_to_1 = False,
+                )->tuple[torch.Tensor, torch.Tensor|None]:
+    '''return proj_vec, error_vec'''
+    if input__already_scaled_to_1:
+        input__standardized = input
+        pass
+    else:
+        input__standardized, length_of_input = get_full_info_of_vector_length__2d(input)
+        assert length_of_input.shape.__len__() == 2
+        pass
+    if proj_to__already_scaled_to_1:
+        proj_to__standardized = proj_to
+        pass
+    else:
+        proj_to__standardized = vector_length_norm(proj_to)
+        pass
+    
+    result_tuple = standard_vector_proj(input__standardized, proj_to__standardized,needs_error=needs_error)
+    proj_vec = result_tuple[0].mul(length_of_input)
+    error_vec = result_tuple[1]
+    if error_vec is not None:
+        error_vec*=length_of_input
+        pass
+    return proj_vec, error_vec
+if "test" and __DEBUG_ME__() and True:
+    def ____basic_behavior____vector_proj():
+        for dim in
+        input = torch.randn(size=[1, ])
+1w
+        return
+    ____basic_behavior____vector_proj()
+
+
+
+
+
+
+
+
+    
+
+
+
 
 
 

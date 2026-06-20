@@ -192,10 +192,10 @@ def full_test_version_of_angle_correction__by_row________the_geometric_style(\
     host__d_EXPANDd_d  = mat.reshape(shape=[dim,  1,dim]).expand(size=[ -1,dim,-1])# a in my draft
     guest__EXPANDd_d_d = mat.reshape(shape=[  1,dim,dim]).expand(size=[dim, -1,-1])# b in my draft
     cos__d_d_EXPANDd   = cos__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])
-    host_minus_guest_mul_cos__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd# c' in my draft (c' == a-b*cos)
-    host_minus_guest_mul_cos__dot_itself__d_d = host_minus_guest_mul_cos__d_d_d.dot(host_minus_guest_mul_cos__d_d_d)# c'.T @ c', the sqr length.
-    host_minus_guest_mul_cos__dot_itself__d_d_EXPANDd = host_minus_guest_mul_cos__dot_itself__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])# c in my draft
-    raw__what_to_accumulate__d_d_d = host__d_EXPANDd_d - host_minus_guest_mul_cos__dot_itself__d_d_EXPANDd# a - c in my draft
+    H_ortho_to_G__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd# c' in my draft (c' == a-b*cos)
+    H_ortho_to_G__dot_itself__d_d = H_ortho_to_G__d_d_d.dot(H_ortho_to_G__d_d_d)# c'.T @ c', the sqr length.
+    H_ortho_to_G__dot_itself__d_d_EXPANDd = H_ortho_to_G__dot_itself__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])# c in my draft
+    raw__what_to_accumulate__d_d_d = host__d_EXPANDd_d - H_ortho_to_G__dot_itself__d_d_EXPANDd# a - c in my draft
     #safety
     len_of__what_to_accumulate__d_d = raw__what_to_accumulate__d_d_d.dot(raw__what_to_accumulate__d_d_d).sqrt()
     len_of__what_to_accumulate__d_d[iota_of_dim, iota_of_dim] = 0.#1w需要嘛？？ 
@@ -289,13 +289,15 @@ if "unit test for the algo" and True:
         cos__d_d[iota_of_dim, iota_of_dim] = 0.#需要嘛？？ ??????
         assert _tensor_equal(cos__d_d, torch.tensor([[0., 0.1],[0.1, 0]]))
         
-        host__d_EXPANDd_d  = mat.reshape(shape=[dim,  1,dim]).expand(size=[ -1,dim,-1])# a in my draft
+        #host is 000111222
+        host__d_EXPANDd_d  = mat.reshape(shape=[dim,  1,dim]).expand(size=[ -1,dim,-1])
         assert _tensor_equal(host__d_EXPANDd_d, torch.tensor([[[0.9950, 0.1],
                                                                 [0.9950, 0.1]],
                                                                 
                                                                 [[0, 1],
                                                                 [0, 1]]]))
-        guest__EXPANDd_d_d = mat.reshape(shape=[  1,dim,dim]).expand(size=[dim, -1,-1])# b in my draft
+        #guest is 012012012
+        guest__EXPANDd_d_d = mat.reshape(shape=[  1,dim,dim]).expand(size=[dim, -1,-1])
         assert _tensor_equal(guest__EXPANDd_d_d, torch.tensor([[[0.9950, 0.1],
                                                                 [0,     1]],
                                                                 
@@ -307,36 +309,56 @@ if "unit test for the algo" and True:
                                                             
                                                             [[0.1,  0.1],
                                                             [ 0,    0]]]))
-        host_minus_guest_mul_cos__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd# c' in my draft (c' == a-b*cos)
-        assert _tensor_equal(host_minus_guest_mul_cos__d_d_d[0], torch.tensor([[0.9950, 0.],
+        H_ortho_to_G__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd
+        assert _tensor_equal(H_ortho_to_G__d_d_d[0], torch.tensor([[0.9950, 0.],
                                                                             [0.9950, 0.]]))
-        host_minus_guest_mul_cos__dot_itself__d_d = host_minus_guest_mul_cos__d_d_d.dot(host_minus_guest_mul_cos__d_d_d)# c' dot_prod c', the sqr length.
-        assert _tensor_equal(host_minus_guest_mul_cos__dot_itself__d_d[0], torch.tensor([0.99, 0.]))
-        长度保护的一个factor要在这个地方决定  1w
-        host_minus_guest_mul_cos__dot_itself__d_d_EXPANDd = host_minus_guest_mul_cos__dot_itself__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])# still the c' dot_prod c', the sqr length.
-        assert _tensor_equal(host_minus_guest_mul_cos__dot_itself__d_d_EXPANDd[0], torch.tensor([[0.99, 0.99],
-                                                                                                [ 0.,   0.]]))
-        raw__what_to_accumulate__d_d_d = host__d_EXPANDd_d - host_minus_guest_mul_cos__dot_itself__d_d_EXPANDd# a - c in my draft
-        #safety
-        len_of__what_to_accumulate__d_d = raw__what_to_accumulate__d_d_d.dot(raw__what_to_accumulate__d_d_d).sqrt()
-        len_of__what_to_accumulate__d_d[iota_of_dim, iota_of_dim] = 0.#1w需要嘛？？ 
+        H_ortho_to_G__sqr_len__d_d = \
+            H_ortho_to_G__d_d_d.dot(H_ortho_to_G__d_d_d)# the sqr length of H_ortho_to_G
+        assert _tensor_equal(H_ortho_to_G__sqr_len__d_d[0], torch.tensor([0.99, 0.]))
+        assert H_ortho_to_G__sqr_len__d_d.lt(1.0001).all()#the length of H_ortho_to_G is <=1.
+
+        #protection
+        H_ortho_to_G__sqr_len__d_d = H_ortho_to_G__sqr_len__d_d.minimum(2.)#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        H_ortho_to_G__sqr_len__d_d_EXPANDd = H_ortho_to_G__sqr_len__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])# still the c' dot_prod c', the sqr length.
+        assert _tensor_equal(H_ortho_to_G__sqr_len__d_d_EXPANDd[0], torch.tensor([[0.99, 0.99],
+                                                                                    [ 0.,   0.]]))
         
-        safe_len_of__what_to_accumulate__d_d = len_of__what_to_accumulate__d_d.clamp_min(safe_factor__clamp_to_this_length)
-        safe_len_of__what_to_accumulate__d_d_EXPANDd = safe_len_of__what_to_accumulate__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])
-        direction_of__what_to_accumulate__d_d_d = vector_length_norm(raw__what_to_accumulate__d_d_d)
+        # I want the inversed length. So the formula is similar to length/(length*length)
+        H_plus_2_correct = H_ortho_to_G__d_d_d.div(H_ortho_to_G__sqr_len__d_d_EXPANDd)
+        #this c is on the same direction of c', but due to the protection, its length may not be 1/length(c')
+        assert _tensor_equal(H_plus_2_correct[0], torch.tensor([[1.0050, 0.],
+                                                        [1.0050, 0.]]))
+        
+        raw__what_to_accumulate__before_sum__d_d_d = host__d_EXPANDd_d - H_plus_2_correct
+        raw__what_to_accumulate__d_d = raw__what_to_accumulate__before_sum__d_d_d.sum(dim=1)#0 is host, 1 is guest, 2 is inside the vec.
+
+        1w 需要些一个投影的函数。
+        raw__what_to_accumulate__d_d_d
+
+
+        #写错了？？？len_of__what_to_accumulate__d_d = raw__what_to_accumulate__d_d_d.dot(raw__what_to_accumulate__d_d_d).sqrt()
+        #写错了？？？len_of__what_to_accumulate__d_d[iota_of_dim, iota_of_dim] = 0.#1w需要嘛？？ 
+        
+        #写错了？？？safe_len_of__what_to_accumulate__d_d = len_of__what_to_accumulate__d_d.clamp_min(safe_factor__clamp_to_this_length)
+        #写错了？？？safe_len_of__what_to_accumulate__d_d_EXPANDd = safe_len_of__what_to_accumulate__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])
+        #写错了？？？direction_of__what_to_accumulate__d_d_d = vector_length_norm(raw__what_to_accumulate__d_d_d)
         #final
-        to_accumulate__before_sum_and_div__d_d_d = safe_len_of__what_to_accumulate__d_d_EXPANDd * direction_of__what_to_accumulate__d_d_d
-        to_accumulate__before_div__d_d = to_accumulate__before_sum_and_div__d_d_d.sum()
-        _1_over_dim = 1./dim
-        to_accumulate__d_d = to_accumulate__before_div__d_d * _1_over_dim
+        #写错了？？？to_accumulate__before_sum_and_div__d_d_d = safe_len_of__what_to_accumulate__d_d_EXPANDd * direction_of__what_to_accumulate__d_d_d
+        #写错了？？？to_accumulate__before_div__d_d = to_accumulate__before_sum_and_div__d_d_d.sum()
+        #写错了？？？_1_over_dim = 1./dim
+        #写错了？？？to_accumulate__d_d = to_accumulate__before_div__d_d * _1_over_dim
         #this mul(_1_over_dim) is intentional. The amount of accumulated vectors is 1 less than the number of dim.
         
         
         #1w 分块，只用计算一半。这个sum也可以直接按2个方向sum，就不用复制另外一半了。
         
         #calc output
-        mat += to_accumulate__d_d
-        mat = vector_length_norm(mat)
+        #写错了？？？mat += to_accumulate__d_d
+        #写错了？？？mat = vector_length_norm(mat)
 
 
 
