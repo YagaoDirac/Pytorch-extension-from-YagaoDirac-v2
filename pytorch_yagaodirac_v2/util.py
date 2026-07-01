@@ -1,3 +1,4 @@
+import time
 from typing import List, Tuple, Optional, Literal
 import torch
 import math, random
@@ -427,7 +428,9 @@ if "can it be index?" and __DEBUG_ME__() and False:
 "vector length"
 
 def vector_length_norm(input:torch.Tensor, epsilon:float|torch.Tensor = 0.001, dtype_inner = torch.float64)->torch.Tensor:
-    r'''The shape must be [batch, dim]'''
+    r'''The shape must be [batch, dim]
+    
+    I don't remember, but the dtype_inner feels like also the return dtype.'''
     if input.shape.__len__()!=2:
         raise Exception("The shape must be [batch, dim]")
     with torch.no_grad():
@@ -800,7 +803,7 @@ def get_full_info_of_vector_length__1d(input:torch.Tensor, epi = 0.000001)->torc
     normalized_vector = input.div(length_of_input_safe__s)
 
     return normalized_vector, length_of_input__s.squeeze(dim=-1)
-if '''some basic test.''' and __DEBUG_ME__() and True:
+if '''some basic test.''' and __DEBUG_ME__() and False:
     def ____test____get_full_info_of_vector_length__1d():
         #this test func is a raw combination of the 2 above.
         input = torch.tensor([0.,0.])
@@ -853,7 +856,7 @@ def get_full_info_of_vector_length__2d(input:torch.Tensor, epi = 0.000001, #dtyp
         return normalized_vector__b_d, length_of_input__b_1
     return     normalized_vector__b_d, length_of_input__b_1.squeeze(dim=-1)
     #end of function
-if '''some basic test.''' and __DEBUG_ME__() and True:
+if '''some basic test.''' and __DEBUG_ME__() and False:
     def ____test____get_full_info_of_vector_length__2d():
         
         #this test func is a raw combination of the 2 above.
@@ -910,9 +913,375 @@ if '''some basic test.''' and __DEBUG_ME__() and True:
 
 
 
+"vector angle"
+
+def are_parallel(tensor1:torch.Tensor, tensor2:torch.Tensor, 
+                epsilon: float | torch.Tensor = 0.0001, dtype_inner: torch.dtype = torch.float64)->torch.Tensor:
+    '''Notice, the 0 vector is not parallel to any vector in this function.'''
+    tensor1_standardized = vector_length_norm(tensor1, epsilon = epsilon, dtype_inner = dtype_inner)
+    tensor2_standardized = vector_length_norm(tensor2, epsilon = epsilon, dtype_inner = dtype_inner)
+    the_dot_prod = tensor1_standardized.mul(tensor2_standardized).sum(dim=-1)
+    #this is a _tensor_equal, but a bit different.
+    with torch.inference_mode():
+        diff = the_dot_prod.abs()-1.
+        abs_of_diff = diff.abs()
+        result = abs_of_diff.lt(epsilon)
+        return result
+    #end of function
+if "test" and __DEBUG_ME__() and False:
+    def ____basic_behavior____are_parallel():
+        if "no batch" and True:
+            for dim in [2,5,10,100,1000]:
+                for _ in range (321):
+                    tensor1 = torch.randn(size=[1,dim])
+                    tensor2 = tensor1*(random.random()+0.1)*3.
+                    if random.random()>0.5:
+                        tensor2 = -tensor2
+                        pass
+                    result_tensor = are_parallel(tensor1, tensor2)
+                    assert isinstance(result_tensor, torch.Tensor)
+                    assert result_tensor.shape == torch.Size([1])
+                    assert result_tensor.all()  
+                    pass
+                pass#for dim
+            pass#/ test
+
+        if "batch behavior" and True:
+            for batch in [2, 10]:
+                for dim in [3, 7]:
+                    #init
+                    tensor1 = torch.randn(size=[batch, dim])
+                    expected_answer__b_1 = torch.randint(low=0, high=2, size=[batch, 1])
+                    expected_answer__b_1 = expected_answer__b_1.to(torch.bool)
+                    expected_answer__b_d = expected_answer__b_1.expand(size=[-1, dim])
+                    assert expected_answer__b_d.shape == tensor1.shape
+                    _temp__tensor1_randomly_scaled = tensor1*(torch.randn(size=[batch, 1]).expand(size=[-1, dim]))
+                    tensor2 = torch.where(expected_answer__b_d, _temp__tensor1_randomly_scaled, torch.randn(size=[batch, dim]))
+                    #call
+                    answer = are_parallel(tensor1, tensor2)
+                    #assert
+                    assert answer.eq(expected_answer__b_1.reshape([-1])).all()
+                    for ii_batch in range(batch):
+                        this_tensor1 = tensor1[ii_batch].reshape([1, dim])
+                        this_tensor2 = tensor2[ii_batch].reshape([1, dim])
+                        this_answer = are_parallel(this_tensor1, this_tensor2)
+                        assert this_answer == answer[ii_batch]
+                        pass#for ii
+                    pass#for dim
+                pass#for batch
+            pass#/ test
+        return
+    ____basic_behavior____are_parallel()
+    pass
+
+def are_orthogonal(tensor1:torch.Tensor, tensor2:torch.Tensor, 
+                epsilon: float | torch.Tensor | None = None)->torch.Tensor:
+    
+    if epsilon is None:
+        # The formula was from a test. See below. 
+        epsilon = torch.tensor(1e-5* math.sqrt(tensor1.shape[-1]), device=tensor1.device, dtype=tensor1.dtype)
+        pass
+
+    the_dot_prod = tensor1.mul(tensor2).sum(dim=-1)
+    #this is a _tensor_equal, but a bit different.
+    with torch.inference_mode():
+        result = the_dot_prod.abs().lt(epsilon)
+        return result
+    #end of function
+if "algo test" and __DEBUG_ME__() and False:
+    '''
+    conclusion. The normal case is always safer than the extreme case.
+    '''
+    def ____algo_test____are_orthogonal():
+        # err_max_log = [-5.623, -5.146, -4.489, -3.816]
+        if "are_orthogonal algo test  the n-1 style" and False:
+            if True:
+                #result
+                # err_max_log = [-5.623, -5.146, -4.489, -3.816]
+                # let's use        -4.5    -4      -3.5    -3
+                # ref_max_log = [-4.500, -4.000, -3.500, -3.000]
+                #                   1       2       3       4
+                
+                pass
+            
+            print(f"{_line_()}    are_orthogonal algo test by dim")
+            
+            error_max = []#don't modify this
+            error_avg = []#don't modify this
+            error_max_log10 = []#don't modify this
+            error_avg_log10 = []#don't modify this
+            epsilon_max = []#don't modify this
+            epsilon_max_log10 = []#don't modify this
+            #------------------#------------------#------------------
+            dim_list =                          [   10,    100,  1000, 10000]
+            number_of_tests_list = torch.tensor([100000, 50000, 20000, 10000])
+            number_of_tests_list = number_of_tests_list.mul(0.1).to(torch.int32)
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                epsilon_max.append(1e-5* math.sqrt(dim))
+                epsilon_max_log10.append(math.log10(1e-5* math.sqrt(dim)))
+                # iota_of_dim = iota(dim)
+                number_of_tests = number_of_tests_list[outter_param_set]
+                device = 'cpu'
+                if dim>100:
+                    device = 'cuda'
+                    pass
+                print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+            #------------------#------------------#------------------
+
+                _raw_result__error = torch.empty(size=[number_of_tests])
+                _when_start = time.perf_counter()
+                
+                for ii__test in range(number_of_tests):
+                    
+                    #------------------#------------------#------------------
+                    #<  init
+                    tensor1 = torch.randn(size=[1,dim])
+                    tensor1[0,0] = -1.
+                    tensor2 = torch.randn(size=[1,dim])
+                    tensor2[0,0] = 0.
+                    _temp__dot_prod___1 = tensor1.mul(tensor2).sum(dim=-1)
+                    tensor2[0,0] = _temp__dot_prod___1[0]
+                    the_dot_prod___1 = tensor1.mul(tensor2).sum(dim=-1)
+
+                    #<  measure
+                    _raw_result__error[ii__test] = the_dot_prod___1.abs().item()
+                    #------------------#------------------#------------------
+                    pass#for ii__test
+                _when_end = time.perf_counter()
+                
+                error_max.append(_raw_result__error.max().item())
+                error_avg.append(_raw_result__error.mean().item())
+                error_max_log10.append(_raw_result__error.max().log10().item())
+                error_avg_log10.append(_raw_result__error.mean().log10().item())
+                pass#for outter_param_set
+            
+            print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+            #print(f"error_max   = {str_the_list(error_max  , 6)}")
+            #print(f"error_avg   = {str_the_list(error_avg  , 6)}")
+            print(f"err_max_log = {str_the_list(error_max_log10  , 3)}")
+            print(f"err_avg_log = {str_the_list(error_avg_log10  , 3)}")
+            print(f"epsi_max    = {str_the_list(epsilon_max        , 3)}")
+            print(f"epsi_max_log = {str_the_list(epsilon_max_log10  , 3)}")
+            print(f"dim        = {str_the_list(dim_list, 0, ",    ")}")
+            
+            pass#/ test
+        
+        # err_max_log = [-6.225, -5.543, -5.176, -4.589]
+        # err_avg_log = [-7.256, -6.366, -5.653, -5.037]
+        if "are_orthogonal algo test  the swap style" and True:
+            if True:
+                #result
+                # err_max_log = [-6.225, -5.543, -5.176, -4.589]
+                # err_avg_log = [-7.256, -6.366, -5.653, -5.037]
+                # epsi_max    = [ 0.000,  0.000,  0.000,  0.001]
+                # epsi_max_log = [-4.500, -4.000, -3.500, -3.000]
+                # dim        = [ 10,     100,     1000,     10000]
+                pass
+            
+            print(f"{_line_()}    are_orthogonal algo test by dim")
+            
+            error_max = []#don't modify this
+            error_avg = []#don't modify this
+            error_max_log10 = []#don't modify this
+            error_avg_log10 = []#don't modify this
+            epsilon_max = []#don't modify this
+            epsilon_max_log10 = []#don't modify this
+            #------------------#------------------#------------------
+            dim_list =                          [  10,  100, 1000, 10000]
+            number_of_tests_list = torch.tensor([2000, 1000,  100,   50])
+            number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                epsilon_max.append(1e-5* math.sqrt(dim))
+                epsilon_max_log10.append(math.log10(1e-5* math.sqrt(dim)))
+                # iota_of_dim = iota(dim)
+                number_of_tests = number_of_tests_list[outter_param_set]
+                device = 'cpu'
+                # if dim>100:
+                #     device = 'cuda'
+                #     pass
+                print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+            #------------------#------------------#------------------
+
+                _raw_result__error = torch.empty(size=[number_of_tests])
+                _when_start = time.perf_counter()
+                
+                for ii__test in range(number_of_tests):
+                    
+                    #------------------#------------------#------------------
+                    #<  init
+                    tensor1 = torch.randn(size=[1,dim])
+                    tensor2 = tensor1.detach().clone()
+                    #swap elements
+                    _buffer = list(range(dim//2*2))
+                    assert _buffer.__len__() >= dim - 1 and _buffer.__len__() <= dim
+                    random.shuffle(_buffer)
+
+                    for ii in range(0, _buffer.__len__(), 2):
+                        rand_index_1 = _buffer[ii]    
+                        rand_index_2 = _buffer[ii + 1]
+                        tensor2[:, rand_index_1] =  tensor1[:, rand_index_2].detach().clone()
+                        tensor2[:, rand_index_2] = -tensor1[:, rand_index_1].detach().clone()
+                        pass
+                    
+                    #<  calc
+                    the_dot_prod___1 = tensor1.mul(tensor2).sum(dim=-1)
+                    #<  measure
+                    _raw_result__error[ii__test] = the_dot_prod___1.abs().item()
+                    #------------------#------------------#------------------
+                    pass#for ii__test
+                _when_end = time.perf_counter()
+                
+                error_max.append(_raw_result__error.max().item())
+                error_avg.append(_raw_result__error.mean().item())
+                error_max_log10.append(_raw_result__error.max().log10().item())
+                error_avg_log10.append(_raw_result__error.mean().log10().item())
+                pass#for outter_param_set
+            
+            print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+            #print(f"error_max   = {str_the_list(error_max  , 6)}")
+            #print(f"error_avg   = {str_the_list(error_avg  , 6)}")
+            print(f"err_max_log = {str_the_list(error_max_log10  , 3)}")
+            print(f"err_avg_log = {str_the_list(error_avg_log10  , 3)}")
+            print(f"epsi_max    = {str_the_list(epsilon_max        , 3)}")
+            print(f"epsi_max_log = {str_the_list(epsilon_max_log10  , 3)}")
+            print(f"dim        = {str_the_list(dim_list, 0, ",    ")}")
+            
+            pass#/ test
+        
+        return
+    ____algo_test____are_orthogonal()
+    pass
+
+if "test" and __DEBUG_ME__() and False:
+    def ____basic_behavior____are_orthogonal():
+        if "basic" and True:
+            '''[?, 0] and [0, ?] are orthogonal.'''
+            for _ in range(33):
+                tensor1 = torch.tensor([[random.random(), 0]])
+                tensor2 = torch.tensor([[0.,                random.random()]])
+                result_tensor = are_orthogonal(tensor1, tensor2)
+                assert isinstance(result_tensor, torch.Tensor)
+                assert result_tensor.shape == torch.Size([1])
+                assert result_tensor.all()
+                pass#for _
+            
+            '''[a, b] and [-b, a] are orthogonal.'''
+            for _ in range(33):
+                tensor1 = torch.tensor([[1., 0]])
+                tensor2 = torch.empty_like(tensor1)
+                tensor2[0,0] =  tensor1[0,1]
+                tensor2[0,1] = -tensor1[0,0]
+                result_tensor = are_orthogonal(tensor1, tensor2)
+                assert result_tensor.all()
+                pass#for _
+            pass#/ test
+
+        if "no batch, the n-1 style." and True:
+            for dim in [2,5,10,100,1000]:
+                for _ in range (321):
+                    tensor1 = torch.randn(size=[1,dim])
+                    tensor1[0,0] = -1.
+                    tensor2 = torch.randn(size=[1,dim])
+                    tensor2[0,0] = 0.
+                    _temp__dot_prod___1 = tensor1.mul(tensor2).sum(dim=-1)
+                    tensor2[0,0] = _temp__dot_prod___1[0]
+                    #the prod now should be 0.
+                    assert _tensor_equal(tensor1.mul(tensor2).sum(dim=-1), [0.], epsilon=0.00001*math.sqrt(dim))
+
+                    _scale_factor = random.random()*3.+0.1
+                    if random.random()>0.5:
+                        _scale_factor = -_scale_factor#maybe different direction.
+                        pass
+                    tensor1 *= _scale_factor
+                    _scale_factor = random.random()*3.+0.1
+                    if random.random()>0.5:
+                        _scale_factor = -_scale_factor#maybe different direction.
+                        pass
+                    tensor2 *= _scale_factor
+                    #the prod now should still be 0.
+                    assert _tensor_equal(tensor1.mul(tensor2).sum(dim=-1), [0.], epsilon=0.00001*math.sqrt(dim))
+
+                    result_tensor = are_orthogonal(tensor1, tensor2)#should always be true .
+                    assert isinstance(result_tensor, torch.Tensor)
+                    assert result_tensor.shape == torch.Size([1])
+                    assert result_tensor.all()  
+                    pass
+                pass#for dim
+            pass#/ test
+
+        if "batch behavior" and True:
+            for batch in [2, 10]:
+                for dim in [4, 12]:
+                    for _ in range (33):
+                        #init
+                        tensor1 = torch.randn(size=[batch, dim])
+                        _temp__tensor2_if_all_true = tensor1.detach().clone()
+                        expected_answer__b_1 = torch.randint(low=0, high=2, size=[batch, 1])
+                        expected_answer__b_1 = expected_answer__b_1.to(torch.bool)
+                        expected_answer__b_d = expected_answer__b_1.expand(size=[-1, dim])
+                        assert expected_answer__b_d.shape == tensor1.shape
+
+
+                        #swap elements
+                        assert dim%2 == 0
+                        _buffer = list(range(dim//2*2))
+                        assert _buffer.__len__() >= dim - 1 and _buffer.__len__() <= dim
+                        random.shuffle(_buffer)
+
+                        for ii in range(0, _buffer.__len__(), 2):
+                            rand_index_1 = _buffer[ii]    
+                            rand_index_2 = _buffer[ii + 1]
+                            _temp__tensor2_if_all_true[:, rand_index_1] =  tensor1[:, rand_index_2].detach().clone()
+                            _temp__tensor2_if_all_true[:, rand_index_2] = -tensor1[:, rand_index_1].detach().clone()
+                            pass
+
+                        tensor2 = torch.where(expected_answer__b_d, _temp__tensor2_if_all_true, torch.randn(size=[batch, dim]))
+
+                        #scale a bit
+                        _scale_factor = random.random()*3.+0.1
+                        if random.random()>0.5:
+                            _scale_factor = -_scale_factor#maybe different direction.
+                            pass
+                        tensor1 *= _scale_factor
+                        _scale_factor = random.random()*3.+0.1
+                        if random.random()>0.5:
+                            _scale_factor = -_scale_factor#maybe different direction.
+                            pass
+                        tensor2 *= _scale_factor
+
+                        #call
+                        answer = are_orthogonal(tensor1, tensor2)
+                        #assert
+                        if not answer.eq(expected_answer__b_1.reshape([-1])).all():
+                            print(f"tensor1 = torch.{tensor1}")
+                            print(f"tensor2 = torch.{tensor2}")
+                            print(f"answer = {answer}")
+                            print(f"expected_answer__b_1 = {expected_answer__b_1.reshape([-1])}")
+                            pass
+
+                        assert answer.eq(expected_answer__b_1.reshape([-1])).all()
+                        for ii_batch in range(batch):#every data inside this batch.
+                            this_tensor1 = tensor1[ii_batch].reshape([1, dim])
+                            this_tensor2 = tensor2[ii_batch].reshape([1, dim])
+                            this_answer = are_orthogonal(this_tensor1, this_tensor2)
+                            assert this_answer == answer[ii_batch]
+                            pass#for ii
+                        pass#for _
+                    pass#for dim
+                pass#for batch
+            pass#/ test
+
+        return
+    ____basic_behavior____are_orthogonal()
+    pass
+
+
+
 "vector projection"
 
-def standard_vector_proj(input:torch.Tensor, proj_to:torch.Tensor, 
+def standardized_vector_proj(input:torch.Tensor, proj_to:torch.Tensor, 
                 needs_error:bool, 
                 )->tuple[torch.Tensor, torch.Tensor|None]:
     '''return standard_proj_vec, standard_error_vec'''
@@ -924,17 +1293,17 @@ def standard_vector_proj(input:torch.Tensor, proj_to:torch.Tensor,
         pass
     return standard_proj_vec, standard_error_vec
 if "test" and __DEBUG_ME__() and False:
-    def ____basic_behavior_test____standard_vector_proj():
+    def ____basic_behavior_test____standardized_vector_proj():
         if "basic" and True:
             input = vector_length_norm(torch.tensor([[1., 1]]))
             proj_to = vector_length_norm(torch.tensor([[1., 0]]))
-            result_tuple = standard_vector_proj(input, proj_to, needs_error=True)
+            result_tuple = standardized_vector_proj(input, proj_to, needs_error=True)
             assert _tensor_equal(result_tuple[0], torch.tensor([[0.7071, 0]]))
             assert _tensor_equal(result_tuple[1], torch.tensor([[0,      0.7071]]))
             
             input = vector_length_norm(torch.tensor([[1., 0]]))
             proj_to = vector_length_norm(torch.tensor([[1., 1]]))
-            result_tuple = standard_vector_proj(input, proj_to, needs_error=True)
+            result_tuple = standardized_vector_proj(input, proj_to, needs_error=True)
             assert _tensor_equal(result_tuple[0], torch.tensor([[0.5,  0.5]]))
             assert _tensor_equal(result_tuple[1], torch.tensor([[0.5, -0.5]]))
 
@@ -943,14 +1312,14 @@ if "test" and __DEBUG_ME__() and False:
                 for _ in range(33):
                     input = vector_length_norm(torch.randn(size=[1, dim]))
                     proj_to = vector_length_norm(torch.randn(size=[1, dim]))
-                    standard_proj_vec, standard_error_vec = standard_vector_proj(input, proj_to, needs_error=True)
+                    standard_proj_vec, standard_error_vec = standardized_vector_proj(input, proj_to, needs_error=True)
                     
                     #<  is projected_vector the same direction with proj_to??
-                    _temp__proj_standardized = vector_length_norm(standard_proj_vec)
-                    _the_dot_prod = _temp__proj_standardized.reshape([-1]).dot(proj_to.reshape([-1]))
-                    assert _tensor_equal(_the_dot_prod.abs(), [1.])
+                    _temp_result = are_parallel(standard_proj_vec, proj_to)
+                    assert _temp_result.all()
                     #<  is error_vector orthogonal to the proj_to
-                    assert _tensor_equal(standard_error_vec.reshape([-1]).dot(proj_to.reshape([-1])),  [0.])
+                    _temp_result = are_orthogonal(standard_error_vec, proj_to)
+                    assert _temp_result.all()
                     pass# for _
                 pass#for dim
 
@@ -962,12 +1331,12 @@ if "test" and __DEBUG_ME__() and False:
                     for _ in range(33):
                         input = vector_length_norm(torch.randn(size=[batch, dim]))
                         proj_to = vector_length_norm(torch.randn(size=[batch, dim]))
-                        standard_proj_vec, standard_error_vec = standard_vector_proj(input, proj_to, needs_error=True)
+                        standard_proj_vec, standard_error_vec = standardized_vector_proj(input, proj_to, needs_error=True)
                         
                         standard_proj_vec__manually = torch.empty(size=[batch, dim])
                         standard_error_vec__manually = torch.empty(size=[batch, dim])
                         for ii in range(batch):
-                            result_tuple = standard_vector_proj(input[ii], proj_to[ii], needs_error=True)
+                            result_tuple = standardized_vector_proj(input[ii], proj_to[ii], needs_error=True)
                             standard_proj_vec__manually[ii] = result_tuple[0]
                             standard_error_vec__manually[ii] = result_tuple[1]
                             pass
@@ -979,19 +1348,27 @@ if "test" and __DEBUG_ME__() and False:
 
             pass#/ test
         
+
+        #if "visualization" and True:
+
+
+
+
+
         return 
     
-    ____basic_behavior_test____standard_vector_proj()
+    ____basic_behavior_test____standardized_vector_proj()
     pass
 
-def vector_proj(input:torch.Tensor, proj_to:torch.Tensor, 
+'''the formula is a bit weird. Although it works.'''
+def vector_proj__full_info(input:torch.Tensor, proj_to:torch.Tensor, 
                 input__already_scaled_to_1 = False,
                 proj_to__already_scaled_to_1 = False,
                 needs_proj = True,
                 needs_error = False, 
                 needs_standard_error = False, 
                 )->tuple[torch.Tensor|None, torch.Tensor|None, tuple[torch.Tensor, torch.Tensor|None]]:
-    '''return proj_vec, error_vec, (standard_proj_vec, standard_error_vec)
+    '''return proj_vec, error_vec, (standardized_proj_vec, standardized_error_vec)
     
     But if you don't need some* of them, then some** of them are not calculated, then they are None.'''
     if input__already_scaled_to_1:
@@ -1001,7 +1378,7 @@ def vector_proj(input:torch.Tensor, proj_to:torch.Tensor,
     else:
         input__standardized, length_of_input = \
                 get_full_info_of_vector_length__2d(input, keepdim_for_length=True)
-        assert length_of_input.shape.__len__() == 2
+        #assert length_of_input.shape.__len__() == 2
         pass
     if proj_to__already_scaled_to_1:
         proj_to__standardized = proj_to
@@ -1010,7 +1387,7 @@ def vector_proj(input:torch.Tensor, proj_to:torch.Tensor,
         proj_to__standardized = vector_length_norm(proj_to)
         pass
     
-    standard_result_tuple = standard_vector_proj(input__standardized, proj_to__standardized, 
+    standard_result_tuple = standardized_vector_proj(input__standardized, proj_to__standardized, 
                                         needs_error=needs_error or needs_standard_error)    
     # results:
     if needs_proj:
@@ -1029,85 +1406,99 @@ def vector_proj(input:torch.Tensor, proj_to:torch.Tensor,
     return proj_vec, error_vec, standard_result_tuple
     # end of function
 
-if "test" and __DEBUG_ME__() and True:
-    def ____basic_behavior_test____vector_proj():
+if "test" and __DEBUG_ME__() and False:  
+    #assert False, "change to the real math formula."
+    def ____basic_behavior_test____vector_proj__full_info():
         if "basic" and True:
             input = torch.tensor([[1., 1]])
             proj_to = torch.tensor([[1., 0]])
-            result_tuple = vector_proj(input, proj_to, needs_error=True)
+            result_tuple = vector_proj__full_info(input, proj_to, needs_error=True)
             assert _tensor_equal(result_tuple[0], torch.tensor([[1., 0]]))
             assert _tensor_equal(result_tuple[1], torch.tensor([[0,  1.]]))
-            assert _tensor_equal(get_vector_length(result_tuple[2][0]), torch.tensor([[1.]]))
-            assert _tensor_equal(get_vector_length(result_tuple[2][1]), torch.tensor([[1.]]))
+            assert _tensor_equal(get_vector_length(result_tuple[2][0]), torch.tensor([0.7071]))
+            assert _tensor_equal(get_vector_length(result_tuple[2][1]), torch.tensor([0.7071]))
+            assert _tensor_equal(result_tuple[2][0], torch.tensor([[0.7071, 0]]))
+            assert _tensor_equal(result_tuple[2][1], torch.tensor([[0,      0.7071]]))
             
             input = torch.tensor([[1., 0]])
             proj_to = torch.tensor([[1., 1]])
-            result_tuple = vector_proj(input, proj_to, needs_error=True)
+            result_tuple = vector_proj__full_info(input, proj_to, needs_error=True)
             assert _tensor_equal(result_tuple[0], torch.tensor([[0.5,  0.5]]))
             assert _tensor_equal(result_tuple[1], torch.tensor([[0.5, -0.5]]))
-            assert _tensor_equal(get_vector_length(result_tuple[2][0]), torch.tensor([[1.]]))
-            assert _tensor_equal(get_vector_length(result_tuple[2][1]), torch.tensor([[1.]]))
+            assert _tensor_equal(get_vector_length(result_tuple[2][0]), torch.tensor([0.7071]))
+            assert _tensor_equal(get_vector_length(result_tuple[2][1]), torch.tensor([0.7071]))
+            assert _tensor_equal(result_tuple[2][0], torch.tensor([[0.5,  0.5]]))
+            assert _tensor_equal(result_tuple[2][1], torch.tensor([[0.5, -0.5]]))
             
             input = torch.tensor([[2., 0]])
             proj_to = torch.tensor([[1., 1]])
-            result_tuple = vector_proj(input, proj_to, needs_error=True)
+            result_tuple = vector_proj__full_info(input, proj_to, needs_error=True)
             assert _tensor_equal(result_tuple[0], torch.tensor([[1.,  1]]))
             assert _tensor_equal(result_tuple[1], torch.tensor([[1., -1]]))
-            assert _tensor_equal(get_vector_length(result_tuple[2][0]), torch.tensor([[1.]]))
-            assert _tensor_equal(get_vector_length(result_tuple[2][1]), torch.tensor([[1.]]))
+            assert _tensor_equal(get_vector_length(result_tuple[2][0]), torch.tensor([0.7071]))
+            assert _tensor_equal(get_vector_length(result_tuple[2][1]), torch.tensor([0.7071]))
+            assert _tensor_equal(result_tuple[2][0], torch.tensor([[0.5,  0.5]]))
+            assert _tensor_equal(result_tuple[2][1], torch.tensor([[0.5, -0.5]]))
 
             '''some geometric check.    direction???'''
             for dim in [2, 10, 100]:
                 for _ in range(33):
                     input = torch.randn(size=[1, dim])
                     proj_to = torch.randn(size=[1, dim])
-                    proj_vec, error_vec, (standard_proj_vec, standard_error_vec) = vector_proj(input, proj_to, needs_error=True)
+                    proj_vec, error_vec, (standardized_proj_vec, standardized_error_vec) = vector_proj__full_info(input, proj_to, needs_error=True)
                     
                     #<  is projected_vector the same direction with proj_to??
-                    _temp__proj_standardized = vector_length_norm(standard_proj_vec)
-                    _the_dot_prod = _temp__proj_standardized.reshape([-1]).dot(proj_to.reshape([-1]))
-                    assert _tensor_equal(_the_dot_prod.abs(), [1.])
-                    _temp__proj_standardized = vector_length_norm(proj_vec)
-                    _the_dot_prod = _temp__proj_standardized.reshape([-1]).dot(proj_to.reshape([-1]))
-                    assert _tensor_equal(_the_dot_prod.abs(), [1.])
+                    _temp_result = are_parallel(proj_vec, proj_to)
+                    assert _temp_result.all()
+                    _temp_result = are_parallel(standardized_proj_vec, proj_to)
+                    assert _temp_result.all()
+
                     #<  is error_vector orthogonal to the proj_to
-                    assert _tensor_equal(standard_error_vec.reshape([-1]).dot(proj_to.reshape([-1])),  [0.])
-                    assert _tensor_equal(error_vec.reshape([-1]).dot(proj_to.reshape([-1])),  [0.])
+                    _temp_result = are_orthogonal(error_vec, proj_to)
+                    assert _temp_result.all()
+                    _temp_result = are_orthogonal(standardized_error_vec, proj_to)
+                    assert _temp_result.all()
                     pass# for _
                 pass#for dim
 
             '''some geometric check.    when the length of input changes???'''
             for dim in [2, 10, 100]:
                 for _ in range(33):
-                    ori_input = torch.randn(size=[1, dim])
                     proj_to = torch.randn(size=[1, dim])
-                    ori_standard_proj_vec, ori_standard_error_vec = vector_proj(ori_input, proj_to, needs_error=True)
+
+                    ori_input = torch.randn(size=[1, dim])
+                    ori_proj_vec, ori_error_vec, (ori_standardized_proj_vec, ori_standardized_error_vec)= \
+                            vector_proj__full_info(ori_input, proj_to, needs_error=True)
 
                     length_factor = (random.random()+0.1)*3
-                    new_input = ori_input*length_factor
-                    new_standard_proj_vec, new_standard_error_vec = vector_proj(new_input, proj_to, needs_error=True)
+                    new_input = ori_input*length_factor#scale the input a bit.
+                    new_proj_vec, new_error_vec, (new_standardized_proj_vec, new_standardized_error_vec) = \
+                            vector_proj__full_info(new_input, proj_to, needs_error=True)
 
-                    assert _tensor_equal(ori_standard_proj_vec*length_factor,  new_standard_proj_vec)
-                    assert _tensor_equal(ori_standard_error_vec*length_factor, new_standard_error_vec)
+                    assert _tensor_equal(ori_proj_vec*length_factor,  new_proj_vec)
+                    assert _tensor_equal(ori_error_vec*length_factor, new_error_vec)
+                    assert _tensor_equal(ori_standardized_proj_vec, new_standardized_proj_vec)
+                    assert _tensor_equal(ori_standardized_error_vec, new_standardized_error_vec)
+
                     pass# for _
                 pass# for dim
             pass#/ test
         
         if "does batch works the same as non-batched?" and True:
-            for dim in [2, 10, 100]:
-                for batch in [3, 15, 88]:
+            for dim in [2, 10, 30]:
+                for batch in [3, 15, 44]:
                     for _ in range(33):
                         input = torch.randn(size=[batch, dim])
                         proj_to = torch.randn(size=[batch, dim])
                         proj_vec, error_vec, (standard_proj_vec, standard_error_vec) = \
-                                vector_proj(input, proj_to, needs_error=True)
+                                vector_proj__full_info(input, proj_to, needs_error=True)
                         
                         proj_vec__manually = torch.empty(size=[batch, dim])
                         error_vec__manually = torch.empty(size=[batch, dim])
                         standard_proj_vec__manually = torch.empty(size=[batch, dim])
                         standard_error_vec__manually = torch.empty(size=[batch, dim])
                         for ii in range(batch):
-                            result_tuple = vector_proj(input[ii], proj_to[ii], needs_error=True)
+                            result_tuple = vector_proj__full_info(input[ii].reshape([-1, dim]), proj_to[ii].reshape([-1, dim]), needs_error=True)
                             proj_vec__manually[ii] = result_tuple[0]
                             error_vec__manually[ii] = result_tuple[1]
                             standard_proj_vec__manually[ii] = result_tuple[2][0]
@@ -1126,42 +1517,42 @@ if "test" and __DEBUG_ME__() and True:
         if "return style" and True:
             input = torch.tensor([[1., 1]])
             proj_to = torch.tensor([[1., 0]])
-            result_tuple = vector_proj(input, proj_to, needs_proj=True,  needs_error=True,  needs_standard_error=True)
+            result_tuple = vector_proj__full_info(input, proj_to, needs_proj=True,  needs_error=True,  needs_standard_error=True)
             assert result_tuple[0]    is not None # proj
             assert result_tuple[1]    is not None # error
             assert result_tuple[2][0] is not None # std proj (always there)
             assert result_tuple[2][1] is not None # std error
-            result_tuple = vector_proj(input, proj_to, needs_proj=False, needs_error=True,  needs_standard_error=True)
+            result_tuple = vector_proj__full_info(input, proj_to, needs_proj=False, needs_error=True,  needs_standard_error=True)
             assert result_tuple[0]    is     None # proj
             assert result_tuple[1]    is not None # error
             assert result_tuple[2][0] is not None # std proj (always there)
             assert result_tuple[2][1] is not None # std error
-            result_tuple = vector_proj(input, proj_to, needs_proj=True,  needs_error=False, needs_standard_error=True)
+            result_tuple = vector_proj__full_info(input, proj_to, needs_proj=True,  needs_error=False, needs_standard_error=True)
             assert result_tuple[0]    is not None # proj
             assert result_tuple[1]    is     None # error
             assert result_tuple[2][0] is not None # std proj (always there)
             assert result_tuple[2][1] is not None # std error
-            result_tuple = vector_proj(input, proj_to, needs_proj=False, needs_error=False, needs_standard_error=True)
+            result_tuple = vector_proj__full_info(input, proj_to, needs_proj=False, needs_error=False, needs_standard_error=True)
             assert result_tuple[0]    is     None # proj
             assert result_tuple[1]    is     None # error
             assert result_tuple[2][0] is not None # std proj (always there)
             assert result_tuple[2][1] is not None # std error
-            result_tuple = vector_proj(input, proj_to, needs_proj=True,  needs_error=True,  needs_standard_error=False)
+            result_tuple = vector_proj__full_info(input, proj_to, needs_proj=True,  needs_error=True,  needs_standard_error=False)
             assert result_tuple[0]    is not None # proj
             assert result_tuple[1]    is not None # error
             assert result_tuple[2][0] is not None # std proj (always there)
             assert result_tuple[2][1] is not None # std error
-            result_tuple = vector_proj(input, proj_to, needs_proj=False, needs_error=True,  needs_standard_error=False)
+            result_tuple = vector_proj__full_info(input, proj_to, needs_proj=False, needs_error=True,  needs_standard_error=False)
             assert result_tuple[0]    is     None # proj
             assert result_tuple[1]    is not None # error
             assert result_tuple[2][0] is not None # std proj (always there)
             assert result_tuple[2][1] is not None # std error
-            result_tuple = vector_proj(input, proj_to, needs_proj=True,  needs_error=False, needs_standard_error=False)
+            result_tuple = vector_proj__full_info(input, proj_to, needs_proj=True,  needs_error=False, needs_standard_error=False)
             assert result_tuple[0]    is not None # proj
             assert result_tuple[1]    is     None # error
             assert result_tuple[2][0] is not None # std proj (always there)
             assert result_tuple[2][1] is     None # std error
-            result_tuple = vector_proj(input, proj_to, needs_proj=False, needs_error=False, needs_standard_error=False)
+            result_tuple = vector_proj__full_info(input, proj_to, needs_proj=False, needs_error=False, needs_standard_error=False)
             assert result_tuple[0]    is     None # proj
             assert result_tuple[1]    is     None # error
             assert result_tuple[2][0] is not None # std proj (always there)
@@ -1169,27 +1560,166 @@ if "test" and __DEBUG_ME__() and True:
             pass #/ test
 
 
+        if "what happens if the already_scaled flags are set wrongly?" and True:
+            input = torch.tensor([[2., 0]])
+            proj_to = torch.tensor([[1., 1]])
+            proj_vec, error_vec, (standardized_proj_vec, standardized_error_vec) = \
+                vector_proj__full_info(input, proj_to, needs_error=True)
+            assert _tensor_equal(proj_vec, torch.tensor([[1.,  1]]))
+            assert _tensor_equal(error_vec, torch.tensor([[1., -1]]))
+            assert _tensor_equal(get_vector_length(standardized_proj_vec), torch.tensor([0.7071]))
+            assert _tensor_equal(                  standardized_proj_vec,  torch.tensor([[0.5,  0.5]]))
+            assert _tensor_equal(get_vector_length(standardized_error_vec), torch.tensor([0.7071]))
+            assert _tensor_equal(                  standardized_error_vec,  torch.tensor([[0.5, -0.5]]))
+
+            fake_input__result_tuple = vector_proj__full_info(input, proj_to, needs_error=True, \
+                        input__already_scaled_to_1 = True)
+            assert _tensor_equal(fake_input__result_tuple[0], proj_vec)
+            assert _tensor_equal(fake_input__result_tuple[1], error_vec)
+            assert not _tensor_equal(fake_input__result_tuple[2][0], standardized_proj_vec)
+            assert not _tensor_equal(fake_input__result_tuple[2][1], standardized_error_vec)    
+
+            fake_proj_to__result_tuple = vector_proj__full_info(input, proj_to, needs_error=True, \
+                        proj_to__already_scaled_to_1 = True)
+            assert not _tensor_equal(fake_proj_to__result_tuple[0], proj_vec)
+            assert not _tensor_equal(fake_proj_to__result_tuple[1], error_vec)
+            assert not _tensor_equal(fake_proj_to__result_tuple[2][0], standardized_proj_vec)
+            assert not _tensor_equal(fake_proj_to__result_tuple[2][1], standardized_error_vec)
+
+            fake_all__result_tuple = vector_proj__full_info(input, proj_to, needs_error=True, \
+                        input__already_scaled_to_1 = True, \
+                        proj_to__already_scaled_to_1 = True)
+            assert not _tensor_equal(fake_all__result_tuple[0], proj_vec)
+            assert not _tensor_equal(fake_all__result_tuple[1], error_vec)
+            assert not _tensor_equal(fake_all__result_tuple[2][0], standardized_proj_vec)
+            assert not _tensor_equal(fake_all__result_tuple[2][1], standardized_error_vec)
 
 
+            pass
 
-        if "pre-scaled to std??" and True:
+        return 
+    
+    ____basic_behavior_test____vector_proj__full_info()
+    pass
 
 
-input__already_scaled_to_1 = False,
-                proj_to__already_scaled_to_1 = False,
-'''
+'''this is the proj == (a.b)/(b.b) * b version.'''
+def vector_proj(input:torch.Tensor, proj_to:torch.Tensor, 
+                needs_error = False, 
+                )->tuple[torch.Tensor|None, torch.Tensor|None, tuple[torch.Tensor, torch.Tensor|None]]:
+    '''return proj_vec, error_vec
+
+    if needs_error is False, then error_vec is None.
+    
+    This is the proj == (a.b)/(b.b) * b version. LINEAR ALGEBRA!!!'''
+
+    #input is b_1, proj_to is b_1.
+    a_dot_b___b_1 = input.mul(proj_to).sum(dim=-1, keepdim=True)
+    b_dot_b___b_1 = proj_to.mul(proj_to).sum(dim=-1, keepdim=True)
+    t___b_1 = a_dot_b___b_1.div(b_dot_b___b_1)
+    proj_vec = proj_to.mul(t___b_1.expand_as(proj_to))
+    if needs_error:
+        error_vec = input - proj_vec
+        pass
+    else:
+        error_vec = None
+        pass
+
+    return proj_vec, error_vec
+if "test" and __DEBUG_ME__() and False:
+    def ____basic_behavior_test____vector_proj():
+        if "basic" and True:
+            input = torch.tensor([[1., 1]])
+            proj_to = torch.tensor([[1., 0]])
+            proj_vec, error_vec = vector_proj(input, proj_to, needs_error=True)
+            assert _tensor_equal(proj_vec, torch.tensor([[1., 0]]))
+            assert _tensor_equal(error_vec, torch.tensor([[0,  1.]]))
+            
+            input = torch.tensor([[1., 0]])
+            proj_to = torch.tensor([[1., 1]])
+            proj_vec, error_vec = vector_proj(input, proj_to, needs_error=True)
+            assert _tensor_equal(proj_vec, torch.tensor([[0.5,  0.5]]))
+            assert _tensor_equal(error_vec, torch.tensor([[0.5, -0.5]]))
+            
+            input = torch.tensor([[2., 0]])
+            proj_to = torch.tensor([[1., 1]])
+            proj_vec, error_vec = vector_proj(input, proj_to, needs_error=True)
+            assert _tensor_equal(proj_vec, torch.tensor([[1.,  1]]))
+            assert _tensor_equal(error_vec, torch.tensor([[1., -1]]))
+
+            '''some geometric check.    direction???'''
+            for dim in [2, 10, 100]:
+                for _ in range(33):
+                    input = torch.randn(size=[1, dim])
+                    proj_to = torch.randn(size=[1, dim])
+                    proj_vec, error_vec = vector_proj(input, proj_to, needs_error=True)
+                    
+                    #<  is projected_vector the same direction with proj_to??
+                    _temp_result = are_parallel(proj_vec, proj_to)
+                    assert _temp_result.all()
+
+                    #<  is error_vector orthogonal to the proj_to
+                    _temp_result = are_orthogonal(error_vec, proj_to)
+                    assert _temp_result.all()
+                    pass# for _
+                pass#for dim
+
+            '''some geometric check.    when the length of input changes???'''
+            for dim in [2, 10, 100]:
+                for _ in range(33):
+                    proj_to = torch.randn(size=[1, dim])
+
+                    ori_input = torch.randn(size=[1, dim])
+                    ori_proj_vec, ori_error_vec = vector_proj(ori_input, proj_to, needs_error=True)
+
+                    length_factor = (random.random()+0.1)*3
+                    new_input = ori_input*length_factor#scale the input a bit.
+                    new_proj_vec, new_error_vec = vector_proj(new_input, proj_to, needs_error=True)
+
+                    assert _tensor_equal(ori_proj_vec*length_factor,  new_proj_vec)
+                    assert _tensor_equal(ori_error_vec*length_factor, new_error_vec)
+                    pass# for _
+                pass# for dim
+            pass#/ test
         
+        if "does batch works the same as non-batched?" and True:
+            for dim in [2, 10, 30]:
+                for batch in [3, 15, 44]:
+                    for _ in range(33):
+                        input = torch.randn(size=[batch, dim])
+                        proj_to = torch.randn(size=[batch, dim])
+                        proj_vec, error_vec = vector_proj(input, proj_to, needs_error=True)
+                        
+                        proj_vec__manually = torch.empty(size=[batch, dim])
+                        error_vec__manually = torch.empty(size=[batch, dim])
+                        for ii in range(batch):
+                            result_tuple = vector_proj(input[ii].reshape([-1, dim]), proj_to[ii].reshape([-1, dim]), needs_error=True)
+                            proj_vec__manually[ii] = result_tuple[0]
+                            error_vec__manually[ii] = result_tuple[1]
+                            pass
+                        assert _tensor_equal(proj_vec,  proj_vec__manually)
+                        assert _tensor_equal(error_vec, error_vec__manually)
+                        pass# for _
+                    pass#for batch
+                pass#for dim
+            pass#/ test
+        
+        if "return style" and True:
+            input = torch.tensor([[1., 1]])
+            proj_to = torch.tensor([[1., 0]])
+            proj_vec, error_vec = vector_proj(input, proj_to, needs_error=True)
+            assert proj_vec     is not None # proj
+            assert error_vec    is not None # error
+            proj_vec, error_vec = vector_proj(input, proj_to, needs_error=False)
+            assert proj_vec     is not None # proj
+            assert error_vec    is     None # error
+            
+            pass #/ test
+
         return 
     
     ____basic_behavior_test____vector_proj()
     pass
-
-
-
-
-
-    
-
 
 
 

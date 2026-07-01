@@ -37,9 +37,9 @@ if "test" and __DEBUG_ME__() and True:
                 # iota_of_dim = iota(dim)
                 number_of_tests = number_of_tests_list[outter_param_set]
                 device = 'cpu'
-                if dim>100:
-                    device = 'cuda'
-                    pass
+                # if dim>100:
+                #     device = 'cuda'
+                #     pass
                 print(f"dim {dim}   test_time {number_of_tests}    device {device}")
             #------------------#------------------#------------------
 
@@ -87,9 +87,9 @@ if "test" and __DEBUG_ME__() and True:
                 # iota_of_dim = iota(dim)
                 number_of_tests = number_of_tests_list[ii_outter_param_set]
                 device = 'cpu'
-                if dim>100:
-                    device = 'cuda'
-                    pass
+                # if dim>100:
+                #     device = 'cuda'
+                #     pass
                 print(f"dim {dim}   test_time {number_of_tests}    device {device}")
             #------------------#------------------#------------------
                 

@@ -91,6 +91,8 @@ if "test" and __DEBUG_ME__() and False:
     ____test____randn_safe()
     pass
 
+"maybe the float_mod(randn) is also very good? do I have it already?"
+
 
 
 
