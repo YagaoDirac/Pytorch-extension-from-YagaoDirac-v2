@@ -1606,7 +1606,7 @@ if "test" and __DEBUG_ME__() and False:
 '''this is the proj == (a.b)/(b.b) * b version.'''
 def vector_proj(input:torch.Tensor, proj_to:torch.Tensor, 
                 needs_error = False, 
-                )->tuple[torch.Tensor|None, torch.Tensor|None, tuple[torch.Tensor, torch.Tensor|None]]:
+                )->tuple[torch.Tensor, torch.Tensor|None]:
     '''return proj_vec, error_vec
 
     if needs_error is False, then error_vec is None.
