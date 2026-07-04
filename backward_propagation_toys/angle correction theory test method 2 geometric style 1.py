@@ -45,17 +45,7 @@ from pytorch_yagaodirac_v2.measure_for_matrix import LOSS__mat_is_standard_ortho
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+'''????????? looks like old code. Maybe still useful.'''
 def calc__cap_to____ver_1(dim:int, expansion_factor:torch.Tensor, _debug__auto_clamp = False)->torch.Tensor:
     '''
     >>>             -1      0       1       2      #    3       4
@@ -127,7 +117,7 @@ if "test" and False:
 
 
 '''the algo is in validation. Come back later.'''
-def full_test_version_of_angle_correction__by_row________the_geometric_style(\
+def full_test_version_of_angle_correction__by_row________the_geometric_style_v1(\
         input:torch.Tensor, 
         iota_of_dim:torch.Tensor|None = None, 
         safe_factor__clamp_to_this_length:torch.Tensor = torch.tensor(2.), #new in this style.
@@ -184,15 +174,77 @@ def full_test_version_of_angle_correction__by_row________the_geometric_style(\
     
     #<  real payload
     mat = vector_length_norm(input)
-    # old code ori_mat = ____init_mat_with_row_len_is_1(dim, device=device)
+    # debug code ori_mat = ____init_mat_with_row_len_is_1(dim, device=device)
 
     #<  calc cos>
     cos__d_d = mat@(mat.T)
-    cos__d_d[iota_of_dim, iota_of_dim] = 0.#需要嘛？？ ??????
+    #removec   cos__d_d[iota_of_dim, iota_of_dim] = 0.
     
-    host__d_EXPANDd_d  = mat.reshape(shape=[dim,  1,dim]).expand(size=[ -1,dim,-1])# a in my draft
-    guest__EXPANDd_d_d = mat.reshape(shape=[  1,dim,dim]).expand(size=[dim, -1,-1])# b in my draft
+    #host is 000111222, or 0011
+    host__d_EXPANDd_d  = mat.reshape(shape=[dim,  1,dim]).expand(size=[ -1,dim,-1])
+    #guest is 012012012, or 0101
+    guest__EXPANDd_d_d = mat.reshape(shape=[  1,dim,dim]).expand(size=[dim, -1,-1])
+    
     cos__d_d_EXPANDd   = cos__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])
+    #only for demostration. assert _tensor_equal(cos__d_d, host__d_EXPANDd_d.mul(guest__EXPANDd_d_d).sum(dim=-1))#both calc result the same.
+
+    #the diagonal elements of vvvvv ori__H_ortho_to_G__d_d_d vvvvv are mathmatically 0s. But in real case they may be non 0.
+    ori__H_ortho_to_G__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd
+
+
+    direction_of_H_ortho_to_G__d_d_d, raw__length_of_H_ortho_to_G__d_d_1, \
+            _ = get_full_info_of_vector_length__2d(ori__H_ortho_to_G__d_d_d.reshape(shape = [-1, dim]), keepdim_for_length=True)
+            #ori__sqr_length_of_H_ortho_to_G__d_d_1 = get_full_info_of_vector_length__2d(ori__H_ortho_to_G__d_d_d.reshape(shape = [-1, dim]), keepdim_for_length=True)
+    direction_of_H_ortho_to_G__d_d_d   = direction_of_H_ortho_to_G__d_d_d.  reshape(shape = [dim,dim,dim])
+    raw__length_of_H_ortho_to_G__d_d_1 = raw__length_of_H_ortho_to_G__d_d_1.reshape(shape = [dim,dim,1])
+    # ori__sqr_length_of_H_ortho_to_G__d_d_1 = ori__sqr_length_of_H_ortho_to_G__d_d_1.reshape(shape = [dim,dim,1])
+    
+    # debug code  assert raw__length_of_H_ortho_to_G__d_d_1.lt(1.00001).all()#the length of H_ortho_to_G is <=1.
+
+    length_of_H_ortho_to_G__d_d_1 = raw__length_of_H_ortho_to_G__d_d_1.maximum(torch.tensor(1w))#dim is [host, length from each guest], so this minimum is modifying the (sqr) length.
+    # debug code  assert length_of_H_ortho_to_G__d_d_1.ge(raw__length_of_H_ortho_to_G__d_d_1).all()#new value is always greater or equal to the original value.
+    
+    #<  calc the protection factor.
+    #protection_factor__d_d_1 is always <= 1.
+    protection_factor__d_d_1 = raw__length_of_H_ortho_to_G__d_d_1.div(length_of_H_ortho_to_G__d_d_1)# smaller/greater
+    protection_factor__d_d_1[iota_of_dim, iota_of_dim] = 0.######################################## do I need this??
+    assert _tensor_equal(protection_factor__d_d_1, torch.tensor([[  [0.], [1.]],
+                                                                [   [1.], [0.]]]))
+    assert protection_factor__d_d_1.le(1.).all()#the protection factor is always less or equal to 1.
+
+    #<  ???
+    length_of_H_ortho_to_G__d_d_EXPANDd = length_of_H_ortho_to_G__d_d_1.expand(size=[-1,-1,dim])
+
+    # I want the inversed length. So the formula is similar to length/(length*length)
+    H_plus_2_correct__d_d_d = direction_of_H_ortho_to_G__d_d_d.div(length_of_H_ortho_to_G__d_d_EXPANDd)# the diagonal is useless. 
+    # debug code  _debug___H_plus_2_correct__d_d_d__length__d_d = get_vector_length(H_plus_2_correct__d_d_d)#.reshape(shape=[-1, dim]))
+    # debug code  对角线可以直接set一下，就统一了。  assert _debug___H_plus_2_correct__d_d_d__length__d_d[0,1].gt(0.9999).all()#the length of H_plus_2_correct is >=1..
+
+    #the diagonal of raw__what_to_accumulate__before_protection_and_sum__d_d_d is useless.
+    raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d = H_plus_2_correct__d_d_d - host__d_EXPANDd_d 
+    # debug code  since the protection_factor are all 1s in this test, these below are orthogonal.
+    # debug code  assert are_orthogonal(raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[0,1], mat[0])#ai guessed this line.
+    
+    protection_factor__d_d_EXPANDd = protection_factor__d_d_1.expand(size=[-1,-1,dim])#the shape a lil bit.
+
+    #the 2/2 place of protection.
+    two_x_what_to_accumulate__before_sum_and_proj__d_d_d = \
+            raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d * protection_factor__d_d_EXPANDd
+    
+
+
+    two_x_what_to_accumulate__before_proj__d_d = two_x_what_to_accumulate__before_sum_and_proj__d_d_d.sum(dim=1)#0 is host, 1 is guest, 2 is inside the vec.
+    what_to_accumulate__before_proj__d_d = two_x_what_to_accumulate__before_proj__d_d*0.5
+    _, what_to_accumulate__d_d = vector_proj(what_to_accumulate__before_proj__d_d, mat, needs_error=True)
+    assert isinstance(what_to_accumulate__d_d, torch.Tensor)
+    return what_to_accumulate__d_d
+
+
+
+
+    '''
+    old code.
+
     H_ortho_to_G__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd# c' in my draft (c' == a-b*cos)
     H_ortho_to_G__dot_itself__d_d = H_ortho_to_G__d_d_d.dot(H_ortho_to_G__d_d_d)# c'.T @ c', the sqr length.
     H_ortho_to_G__dot_itself__d_d_EXPANDd = H_ortho_to_G__dot_itself__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])# c in my draft
@@ -218,7 +270,7 @@ def full_test_version_of_angle_correction__by_row________the_geometric_style(\
     mat += to_accumulate__d_d
     mat = vector_length_norm(mat)
     
-    return mat
+    return mat'''
 
 
 
@@ -257,8 +309,7 @@ if "unit test for the algo" and True:
         pass
 
 
-
-    if "part 2 ???" and True:
+    if "the full algo with test." and False:
             
         input = torch.tensor([[math.sqrt(0.01), math.sqrt(0.99)],[1, 0]])
         assert _tensor_equal(input[0], [0.1, 0.9950])
@@ -301,96 +352,303 @@ if "unit test for the algo" and True:
                                                             [[0.1,  0.1],
                                                             [   1., 1]]]))
         assert _tensor_equal(cos__d_d, host__d_EXPANDd_d.mul(guest__EXPANDd_d_d).sum(dim=-1))#both calc result the same.
-        H_ortho_to_G__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd
-        assert _tensor_equal(H_ortho_to_G__d_d_d[0], torch.tensor([[    0., 0.],
+        #the diagonal elements of vvvvv ori__H_ortho_to_G__d_d_d vvvvv are mathmatically 0s. But in real case they may be non 0.
+        ori__H_ortho_to_G__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd
+        assert _tensor_equal(ori__H_ortho_to_G__d_d_d[0], torch.tensor([[    0., 0.],
                                                                     [   0., 0.9950]]))
                                                                 # [[0.9900, -0.0995],
                                                                 # [ 0.0000,  0.0000]]])
-
         #the angle in between is a bit more than 90 deg, bc the angle between original vectors is a bit less than 90 deg. 
-        assert H_ortho_to_G__d_d_d[0,1].dot(H_ortho_to_G__d_d_d[1,0]).lt(0.)
-
-        ori__H_ortho_to_G__sqr_len__d_d_1 = \
-            H_ortho_to_G__d_d_d.mul(H_ortho_to_G__d_d_d).sum(dim=2, keepdim=True)# the sqr length of H_ortho_to_G
-        assert _tensor_equal(ori__H_ortho_to_G__sqr_len__d_d_1, torch.tensor([[[    0.], 
-                                                                                [ 0.99]], 
-                                                                                [[0.99], 
+        assert ori__H_ortho_to_G__d_d_d[0,1].dot(ori__H_ortho_to_G__d_d_d[1,0]).lt(0.)#only in this test.
+        
+        direction_of_H_ortho_to_G__d_d_d, raw__length_of_H_ortho_to_G__d_d_1, \
+                _ = get_full_info_of_vector_length__2d(ori__H_ortho_to_G__d_d_d.reshape(shape = [-1, dim]), keepdim_for_length=True)
+                #ori__sqr_length_of_H_ortho_to_G__d_d_1 = get_full_info_of_vector_length__2d(ori__H_ortho_to_G__d_d_d.reshape(shape = [-1, dim]), keepdim_for_length=True)
+        direction_of_H_ortho_to_G__d_d_d   = direction_of_H_ortho_to_G__d_d_d.  reshape(shape = [dim,dim,dim])
+        raw__length_of_H_ortho_to_G__d_d_1 = raw__length_of_H_ortho_to_G__d_d_1.reshape(shape = [dim,dim,1])
+        # ori__sqr_length_of_H_ortho_to_G__d_d_1 = ori__sqr_length_of_H_ortho_to_G__d_d_1.reshape(shape = [dim,dim,1])
+        
+        assert _tensor_equal(raw__length_of_H_ortho_to_G__d_d_1, torch.tensor([[[    0.], 
+                                                                                [ 0.9950]], 
+                                                                                [[0.9950], 
                                                                                 [   0.]]]))
-        assert ori__H_ortho_to_G__sqr_len__d_d_1.lt(1.0001).all()#the length of H_ortho_to_G is <=1.
+        assert raw__length_of_H_ortho_to_G__d_d_1.lt(1.00001).all()#the length of H_ortho_to_G is <=1.
+
+        # assert _tensor_equal(ori__sqr_length_of_H_ortho_to_G__d_d_1, torch.tensor([[[    0.], 
+        #                                                                         [ 0.99]], 
+        #                                                                         [[0.99], 
+        #                                                                         [   0.]]]))
+        # assert ori__sqr_length_of_H_ortho_to_G__d_d_1.lt(1.00001).all()#the length of H_ortho_to_G is <=1.
 
         #protection
-        H_ortho_to_G__sqr_len__d_d_1 = ori__H_ortho_to_G__sqr_len__d_d_1.minimum(torch.tensor(4.))#dim is [host, length from each guest], so this minimum is modifying the (sqr) length.
-        assert _tensor_equal(H_ortho_to_G__sqr_len__d_d_1, torch.tensor([[[ 0.],
-                                                                        [   0.9900]],
-
-                                                                        [[  0.9900],
-                                                                        [   0.]]]))
-        assert H_ortho_to_G__sqr_len__d_d_1.le(ori__H_ortho_to_G__sqr_len__d_d_1).all()#new value is always less or equal to the original value.
-        protection_factor__d_d_1 = H_ortho_to_G__sqr_len__d_d_1.div(ori__H_ortho_to_G__sqr_len__d_d_1)#this line was guessed correctly by ai.
-        protection_factor__d_d_1[iota_of_dim, iota_of_dim] = 0.
-        assert protection_factor__d_d_1.le(1.).all()#the protection factor is always less or equal to 1.
+        length_of_H_ortho_to_G__d_d_1 = raw__length_of_H_ortho_to_G__d_d_1.maximum(torch.tensor(0.5))#dim is [host, length from each guest], so this minimum is modifying the (sqr) length.
+                                                                            #[   0.5] from the maximum
+        assert _tensor_equal(length_of_H_ortho_to_G__d_d_1[0,1], torch.tensor([  0.9950]))
+        assert _tensor_equal(length_of_H_ortho_to_G__d_d_1[1,0], torch.tensor([  0.9950]))
+                                                                            #[   0.5] from the maximum
+        assert length_of_H_ortho_to_G__d_d_1.ge(raw__length_of_H_ortho_to_G__d_d_1).all()#new value is always greater or equal to the original value.
+        #<  calc the protection factor.
+        #protection_factor__d_d_1 is always <= 1.
+        protection_factor__d_d_1 = raw__length_of_H_ortho_to_G__d_d_1.div(length_of_H_ortho_to_G__d_d_1)# smaller/greater
+        protection_factor__d_d_1[iota_of_dim, iota_of_dim] = 0.######################################## do I need this??
         assert _tensor_equal(protection_factor__d_d_1, torch.tensor([[  [0.], [1.]],
                                                                     [   [1.], [0.]]]))
+        assert protection_factor__d_d_1.le(1.).all()#the protection factor is always less or equal to 1.
 
-        H_ortho_to_G__sqr_len__d_d_EXPANDd = H_ortho_to_G__sqr_len__d_d_1.expand(size=[-1,-1,dim])# still the c' dot_prod c', the sqr length.
-        assert _tensor_equal(H_ortho_to_G__sqr_len__d_d_EXPANDd, torch.tensor([[[    0.,     0.],
-                                                                                    [   0.9900, 0.9900]],
 
-                                                                                    [[  0.9900, 0.9900],
-                                                                                    [   0.,     0.]]]))
+        length_of_H_ortho_to_G__d_d_EXPANDd = length_of_H_ortho_to_G__d_d_1.expand(size=[-1,-1,dim])
+                                                                                #[    0.25,     0.25] # form maximum
+        assert _tensor_equal(length_of_H_ortho_to_G__d_d_EXPANDd[0,1], torch.tensor([0.9950, 0.9950]))
+        assert _tensor_equal(length_of_H_ortho_to_G__d_d_EXPANDd[1,0], torch.tensor([0.9950, 0.9950]))
+                                                                                #[    0.25,     0.25] # form maximum
         
         # I want the inversed length. So the formula is similar to length/(length*length)
-        
-        H_plus_2_correct__d_d_d = H_ortho_to_G__d_d_d.div(H_ortho_to_G__sqr_len__d_d_EXPANDd)#the denominator of the diagonal is 0.
-                                                        # tensor([[[    nan,     nan],
+        H_plus_2_correct__d_d_d = direction_of_H_ortho_to_G__d_d_d.div(length_of_H_ortho_to_G__d_d_EXPANDd)# the diagonal is useless. 
+                                                            # tensor([[[    0,  0],
         assert _tensor_equal(H_plus_2_correct__d_d_d[0,1], torch.tensor([0.,    1.0050]))
-                                                                    # [[1.0000, -0.1005,  ],
-                                                                    # [    nan,     nan]]])
-        H_plus_2_correct__d_d_d[iota_of_dim, iota_of_dim] = 0.#the diagonal is nan, and let's set it to 0 and see.
-        assert _tensor_equal(H_plus_2_correct__d_d_d, torch.tensor([[[0., 0],
-                                                                    [ 0.,       1.0050]],
-                                                                    [[1.0000,  -0.1005],
-                                                                    [ 0., 0]]]) )       
+        assert _tensor_equal(H_plus_2_correct__d_d_d[1,0], torch.tensor([1.0000, -0.1005]))
+                                                            # tensor([[[    0,  0],
+        #后面再保护。H_plus_2_correct__d_d_d[iota_of_dim, iota_of_dim] = 0.#the diagonal is nan, and let's set it to 0 and see.
         _debug___H_plus_2_correct__d_d_d__length__d_d = get_vector_length(H_plus_2_correct__d_d_d)#.reshape(shape=[-1, dim]))
         assert _debug___H_plus_2_correct__d_d_d__length__d_d[0,1].gt(0.9999).all()#the length of H_plus_2_correct is >=1..
         assert _debug___H_plus_2_correct__d_d_d__length__d_d[1,0].gt(0.9999).all()#the length of H_plus_2_correct is >=1..
         assert _tensor_equal(_debug___H_plus_2_correct__d_d_d__length__d_d.diag(), [0., 0])
 
         #the diagonal of raw__what_to_accumulate__before_protection_and_sum__d_d_d is useless.
-        raw__what_to_accumulate__before_protection_and_sum__d_d_d = H_plus_2_correct__d_d_d - host__d_EXPANDd_d 
-        assert _tensor_equal(raw__what_to_accumulate__before_protection_and_sum__d_d_d[0,1], [-0.1,     0.0101])
-        assert _tensor_equal(raw__what_to_accumulate__before_protection_and_sum__d_d_d[1,0], [ 0.0000, -0.1005])
-        #since the protection_factor is all 1s in this test, these below are orthogonal.
-        assert are_orthogonal(raw__what_to_accumulate__before_protection_and_sum__d_d_d[0,1], mat[0])#ai guessed this line.
-        assert are_orthogonal(raw__what_to_accumulate__before_protection_and_sum__d_d_d[1,0], mat[1])
+        raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d = H_plus_2_correct__d_d_d - host__d_EXPANDd_d 
 
 
-1w 继续.
-
+        assert _tensor_equal(raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[0,1], [-0.1,     0.0101])
+        assert _tensor_equal(raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[1,0], [ 0.0000, -0.1005])
+        #since the protection_factor are all 1s in this test, these below are orthogonal.
+        assert are_orthogonal(raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[0,1], mat[0])#ai guessed this line.
+        assert are_orthogonal(raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[1,0], mat[1])#and also this line.
         
-        protection_factor__d_d_EXPANDd = protection_factor__d_d_1.expand(size=[-1,-1,dim])
-        raw__what_to_accumulate__before_sum__d_d_d = raw__what_to_accumulate__before_protection_and_sum__d_d_d * protection_factor__d_d_EXPANDd
-        raw__what_to_accumulate__d_d = raw__what_to_accumulate__before_sum__d_d_d.sum(dim=1)#0 is host, 1 is guest, 2 is inside the vec.
+        protection_factor__d_d_EXPANDd = protection_factor__d_d_1.expand(size=[-1,-1,dim])#the shape a lil bit.
+        #the [0,0,:] and [1,1,:] are already set to 0 before.
+        assert _tensor_equal(protection_factor__d_d_EXPANDd[0,1], torch.ones(size=[dim]))
+        assert _tensor_equal(protection_factor__d_d_EXPANDd[1,0], torch.ones(size=[dim]))
 
-        _, what_to_accumulate__d_d = vector_proj(raw__what_to_accumulate__d_d, mat, needs_error=True)
+        #the 2/2 place of protection.
+        two_x_what_to_accumulate__before_sum_and_proj__d_d_d = \
+                raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d * protection_factor__d_d_EXPANDd
+        
+        #since in this case, all protection_factors are 1s. And meaningless positions are set to 0.
+        assert _tensor_equal(two_x_what_to_accumulate__before_sum_and_proj__d_d_d[0,1], 
+                                raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[0,1])
+        assert _tensor_equal(two_x_what_to_accumulate__before_sum_and_proj__d_d_d[1,0], 
+                                raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[1,0])
+        
+        assert _tensor_equal(two_x_what_to_accumulate__before_sum_and_proj__d_d_d[0,0], torch.zeros(size=[dim]))
+        assert _tensor_equal(two_x_what_to_accumulate__before_sum_and_proj__d_d_d[1,1], torch.zeros(size=[dim]))
+
+        two_x_what_to_accumulate__before_proj__d_d = two_x_what_to_accumulate__before_sum_and_proj__d_d_d.sum(dim=1)#0 is host, 1 is guest, 2 is inside the vec.
+        assert _tensor_equal(two_x_what_to_accumulate__before_proj__d_d[0], [-0.1,     0.0101])
+        assert _tensor_equal(two_x_what_to_accumulate__before_proj__d_d[1], [ 0.0000, -0.1005])
+
+        what_to_accumulate__before_proj__d_d = two_x_what_to_accumulate__before_proj__d_d*0.5
+
+        _, what_to_accumulate__d_d = vector_proj(what_to_accumulate__before_proj__d_d, mat, needs_error=True)
+        #return what_to_accumulate__d_d
         assert isinstance(what_to_accumulate__d_d, torch.Tensor)
-        _debug___also_what_to_accumulate__d_d = vector_proj(raw__what_to_accumulate__d_d, input, needs_error=True)
-        assert isinstance(_debug___also_what_to_accumulate__d_d, torch.Tensor)
-        assert _tensor_equal(what_to_accumulate__d_d, _debug___also_what_to_accumulate__d_d)
-        #what_to_accumulate__d_d /= 2 ???? #(dim-1.)*2.# bc the formula.
-        what_to_accumulate__d_d *= 0.5# bc the formula. But is this correct???
-
+        assert _tensor_equal(what_to_accumulate__d_d, what_to_accumulate__before_proj__d_d)#in this test.
+        assert are_orthogonal(what_to_accumulate__d_d, mat).all()
+        
         new_mat = mat + what_to_accumulate__d_d
         new_mat = vector_length_norm(new_mat)
-        cos__d_d = mat@(mat.T)
-        new_cos__d_d = new_mat@(new_mat.T)
-        torch.diag()
 
-        #return mat
+        fdsfdsfds = new_mat[0].dot( new_mat[1])
+
+        assert are_orthogonal(new_mat[0], new_mat[1], epsilon= 0.0004)
+        
+        cos__d_d
+        _debug___new_cos__d_d = new_mat@(new_mat.T)
+
+        fds = fds
+
+        #what_to_accumulate__d_d /= 2 ???? #(dim-1.)*2.# bc the formula.  ????????????
+
+
         
         
         #1w 分块，只用计算一半。这个sum也可以直接按2个方向sum，就不用复制另外一半了。
         # 分块的同时把维度确认清楚。现在的两个d，host的d和guest的d是混起来的，甚至可能是错的。
+
+
+
+
+    if "the full algo with test." and False:
+            
+        input = torch.tensor([[math.sqrt(0.01), math.sqrt(0.99)],[1, 0]])
+        assert _tensor_equal(input[0], [0.1, 0.9950])
+
+        dim = input.shape[0]
+        #if iota_of_dim is None:
+        iota_of_dim = iota(dim)
+        #    pass
+        
+        #<  real payload
+        mat = vector_length_norm(input)
+        assert _tensor_equal(mat, input)#only in the algo validation code. Remove this line in real code.
+        ____debug____angle_bisector = vector_length_norm(mat.sum(dim=0).reshape([1, -1]))
+        assert _tensor_equal(____debug____angle_bisector, [[0.71, 0.7]], epsilon=0.05)
+
+        #<  calc cos>
+        cos__d_d = mat@(mat.T)
+        assert _tensor_equal(cos__d_d, torch.tensor([[1., 0.1],[0.1, 1]]))
+        #cos__d_d[iota_of_dim, iota_of_dim] = 0.#需要嘛？？ ??????
+        #assert _tensor_equal(cos__d_d, torch.tensor([[0., 0.1],[0.1, 0]]))
+        
+        #host is 000111222, or 0011
+        host__d_EXPANDd_d  = mat.reshape(shape=[dim,  1,dim]).expand(size=[ -1,dim,-1])
+        assert _tensor_equal(host__d_EXPANDd_d, torch.tensor([[[    0.1,    0.9950],
+                                                                [   0.1,    0.9950]],
+                                                                
+                                                                [[  1,      0 ],
+                                                                [   1,      0 ]]]))
+        #guest is 012012012, or 0101
+        guest__EXPANDd_d_d = mat.reshape(shape=[  1,dim,dim]).expand(size=[dim, -1,-1])
+        assert _tensor_equal(guest__EXPANDd_d_d, torch.tensor([[[0.1, 0.9950],
+                                                                [1,     0]],
+                                                                
+                                                                [[0.1, 0.9950],
+                                                                [1,     0]]]))
+        cos__d_d_EXPANDd   = cos__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])
+        assert _tensor_equal(cos__d_d_EXPANDd, torch.tensor([[[1.,  1],
+                                                            [0.1,   0.1]],
+                                                            
+                                                            [[0.1,  0.1],
+                                                            [   1., 1]]]))
+        assert _tensor_equal(cos__d_d, host__d_EXPANDd_d.mul(guest__EXPANDd_d_d).sum(dim=-1))#both calc result the same.
+        #the diagonal elements of vvvvv ori__H_ortho_to_G__d_d_d vvvvv are mathmatically 0s. But in real case they may be non 0.
+        ori__H_ortho_to_G__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd
+        assert _tensor_equal(ori__H_ortho_to_G__d_d_d[0], torch.tensor([[    0., 0.],
+                                                                    [   0., 0.9950]]))
+                                                                # [[0.9900, -0.0995],
+                                                                # [ 0.0000,  0.0000]]])
+        #the angle in between is a bit more than 90 deg, bc the angle between original vectors is a bit less than 90 deg. 
+        assert ori__H_ortho_to_G__d_d_d[0,1].dot(ori__H_ortho_to_G__d_d_d[1,0]).lt(0.)#only in this test.
+        
+        direction_of_H_ortho_to_G__d_d_d, raw__length_of_H_ortho_to_G__d_d_1, \
+                _ = get_full_info_of_vector_length__2d(ori__H_ortho_to_G__d_d_d.reshape(shape = [-1, dim]), keepdim_for_length=True)
+                #ori__sqr_length_of_H_ortho_to_G__d_d_1 = get_full_info_of_vector_length__2d(ori__H_ortho_to_G__d_d_d.reshape(shape = [-1, dim]), keepdim_for_length=True)
+        direction_of_H_ortho_to_G__d_d_d   = direction_of_H_ortho_to_G__d_d_d.  reshape(shape = [dim,dim,dim])
+        raw__length_of_H_ortho_to_G__d_d_1 = raw__length_of_H_ortho_to_G__d_d_1.reshape(shape = [dim,dim,1])
+        # ori__sqr_length_of_H_ortho_to_G__d_d_1 = ori__sqr_length_of_H_ortho_to_G__d_d_1.reshape(shape = [dim,dim,1])
+        
+        assert _tensor_equal(raw__length_of_H_ortho_to_G__d_d_1, torch.tensor([[[    0.], 
+                                                                                [ 0.9950]], 
+                                                                                [[0.9950], 
+                                                                                [   0.]]]))
+        assert raw__length_of_H_ortho_to_G__d_d_1.lt(1.00001).all()#the length of H_ortho_to_G is <=1.
+
+        # assert _tensor_equal(ori__sqr_length_of_H_ortho_to_G__d_d_1, torch.tensor([[[    0.], 
+        #                                                                         [ 0.99]], 
+        #                                                                         [[0.99], 
+        #                                                                         [   0.]]]))
+        # assert ori__sqr_length_of_H_ortho_to_G__d_d_1.lt(1.00001).all()#the length of H_ortho_to_G is <=1.
+
+        #protection
+        length_of_H_ortho_to_G__d_d_1 = raw__length_of_H_ortho_to_G__d_d_1.maximum(torch.tensor(0.5))#dim is [host, length from each guest], so this minimum is modifying the (sqr) length.
+                                                                            #[   0.5] from the maximum
+        assert _tensor_equal(length_of_H_ortho_to_G__d_d_1[0,1], torch.tensor([  0.9950]))
+        assert _tensor_equal(length_of_H_ortho_to_G__d_d_1[1,0], torch.tensor([  0.9950]))
+                                                                            #[   0.5] from the maximum
+        assert length_of_H_ortho_to_G__d_d_1.ge(raw__length_of_H_ortho_to_G__d_d_1).all()#new value is always greater or equal to the original value.
+        #<  calc the protection factor.
+        #protection_factor__d_d_1 is always <= 1.
+        protection_factor__d_d_1 = raw__length_of_H_ortho_to_G__d_d_1.div(length_of_H_ortho_to_G__d_d_1)# smaller/greater
+        protection_factor__d_d_1[iota_of_dim, iota_of_dim] = 0.######################################## do I need this??
+        assert _tensor_equal(protection_factor__d_d_1, torch.tensor([[  [0.], [1.]],
+                                                                    [   [1.], [0.]]]))
+        assert protection_factor__d_d_1.le(1.).all()#the protection factor is always less or equal to 1.
+
+
+        length_of_H_ortho_to_G__d_d_EXPANDd = length_of_H_ortho_to_G__d_d_1.expand(size=[-1,-1,dim])
+                                                                                #[    0.25,     0.25] # form maximum
+        assert _tensor_equal(length_of_H_ortho_to_G__d_d_EXPANDd[0,1], torch.tensor([0.9950, 0.9950]))
+        assert _tensor_equal(length_of_H_ortho_to_G__d_d_EXPANDd[1,0], torch.tensor([0.9950, 0.9950]))
+                                                                                #[    0.25,     0.25] # form maximum
+        
+        # I want the inversed length. So the formula is similar to length/(length*length)
+        H_plus_2_correct__d_d_d = direction_of_H_ortho_to_G__d_d_d.div(length_of_H_ortho_to_G__d_d_EXPANDd)# the diagonal is useless. 
+                                                            # tensor([[[    0,  0],
+        assert _tensor_equal(H_plus_2_correct__d_d_d[0,1], torch.tensor([0.,    1.0050]))
+        assert _tensor_equal(H_plus_2_correct__d_d_d[1,0], torch.tensor([1.0000, -0.1005]))
+                                                            # tensor([[[    0,  0],
+        #后面再保护。H_plus_2_correct__d_d_d[iota_of_dim, iota_of_dim] = 0.#the diagonal is nan, and let's set it to 0 and see.
+        _debug___H_plus_2_correct__d_d_d__length__d_d = get_vector_length(H_plus_2_correct__d_d_d)#.reshape(shape=[-1, dim]))
+        assert _debug___H_plus_2_correct__d_d_d__length__d_d[0,1].gt(0.9999).all()#the length of H_plus_2_correct is >=1..
+        assert _debug___H_plus_2_correct__d_d_d__length__d_d[1,0].gt(0.9999).all()#the length of H_plus_2_correct is >=1..
+        assert _tensor_equal(_debug___H_plus_2_correct__d_d_d__length__d_d.diag(), [0., 0])
+
+        #the diagonal of raw__what_to_accumulate__before_protection_and_sum__d_d_d is useless.
+        raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d = H_plus_2_correct__d_d_d - host__d_EXPANDd_d 
+
+
+        assert _tensor_equal(raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[0,1], [-0.1,     0.0101])
+        assert _tensor_equal(raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[1,0], [ 0.0000, -0.1005])
+        #since the protection_factor are all 1s in this test, these below are orthogonal.
+        assert are_orthogonal(raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[0,1], mat[0])#ai guessed this line.
+        assert are_orthogonal(raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[1,0], mat[1])#and also this line.
+        
+        protection_factor__d_d_EXPANDd = protection_factor__d_d_1.expand(size=[-1,-1,dim])#the shape a lil bit.
+        #the [0,0,:] and [1,1,:] are already set to 0 before.
+        assert _tensor_equal(protection_factor__d_d_EXPANDd[0,1], torch.ones(size=[dim]))
+        assert _tensor_equal(protection_factor__d_d_EXPANDd[1,0], torch.ones(size=[dim]))
+
+        #the 2/2 place of protection.
+        two_x_what_to_accumulate__before_sum_and_proj__d_d_d = \
+                raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d * protection_factor__d_d_EXPANDd
+        
+        #since in this case, all protection_factors are 1s. And meaningless positions are set to 0.
+        assert _tensor_equal(two_x_what_to_accumulate__before_sum_and_proj__d_d_d[0,1], 
+                                raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[0,1])
+        assert _tensor_equal(two_x_what_to_accumulate__before_sum_and_proj__d_d_d[1,0], 
+                                raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d[1,0])
+        
+        assert _tensor_equal(two_x_what_to_accumulate__before_sum_and_proj__d_d_d[0,0], torch.zeros(size=[dim]))
+        assert _tensor_equal(two_x_what_to_accumulate__before_sum_and_proj__d_d_d[1,1], torch.zeros(size=[dim]))
+
+        two_x_what_to_accumulate__before_proj__d_d = two_x_what_to_accumulate__before_sum_and_proj__d_d_d.sum(dim=1)#0 is host, 1 is guest, 2 is inside the vec.
+        assert _tensor_equal(two_x_what_to_accumulate__before_proj__d_d[0], [-0.1,     0.0101])
+        assert _tensor_equal(two_x_what_to_accumulate__before_proj__d_d[1], [ 0.0000, -0.1005])
+
+        what_to_accumulate__before_proj__d_d = two_x_what_to_accumulate__before_proj__d_d*0.5
+
+        _, what_to_accumulate__d_d = vector_proj(what_to_accumulate__before_proj__d_d, mat, needs_error=True)
+        #return what_to_accumulate__d_d
+        assert isinstance(what_to_accumulate__d_d, torch.Tensor)
+        assert _tensor_equal(what_to_accumulate__d_d, what_to_accumulate__before_proj__d_d)#in this test.
+        assert are_orthogonal(what_to_accumulate__d_d, mat).all()
+        
+        new_mat = mat + what_to_accumulate__d_d
+        new_mat = vector_length_norm(new_mat)
+
+        fdsfdsfds = new_mat[0].dot( new_mat[1])
+
+        assert are_orthogonal(new_mat[0], new_mat[1], epsilon= 0.0004)
+        
+        cos__d_d
+        _debug___new_cos__d_d = new_mat@(new_mat.T)
+
+        fds = fds
+
+        #what_to_accumulate__d_d /= 2 ???? #(dim-1.)*2.# bc the formula.  ????????????
+
+
+        
+        
+        #1w 分块，只用计算一半。这个sum也可以直接按2个方向sum，就不用复制另外一半了。
+        # 分块的同时把维度确认清楚。现在的两个d，host的d和guest的d是混起来的，甚至可能是错的。
+
+
+
+
+
+
+
+
 
 
 
