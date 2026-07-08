@@ -742,7 +742,7 @@ if "test" and __DEBUG_ME__() and False:
     pass
 
 def randomly_rotate__vector(input:torch.Tensor, times:int|None = None)->torch.Tensor:
-    '''randomly rotates the input'''
+    '''randomly rotates the input. input must be a vector. Batch not implemented.'''
     
     assert input.shape.__len__() == 1, "Batch is not implemented. Maybe later."
     dim = input.shape[0]
@@ -1757,7 +1757,7 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
-
+# to do: reflection.
 
 
 

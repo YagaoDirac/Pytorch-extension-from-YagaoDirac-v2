@@ -25,7 +25,7 @@ if "test" and __DEBUG_ME__() and True:
                 #result
                 pass
             
-            print(f"{_line_()}    by dim")
+            print(f"__LINE__ {_line_()}    by dim")
             
             xxxxxxx = []#don't modify this
             #------------------#------------------#------------------
@@ -76,7 +76,7 @@ if "test" and __DEBUG_ME__() and True:
     def ____test____1_param():
         
         if "scan 1 param" and False:
-            print(f"{_line_()}    scan 1 param")
+            print(f"__LINE__ {_line_()}    scan 1 param")
             
             #------------------#------------------#------------------
             dim_list =                          [ 2,  10,100, 1000]
@@ -85,13 +85,14 @@ if "test" and __DEBUG_ME__() and True:
             for ii_outter_param_set in range(dim_list.__len__()):
                 dim = dim_list[ii_outter_param_set]
                 # iota_of_dim = iota(dim)
-                number_of_tests = number_of_tests_list[ii_outter_param_set]
+                number_of_tests = int(number_of_tests_list[ii_outter_param_set].item())
                 device = 'cpu'
                 # if dim>100:
                 #     device = 'cuda'
                 #     pass
                 print(f"dim {dim}   test_time {number_of_tests}    device {device}")
             #------------------#------------------#------------------
+                xxxxxxxxxxxxxxxx = []#don't modify this.
                 
                 scanned_param_list = []################################################
                 _when_start = time.perf_counter()
@@ -118,7 +119,8 @@ if "test" and __DEBUG_ME__() and True:
                 print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
                 print(f"dim {dim}")
                 print(f"scanned_param_list = {str_the_list(scanned_param_list, 3)}")#########################
-                
+                print(f"xxxxxxxxxxxxxxxx = {str_the_list(xxxxxxxxxxxxxxxx, 3)}")#########################
+                ################################
                 pass#for ii_outter_param_set
             pass#/ test
         
