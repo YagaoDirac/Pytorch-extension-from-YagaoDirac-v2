@@ -119,14 +119,13 @@ if "test" and False:
     
     pass    
 
-
-def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_factor = 1., 
-                        cap_to:float|None = None, iota_of_dim:torch.Tensor|None = None, 
-                        
-                        safe_factor:float|None = None, # None for the style 1, or float for style 2.
-                        
-                        _debug__auto_clamp_in_look_up_function = False
-                        
+1w
+def full_test_version_of_angle_correction__by_row________the_geometric_style(\
+        input:torch.Tensor, 
+        safe_factor__clamp_to_this_length:torch.Tensor = torch.tensor(2.), #new in this style.
+                        #expansion_factor = 1., 
+                        #cap_to:float|None = None, iota_of_dim:torch.Tensor|None = None, 
+                        #_debug__auto_clamp_in_look_up_function = False
                         #_debug__allow_any_param = False
                         )->torch.Tensor:
     '''The output of this function is only the direction of row vectors. Row vectors are normalized(length == 1).
@@ -138,114 +137,79 @@ def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_
     row vectors of return value are 1, unless the input is too close to 0. I believe it's called standard vector???
     '''
     
-    if isinstance(expansion_factor, float):
-        expansion_factor__s = torch.tensor(expansion_factor)
-        pass
-    elif isinstance(expansion_factor, torch.Tensor):
-        expansion_factor__s = expansion_factor.detach().clone()
-        pass
-    else:
-        assert False, "bad type: expansion_factor"
+    # if isinstance(expansion_factor, float):
+    #     expansion_factor__s = torch.tensor(expansion_factor)
+    #     pass
+    # elif isinstance(expansion_factor, torch.Tensor):
+    #     expansion_factor__s = expansion_factor.detach().clone()
+    #     pass
+    # else:
+    #     assert False, "bad type: expansion_factor"
     
     
-    if cap_to is None:
-        cap_to__s = calc__cap_to____ver_1(input.shape[0], expansion_factor__s, 
-                            _debug__auto_clamp = _debug__auto_clamp_in_look_up_function)
-        pass
-    elif isinstance(cap_to, float):
-        cap_to__s = torch.tensor(cap_to)
-        pass
-    elif isinstance(cap_to, torch.Tensor):
-        cap_to__s = cap_to.detach().clone()
-        pass
-    else:
-        assert False, "bad type."
-        pass
-    assert isinstance(cap_to__s, torch.Tensor)
+    # if cap_to is None:
+    #     cap_to__s = calc__cap_to____ver_1(input.shape[0], expansion_factor__s, 
+    #                         _debug__auto_clamp = _debug__auto_clamp_in_look_up_function)
+    #     pass
+    # elif isinstance(cap_to, float):
+    #     cap_to__s = torch.tensor(cap_to)
+    #     pass
+    # elif isinstance(cap_to, torch.Tensor):
+    #     cap_to__s = cap_to.detach().clone()
+    #     pass
+    # else:
+    #     assert False, "bad type."
+    #     pass
+    # assert isinstance(cap_to__s, torch.Tensor)
     
     # if not _debug__allow_any_param:
     #     assert cap_to__s>=0.2 and cap_to__s <=0.8
     #     assert expansion_factor__s >=-1. and expansion_factor__s <=2# repeated?
     #     pass
     
+    dim = input.shape[0]
     if iota_of_dim is None:
-        iota_of_dim = iota(input.shape[0])
+        iota_of_dim = iota(dim)
         pass
     
     #<  real payload
     mat = vector_length_norm(input)
     # old code ori_mat = ____init_mat_with_row_len_is_1(dim, device=device)
 
-    #<  calc grad>
-    manual__mat_matmul_mat__d_d = mat@(mat.T)
-    manual__mat_matmul_mat__d_d[iota_of_dim, iota_of_dim] = 0.
-
-    #<  original grad>
-    ori__grad__d_d = manual__mat_matmul_mat__d_d@mat
+    #<  calc cos>
+    cos__d_d = mat@(mat.T)
+    1w需要嘛？？ cos__d_d[iota_of_dim, iota_of_dim] = 0.
     
-    #<  original grad, but len into 1>
-    len_1__ori_grad__d_d, ori__grad_len__dim = get_full_info_of_vector_length__2d(ori__grad__d_d)
-    #  normalized_vector, length_of_input    the return values
-    # len_1__ori_grad__d_d = vector_length_norm(ori__grad__d_d) old code 
+    1w 继续。
+    host__d_EXPANDd_d  = mat.reshape(shape=[dim,  1,dim]).expand(size=[ -1,dim,-1])# a in my draft
+    guest__EXPANDd_d_d = mat.reshape(shape=[  1,dim,dim]).expand(size=[dim, -1,-1])# b in my draft
+    cos__d_d_EXPANDd   = cos__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])
+    host_minus_guest_mul_cos__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd# c' in my draft (c' == a-b*cos)
+    host_minus_guest_mul_cos__dot_itself__d_d = host_minus_guest_mul_cos__d_d_d.dot(host_minus_guest_mul_cos__d_d_d)# c'.T @ c', the sqr length.
+    host_minus_guest_mul_cos__dot_itself__d_d_EXPANDd = host_minus_guest_mul_cos__dot_itself__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])# c in my draft
+    raw__what_to_accumulate__d_d_d = host__d_EXPANDd_d - host_minus_guest_mul_cos__dot_itself__d_d_EXPANDd# a - c in my draft
+    #safety
+    len_of__what_to_accumulate__d_d = raw__what_to_accumulate__d_d_d.dot(raw__what_to_accumulate__d_d_d).sqrt()
+    1w需要嘛？？ len_of__what_to_accumulate__d_d[iota_of_dim, iota_of_dim] = 0.
     
-    # assert _tensor_equal(get_vector_length(len_1__ori_grad__d_d), torch.ones(size=[input.shape[0]], device=input.device))
-
-    #<  scale it a bit, to make the distribution a bit wider>
-    #otherwise, they are a lot 0.8,0.9. Wider means most are 0.3 to 0.8.
-    #ori__grad_len__dim = get_vector_length(ori__grad__d_d) old code
-    
-    #<  added in style 2
-    if safe_factor is not None:
-        assert safe_factor>=0.95 and safe_factor<=1.2, "I recommend 1.1"#uncommend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        dim = input.shape[0]
-        _theorically_avg_length = 1.41*(dim-1)/dim
-        # mean grad row vector length == 1.41*(dim-1)/dim       (manual style)
-        
-        #____temp____original = ori__grad_len__dim.detach().clone()#debug only#commend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        ori__grad_len__dim.clamp_max_(safe_factor*_theorically_avg_length)
-        #assert ____temp____original.ge(ori__grad_len__dim).all()#debug only#commend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        #print(____temp____original)
-        #print(ori__grad_len__dim)
-        pass
-    #</ added in style 2
-    
-    max_of__ori__grad_len__dim = ori__grad_len__dim.max()
-    
-    # mean grad row vector length == 4*1.41*(dim-1)/(dim*dim*dim)
+    safe_len_of__what_to_accumulate__d_d = len_of__what_to_accumulate__d_d.clamp_min(safe_factor__clamp_to_this_length)
+    safe_len_of__what_to_accumulate__d_d_EXPANDd = safe_len_of__what_to_accumulate__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])
+    direction_of__what_to_accumulate__d_d_d = vector_length_norm(raw__what_to_accumulate__d_d_d)
+    #final
+    to_accumulate__before_sum__d_d_d = safe_len_of__what_to_accumulate__d_d_EXPANDd * direction_of__what_to_accumulate__d_d_d
+    to_accumulate__before_div__d_d = to_accumulate__before_sum__d_d_d.sum() = safe_len_of__what_to_accumulate__d_d_EXPANDd * direction_of__what_to_accumulate__d_d_d
+    _1_over_dim = 1./dim
+    to_accumulate__d_d = to_accumulate__before_div__d_d * _1_over_dim
     
     
-    ratio_of__grad_len__dim = ori__grad_len__dim/max_of__ori__grad_len__dim
-    # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this scaled_to_1__grad_len_sqr__dim is still one 1.0 and a lot 0.xx
-    #assert ratio_of__grad_len__dim.le(1.).all()
-    #assert ratio_of__grad_len__dim.eq(1.).sum() == 1
-
-    grad_len__after_expansion__dim = ratio_of__grad_len__dim.pow(expansion_factor__s)
-    # assert grad_len__after_expansion__dim.le(1.).all() when expansion_factor__s is neg, this is wrong.
-    # assert grad_len__after_expansion__dim.eq(1.).sum() == 1 when expansion_factor__s is 0., this is wrong.
-    # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this grad_len__after_expansion__dim is still one 1.0 and a lot 0.xx
-
-    #<  target length>
-    grad_length_target__dim = grad_len__after_expansion__dim*cap_to__s
-    grad_length_target__dim__expand_dim = expand_vec_to_matrix(grad_length_target__dim, each_element_to="row")
-
-    #<  finally 
-    useful_grad__d_d = len_1__ori_grad__d_d.mul(grad_length_target__dim__expand_dim)#row
-    # # assert _tensor_equal(get_vector_length(useful_grad__d_d), grad_length_target__dim)
-
-    # debug only  vvvvvvvvvvvvvvvvvvvv
-    # log10_of__mat = log10_avg_safe(mat)
-    # log10_of__grad = log10_avg_safe(useful_grad__d_d)
-    # debug only  ^^^^^^^^^^^^^^^^^^^^
-
-    #<  update mat
-    mat -= useful_grad__d_d
-
-    # debug only  vvvvvvvvvvvvvvvvvvvv
-    # log10_of__mat_after_modify = log10_avg_safe(mat)
-    # log10_similarity = log10_avg__how_similar(mat, ori_mat)
-    # debug only  ^^^^^^^^^^^^^^^^^^^^
-
-    #<  protect the length after updating
+    1w 分块，只用计算一半。这个sum也可以直接按2个方向sum，就不用复制另外一半了。
+    
+    
+    
+    
+    
+    #calc output
+    mat += to_accumulate__d_d
     mat = vector_length_norm(mat)
     
     return mat

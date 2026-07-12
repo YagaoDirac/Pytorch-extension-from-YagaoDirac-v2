@@ -58,11 +58,11 @@ if "test" and __DEBUG_ME__() and True:
                     _raw_result__xxxxxxx[ii__test] = _this_result
                     pass#for ii__test
                 _when_end = time.perf_counter()
+                print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
                 
                 xxxxxxx.append(_raw_result__xxxxxxx.mean())
                 pass#for outter_param_set
             
-            print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
             print(f"xxxxxxx   = {str_the_list(xxxxxxx  , 3)}")
             print(f"dim        = {str_the_list(dim_list, 0, ",    ")}")
             

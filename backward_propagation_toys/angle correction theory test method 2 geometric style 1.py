@@ -121,9 +121,9 @@ if "test" and False:
 
 def full_test_version_of_angle_correction__by_row________the_geometric_style_v1(\
         input:torch.Tensor, 
-        safe_factor__the_min_H_ortho_to_G_length:float|torch.Tensor,# = torch.tensor(0.5), #new in this style.
-        safe_factor__the_min_H_ortho_to_G_length____step_2:float|torch.Tensor,# = torch.tensor(0.5), #new in this style.
         iota_of_dim:torch.Tensor|None = None, 
+        safe_factor__the_min_H_ortho_to_G_length:float|torch.Tensor = torch.tensor(0.5), #maybe 0.5 is not the best.
+        #safe_factor__the_min_H_ortho_to_G_length____step_2:float|torch.Tensor,# = torch.tensor(1.) 0.9 or 1. But lets keep it simple.
 
                         #expansion_factor = 1., 
                         #cap_to:float|None = None, 
@@ -237,9 +237,9 @@ def full_test_version_of_angle_correction__by_row________the_geometric_style_v1(
 
     #the 2/2 place of protection.
     two_x_what_to_accumulate__before_sum_and_proj__d_d_d = \
-            raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d * (protection_factor__d_d_EXPANDd * safe_factor__the_min_H_ortho_to_G_length____step_2)
-    
-
+            raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d * protection_factor__d_d_EXPANDd
+            #raw__two_x_what_to_accumulate__before_sum_and_proj__d_d_d * (protection_factor__d_d_EXPANDd * safe_factor__the_min_H_ortho_to_G_length____step_2)
+            #this was used to scan this param. It's best when it's 0.9 to 1. So let's keep it simple.
 
     two_x_what_to_accumulate__before_proj__d_d = two_x_what_to_accumulate__before_sum_and_proj__d_d_d.sum(dim=1)#0 is host, 1 is guest, 2 is inside the vec.
     what_to_accumulate__before_proj__d_d = two_x_what_to_accumulate__before_proj__d_d*0.5
@@ -760,51 +760,49 @@ if "unit test for the algo" and True:
             pass#for ii_outter_param_set
         pass#/ test
 
+    if " raw__length_of_H_ortho_to_G__d_d_1 distribution" and False:
+        '''the case is, the conclusion is very similar to some test on the random_standard_vector function.
+        The function is in my Random.py, the test is in another file. 
+        Conclusion is, in high dimention, most unrelated vectors are almost orthogonal. 
+        This H_ortho_to_G (see the png) is orthogonal to the guest, so its direction is 
+        very similar to host.
+        '''
 
+        for dim in [2,3,5,10,100]:
 
-
-
-
-
-    if " raw__length_of_H_ortho_to_G__d_d_1 distribution" and True:
-        input = torch.randn(size=[1w])
-    
-        dim = input.shape[0]
-        iota_of_dim = iota(dim)
+            input = torch.randn(size=[dim])
         
+            iota_of_dim = iota(dim)
+            
 
-        #<  real payload
-        direction_of_input, length_of_input, _ = get_full_info_of_vector_length__2d(input)
-        # debug code ori_mat = ____init_mat_with_row_len_is_1(dim, device=device)
+            #<  real payload
+            direction_of_input, length_of_input, _ = get_full_info_of_vector_length__2d(input)
+            # debug code ori_mat = ____init_mat_with_row_len_is_1(dim, device=device)
 
-        #<  calc cos>
-        cos__d_d = direction_of_input@(direction_of_input.T)
-        #removec   cos__d_d[iota_of_dim, iota_of_dim] = 0.
-        
-        #host is 000111222, or 0011
-        host__d_EXPANDd_d  = direction_of_input.reshape(shape=[dim,  1,dim]).expand(size=[ -1,dim,-1])
-        #guest is 012012012, or 0101
-        guest__EXPANDd_d_d = direction_of_input.reshape(shape=[  1,dim,dim]).expand(size=[dim, -1,-1])
-        
-        cos__d_d_EXPANDd   = cos__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])
-        #only for demostration. assert _tensor_equal(cos__d_d, host__d_EXPANDd_d.mul(guest__EXPANDd_d_d).sum(dim=-1))#both calc result the same.
+            #<  calc cos>
+            cos__d_d = direction_of_input@(direction_of_input.T)
+            #removec   cos__d_d[iota_of_dim, iota_of_dim] = 0.
+            
+            #host is 000111222, or 0011
+            host__d_EXPANDd_d  = direction_of_input.reshape(shape=[dim,  1,dim]).expand(size=[ -1,dim,-1])
+            #guest is 012012012, or 0101
+            guest__EXPANDd_d_d = direction_of_input.reshape(shape=[  1,dim,dim]).expand(size=[dim, -1,-1])
+            
+            cos__d_d_EXPANDd   = cos__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])
+            #only for demostration. assert _tensor_equal(cos__d_d, host__d_EXPANDd_d.mul(guest__EXPANDd_d_d).sum(dim=-1))#both calc result the same.
 
-        #the diagonal elements of vvvvv ori__H_ortho_to_G__d_d_d vvvvv are mathmatically 0s. But in real case they may be non 0.
-        ori__H_ortho_to_G__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd
-
-
-        direction_of_H_ortho_to_G__d_d_d, raw__length_of_H_ortho_to_G__d_d_1, \
-                _ = get_full_info_of_vector_length__2d(ori__H_ortho_to_G__d_d_d.reshape(shape = [-1, dim]), keepdim_for_length=True)
-                #ori__sqr_length_of_H_ortho_to_G__d_d_1 = get_full_info_of_vector_length__2d(ori__H_ortho_to_G__d_d_d.reshape(shape = [-1, dim]), keepdim_for_length=True)
-        direction_of_H_ortho_to_G__d_d_d   = direction_of_H_ortho_to_G__d_d_d.  reshape(shape = [dim,dim,dim])
-        raw__length_of_H_ortho_to_G__d_d_1 = raw__length_of_H_ortho_to_G__d_d_1.reshape(shape = [dim,dim,1])
+            #the diagonal elements of vvvvv ori__H_ortho_to_G__d_d_d vvvvv are mathmatically 0s. But in real case they may be non 0.
+            ori__H_ortho_to_G__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd
 
 
-raw__length_of_H_ortho_to_G__d_d_1检查他的元素的分布范围。考虑一下hist。
-
-
-
-
+            direction_of_H_ortho_to_G__d_d_d, raw__length_of_H_ortho_to_G__d_d_1, \
+                    _ = get_full_info_of_vector_length__2d(ori__H_ortho_to_G__d_d_d.reshape(shape = [-1, dim]), keepdim_for_length=True)
+                    #ori__sqr_length_of_H_ortho_to_G__d_d_1 = get_full_info_of_vector_length__2d(ori__H_ortho_to_G__d_d_d.reshape(shape = [-1, dim]), keepdim_for_length=True)
+            direction_of_H_ortho_to_G__d_d_d   = direction_of_H_ortho_to_G__d_d_d.  reshape(shape = [dim,dim,dim])
+            raw__length_of_H_ortho_to_G__d_d_1 = raw__length_of_H_ortho_to_G__d_d_1.reshape(shape = [dim,dim,1])
+            assert False, "read the result."
+            pass# for dim
+        pass # / test
 
 
 
@@ -812,44 +810,46 @@ raw__length_of_H_ortho_to_G__d_d_1检查他的元素的分布范围。考虑一�
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if "scan the protection factors           等一下继续." and True:
-        assert False, '''   So, the case is, most of the elements of length_of_H_ortho_to_G(raw__length_of_H_ortho_to_G__d_d_1)
-            are between 0.95 to 1. in high dimention. '''
-
+    '''So, the case is, most of the elements of length_of_H_ortho_to_G(raw__length_of_H_ortho_to_G__d_d_1)
+        are between 0.95 to 1. in high dimention. '''
+    '''since in high dimention, this protection happens rarely. So let's keep it simple. 
+        and make it consistent through different dimentions.'''
+    '''The test result doesn't show anything meaningful.'''
+    if "scan the protection factors" and False:
 
         if "result" :
+            # dim 10   test_time 1000    device cpu       9.458998 , or 0.009459 per test
+            # 0.9  worst =      [ 1.4239,  1.5028,  1.4762,  1.4697,  1.5779,  1.4523,  1.4247,  1.4203,  1.4396]
+            # angle_score avg = [ 1.0784,  1.0823,  1.0799,  1.0836,  1.0873,  1.0809,  1.0768,  1.0768,  1.0811]
+            # 1.0  worst =      [ 1.5965,  1.4739,  1.4915,  1.5604,  1.4454,  1.5196,  1.5074,  1.4659,  1.4560]
+            # angle_score avg = [ 1.0809,  1.0830,  1.0783,  1.0781,  1.0748,  1.0820,  1.0717,  1.0719,  1.0814]
+            # step_1__list    = [ 0.001,   0.003,   0.010,   0.031,   0.100,   0.300,   0.500,   0.700,   0.900]
 
+            # dim 100   test_time 500    device cpu       32.765605 , or 0.065531 per test
+            # 0.9  worst =      [ 1.0774,  1.0722,  1.0880,  1.0727,  1.0731,  1.0838,  1.0760,  1.0752,  1.0811]
+            # angle_score avg = [ 1.0419,  1.0418,  1.0420,  1.0416,  1.0412,  1.0415,  1.0423,  1.0418,  1.0413]
+            # 1.0  worst =      [ 1.0761,  1.0751,  1.0837,  1.0733,  1.0811,  1.0851,  1.0724,  1.0753,  1.0739]
+            # angle_score avg = [ 1.0410,  1.0398,  1.0398,  1.0394,  1.0403,  1.0401,  1.0401,  1.0399,  1.0399]
+            # step_1__list    = [ 0.001,   0.003,   0.010,   0.031,   0.100,   0.300,   0.500,   0.700,   0.900]
+            # dim 700   test_time 5    device cuda         cuda   174.493509 , or 34.898702 per test
+            # 0.9  worst =      [ 1.0363,  1.0385,  1.0358,  1.0376,  1.0348,  1.0379,  1.0368,  1.0366,  1.0366]
+            # angle_score avg = [ 1.0352,  1.0351,  1.0347,  1.0352,  1.0343,  1.0354,  1.0353,  1.0353,  1.0343]
+            # 1.0  worst =      [ 1.0332,  1.0338,  1.0335,  1.0361,  1.0358,  1.0330,  1.0349,  1.0358,  1.0364]
+            # angle_score avg = [ 1.0321,  1.0323,  1.0314,  1.0337,  1.0328,  1.0318,  1.0334,  1.0331,  1.0327]
+            # step_1__list    = [ 0.001,   0.003,   0.010,   0.031,   0.100,   0.300,   0.500,   0.700,   0.900]
             pass
 
 
         print(f"__LINE__ {_line_()}    scan the protection factors")
         
         #------------------#------------------#------------------
-        dim_list =                          [ 10, 100, 700]
-        number_of_tests_list = torch.tensor([100,  50, 1])
-        dim_list =                          [ 100]
-        number_of_tests_list = torch.tensor([ 1000])
+        dim_list =                          [ 2,  3,  5,  10,  100, 700]
+        number_of_tests_list = torch.tensor([100,100,100,1000, 500, 5])
+        
+        dim_list =                          [700]
+        number_of_tests_list = torch.tensor([5])
+        # dim_list =                          [ 100]
+        # number_of_tests_list = torch.tensor([ 1000])
         number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
         for ii_outter_param_set in range(dim_list.__len__()):
             dim = dim_list[ii_outter_param_set]
@@ -862,7 +862,7 @@ raw__length_of_H_ortho_to_G__d_d_1检查他的元素的分布范围。考虑一�
             print(f"dim {dim}   test_time {number_of_tests}    device {device}")
         #------------------#------------------#------------------
 
-            step_1__list = [0.001, 0.01,0.031, 0.1, 0.3, 0.5, 0.7, 0.9]########    x axis
+            step_1__list = [0.001, 0.0031, 0.01,0.031, 0.1, 0.3, 0.5, 0.7, 0.9]########    x axis
             #step_2__list = [0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7]########    y axis    0.9, 1.,
             step_2__list = [ 0.9, 1.]########    y axis    0.9, 1.,
             _when_start = time.perf_counter()
@@ -905,7 +905,7 @@ raw__length_of_H_ortho_to_G__d_d_1检查他的元素的分布范围。考虑一�
 
             print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
             print(f"dim {dim}")
-            print(f"step_1__list    = {str_the_list(step_1__list, 3, )}")#########################
+            print(f"step_1__list    = {str_the_list(step_1__list, 3, segment=",  ")}")#########################
             print()
             pass#for ii_outter_param_set
         pass#/ test
@@ -926,10 +926,9 @@ raw__length_of_H_ortho_to_G__d_d_1检查他的元素的分布范围。考虑一�
 
 
 
-assert False
 
 
-
+'''replace this one with the new one.'''
 def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_factor = 1., 
                         cap_to:float|None = None, iota_of_dim:torch.Tensor|None = None, 
                         
@@ -940,8 +939,10 @@ def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_
                         #_debug__allow_any_param = False
                         )->torch.Tensor:
     #return torch.empty(size=[1])
-    assert False
-
+    assert False, '''this should only be in the 
+    angle correction theory test method 1 part 2.py
+    file'''
+1w
 # ver 1
 def random_dummy_mat(dim:int, init__cap_to = 0.2, noise_strength = 0.2, 
                     device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:

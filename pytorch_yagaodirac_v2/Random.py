@@ -97,6 +97,10 @@ if "test" and __DEBUG_ME__() and False:
 
 
 "random vector"
+'''I also tested this random_standard_vector function in the file of 
+angle between vectors in high dimention.py
+I didn't see any useful optimization if extra random rotation or anything is applied.
+So, if it's not a very rigorous case, simply use this function directly.'''
 
 def random_standard_vector(dim:int, dtype = torch.float32, device='cpu')->torch.Tensor:
     '''generates a random vector with geometric length of 1.
@@ -1753,6 +1757,54 @@ if "test" and __DEBUG_ME__() and False:
         return
     ____test____random_skew_symmetric_matrix____basic_behavior()
 
+
+
+
+'''orthogonal matrix. '''
+'''This function also helps generating random standard vectors, like a lot.'''
+
+def random_orthogonal_matrix(dim:int, needs_permutation = True, 
+                                    dtype = None, device = None)->torch.Tensor:
+    '''This function also helps generating random standard vectors, like a lot.'''
+    with torch.no_grad():
+        mat = torch.eye(n = dim, device=device, dtype = dtype)
+        mat = randomly_rotate__matrix(mat)
+        if needs_permutation:
+            mat = randomly_permutate__matrix(mat)
+            pass
+        return mat
+    pass#end of function
+if "test" and __DEBUG_ME__() and False:
+    def ____basic____random_orthogonal_matrix():
+        for dim in [2,3,5,10,33,100]:
+            for _ in range(33):
+                mat = random_orthogonal_matrix(dim, needs_permutation=True)
+                assert _tensor_equal(mat@(mat.T), torch.eye(n=dim))
+                assert _tensor_equal((mat.T)@mat, torch.eye(n=dim))
+                pass
+            pass
+
+        for dim in [2,3,5,10,33,100]:
+            for _ in range(33):
+                mat = random_orthogonal_matrix(dim, needs_permutation=False)
+                assert _tensor_equal(mat@(mat.T), torch.eye(n=dim))
+                assert _tensor_equal((mat.T)@mat, torch.eye(n=dim))
+                pass
+            pass
+        
+        for device in ['cpu', 'cuda']:
+            mat = random_orthogonal_matrix(dim, device = device)
+            assert mat.device.type == device
+            pass
+        
+        for dtype in [torch.float16, torch.float32, torch.float64]:
+            mat = random_orthogonal_matrix(dim, dtype = dtype)
+            assert mat.dtype == dtype
+            pass
+
+        return 
+    ____basic____random_orthogonal_matrix()
+    pass
 
 
 

@@ -43,11 +43,15 @@ from pytorch_yagaodirac_v2.measure_for_matrix import LOSS__mat_is_standard_ortho
 
 
 
+1w
 
+一些问题。
+最早做这个测试的时候比较混乱。
+专用的随机数生成器做了2个。第一个是randn，然后用保护算法去保护了一下，留下一个特定的错误量。
+但是问题是，后面的保护算法也是不一样的，所以第一个做法就显得很不科学。
+第二个做法是和保护算法无关的。用这个生成方式可能可以得到更有参考价值的测量结果。
 
-
-
-
+现在要把第二个移动到measurement那个文件里面去。
 
 
 
@@ -119,13 +123,14 @@ if "test" and False:
     
     pass    
 
-1w
-def full_test_version_of_angle_correction__by_row________the_geometric_style(input:torch.Tensor, expansion_factor = 1., 
-                                                                            safe_factor__clamp_to_this_length = 2., #new in this style.
+
+def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_factor = 1., 
+                        cap_to:float|None = None, iota_of_dim:torch.Tensor|None = None, 
                         
+                        safe_factor:float|None = None, # None for the style 1, or float for style 2.
                         
-                        #cap_to:float|None = None, iota_of_dim:torch.Tensor|None = None, 
-                        #_debug__auto_clamp_in_look_up_function = False
+                        _debug__auto_clamp_in_look_up_function = False
+                        
                         #_debug__allow_any_param = False
                         )->torch.Tensor:
     '''The output of this function is only the direction of row vectors. Row vectors are normalized(length == 1).
@@ -137,72 +142,114 @@ def full_test_version_of_angle_correction__by_row________the_geometric_style(inp
     row vectors of return value are 1, unless the input is too close to 0. I believe it's called standard vector???
     '''
     
-    # if isinstance(expansion_factor, float):
-    #     expansion_factor__s = torch.tensor(expansion_factor)
-    #     pass
-    # elif isinstance(expansion_factor, torch.Tensor):
-    #     expansion_factor__s = expansion_factor.detach().clone()
-    #     pass
-    # else:
-    #     assert False, "bad type: expansion_factor"
+    if isinstance(expansion_factor, float):
+        expansion_factor__s = torch.tensor(expansion_factor)
+        pass
+    elif isinstance(expansion_factor, torch.Tensor):
+        expansion_factor__s = expansion_factor.detach().clone()
+        pass
+    else:
+        assert False, "bad type: expansion_factor"
     
     
-    # if cap_to is None:
-    #     cap_to__s = calc__cap_to____ver_1(input.shape[0], expansion_factor__s, 
-    #                         _debug__auto_clamp = _debug__auto_clamp_in_look_up_function)
-    #     pass
-    # elif isinstance(cap_to, float):
-    #     cap_to__s = torch.tensor(cap_to)
-    #     pass
-    # elif isinstance(cap_to, torch.Tensor):
-    #     cap_to__s = cap_to.detach().clone()
-    #     pass
-    # else:
-    #     assert False, "bad type."
-    #     pass
-    # assert isinstance(cap_to__s, torch.Tensor)
+    if cap_to is None:
+        cap_to__s = calc__cap_to____ver_1(input.shape[0], expansion_factor__s, 
+                            _debug__auto_clamp = _debug__auto_clamp_in_look_up_function)
+        pass
+    elif isinstance(cap_to, float):
+        cap_to__s = torch.tensor(cap_to)
+        pass
+    elif isinstance(cap_to, torch.Tensor):
+        cap_to__s = cap_to.detach().clone()
+        pass
+    else:
+        assert False, "bad type."
+        pass
+    assert isinstance(cap_to__s, torch.Tensor)
     
     # if not _debug__allow_any_param:
     #     assert cap_to__s>=0.2 and cap_to__s <=0.8
     #     assert expansion_factor__s >=-1. and expansion_factor__s <=2# repeated?
     #     pass
     
-    dim = input.shape[0]
     if iota_of_dim is None:
-        iota_of_dim = iota(dim)
+        iota_of_dim = iota(input.shape[0])
         pass
     
     #<  real payload
     mat = vector_length_norm(input)
     # old code ori_mat = ____init_mat_with_row_len_is_1(dim, device=device)
 
-    #<  calc cos>
-    cos__d_d = mat@(mat.T)
-    1w需要嘛？？ cos__d_d[iota_of_dim, iota_of_dim] = 0.
+    #<  calc grad>
+    manual__mat_matmul_mat__d_d = mat@(mat.T)
+    manual__mat_matmul_mat__d_d[iota_of_dim, iota_of_dim] = 0.
+
+    #<  original grad>
+    ori__grad__d_d = manual__mat_matmul_mat__d_d@mat
     
-    1w 继续。
-    host__d_EXPANDd_d  = mat.reshape(shape=[dim,  1,dim]).expand(size=[ -1,dim,-1])# a in my draft
-    guest__EXPANDd_d_d = mat.reshape(shape=[  1,dim,dim]).expand(size=[dim, -1,-1])# b in my draft
-    cos__d_d_EXPANDd   = cos__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])
-    host_minus_guest_mul_cos__d_d_d = host__d_EXPANDd_d - guest__EXPANDd_d_d*cos__d_d_EXPANDd# c' in my draft (c' == a-b*cos)
-    host_minus_guest_mul_cos__dot_itself__d_d = host_minus_guest_mul_cos__d_d_d.dot(host_minus_guest_mul_cos__d_d_d)# c'.T @ c', the sqr length.
-    host_minus_guest_mul_cos__dot_itself__d_d_EXPANDd = host_minus_guest_mul_cos__dot_itself__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])# c in my draft
-    raw__what_to_accumulate__d_d_d = host__d_EXPANDd_d - host_minus_guest_mul_cos__dot_itself__d_d_EXPANDd# a - c in my draft
-    #safety
-    len_of__what_to_accumulate__d_d = raw__what_to_accumulate__d_d_d.dot(raw__what_to_accumulate__d_d_d).sqrt()
-    1w需要嘛？？ len_of__what_to_accumulate__d_d[iota_of_dim, iota_of_dim] = 0.
+    #<  original grad, but len into 1>
+    len_1__ori_grad__d_d, ori__grad_len__dim = get_full_info_of_vector_length__2d(ori__grad__d_d)
+    #  normalized_vector, length_of_input    the return values
+    # len_1__ori_grad__d_d = vector_length_norm(ori__grad__d_d) old code 
     
-    safe_len_of__what_to_accumulate__d_d = len_of__what_to_accumulate__d_d.clamp_min(safe_factor__clamp_to_this_length)
-    safe_len_of__what_to_accumulate__d_d_EXPANDd = safe_len_of__what_to_accumulate__d_d.reshape(shape=[dim,dim,1]).expand(size=[-1,-1,dim])
-    direction_of__what_to_accumulate__d_d_d = vector_length_norm(raw__what_to_accumulate__d_d_d)
-    #final
-    to_accumulate__before_sum__d_d_d = safe_len_of__what_to_accumulate__d_d_EXPANDd * direction_of__what_to_accumulate__d_d_d
-    to_accumulate__before_div__d_d = to_accumulate__before_sum__d_d_d.sum() = safe_len_of__what_to_accumulate__d_d_EXPANDd * direction_of__what_to_accumulate__d_d_d
-    _1_over_dim = 1./dim
-    to_accumulate__d_d = to_accumulate__before_div__d_d * _1_over_dim
+    # assert _tensor_equal(get_vector_length(len_1__ori_grad__d_d), torch.ones(size=[input.shape[0]], device=input.device))
+
+    #<  scale it a bit, to make the distribution a bit wider>
+    #otherwise, they are a lot 0.8,0.9. Wider means most are 0.3 to 0.8.
+    #ori__grad_len__dim = get_vector_length(ori__grad__d_d) old code
     
-    #calc output
-    mat += to_accumulate__d_d
+    #<  added in style 2
+    if safe_factor is not None:
+        assert safe_factor>=0.95 and safe_factor<=1.2, "I recommend 1.1"#uncommend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        dim = input.shape[0]
+        _theorically_avg_length = 1.41*(dim-1)/dim
+        # mean grad row vector length == 1.41*(dim-1)/dim       (manual style)
+        
+        #____temp____original = ori__grad_len__dim.detach().clone()#debug only#commend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ori__grad_len__dim.clamp_max_(safe_factor*_theorically_avg_length)
+        #assert ____temp____original.ge(ori__grad_len__dim).all()#debug only#commend this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #print(____temp____original)
+        #print(ori__grad_len__dim)
+        pass
+    #</ added in style 2
+    
+    max_of__ori__grad_len__dim = ori__grad_len__dim.max()
+    
+    # mean grad row vector length == 4*1.41*(dim-1)/(dim*dim*dim)
+    
+    
+    ratio_of__grad_len__dim = ori__grad_len__dim/max_of__ori__grad_len__dim
+    # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this scaled_to_1__grad_len_sqr__dim is still one 1.0 and a lot 0.xx
+    #assert ratio_of__grad_len__dim.le(1.).all()
+    #assert ratio_of__grad_len__dim.eq(1.).sum() == 1
+
+    grad_len__after_expansion__dim = ratio_of__grad_len__dim.pow(expansion_factor__s)
+    # assert grad_len__after_expansion__dim.le(1.).all() when expansion_factor__s is neg, this is wrong.
+    # assert grad_len__after_expansion__dim.eq(1.).sum() == 1 when expansion_factor__s is 0., this is wrong.
+    # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this grad_len__after_expansion__dim is still one 1.0 and a lot 0.xx
+
+    #<  target length>
+    grad_length_target__dim = grad_len__after_expansion__dim*cap_to__s
+    grad_length_target__dim__expand_dim = expand_vec_to_matrix(grad_length_target__dim, each_element_to="row")
+
+    #<  finally 
+    useful_grad__d_d = len_1__ori_grad__d_d.mul(grad_length_target__dim__expand_dim)#row
+    # # assert _tensor_equal(get_vector_length(useful_grad__d_d), grad_length_target__dim)
+
+    # debug only  vvvvvvvvvvvvvvvvvvvv
+    # log10_of__mat = log10_avg_safe(mat)
+    # log10_of__grad = log10_avg_safe(useful_grad__d_d)
+    # debug only  ^^^^^^^^^^^^^^^^^^^^
+
+    #<  update mat
+    mat -= useful_grad__d_d
+
+    # debug only  vvvvvvvvvvvvvvvvvvvv
+    # log10_of__mat_after_modify = log10_avg_safe(mat)
+    # log10_similarity = log10_avg__how_similar(mat, ori_mat)
+    # debug only  ^^^^^^^^^^^^^^^^^^^^
+
+    #<  protect the length after updating
     mat = vector_length_norm(mat)
     
     return mat
@@ -287,240 +334,8 @@ def _param_for__random_dummy_mat(dim:int, target_angle_score:float)->tuple[float
         pass#if dim
     pass# end of function
 
-if "old version of v2" and False:
-        
-    def random_dummy_mat__v2____old(dim:int, noise_strength:float,
-                        device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
-        '''docs????
-        '''
-        if iota_of_dim is None:
-            iota_of_dim = iota(dim)
-            pass
-        
-        #<  real job
-        mat = torch.eye(n = dim, device=device)
-        mat = randomly_rotate__matrix(mat)
-        mat = randomly_permutate__matrix(mat)
-        
-        #<  some noise to mimic the learning update.
-        _mul_me = noise_strength/math.sqrt(dim)
-        mat += torch.randn_like(mat)*_mul_me
-        return mat
-    pass
 
 
-def random_dummy_mat__v2(dim:int, noise_strength:float, div_sqrt_1_plus_ns_sqr:bool,
-                    device='cpu', iota_of_dim:torch.Tensor|None = None, 
-                    )->torch.Tensor:
-    '''docs????
-    '''
-    if iota_of_dim is None:
-        iota_of_dim = iota(dim)
-        pass
-    
-    #<  real job
-    mat = torch.eye(n = dim, device=device)
-    mat = randomly_rotate__matrix(mat)
-    mat = randomly_permutate__matrix(mat)
-    
-    #<  some noise to mimic the learning update.
-    _mul_me = noise_strength/math.sqrt(dim)
-    mat += torch.randn_like(mat)*_mul_me
-    del _mul_me
-    
-    if div_sqrt_1_plus_ns_sqr:
-        _div_me = math.sqrt(1+noise_strength*noise_strength)
-        _mul_me = 1./_div_me
-        del _div_me
-        mat *= _mul_me
-        pass
-    return mat
-if __DEBUG_ME__():
-    assert False, "this is new v2, untested. just copied form the length test."
-    pass
-
-def random_dummy_mat__v2__from_target(dim:int, target_angle_loss:torch.Tensor,
-                    device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
-    '''
-    target_angle_loss inside [0., 1.6]
-    '''
-    assert target_angle_loss >= 0. and target_angle_loss <= 1.6
-    
-    noise_strength_list = torch.tensor(
-        [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ])
-    angle_loss_list__full = torch.tensor([
-        [ 0.0000,  0.2184,  0.4341,  0.6253,  0.7969,  0.9537,  1.0867,  1.1974,  1.3483,  1.4409,  1.5145,  1.5496,   ],#dim 10
-        [ 0.0000,  0.2234,  0.4377,  0.6346,  0.8075,  0.9575,  1.0838,  1.1826,  1.3292,  1.4228,  1.4859,  1.5540,   ],#dim 100
-        [ 0.0000,  0.2238,  0.4381,  0.6346,  0.8080,  0.9577,  1.0820,  1.1828,  1.3303,  1.4248,  1.4814,  1.5506,   ],])# dim 1000
-    
-    log10_of_dim = torch.tensor(dim).log10()
-    log10_of_dim.clamp_(1., 3.)
-    angle_loss_list__for_this_dim = interpolation_of_list(angle_loss_list__full, log10_of_dim -1.)# a row
-    assert angle_loss_list__for_this_dim.shape[0] == angle_loss_list__full.shape[-1]
-    
-    _index_float = reverse_interpolation_of_list__list_must_sorted(angle_loss_list__for_this_dim, list_is_Ascending = True, 
-                                                        the_input=target_angle_loss, Im_sure_the_list_is_sorted=True)
-    assert _index_float <= angle_loss_list__for_this_dim.nelement()-1
-    
-    noise_strength = interpolation_of_list(noise_strength_list, _index_float)
-    
-    return random_dummy_mat__v2(dim = dim, noise_strength = noise_strength.item(), div_sqrt_1_plus_ns_sqr=True,
-                                device = device, iota_of_dim = iota_of_dim)
-
-if "test   random_dummy_mat__v2" and False:
-    def ____test____random_dummy_mat__v2():
-        
-        if "random_dummy_mat__v2  reverse lookup table" and False:
-            
-            if True:
-                # dim 10      (x axis is noise_strength, y axis is cap_to)                                                                                                 
-                # noise_stre=[ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ]
-                # angle_loss [ 0.0000,  0.2184,  0.4341,  0.6253,  0.7969,  0.9537,  1.0867,  1.1974,  1.3483,  1.4409,  1.5145,  1.5496,   ]
-                # dim 100      (x axis is noise_strength, y axis is cap_to)                                                                               
-                # noise_stre=[ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ]
-                # angle_loss [ 0.0000,  0.2234,  0.4377,  0.6346,  0.8075,  0.9575,  1.0838,  1.1826,  1.3292,  1.4228,  1.4859,  1.5540,   ]
-                # dim 1000      (x axis is noise_strength, y axis is cap_to)                                                                               
-                # noise_stre=[ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ]
-                # angle_loss [ 0.0000,  0.2238,  0.4381,  0.6346,  0.8080,  0.9577,  1.0820,  1.1828,  1.3303,  1.4248,  1.4814,  1.5506,   ]
-                
-                pass
-            
-            #result 
-            
-            #-------------------#-------------------#-------------------
-            dim_list =       [ 10,100,1000]
-            test_time_list = [200,100,5]#500 for dim100 is too slow...
-            for outter_iter_count in range(dim_list.__len__()):
-                dim = dim_list[outter_iter_count]
-                test_time = test_time_list[outter_iter_count]
-                iota_of_dim = iota(dim)
-                #<  device
-                if dim>100:
-                    device = 'cuda'
-                    pass
-                else:
-                    device = 'cpu'
-                    pass
-                #</ device
-                print(f"dim {dim}   test_time {test_time}  {device}")
-            #-------------------#-------------------#-------------------
-            
-                x_axis___dim = 14
-                x_axis___dim = 4#########################
-            
-                angle_loss__avg = torch.empty(size=[x_axis___dim])#dont modify this.
-                angle_loss__avg.fill_(torch.nan)
-                
-                #-------------------#-------------------#-------------------
-                noise_strength_list = torch.linspace(0., 1.3, x_axis___dim) #x axis
-                noise_strength_list = torch.linspace(1.6, 1.9, x_axis___dim) ##########################
-                for _init__x_axis___dim in range(x_axis___dim):
-                    noise_strength = noise_strength_list[_init__x_axis___dim]
-                #-------------------#-------------------#-------------------
-                    
-                    _raw_result__angle_loss = torch.empty(size=[test_time])#dont modify this.
-                    _raw_result__angle_loss.fill_(torch.nan)
-                    
-                    for _test_count in range(test_time):
-                        
-                        #-------------------#-------------------#-------------------
-                        mat = random_dummy_mat__v2(dim=dim, noise_strength=noise_strength,
-                                                device=device, iota_of_dim=iota_of_dim)
-                        _, angle_loss, _ = LOSS__mat_is_standard_orthogonal(mat)
-                        #-------------------#-------------------#-------------------
-                        
-                        _raw_result__angle_loss[_test_count] = angle_loss
-                        pass# for _test_count
-                    
-                    angle_loss__avg[_init__x_axis___dim] = _raw_result__angle_loss.mean()
-                    pass# for _init__x_axis___dim
-            
-                print(f"# dim {dim}")
-                print(f"# noise_stre={str_the_list(noise_strength_list, 2, segment=",   ")}")
-                print(f"# angle_loss {str_the_list(angle_loss__avg, 4)}")
-                
-                pass# for outter_iter_count
-            
-            pass#/ test
-        
-        if "random_dummy_mat__v2__from_target accuracy test" and False:
-            # dim 10    
-            # target= [ 0.00,    0.10,    0.20,    0.30,   |  0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
-            # neg   = [ 0.0000, -0.0236, -0.0458, -0.0608, | -0.1324, -0.1200, -0.1317, -0.1850, -0.2514, -0.2221, -0.2145, -0.2030, -0.4464, -0.2907, -0.2721, -0.3367, -0.3567]
-            # pos   = [ 0.0000,  0.0237,  0.0647,  0.0640, |  0.0812,  0.1521,  0.2207,  0.1901,  0.1619,  0.2753,  0.2464,  0.2446,  0.2334,  0.3483,  0.4630,  0.4495,  0.3342]
-            # diff  = [ 0.0000,  0.0004, -0.0009, -0.0005, | -0.0097, -0.0089,  0.0143,  0.0128,  0.0086,  0.0123,  0.0150,  0.0012, -0.0240,  0.0040,  0.0022,  0.0176, -0.0613]
-            # dim 32    
-            # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,   |  1.20,    1.30,    1.40,    1.50,    1.60]
-            # neg   = [ 0.0000, -0.0068, -0.0124, -0.0184, -0.0218, -0.0299, -0.0341, -0.0469, -0.0476, -0.0753, -0.0986, -0.0815, | -0.0756, -0.1008, -0.0951, -0.1250, -0.1433]
-            # pos   = [ 0.0000,  0.0103,  0.0181,  0.0315,  0.0363,  0.0388,  0.0514,  0.0481,  0.0821,  0.0726,  0.0811,  0.0666, |  0.1027,  0.1069,  0.1290,  0.0818,  0.0596]
-            # diff  = [ 0.0000,  0.0011,  0.0015,  0.0036,  0.0027,  0.0064,  0.0070,  0.0043,  0.0032,  0.0034,  0.0016, -0.0009, |  0.0017,  0.0036,  0.0069, -0.0112, -0.0483]
-            # dim 100    
-            # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
-            # neg   = [ 0.0000, -0.0017, -0.0060, -0.0045, -0.0071, -0.0099, -0.0107, -0.0208, -0.0305, -0.0257, -0.0198, -0.0416, -0.0236, -0.0252, -0.0356, -0.0356, -0.0781]
-            # pos   = [ 0.0000,  0.0031,  0.0054,  0.0117,  0.0095,  0.0146,  0.0177,  0.0213,  0.0186,  0.0250,  0.0241,  0.0263,  0.0386,  0.0368,  0.0540,  0.0511, -0.0135]
-            # diff  = [ 0.0000,  0.0006,  0.0002,  0.0018,  0.0003,  0.0028,  0.0014,  0.0019,  0.0015,  0.0023,  0.0019, -0.0026,  0.0045,  0.0077,  0.0071,  0.0055, -0.0469]
-            # dim 316    
-            # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
-            # neg   = [ 0.0000,  0.0003,  0.0001,  0.0008, -0.0005, -0.0003, -0.0017,  0.0006,  0.0005, -0.0008, -0.0027, -0.0032,  0.0012, -0.0035, -0.0023, -0.0031, -0.0578]
-            # pos   = [ 0.0000,  0.0016,  0.0023,  0.0029,  0.0037,  0.0048,  0.0045,  0.0064,  0.0049,  0.0082,  0.0102,  0.0045,  0.0090,  0.0138,  0.0097,  !!! 0.0138, -0.0398]
-            # diff  = [ 0.0000,  0.0009,  0.0009,  0.0021,  0.0018,  0.0016,  0.0015,  0.0035,  0.0021,  0.0032,  0.0028,  0.0006,  0.0047,  0.0065,  0.0037,  0.0059, -0.0479]
-            # dim 1000    
-            # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
-            # neg   = [ 0.0000,  0.0006, -0.0001,  0.0012,  0.0004,  0.0014, -0.0004,  0.0023, -0.0007,  0.0022,  0.0017, -0.0009,  0.0016,  0.0040,  0.0009,  0.0059, -0.0520]
-            # pos   = [ 0.0000,  0.0009,  0.0010,  0.0022,  0.0017,  0.0033,  0.0022,  0.0050,  0.0022,  0.0044,  0.0030,  0.0031,  0.0052,  0.0068,  0.0048,  0.0093, -0.0451]
-            # diff  = [ 0.0000,  0.0007,  0.0004,  0.0017,  0.0010,  0.0024,  0.0016,  0.0032,  0.0010,  0.0032,  0.0024,  0.0012,  0.0034,  0.0053,  0.0028,  0.0078, -0.0493]
-            
-            # conclusion
-            # more dim, less error.
-            # smaller target, less error.
-            
-            #---------------------#---------------------#---------------------
-            dim_list =          [10,   32,   100,  316, 1000]
-            test_time_list =    [100, 100,  100,  10, 10]
-            for outter_param_list in range(dim_list.__len__()):
-                dim =               dim_list        [outter_param_list]
-                test_time =  test_time_list  [outter_param_list]
-                device = get_device(dim)
-                print(f"dim {dim}   test_time {test_time}  {device}")
-            #---------------------#---------------------#---------------------
-                
-                neg = []
-                pos = []
-                diff = []#dont modify this.
-                
-                #---------------------#---------------------#---------------------
-                target_list = torch.linspace(0., 1.6, 17)
-                for target_angle_loss in target_list:
-                #---------------------#---------------------#---------------------
-                    
-                    _raw_result = torch.empty(size=[test_time])
-                    for _test_count in range(test_time):
-                        
-                        #---------------------#---------------------#---------------------
-                        mat = random_dummy_mat__v2__from_target(dim=dim,target_angle_loss=target_angle_loss, 
-                                                                                        device=device)
-                        _, angle_loss, _ = LOSS__mat_is_standard_orthogonal(mat)
-                        #---------------------#---------------------#---------------------
-                        
-                        _raw_result[_test_count] = angle_loss
-                        pass# for _test_count
-                    neg .append(_raw_result.min()-target_angle_loss)
-                    pos .append(_raw_result.max()-target_angle_loss)
-                    diff.append(_raw_result.mean()-target_angle_loss)
-                    pass# for target_angle_loss
-                print(f"dim {dim}    ")
-                print(f"target= {str_the_list(target_list, 2, segment=",   ")}")
-                print(f"neg   = {str_the_list(neg, 4)}")
-                print(f"pos   = {str_the_list(pos, 4)}")
-                print(f"diff  = {str_the_list(diff, 4)}")
-                pass# for outter_param_list   dim
-            
-            pass#/ test
-        
-        return
-        
-    ____test____random_dummy_mat__v2()
-    pass
 
 
 # I recommend you use random_dummy_mat__v2.

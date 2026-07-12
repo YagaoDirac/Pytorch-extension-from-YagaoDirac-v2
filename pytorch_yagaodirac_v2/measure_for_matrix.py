@@ -1,7 +1,7 @@
 
 
 from pathlib import Path
-import math
+import math, time
 import torch
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
@@ -11,7 +11,9 @@ from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, \
     log10_avg_safe, get_mask_of_top_element__rough,\
     str_the_list
 from pytorch_yagaodirac_v2.Random import random_standard_vector, randomly_permutate__matrix, randomly_rotate__matrix,\
-    rand_sign
+    rand_sign, random_orthogonal_matrix
+from pytorch_yagaodirac_v2.Interpolation import interpolation_of_list, \
+    reverse_interpolation_of_list__list_must_sorted
     
 
 
@@ -1321,8 +1323,9 @@ def LOSS__mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least
     #assert _tensor_equal(get_vector_length(matrix_into_hor_len_1[0]), [1.]) or _tensor_equal(get_vector_length(matrix_into_hor_len_1[0]), [0.])
     hor_vec_angle_test = matrix_into_hor_len_1 @ (matrix_into_hor_len_1.T)                                    
     _assert_only___diagonal_of_hor = hor_vec_angle_test[iota_of_dim, iota_of_dim]
+    #the diagonal elements are either 0(from protection and from nan) or 1(normal cases.)
     assert _assert_only___diagonal_of_hor.abs().lt(0.0001).logical_or(_assert_only___diagonal_of_hor.sub(1.).abs().lt(0.0001)).all()#near 0 or 1.
-    hor_vec_angle_test[iota_of_dim, iota_of_dim] = 0.
+    hor_vec_angle_test[iota_of_dim, iota_of_dim] = 0.# I don't choose the triu func in order not to use another piece of memory. But maybe not very good?
     hor_angle_score = hor_vec_angle_test.abs().mean()*dim/(dim-1)# [almost RETURN VALUE]
     if _log is not None:
         _log.append(("hor_vec_angle_test", hor_vec_angle_test))#[11]
@@ -1341,8 +1344,9 @@ def LOSS__mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least
     #assert _tensor_equal(get_vector_length(matrix_into_ver_len_1[:,0]), [1.]) or _tensor_equal(get_vector_length(matrix_into_ver_len_1[:,0]), [0.])
     ver_vec_angle_test = (matrix_into_ver_len_1.T) @ matrix_into_ver_len_1                              
     _assert_only___diagonal_of_ver = ver_vec_angle_test[iota_of_dim, iota_of_dim]
+    #the diagonal elements are either 0(from protection and from nan) or 1(normal cases.)
     assert _assert_only___diagonal_of_ver.abs().lt(0.0001).logical_or(_assert_only___diagonal_of_ver.sub(1.).abs().lt(0.0001)).all()#near 0 or 1.
-    ver_vec_angle_test[iota_of_dim, iota_of_dim] = 0.
+    ver_vec_angle_test[iota_of_dim, iota_of_dim] = 0.# I don't choose the triu func in order not to use another piece of memory. But maybe not very good?
     ver_angle_score = ver_vec_angle_test.abs().mean()*dim/(dim-1)# [almost RETURN VALUE]
     if _log is not None:
         _log.append(("ver_vec_angle_test", ver_vec_angle_test))#[14]
@@ -2346,7 +2350,7 @@ if "angle_similarity but the assuption is a bit wrong."  and False:
 
 
 
-
+'''this func is a combination of all 3 above. Only for convenience.'''
 def full_length_info_test__in_log10(input:torch.Tensor, needs_no_abs_result = True) \
                 ->tuple[torch.Tensor, torch.Tensor|None, torch.Tensor, torch.Tensor|None]:
     '''return len_loss, no_abs__len_loss, length_retention_loss, no_abs__length_retention_loss  
@@ -2629,6 +2633,414 @@ if "difference between length and length_retension" and __DEBUG_ME__() and True:
 
 
 
+
+
+
+
+
+'''random matrix gen for the tests which use any measurement above.'''
+if "old version of v2" and False:
+        
+    def _raw__random_dummy_matrix____old(dim:int, noise_strength:float,
+                        device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
+        '''docs????
+        '''
+        if iota_of_dim is None:
+            iota_of_dim = iota(dim)
+            pass
+        
+        #<  real job
+        mat = random_orthogonal_matrix(dim = dim, device=device)
+        
+        #<  some noise to mimic the learning update.
+        _mul_me = noise_strength/math.sqrt(dim)
+        mat += torch.randn_like(mat)*_mul_me
+        return mat
+    pass
+
+
+
+
+
+
+
+
+
+def _raw__random_dummy_matrix(dim:int, noise_strength:float, #div_sqrt_of_1_plus_ns_sqr:bool = False,
+                    device='cpu', #iota_of_dim:torch.Tensor|None = None, 
+                    )->torch.Tensor:
+    '''div_sqrt_of_1_plus_ns_sqr is designed to correct the length. 
+    '''
+    # if iota_of_dim is None:
+    #     iota_of_dim = iota(dim)
+    #     pass
+    
+    #<  init 
+    mat = random_orthogonal_matrix(dim = dim, device=device)
+    
+    #<  some noise to mimic the learning update.
+    _mul_me = noise_strength/math.sqrt(dim)
+    mat += torch.randn_like(mat)*_mul_me
+    del _mul_me
+    
+    #old code.  plan to move to outside.
+    # if div_sqrt_of_1_plus_ns_sqr:
+    #     _div_me = math.sqrt(1+noise_strength*noise_strength)
+    #     _mul_me = 1./_div_me
+    #     del _div_me
+    #     mat *= _mul_me
+    #     pass
+    #assert False, "this is new v2, untested. just copied form the length test."
+    return mat
+
+
+def random_dummy_matrix__from_angle_score(dim:int, target_angle_loss:torch.Tensor,
+                    protect_the_length_score__a_lil_bit = False, 
+                    device='cpu', #iota_of_dim:torch.Tensor|None = None
+                    )->torch.Tensor:
+    '''
+    target_angle_loss inside [0., 1.6]
+
+    example:
+    >>> mat = random_dummy_matrix__from_angle_score(dim=dim,target_angle_loss=target_angle_loss, device=device)
+    >>> _, angle_loss, _ = LOSS__mat_is_standard_orthogonal(mat)
+
+    This function is a lookup table to help you use the _raw__random_dummy_matrix function.
+
+    The length protection is also a "lookup table" based method. You can measure the length score and reverse the 
+    formula to get a perfect length score(0.). But this function provides a "dim and angle score based" method. 
+    It's not adaptive. The purpose is to mimic the real case.
+    '''
+    assert target_angle_loss >= 0. and target_angle_loss <= 1.6
+    #old code
+    # noise_strength_list = torch.tensor(
+    #     [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ])
+    # angle_loss_list__full = torch.tensor([
+    #     [ 0.0000,  0.2184,  0.4341,  0.6253,  0.7969,  0.9537,  1.0867,  1.1974,  1.3483,  1.4409,  1.5145,  1.5496,   ],#dim 10
+    #     [ 0.0000,  0.2234,  0.4377,  0.6346,  0.8075,  0.9575,  1.0838,  1.1826,  1.3292,  1.4228,  1.4859,  1.5540,   ],#dim 100
+    #     [ 0.0000,  0.2238,  0.4381,  0.6346,  0.8080,  0.9577,  1.0820,  1.1828,  1.3303,  1.4248,  1.4814,  1.5506,   ],])# dim 1000
+    
+    angle_loss_list__full = torch.tensor([
+            [ 0.000,  0.110,  0.219,  0.328,  0.432,  0.532,  0.629,  0.715,  0.806,  0.883,  0.958, \
+                        1.023,  1.078,  1.193,  1.279,  1.349,  1.398,  1.442,  1.469,  1.521,  1.560],#dim 10
+            [ 0.000,  0.112,  0.224,  0.332,  0.437,  0.538,  0.635,  0.724,  0.809,  0.887,  0.956, \
+                        1.022,  1.081,  1.183,  1.264,  1.330,  1.384,  1.424,  1.458,  1.507,  1.552],#dim 100
+            [ 0.000,  0.113,  0.224,  0.333,  0.438,  0.539,  0.635,  0.725,  0.809,  0.887,  0.958, \
+                        1.023,  1.082,  1.184,  1.265,  1.331,  1.382,  1.423,  1.456,  1.503,  1.552],])# dim 1000
+
+
+    log10_of_dim = torch.tensor(dim).log10()
+    log10_of_dim.clamp_(1., 3.)#safety
+    angle_loss_list__for_this_dim = interpolation_of_list(angle_loss_list__full, log10_of_dim -1.)# a row
+    assert angle_loss_list__for_this_dim.shape[0] == angle_loss_list__full.shape[-1]  #debug code. May comment out.
+    
+    _index_float = reverse_interpolation_of_list__list_must_sorted(angle_loss_list__for_this_dim, list_is_Ascending = True, 
+                                                        the_input=target_angle_loss, Im_sure_the_list_is_sorted=True)
+    assert _index_float <= angle_loss_list__for_this_dim.nelement()-1    #debug code. May comment out.
+
+    noise_strength_list = torch.tensor(
+            [ 0.000,  0.050,  0.100,  0.150,  0.200,  0.250,  0.300,  0.350,  0.400,  0.450,  0.500, \
+                        0.550,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.400,  1.800])
+    
+    
+    noise_strength = interpolation_of_list(noise_strength_list, _index_float)
+    
+
+    mat = _raw__random_dummy_matrix(dim = dim, noise_strength = noise_strength.item(), #div_sqrt_1_plus_ns_sqr=True,
+                                device = device)#, iota_of_dim = iota_of_dim)
+
+    if protect_the_length_score__a_lil_bit:
+        assert False, "unfinished"
+        pass
+
+    return mat
+
+if "test   random_dummy_mat__v2" and True:
+    def ____test____random_dummy_matrix():
+        
+        if "_raw__random_dummy_matrix  reverse lookup table" and False:
+            if "some reverse result... not very useful." and True:
+                #dim 10
+                # noise_stre=[ 0.,    0.044,    0.091,    0.137,    0.185,     0.232,    0.286,  0.340  , 0.394 ,    0.459  ,  0.529 ,              ]
+                # angle_loss [ 0.,  0.1,     0.2,         0.3,     0.4,         0.5,      0.6,    0.7    , 0.8   , 0.9       ,   1.,                 ]
+                pass
+            
+            if "old result" and True:
+                # dim 10      (x axis is noise_strength, y axis is cap_to)                                                                                                 
+                # noise_stre=[ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ]
+                # angle_loss [ 0.0000,  0.2184,  0.4341,  0.6253,  0.7969,  0.9537,  1.0867,  1.1974,  1.3483,  1.4409,  1.5145,  1.5496,   ]
+                # dim 100      (x axis is noise_strength, y axis is cap_to)                                                                               
+                # noise_stre=[ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ]
+                # angle_loss [ 0.0000,  0.2234,  0.4377,  0.6346,  0.8075,  0.9575,  1.0838,  1.1826,  1.3292,  1.4228,  1.4859,  1.5540,   ]
+                # dim 1000      (x axis is noise_strength, y axis is cap_to)                                                                               
+                # noise_stre=[ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ]
+                # angle_loss [ 0.0000,  0.2238,  0.4381,  0.6346,  0.8080,  0.9577,  1.0820,  1.1828,  1.3303,  1.4248,  1.4814,  1.5506,   ]
+                
+                pass
+            
+            if True:
+                # dim 10          cpu   0.287122 , or 0.028712 per test              cuda   1.742498 , or 0.174250 per test
+                # dim 100         cpu   2.708810 , or 0.270881 per test              cuda   13.697309 , or 1.369731 per test
+                # dim 1000        cpu   3.472387 , or 3.472387 per test              cuda   14.284978 , or 14.284978 per test
+
+                # dim 10
+                # noise_stre=[ 0.000,  0.050,  0.100,  0.150,  0.200,  0.250,  0.300,  0.350,  0.400,  0.450,  0.500,  0.550,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.400,  1.800]
+                # angle_loss [ 0.000,  0.110,  0.219,  0.328,  0.432,  0.532,  0.629,  0.715,  0.806,  0.883,  0.958,  1.023,  1.078,  1.193,  1.279,  1.349,  1.398,  1.442,  1.469,  1.521,  1.560]
+                # dim 100
+                # noise_stre=[ 0.000,  0.050,  0.100,  0.150,  0.200,  0.250,  0.300,  0.350,  0.400,  0.450,  0.500,  0.550,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.400,  1.800]
+                # angle_loss [ 0.000,  0.112,  0.224,  0.332,  0.437,  0.538,  0.635,  0.724,  0.809,  0.887,  0.956,  1.022,  1.081,  1.183,  1.264,  1.330,  1.384,  1.424,  1.458,  1.507,  1.552]
+                # dim 1000
+                # noise_stre=[ 0.000,  0.050,  0.100,  0.150,  0.200,  0.250,  0.300,  0.350,  0.400,  0.450,  0.500,  0.550,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.400,  1.800]
+                # angle_loss [ 0.000,  0.113,  0.224,  0.333,  0.438,  0.539,  0.635,  0.725,  0.809,  0.887,  0.958,  1.023,  1.082,  1.184,  1.265,  1.331,  1.382,  1.423,  1.456,  1.503,  1.552]
+                pass
+            #result 
+            
+
+
+            #-------------------#-------------------#-------------------
+            dim_list =                          [ 10,  100, 1000]
+            number_of_tests_list = torch.tensor([1000, 100, 10])
+            number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                # iota_of_dim = iota(dim)
+                number_of_tests = number_of_tests_list[outter_param_set]
+                device = 'cpu'
+                # if dim>100:
+                #     device = 'cuda'
+                #     pass
+                print(f"dim {dim}   number_of_tests {number_of_tests}  {device}")
+            #-------------------#-------------------#-------------------
+                angle_loss__avg = []#dont modify this.
+                _when_start = time.perf_counter()
+                
+                #-------------------#-------------------#-------------------
+                noise_strength_list = torch.tensor( [0., 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, \
+                                                        0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.4, 1.8]) #x axis##################################
+                for noise_strength in noise_strength_list:
+                #-------------------#-------------------#-------------------
+                    
+                    _raw_result__angle_loss = torch.empty(size=[number_of_tests])#dont modify this.
+                    _raw_result__angle_loss.fill_(torch.nan)
+                    
+                    for ii__test in range(number_of_tests):
+                        
+                        #-------------------#-------------------#-------------------
+                        mat = _raw__random_dummy_matrix(dim=dim, noise_strength=noise_strength,
+                                                device=device, )
+                        _, angle_loss, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        #-------------------#-------------------#-------------------
+                        
+                        _raw_result__angle_loss[ii__test] = angle_loss
+                        pass# for ii__test
+                    
+                    angle_loss__avg.append(_raw_result__angle_loss.mean())
+                    pass# for _init__x_axis___dim
+                _when_end = time.perf_counter()
+                print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+                    
+                print(f"# dim {dim}")
+                print(f"# noise_stre={str_the_list(noise_strength_list, 3)}")
+                print(f"# angle_loss {str_the_list(angle_loss__avg, 3)}")
+                
+                pass# for outter_iter_count
+            
+            pass#/ test
+        
+        if "random_dummy_matrix__from_angle_score accuracy test" and False:
+            if True:
+                    
+                # dim 10   test_time 240    device cpu    9.888305 , or  0.041201 per test        cuda   107.780332 , or 0.449085 per test
+                # dim 32   test_time 100    device cpu   23.070738 , or  0.230707 per test        cuda   128.454613 , or 1.284546 per test
+                # dim 100   test_time 36    device cpu   34.592577 , or  0.960905 per test        cuda   130.816251 , or 3.633785 per test
+                # dim 316   test_time 8     device cpu   24.444603 , or  3.055575 per test        cuda   91.993585 , or 11.499198 per test
+                # dim 1000   test_time 2    device cpu   22.021007 , or 11.010504 per test        cuda   73.764253 , or 36.882126 per test
+
+
+                # the vertical bar seperates at +- 0.1. On the left is, always within the range. On the right is, maybe outside the range.
+                # dim 10    
+                # target= [ 0.00,    0.10,    0.20,    0.30,   |  0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
+                # neg   = [ 0.0000, -0.0285, -0.0615, -0.0666, | -0.1186, -0.1347, -0.1426, -0.1635, -0.2005, -0.2249, -0.1736, -0.2109, -0.3233, -0.3255, -0.2716, -0.2825, -0.2928]
+                # pos   = [ 0.0000,  0.0200,  0.0506,  0.0922, |  0.1214,  0.0912,  0.1882,  0.2069,  0.2128,  0.2424,  0.2801,  0.2858,  0.2955,  0.4143,  0.4111,  0.6698,  0.5242]
+                # diff  = [ 0.0000,  0.0006,  0.0013, -0.0007, | -0.0024, -0.0010,  0.0003,  0.0032,  0.0086, -0.0015,  0.0040, -0.0119,  0.0089,  0.0248,  0.0140, -0.0039, -0.0076]
+                # dim 32   test_time 100    device cpu
+                # cpu   10.409307 , or 0.104093 per test
+                # dim 32    
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,   |  1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
+                # neg   = [ 0.0000, -0.0084, -0.0127, -0.0245, -0.0297, -0.0369, -0.0446, -0.0390, -0.0720, -0.0507, | -0.0769, -0.1083, -0.1020, -0.0849, -0.1079, -0.1172, -0.1527]
+                # pos   = [ 0.0000,  0.0092,  0.0202,  0.0265,  0.0420,  0.0414,  0.0441,  0.0552,  0.0556,  0.0752, |  0.1253,  0.0786,  0.1480,  0.1357,  0.0872,  0.1005,  0.0674]
+                # diff  = [ 0.0000,  0.0011,  0.0010,  0.0014,  0.0033,  0.0022,  0.0002,  0.0023, -0.0019,  0.0034, | -0.0022,  0.0075,  0.0024, -0.0046, -0.0130, -0.0007, -0.0393]
+                # dim 100   test_time 90    device cpu
+                # cpu   29.499873 , or 0.327776 per test
+                # dim 100    
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
+                # neg   = [ 0.0000, -0.0023, -0.0044, -0.0096, -0.0085, -0.0133, -0.0200, -0.0184, -0.0240, -0.0218, -0.0192, -0.0222, -0.0225, -0.0216, -0.0335, -0.0360, -0.0816]
+                # pos   = [ 0.0000,  0.0029,  0.0073,  0.0085,  0.0114,  0.0125,  0.0148,  0.0258,  0.0162,  0.0267,  0.0236,  0.0241,  0.0315,  0.0396,  0.0396,  0.0368, -0.0162]
+                # diff  = [ 0.0000,  0.0004, -0.0001,  0.0003,  0.0010,  0.0011, -0.0003,  0.0011,  0.0000, -0.0002,  0.0009,  0.0039,  0.0014,  0.0063,  0.0014, -0.0014, -0.0494]
+                # dim 316   test_time 20    device cpu
+                # cpu   21.464065 , or 1.073203 per test
+                # dim 316    
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
+                # neg   = [ 0.0000, -0.0003, -0.0011, -0.0017, -0.0017, -0.0014, -0.0027, -0.0067, -0.0029, -0.0057, -0.0057, -0.0031, -0.0052, -0.0028, -0.0041, -0.0121, -0.0587]
+                # pos   = [ 0.0000,  0.0008,  0.0010,  0.0020,  0.0046,  0.0042,  0.0040,  0.0046,  0.0039,  0.0040,  0.0034,  0.0055,  0.0092,  0.0088,  0.0099,  0.0060, -0.0376]
+                # diff  = [ 0.0000,  0.0001, -0.0001,  0.0004,  0.0014,  0.0012,  0.0014,  0.0007,  0.0000, -0.0009,  0.0001,  0.0015,  0.0014,  0.0024,  0.0010, -0.0025, -0.0472]
+                # dim 1000   test_time 5    device cpu
+                # cpu   19.136855 , or 3.827371 per test
+                # dim 1000    
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
+                # neg   = [ 0.0000, -0.0004, -0.0003, -0.0004,  0.0003,  0.0004,  0.0005, -0.0005, -0.0019, -0.0007, -0.0006, -0.0005, -0.0000, -0.0002,  0.0003, -0.0023, -0.0506]
+                # pos   = [ 0.0000, -0.0002,  0.0002,  0.0005,  0.0007,  0.0010,  0.0017,  0.0009,  0.0014,  0.0010,  0.0033,  0.0021,  0.0039,  0.0064,  0.0027,  0.0008, -0.0484]
+                # diff  = [ 0.0000, -0.0003, -0.0000,  0.0001,  0.0006,  0.0008,  0.0011,  0.0001, -0.0001, -0.0002,  0.0004,  0.0010,  0.0012,  0.0024,  0.0012, -0.0006, -0.0495]
+                pass
+
+
+
+            # conclusion
+            # more dim, less error.
+            # smaller target, less error.
+            
+            #---------------------#---------------------#---------------------
+            dim_list =                          [10,  32, 100, 316, 1000]
+            number_of_tests_list = torch.tensor([120, 50,  18,  4,  1])
+            number_of_tests_list = torch.tensor([ 20, 20,  18,  4,  1])
+            #dim_list =                          [100]
+            #number_of_tests_list = torch.tensor([10])
+            number_of_tests_list = number_of_tests_list.mul(5.).to(torch.int32)
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                # iota_of_dim = iota(dim)
+                number_of_tests = number_of_tests_list[outter_param_set]
+                device = 'cpu'
+                # if dim>100:
+                #     device = 'cuda'
+                #     pass
+                print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+            #---------------------#---------------------#---------------------
+                
+                neg = []
+                pos = []
+                diff = []#dont modify this.
+                _when_start = time.perf_counter()
+                
+                #---------------------#---------------------#---------------------
+                target_list = torch.linspace(0., 1.6, 17)
+                for target_angle_loss in target_list:
+                #---------------------#---------------------#---------------------
+                    
+                    _raw_result = torch.empty(size=[number_of_tests])
+                    for ii__test in range(number_of_tests):
+                        
+                        #---------------------#---------------------#---------------------
+                        mat = random_dummy_matrix__from_angle_score(dim=dim,target_angle_loss=target_angle_loss, 
+                                                                                        device=device)
+                        _, angle_loss, _ = LOSS__mat_is_standard_orthogonal(mat)
+                        #---------------------#---------------------#---------------------
+                        
+                        _raw_result[ii__test] = angle_loss
+                        pass# for _test_count
+                    neg .append(_raw_result.min()-target_angle_loss)
+                    pos .append(_raw_result.max()-target_angle_loss)
+                    diff.append(_raw_result.mean()-target_angle_loss)
+                    pass# for target_angle_loss
+                _when_end = time.perf_counter()
+                print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+                
+                print(f"dim {dim}    ")
+                print(f"target= {str_the_list(target_list, 2, segment=",   ")}")
+                print(f"neg   = {str_the_list(neg, 4)}")
+                print(f"pos   = {str_the_list(pos, 4)}")
+                print(f"diff  = {str_the_list(diff, 4)}")
+                pass# for outter_param_list   dim
+            
+            pass#/ test
+        
+
+
+
+
+
+        if "length score     _raw__random_dummy_matrix  reverse lookup table" and True:
+
+            if True:
+                # dim 10   number_of_tests 1000  cpu   140.648863 , or 0.140649 per test      cuda   20.638997 , or 0.206390 per test
+                # dim 100   number_of_tests 100  cpu   119.048742 , or 1.190487 per test      cuda   17.953814 , or 1.795381 per test
+                # dim 1000   number_of_tests 10  cpu   139.401843 , or 13.940185 per          cuda   17.682783 , or 17.682783 per test
+
+                # dim 10
+                # noise_stre=[  0.000,    0.050,    0.100,    0.150,    0.200,    0.250,    0.300,    0.350,    0.400,    0.450,    0.500,    0.550,    0.600,    0.700,    0.800,    0.900,    1.000,    1.100,    1.200,    1.400,    1.800]
+                # length_loss [-0.00000,  0.00032,  0.00171,  0.00366,  0.00655,  0.01082,  0.01588,  0.02029,  0.02616,  0.03362,  0.04036,  0.04782,  0.05656,  0.07469,  0.09121,  0.11440,  0.13320,  0.15358,  0.17480,  0.21447,  0.29326]
+                #  dim 100
+                # length_loss [-0.00000,  0.00054,  0.00214,  0.00482,  0.00839,  0.01291,  0.01841,  0.02454,  0.03181,  0.03919,  0.04767,  0.05624,  0.06554,  0.08530,  0.10592,  0.12757,  0.14902,  0.17005,  0.19207,  0.23346,  0.31205]
+                # dim 1000
+                # length_loss [-0.00000,  0.00053,  0.00214,  0.00482,  0.00849,  0.01314,  0.01875,  0.02509,  0.03220,  0.04001,  0.04840,  0.05731,  0.06662,  0.08629,  0.10722,  0.12866,  0.15042,  0.17221,  0.19375,  0.23531,  0.31339]
+                pass
+
+
+
+            #-------------------#-------------------#-------------------
+            dim_list =                          [ 10,  100, 1000]
+            number_of_tests_list = torch.tensor([1000, 100, 10])
+            number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                # iota_of_dim = iota(dim)
+                number_of_tests = number_of_tests_list[outter_param_set]
+                device = 'cpu'
+                # if dim>100:
+                #     device = 'cuda'
+                #     pass
+                print(f"dim {dim}   number_of_tests {number_of_tests}  {device}")
+            #-------------------#-------------------#-------------------
+                raw_length_loss__avg = []#dont modify this.
+                _when_start = time.perf_counter()
+                
+                #-------------------#-------------------#-------------------
+                noise_strength_list = torch.tensor( [0., 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, \
+                                                        0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.4, 1.8]) #x axis##################################
+                for noise_strength in noise_strength_list:
+                #-------------------#-------------------#-------------------
+                    
+                    _raw_result__raw_length_loss = torch.empty(size=[number_of_tests])#dont modify this.
+                    _raw_result__raw_length_loss.fill_(torch.nan)
+                    
+                    for ii__test in range(number_of_tests):
+                        
+                        #-------------------#-------------------#-------------------
+                        mat = _raw__random_dummy_matrix(dim=dim, noise_strength=noise_strength,
+                                                device=device, )
+                                                
+                        _, _, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+                        assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
+                        _raw_length_score = _log[0][1]###############################
+
+                        #-------------------#-------------------#-------------------
+                        
+                        _raw_result__raw_length_loss[ii__test] = _raw_length_score
+                        pass# for ii__test
+                    
+                    raw_length_loss__avg.append(_raw_result__raw_length_loss.mean())
+                    pass# for _init__x_axis___dim
+                _when_end = time.perf_counter()
+                print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+                    
+                print(f"# dim {dim}")
+                print(f"# noise_stre={str_the_list(noise_strength_list, 3, segment=",  ")}")
+                print(f"# length_loss {str_the_list(raw_length_loss__avg, 5)}")
+                
+                pass# for outter_iter_count
+            
+            pass#/ test
+        
+1w 回来查长度的公式，修正，然后验证准确性。
+
+
+
+
+
+        return
+        
+    ____test____random_dummy_matrix()
+    pass
 
 
 
