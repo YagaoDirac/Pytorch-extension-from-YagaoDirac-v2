@@ -16,7 +16,8 @@ from pytorch_yagaodirac_v2.Interpolation import \
     
 from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_something_to_1
 from pytorch_yagaodirac_v2.Random import random_standard_vector, randomly_permutate__matrix, randomly_rotate__matrix
-from pytorch_yagaodirac_v2.measure_for_matrix import LOSS__behavior_similarity, LOSS__mat_is_standard_orthogonal, LOSS__vec_len_retention__of_a_mat_in_matmul
+from pytorch_yagaodirac_v2.measure_for_matrix import LOSS__behavior_similarity, LOSS__mat_is_standard_orthogonal, \
+        LOSS__vec_len_retention__of_a_mat_in_matmul, random_dummy_matrix__from_angle_score
     
 
 
@@ -38,29 +39,29 @@ def get_device(dim:int, threshold = 101)->Literal['cpu', 'cuda']:
     return device
 
 
-from pytorch_yagaodirac_v2.measure_for_matrix import LOSS__mat_is_standard_orthogonal#, \
-    #LOSS__behavior_similarity, LOSS__vec_len_retention__of_a_mat_in_matmul
+
+
+'''
+关于dummy matrix生成算法。
+用到了2种。外面引入的，是，用一个标准正交阵，加上一个随机阵，按比例混合。
+好处是不依赖特定保护算法，缺点是无法模拟被保护算法保护到一半的情况。
+这个文件自带的，是用随机矩阵，稍微保护一下，得到一个特定的指标。
+好处是能模拟被保护了一半的情况，坏处是无法给其他的算法用。
+
+按照习惯，所有的算法应该在外面引入的统一的随机数生成器上做统一的测试，
+之后再在各自的专属的随机数生成器上做偏差量的测定。
+'''
 
 
 
-1w
-
-一些问题。
-最早做这个测试的时候比较混乱。
-专用的随机数生成器做了2个。第一个是randn，然后用保护算法去保护了一下，留下一个特定的错误量。
-但是问题是，后面的保护算法也是不一样的，所以第一个做法就显得很不科学。
-第二个做法是和保护算法无关的。用这个生成方式可能可以得到更有参考价值的测量结果。
-
-现在要把第二个移动到measurement那个文件里面去。
-
-
-
-
-
-
-
-def calc__cap_to____ver_1(dim:int, expansion_factor:torch.Tensor, _debug__auto_clamp = False)->torch.Tensor:
+'''THE PROTECTION ALGO'''
+'''THE PROTECTION ALGO'''
+'''THE PROTECTION ALGO'''
+'''designed only for function full_test_version_of_angle_correction__by_row________the_manual_backward_style to use.'''
+def _calc__cap_to____ver_1(dim:int, expansion_factor:torch.Tensor, _debug__auto_clamp = False)->torch.Tensor:
     '''
+    designed only for function full_test_version_of_angle_correction__by_row________the_manual_backward_style to use.
+
     >>>             -1      0       1       2      #    3       4
     >>>             expansion_factor
     >>> dim 
@@ -96,35 +97,35 @@ def calc__cap_to____ver_1(dim:int, expansion_factor:torch.Tensor, _debug__auto_c
     result = interpolation_of_list_2d(lookup_table, log10_of_dim-1, expansion_factor__inner+1)
     return result
 if "test" and False:
-    result = calc__cap_to____ver_1(10, torch.tensor(-1))
+    result = _calc__cap_to____ver_1(10, torch.tensor(-1))
     assert result.eq(0.25)
     assert result.shape.__len__() == 0
-    assert calc__cap_to____ver_1(10, torch.tensor(0)) .eq(0.38)
-    assert calc__cap_to____ver_1(10, torch.tensor(1)) .eq(0.5 )
-    assert calc__cap_to____ver_1(10, torch.tensor(2)) .eq(0.6 )
-    result = calc__cap_to____ver_1(10, torch.tensor(2))
+    assert _calc__cap_to____ver_1(10, torch.tensor(0)) .eq(0.38)
+    assert _calc__cap_to____ver_1(10, torch.tensor(1)) .eq(0.5 )
+    assert _calc__cap_to____ver_1(10, torch.tensor(2)) .eq(0.6 )
+    result = _calc__cap_to____ver_1(10, torch.tensor(2))
     assert result.eq(0.6)
     assert result.shape.__len__() == 0
     
-    assert calc__cap_to____ver_1(100, torch.tensor(0)).eq(0.39)
-    assert calc__cap_to____ver_1(100, torch.tensor(1)).eq(0.5)
-    assert calc__cap_to____ver_1(100, torch.tensor(2)).eq(0.62)
+    assert _calc__cap_to____ver_1(100, torch.tensor(0)).eq(0.39)
+    assert _calc__cap_to____ver_1(100, torch.tensor(1)).eq(0.5)
+    assert _calc__cap_to____ver_1(100, torch.tensor(2)).eq(0.62)
     
-    assert calc__cap_to____ver_1(1000, torch.tensor(0)).eq(0.38)
-    result = calc__cap_to____ver_1(1000, torch.tensor(1))
+    assert _calc__cap_to____ver_1(1000, torch.tensor(0)).eq(0.38)
+    result = _calc__cap_to____ver_1(1000, torch.tensor(1))
     assert result.eq(0.42)
     assert result.shape.__len__() == 0
     
     dim = 1001
     expansion_factor__outter = torch.tensor(-5)
-    assert calc__cap_to____ver_1(1000, expansion_factor=expansion_factor__outter, _debug__auto_clamp = True).eq(0.34)
+    assert _calc__cap_to____ver_1(1000, expansion_factor=expansion_factor__outter, _debug__auto_clamp = True).eq(0.34)
     assert dim == 1001
     assert expansion_factor__outter == torch.tensor(-5)
     
     pass    
 
 
-def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_factor = 1., 
+def full_test_version_of_angle_correction__by_row________the_manual_backward_style(input:torch.Tensor, expansion_factor = 1., 
                         cap_to:float|None = None, iota_of_dim:torch.Tensor|None = None, 
                         
                         safe_factor:float|None = None, # None for the style 1, or float for style 2.
@@ -153,7 +154,7 @@ def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_
     
     
     if cap_to is None:
-        cap_to__s = calc__cap_to____ver_1(input.shape[0], expansion_factor__s, 
+        cap_to__s = _calc__cap_to____ver_1(input.shape[0], expansion_factor__s, 
                             _debug__auto_clamp = _debug__auto_clamp_in_look_up_function)
         pass
     elif isinstance(cap_to, float):
@@ -188,7 +189,7 @@ def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_
     ori__grad__d_d = manual__mat_matmul_mat__d_d@mat
     
     #<  original grad, but len into 1>
-    len_1__ori_grad__d_d, ori__grad_len__dim = get_full_info_of_vector_length__2d(ori__grad__d_d)
+    len_1__ori_grad__d_d, ori__grad_len__dim, _ = get_full_info_of_vector_length__2d(ori__grad__d_d)
     #  normalized_vector, length_of_input    the return values
     # len_1__ori_grad__d_d = vector_length_norm(ori__grad__d_d) old code 
     
@@ -254,8 +255,12 @@ def full_test_version_of_angle_correction__by_row(input:torch.Tensor, expansion_
     
     return mat
 
-# ver 1
-def random_dummy_mat(dim:int, init__cap_to = 0.2, noise_strength = 0.2, 
+
+
+'''the dummy mat gen for this algo.'''
+'''the dummy mat gen for this algo.'''
+'''the dummy mat gen for this algo.'''
+def _raw__random_dummy_mat________the_manual_backward_style(dim:int, init__cap_to = 0.2, noise_strength = 0.2, 
                     device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
     '''
     init__cap_to in[0.1, 0.5], recommended[0.2, 0.3]
@@ -270,24 +275,49 @@ def random_dummy_mat(dim:int, init__cap_to = 0.2, noise_strength = 0.2,
     mat = torch.randn(size=[dim,dim], device=device)/math.sqrt(dim)
     
     #<  dummy op it a bit.
-    mat = full_test_version_of_angle_correction__by_row(mat, 
+    mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat, 
                 cap_to=init__cap_to/2., iota_of_dim=iota_of_dim)
-    mat = full_test_version_of_angle_correction__by_row(mat.T,
+    mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                 cap_to=init__cap_to/2., iota_of_dim=iota_of_dim).T# .T in and .T out, this is col-wise
     
     #<  some noise to mimic the learning update.
     
-    assert False,"new code untested."
     #new code
     _mul_me = noise_strength/math.sqrt(dim)
     mat += torch.randn_like(mat)*_mul_me
-    
     #old code
     #mat += torch.randn_like(mat)/math.sqrt(dim)*noise_strength
     return mat
+if "equavalence validation of new version." and False:
+    def ____test____equavalence_validation_of_new_version():
+        for dim in [2,3,5,10,100]:
+                
+            for _ in range(11):
+                #<  init
+                mat = torch.randn(size=[dim,dim])
+                noise_strength = random.random()*1.5+0.1
+                pseudo_randn = torch.randn_like(mat)
+                new_mat = mat.detach().clone()
+                old_mat = mat.detach().clone()
 
-"maybe a random_dummy_mat from target??"
-def _param_for__random_dummy_mat(dim:int, target_angle_score:float)->tuple[float, float]:
+                # dim = 2
+                # mat = torch.tensor([[1.,2],[3,4]])
+                # pseudo_randn = torch.tensor([[11.,12],[33,34]])
+                # noise_strength = 1.4
+                #<  new code.
+                _mul_me = noise_strength/math.sqrt(dim)
+                new_mat += pseudo_randn*_mul_me
+                #<  old code
+                old_mat += pseudo_randn/math.sqrt(dim)*noise_strength
+                #<  assert 
+                assert _tensor_equal(new_mat, old_mat)
+                pass# for _
+            pass# for dim
+        return 
+    ____test____equavalence_validation_of_new_version()
+    pass
+
+def random_dummy_matrix__from_angle_score________the_manual_backward_style(dim:int, target_angle_score:float, device='cpu', iota_of_dim:torch.Tensor|None = None)->torch.Tensor:
     '''return init__cap_to, noise_strength
     
     it's a rough reverse lookup for 
@@ -298,53 +328,67 @@ def _param_for__random_dummy_mat(dim:int, target_angle_score:float)->tuple[float
 
     if dim < 316: # returns the result of dim == 100    
         if target_angle_score>1.53:#1.55
-            return 0.05, 0.7
+            init__cap_to   = 0.05
+            noise_strength = 0.7
         elif target_angle_score>1.45:#1.5
-            return 0.08, 0.5
+            init__cap_to   = 0.08
+            noise_strength = 0.5
         elif target_angle_score>1.35:#1.4
-            return 0.16, 0.45
+            init__cap_to   = 0.16
+            noise_strength = 0.45
         elif target_angle_score>1.25:#1.3
-            return 0.22, 0.32
+            init__cap_to   = 0.22
+            noise_strength = 0.32
         elif target_angle_score>1.15:#1.2
-            return 0.27, 0.31
+            init__cap_to   = 0.27
+            noise_strength = 0.31
         elif target_angle_score>1.05:#1.1
-            return 0.33, 0.16
+            init__cap_to   = 0.33
+            noise_strength = 0.16
         elif target_angle_score>0.95:#1.0
-            return 0.42, 0.16
+            init__cap_to   = 0.42
+            noise_strength = 0.16
         else:#0.9
-            return 0.47, 0.05
+            init__cap_to   = 0.47
+            noise_strength = 0.05
         pass#if dim
     else:# returns the result of dim == 100    
         if target_angle_score>1.53:#1.55
-            return 0.05, 0.7
+            init__cap_to   = 0.05
+            noise_strength = 0.7
         elif target_angle_score>1.45:#1.5
-            return 0.08, 0.5
+            init__cap_to   = 0.08
+            noise_strength = 0.5
         elif target_angle_score>1.35:#1.4
-            return 0.16, 0.48
+            init__cap_to   = 0.16
+            noise_strength = 0.48
         elif target_angle_score>1.25:#1.3
-            return 0.22, 0.39
+            init__cap_to   = 0.22
+            noise_strength = 0.39
         elif target_angle_score>1.15:#1.2
-            return 0.27, 0.32
+            init__cap_to   = 0.27
+            noise_strength = 0.32
         elif target_angle_score>1.05:#1.1
-            return 0.33, 0.27
+            init__cap_to   = 0.33
+            noise_strength = 0.27
         elif target_angle_score>0.95:#1.0
-            return 0.42, 0.26
+            init__cap_to   = 0.42
+            noise_strength = 0.26
         else:#0.9
-            return 0.47, 0.17
+            init__cap_to   = 0.47
+            noise_strength = 0.17
         pass#if dim
-    pass# end of function
 
+    mat = _raw__random_dummy_mat________the_manual_backward_style(dim=dim, \
+            init__cap_to = init__cap_to, noise_strength = noise_strength, 
+            device=device, iota_of_dim=iota_of_dim)
+    return mat
 
-
-
-
-# I recommend you use random_dummy_mat__v2.
-if "test   random_dummy_mat" and False:
-    
+if "test   random_dummy_mat" and True:
     # basic behavior test of the dummy_mat v1
     def ____test____random_dummy_mat():
         
-        if "how to init a noisy mat for test" and False:
+        if "how to init a noisy mat for test" and True:
             #result 
             
             if "the length is affected too slightly, no need to correct it back." and False:          
@@ -542,18 +586,16 @@ if "test   random_dummy_mat" and False:
             
             expansion_factor = 1.#as a const
             #-------------------#-------------------#-------------------
-            dim_list =       [ 10,100,1000]
-            test_time_list = [500,300,50]
+            dim_list =       torch.tensor([ 10,100,1000])
+            test_time_list = torch.tensor([500,300,50])
             for outter_iter_count in range(dim_list.__len__()):
                 dim = dim_list[outter_iter_count]
                 test_time = test_time_list[outter_iter_count]
                 iota_of_dim = iota(dim)
                 #<  device
+                device = 'cpu'
                 if dim>100:
                     device = 'cuda'
-                    pass
-                else:
-                    device = 'cpu'
                     pass
                 #</ device
                 print(f"dim {dim}   test_time {test_time}  {device}")
@@ -599,10 +641,10 @@ if "test   random_dummy_mat" and False:
                             _temp_len_0__d2[dim:] = get_vector_length(mat.T)
                             
                             
-                            mat = full_test_version_of_angle_correction__by_row(mat,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                         expansion_factor=expansion_factor, cap_to=init__cap_to/2., iota_of_dim=iota_of_dim)
                             _temp_len_1__d = get_vector_length(mat.T)
-                            mat = full_test_version_of_angle_correction__by_row(mat.T,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                                         expansion_factor=expansion_factor, cap_to=init__cap_to/2., iota_of_dim=iota_of_dim).T# .T in and .T out, this is col-wise
                             _temp_len_2__d = get_vector_length(mat)
                             
@@ -652,7 +694,7 @@ if "test   random_dummy_mat" and False:
                 pass# for outter_iter_count
             pass#/ test
         
-        if "more accuracy scan" and False:
+        if "more accuracy scan" and True:
             
             if True:
                 
@@ -786,8 +828,9 @@ if "test   random_dummy_mat" and False:
                         for _test_count in range(test_time):
                             
                             #-------------------#-------------------#-------------------
-                            mat = random_dummy_mat(dim=dim,init__cap_to=init__cap_to, noise_strength=noise_strength,
-                                                    device=device, iota_of_dim=iota_of_dim)
+                            mat = _raw__random_dummy_mat________the_manual_backward_style(dim=dim
+                                            ,init__cap_to=init__cap_to, noise_strength=noise_strength,
+                                                                    device=device, iota_of_dim=iota_of_dim)
                             _, angle_loss, _ = LOSS__mat_is_standard_orthogonal(mat)
                             #-------------------#-------------------#-------------------
                             
@@ -809,15 +852,14 @@ if "test   random_dummy_mat" and False:
             
             pass#/ test
         
-        if "validation for the param_lookup_func" and False:
+        if "validation for the param_lookup_func" and True:
             "assertion only. no print."
             dim_list = [100,1000]
             for dim in dim_list:
                 target_list = [0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.55]
                 for target in target_list:
                     for _ in range(45):
-                        init__cap_to, noise_strength = _param_for__random_dummy_mat(dim=dim, target_angle_score=target)
-                        mat = random_dummy_mat(dim=dim,init__cap_to = init__cap_to, noise_strength = noise_strength)
+                        mat = random_dummy_matrix__from_angle_score________the_manual_backward_style(dim=dim,target_angle_score=target)
                         _, angle_loss, _ = LOSS__mat_is_standard_orthogonal(mat)
                         assert _tensor_equal(angle_loss, target, epsilon=0.1)
                         pass# for _
@@ -831,21 +873,23 @@ if "test   random_dummy_mat" and False:
     ____test____random_dummy_mat()
     pass
 
-if "test      full_test_version_of_angle_correction__by_row" and False:
+
+
+if "test      full_test_version_of_angle_correction__by_row" and True:
     def ____test____full_test_version_of_angle_correction__by_row______basic():
         
-        if "basic behavior" and False:
+        if "basic behavior" and True:
             for dim in [10,23,89,147,379,1000]:
                 for _ in range(11):
                     input = torch.randn(size=[dim,dim])
-                    result = full_test_version_of_angle_correction__by_row(input,1.)
+                    result = full_test_version_of_angle_correction__by_row________the_manual_backward_style(input,1.)
                     assert _tensor_equal(get_vector_length(result), torch.ones(size=[dim]))
                     pass
                 pass
             
             pass
         
-        if "is it the same as before?" and False:
+        if "is it the same as before?" and True:
             
             for dim in [10,22,88,100,177,222,1000]:
                 for _ in range(11):
@@ -912,7 +956,7 @@ if "test      full_test_version_of_angle_correction__by_row" and False:
                     
                     #<  new method>
                     
-                    mat_from_new_method = full_test_version_of_angle_correction__by_row(ori_mat, expansion_factor=expansion_factor,
+                    mat_from_new_method = full_test_version_of_angle_correction__by_row________the_manual_backward_style(ori_mat, expansion_factor=expansion_factor,
                                                                                         cap_to= cap_to, iota_of_dim=iota_of_dim)
                     
                     assert _tensor_equal(mat, mat_from_new_method)
@@ -921,7 +965,7 @@ if "test      full_test_version_of_angle_correction__by_row" and False:
             
             pass#/test
         
-        if "does it work for columns-wise?" and False:
+        if "does it work for columns-wise?" and True:
             for dim in [10,22,88,100,177,222,1000]:
                 for _ in range(11):
                     iota_of_dim = iota(dim)
@@ -933,8 +977,8 @@ if "test      full_test_version_of_angle_correction__by_row" and False:
                     assert _tensor_equal(get_vector_length(ori_mat.T), torch.ones(size=[dim]))
                     
                     #<  calc
-                    mat = full_test_version_of_angle_correction__by_row(ori_mat.T, expansion_factor=expansion_factor,
-                                                                                        cap_to= cap_to, iota_of_dim=iota_of_dim).T
+                    mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(ori_mat.T, 
+                                        expansion_factor=expansion_factor, cap_to= cap_to, iota_of_dim=iota_of_dim).T
                     
                     #<  assertions>
                     assert _tensor_equal(get_vector_length(mat.T), torch.ones(size=[dim]))
@@ -950,14 +994,14 @@ if "test      full_test_version_of_angle_correction__by_row" and False:
             
             pass#/test
         
-        if "style 2.   f12 into the func and read" and False:
+        if "style 2.   f12 into the func and read" and True:
         
             for dim in [2,3,4,5,10,100,1000]:
             #for dim in [10,100,1000]:
                 for _ in range(22):
                     input = torch.randn(size=[dim,dim])
-                    result = full_test_version_of_angle_correction__by_row(input,1., safe_factor=1.05,
-                                            _debug__auto_clamp_in_look_up_function = True)
+                    result = full_test_version_of_angle_correction__by_row________the_manual_backward_style(input,1., 
+                                                            safe_factor=1.05, _debug__auto_clamp_in_look_up_function = True)
                     assert _tensor_equal(get_vector_length(result), torch.ones(size=[dim]))
                     pass
                 pass
@@ -971,7 +1015,7 @@ if "test      full_test_version_of_angle_correction__by_row" and False:
 
 if "test scan the hyper param" and True:
 
-    def ____test____full_test_version_of_angle_correction__by_row______scan_the_process():
+    def ____test____full_test_version_of_angle_correction__by_row______scan_the_process()->None:
         # the style means "r", "rr", "rc", "rrr", "rrc". 
         # result is manually extracted form visualization.
         # it's a rough test.
@@ -1035,35 +1079,35 @@ if "test scan the hyper param" and True:
                         #----------------#----------------#----------------
                         #only use one of them.
                         if style == "r":
-                            mat = full_test_version_of_angle_correction__by_row(mat,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                     expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim,safe_factor=safe_factor)
                             pass
                         elif style == "rr":
-                            mat = full_test_version_of_angle_correction__by_row(mat,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                     expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
-                            mat = full_test_version_of_angle_correction__by_row(mat,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                     expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
                             pass
                         elif style == "rc":
-                            mat = full_test_version_of_angle_correction__by_row(mat,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                     expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
-                            mat = full_test_version_of_angle_correction__by_row(mat.T,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                                     expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim,safe_factor=safe_factor).T
                             pass
                         elif style == "rrr":
-                            mat = full_test_version_of_angle_correction__by_row(mat,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                     expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
-                            mat = full_test_version_of_angle_correction__by_row(mat,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                     expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
-                            mat = full_test_version_of_angle_correction__by_row(mat,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                     expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
                             pass
                         elif style == "rrc":
-                            mat = full_test_version_of_angle_correction__by_row(mat,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                     expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
-                            mat = full_test_version_of_angle_correction__by_row(mat,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                     expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim,safe_factor=safe_factor)
-                            mat = full_test_version_of_angle_correction__by_row(mat.T,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                                     expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim,safe_factor=safe_factor).T
                             pass
                         else:
@@ -1107,7 +1151,7 @@ if "test scan the hyper param" and True:
             pass#/ test
         
         # some param scan to help decide the step measure result.
-        if "scan it a bit. all row-wise" and False:
+        if "scan it a bit. all row-wise" and True:
             #result
             
             if False:
@@ -1278,15 +1322,15 @@ if "test scan the hyper param" and True:
             for threshold_factor in threshold_factor_list:
             #-------------------#-------------------#-------------------
                 
-                total__score_incr__min          = []#dont modify this.
-                total__score_incr__max          = []#dont modify this.
-                total__score_incr__avg          = []#dont modify this.
-                total__step__min                = []#dont modify this.
-                total__step__max                = []#dont modify this.
-                total__step__avg                = []#dont modify this.
-                total__score_incr_per_step__min = []#dont modify this.
-                total__score_incr_per_step__max = []#dont modify this.
-                total__score_incr_per_step__avg = []#dont modify this.
+                # total__score_incr__min:list[float]          = []#dont modify this.
+                # total__score_incr__max:list[float]           = []#dont modify this.
+                total__score_incr__avg:list[float]           = []#dont modify this.
+                # total__step__min      :list[float]           = []#dont modify this.
+                # total__step__max      :list[float]           = []#dont modify this.
+                total__step__avg      :list[float]           = []#dont modify this.
+                # total__score_incr_per_step__min:list[float]  = []#dont modify this.
+                # total__score_incr_per_step__max:list[float]  = []#dont modify this.
+                total__score_incr_per_step__avg:list[float]  = []#dont modify this.
                 
                 #-------------------#-------------------#-------------------
                 max_steps = 100
@@ -1307,7 +1351,7 @@ if "test scan the hyper param" and True:
                         mat = torch.randn(size=[dim,dim])#, device=device)
                         _, angle_loss__in_the_beginning, _ = LOSS__mat_is_standard_orthogonal(mat)
                         
-                        mat = full_test_version_of_angle_correction__by_row(mat,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                     expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim)
                         _, angle_loss__of_step_1, _ = LOSS__mat_is_standard_orthogonal(mat)
                         init_incr_speed = angle_loss__in_the_beginning - angle_loss__of_step_1
@@ -1318,7 +1362,7 @@ if "test scan the hyper param" and True:
                         
                         #<  calc
                         for _step_count_minus_2 in range(max_steps):
-                            mat = full_test_version_of_angle_correction__by_row(mat,
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                     expansion_factor=expansion_factor, cap_to=cap_to, iota_of_dim=iota_of_dim)
                             
                             #<  measure
@@ -1348,13 +1392,13 @@ if "test scan the hyper param" and True:
                     
                     # total__score_incr__min         .append(_raw_result__total__score_incr         .min ())
                     # total__score_incr__max         .append(_raw_result__total__score_incr         .max ())
-                    total__score_incr__avg         .append(_raw_result__total__score_incr         .mean())
+                    total__score_incr__avg         .append(_raw_result__total__score_incr         .mean().item())
                     # total__step__min               .append(_raw_result__total__step               .min ())
                     # total__step__max               .append(_raw_result__total__step               .max ())
-                    total__step__avg               .append(_raw_result__total__step               .mean())
+                    total__step__avg               .append(_raw_result__total__step               .mean().item())
                     # total__score_incr_per_step__min.append(_raw_result__total__score_incr_per_step.min ())
                     # total__score_incr_per_step__max.append(_raw_result__total__score_incr_per_step.max ())
-                    total__score_incr_per_step__avg.append(_raw_result__total__score_incr_per_step.mean())
+                    total__score_incr_per_step__avg.append(_raw_result__total__score_incr_per_step.mean().item())
                     
                     pass#for param_set_count 
                 
@@ -1376,15 +1420,15 @@ if "test scan the hyper param" and True:
         
         #好像用不到了。
         #暂时没跑。我在第一个里面试过了，style完全不影响。调用函数的次数会有影响。
-        if "different -wise comparison" and False:
+        if "different -wise comparison" and True:
             #---------------#---------------#---------------
-            dim_list =       [ 10, 100,1000]
-            test_time_list = [200, 100, 30]
-            dim_list =        [100]
-            test_time_list = [ 100]
+            dim_list =       torch.tensor([ 10, 100,1000])
+            test_time_list = torch.tensor([200, 100, 30])
+            dim_list =       torch.tensor( [100])
+            test_time_list = torch.tensor([ 100])
             for outter_iter_count in range(dim_list.__len__()):
-                dim = dim_list[outter_iter_count]
-                test_time = test_time_list[outter_iter_count]
+                dim = int(dim_list[outter_iter_count])
+                test_time = int(test_time_list[outter_iter_count])
                 print(test_time)
                 iota_of_dim = iota(dim)
                 #<  device
@@ -1433,7 +1477,7 @@ if "test scan the hyper param" and True:
         
         # rc, rcr, rcrc, rCr
         # I didn't find any safe_factor effects.
-        if "a rough scan about multiple steps." and False:
+        if "a rough scan about multiple steps." and True:
             print("a rough scan about multiple steps.")
             #result
             #result is from the old init. no safe_factor.
@@ -1512,12 +1556,12 @@ if "test scan the hyper param" and True:
             
             expansion_factor = 1. # as a const
             
-            dim_list =       [ 10]#,100,1000]
+            dim_list =       torch.tensor([ 10])#,100,1000]
             test_time_list = torch.tensor([200,50,20])
             test_time_list = test_time_list.mul(1.0).to(torch.int32)
             for outter_param_count in range(dim_list.__len__()):
-                dim = dim_list[outter_param_count]
-                test_time = test_time_list[outter_param_count]
+                dim = int(dim_list[outter_param_count])
+                test_time = int(test_time_list[outter_param_count])
                 #<  device
                 if dim>100:
                     device = 'cuda'
@@ -1556,70 +1600,70 @@ if "test scan the hyper param" and True:
                         #<  init
                         #old code ori_mat = random_dummy_mat(dim, device=device, iota_of_dim=iota_of_dim)#or maybe the noise_0.5
                         
-                        ori_mat = random_dummy_mat__v2__from_target(dim, target_angle_loss=torch.tensor(1.2),
-                                                                    device=device, iota_of_dim=iota_of_dim)
+                        ori_mat = random_dummy_matrix__from_angle_score(dim, target_angle_loss=torch.tensor(1.2),
+                                                                    device=device)
                         _, angle_loss__in_the_beginning, _ = LOSS__mat_is_standard_orthogonal(ori_mat)
                         #</ init
                         
                         
                         # rc
                         mat = ori_mat.detach().clone()
-                        mat = full_test_version_of_angle_correction__by_row(mat,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                 expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
-                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                                 expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
                         _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                         _raw_result__rc____score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
                         # rcr
                         mat = ori_mat.detach().clone()
-                        mat = full_test_version_of_angle_correction__by_row(mat,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                 expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
-                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                                 expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
-                        mat = full_test_version_of_angle_correction__by_row(mat,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                 expansion_factor=expansion_factor, cap_to=cap_to/3., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
                         _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                         _raw_result__rcr___score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
                         # rcrc
                         mat = ori_mat.detach().clone()
-                        mat = full_test_version_of_angle_correction__by_row(mat,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                 expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
-                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                                 expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
-                        mat = full_test_version_of_angle_correction__by_row(mat,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                 expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
-                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                                 expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
                         _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                         _raw_result__rcrc__score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
                         # rCr
                         mat = ori_mat.detach().clone()
-                        mat = full_test_version_of_angle_correction__by_row(mat,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                 expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
-                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                                 expansion_factor=expansion_factor, cap_to=cap_to/2., iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
-                        mat = full_test_version_of_angle_correction__by_row(mat,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                 expansion_factor=expansion_factor, cap_to=cap_to/4., iota_of_dim=iota_of_dim, safe_factor=safe_factor)
                         _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                         _raw_result__rCr___score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
                         # bad 1
                         mat = ori_mat.detach().clone()
-                        mat = full_test_version_of_angle_correction__by_row(mat,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                 expansion_factor=expansion_factor, cap_to=cap_to*0.9, iota_of_dim=iota_of_dim, safe_factor=safe_factor)
-                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                                 expansion_factor=expansion_factor, cap_to=cap_to*0.1, iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
                         _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                         _raw_result__bad_1_score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
                         
                         #bad 2":
                         mat = ori_mat.detach().clone()
-                        mat = full_test_version_of_angle_correction__by_row(mat,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                 expansion_factor=expansion_factor, cap_to=cap_to*0.1, iota_of_dim=iota_of_dim, safe_factor=safe_factor)
-                        mat = full_test_version_of_angle_correction__by_row(mat.T,
+                        mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                                 expansion_factor=expansion_factor, cap_to=cap_to*0.9, iota_of_dim=iota_of_dim, safe_factor=safe_factor).T
                         _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                         _raw_result__bad_2_score[_test_count] = angle_loss__in_the_beginning-angle_loss__after
@@ -1650,7 +1694,7 @@ if "test scan the hyper param" and True:
             
             pass#/ test
         
-        if "rc, 2 steps." and False:
+        if "rc, 2 steps." and True:
             #result   
             
             if "original result" and False:
@@ -1725,11 +1769,11 @@ if "test scan the hyper param" and True:
             # dim 1000  0.44, 0.27       0.7028
             
             #-------------------#-------------------#-------------------
-            dim_list =       [ 10,100,1000]
-            test_time_list = [500,500,100]
+            dim_list =       torch.tensor([ 10,100,1000])
+            test_time_list = torch.tensor([500,500,100])
             for outter_param_count in range(dim_list.__len__()):
-                dim = dim_list[outter_param_count]
-                test_time = test_time_list[outter_param_count]
+                dim = int(dim_list[outter_param_count])
+                test_time = int(test_time_list[outter_param_count])
                 iota_of_dim = iota(dim)
                 #<  device
                 if dim>100:
@@ -1769,10 +1813,10 @@ if "test scan the hyper param" and True:
                         #<  calc
                         for _y_axis_count in range(y_axis__dim):
                             mat = ori_mat.detach().clone()
-                            mat = full_test_version_of_angle_correction__by_row(mat,
-                                    cap_to=cap_to__step_1,                 iota_of_dim=iota_of_dim)
-                            mat = full_test_version_of_angle_correction__by_row(mat.T,
-                                    cap_to=cap_to__step_2_list[_y_axis_count],  iota_of_dim=iota_of_dim).T
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
+                                    cap_to=cap_to__step_1,                             iota_of_dim=iota_of_dim)
+                            mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
+                                    cap_to=cap_to__step_2_list[_y_axis_count].item(),  iota_of_dim=iota_of_dim).T
                             _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                             _raw_result__score[_y_axis_count, _test_count] = angle_loss__in_the_beginning-angle_loss__after
                             pass# for _y_axis_count
@@ -1780,14 +1824,14 @@ if "test scan the hyper param" and True:
                         pass#for _test_count
                     
                     for ii in range(y_axis__dim):
-                        score[ii].append(_raw_result__score[ii].mean())
+                        score[ii].append(_raw_result__score[ii].mean().item())
                         pass
                     
                     pass#   for cap_to__step_1  #x axis
                 
                 print(f"#          dim {dim}")
                 
-                print(f"# step_1 = {str_the_list(cap_to__step_1_list         , 2, segment=",   ")}")
+                print(f"# step_1 = {str_the_list(cap_to__step_1_list.tolist()         , 2, segment=",   ")}")
                 
                 print(f"# vvvv cap_to__step_2 ")
                 for ii in range(y_axis__dim):
@@ -1811,7 +1855,7 @@ if "test scan the hyper param" and True:
         
         # if I need 4 dim param, I probably use the step_1 of 3 step result and scan the rest 3 dim.
         
-        if "rcr, 3 steps." and False:
+        if "rcr, 3 steps." and True:
             #result   
             if "original result" and False:
             
@@ -2036,13 +2080,13 @@ if "test scan the hyper param" and True:
             
             
             #-------------------#-------------------#-------------------
-            dim_list =       [ 10,100,1000]
-            test_time_list = [100,100,100]
-            dim_list =       [1000]
-            test_time_list = [20]
+            dim_list =       torch.tensor([ 10,100,1000])
+            test_time_list = torch.tensor([100,100,100])
+            dim_list =       torch.tensor([1000])
+            test_time_list = torch.tensor([20])
             for outter_param_count in range(dim_list.__len__()):
-                dim = dim_list[outter_param_count]
-                test_time = test_time_list[outter_param_count]
+                dim = int(dim_list[outter_param_count])
+                test_time = int(test_time_list[outter_param_count])
                 iota_of_dim = iota(dim)
                 #<  device
                 if dim>100:
@@ -2066,7 +2110,8 @@ if "test scan the hyper param" and True:
                     x_axis__dim = 18
                     y_axis__dim = 11
                     
-                    score = torch.empty(size=[y_axis__dim, x_axis__dim])    #dont modify this.
+                    del score
+                    score_tensor:torch.Tensor = torch.empty(size=[y_axis__dim, x_axis__dim])    #dont modify this.
                     
                     #-------------------#-------------------#-------------------
                     cap_to__step_1_list = torch.linspace(0.35, 0.7, x_axis__dim) # x axis
@@ -2088,29 +2133,29 @@ if "test scan the hyper param" and True:
                             #<  calc
                             for _y_axis_count in range(y_axis__dim):
                                 mat = ori_mat.detach().clone()
-                                mat = full_test_version_of_angle_correction__by_row(mat,
-                                        cap_to=cap_to__step_1,                 iota_of_dim=iota_of_dim)
-                                mat = full_test_version_of_angle_correction__by_row(mat.T,
-                                        cap_to=cap_to__step_2_list[_y_axis_count],  iota_of_dim=iota_of_dim).T
-                                mat = full_test_version_of_angle_correction__by_row(mat,
-                                        cap_to=cap_to__step_3,                 iota_of_dim=iota_of_dim)
+                                mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
+                                        cap_to=cap_to__step_1,                             iota_of_dim=iota_of_dim)
+                                mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
+                                        cap_to=cap_to__step_2_list[_y_axis_count].item(),  iota_of_dim=iota_of_dim).T
+                                mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
+                                        cap_to=cap_to__step_3,                             iota_of_dim=iota_of_dim)
                                 _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                                 _raw_result__score[_y_axis_count, _test_count] = angle_loss__in_the_beginning-angle_loss__after
                                 pass# for _y_axis_count
                             
                             pass#for _test_count
                         
-                        score[:, _iter__cap_to__step_1] = _raw_result__score.mean(dim=1)
+                        score_tensor[:, _iter__cap_to__step_1] = _raw_result__score.mean(dim=1)
                         
                         pass#   for cap_to__step_1  #x axis
                     
-                    print(f"# dim {dim}      cap_to__step_3 {cap_to__step_3.item():.2f}       max_score {score.max().item():.4f}"+" "*55)
+                    print(f"# dim {dim}      cap_to__step_3 {cap_to__step_3.item():.2f}       max_score {score_tensor.max().item():.4f}"+" "*55)
                     
-                    print(f"# step_1   = {str_the_list(cap_to__step_1_list         , 2, segment=",   ")}")
+                    print(f"# step_1   = {str_the_list(cap_to__step_1_list.tolist()         , 2, segment=",   ")}")
                     
                     print(f"# vvvv cap_to__step_2 "+" "*55)
                     for ii in range(y_axis__dim):
-                        print(f"# {cap_to__step_2_list[ii].item():.2f}     = {str_the_list(score[ii], 4)}")
+                        print(f"# {cap_to__step_2_list[ii].item():.2f}     = {str_the_list(score_tensor[ii].tolist(), 4)}")
                         pass
                     print(f"# ------------"+" "*75)
                     
@@ -2125,7 +2170,7 @@ if "test scan the hyper param" and True:
     ____test____full_test_version_of_angle_correction__by_row______scan_the_process()
     pass
 
-assert False
+
 '''
 下面这个scan里面的第二个，只扫了dim=100的时候。理由是反正还有长度的修正要测。
 完事之后应该有一个所有东西放在一起的综合的。大概率要上rl来搜。
@@ -2135,7 +2180,7 @@ assert False
 if "scan for the adaptive angle correct" and True:
     def ____test____scan_for_the_adaptive_angle_correct():
     
-        if "test 1, the dummy mat is in between 0.9 to 1.55, after a rc correct, it's 0.41 to 0.64. ." and False:
+        if "test 1, the dummy mat is in between 0.9 to 1.55, after a rc correct, it's 0.41 to 0.64. ." and True:
             #result  
             
             if True:
@@ -2387,7 +2432,7 @@ if "scan for the adaptive angle correct" and True:
                 #-------------------#-------------------#-------------------
                 init_angle_loss_list = [0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
                 for target_init_angle_loss in init_angle_loss_list:
-                    init__cap_to, noise_strength = _param_for__random_dummy_mat(dim=dim, target_angle_score=target_init_angle_loss)
+                    # old code   init__cap_to, noise_strength = _param_for__random_dummy_mat(dim=dim, target_angle_score=target_init_angle_loss)
                 
                 # random_init__cap_to__list = torch.tensor([0.1, 0.5])            # z axis
                 # random_init__noise_strength__list = torch.tensor([0. , 0.5])    # z axis
@@ -2419,8 +2464,8 @@ if "scan for the adaptive angle correct" and True:
                             #-------------------#-------------------#-------------------
                             #<  init
                             while True:
-                                ori_mat = random_dummy_mat(dim=dim, init__cap_to = init__cap_to, noise_strength = noise_strength,
-                                                        device=device, iota_of_dim=iota_of_dim)#or maybe the noise_0.5
+                                ori_mat = random_dummy_matrix__from_angle_score________the_manual_backward_style(dim=dim,
+                                        target_angle_score=target_init_angle_loss, device=device, iota_of_dim=iota_of_dim)
                                 _, angle_loss__in_the_beginning, _ = LOSS__mat_is_standard_orthogonal(ori_mat)
                                 if _tensor_equal(angle_loss__in_the_beginning, target_init_angle_loss, epsilon= 0.05):
                                     break
@@ -2432,9 +2477,9 @@ if "scan for the adaptive angle correct" and True:
                             #<  calc
                             for _y_axis_count in range(y_axis__dim):
                                 mat = ori_mat.detach().clone()
-                                mat = full_test_version_of_angle_correction__by_row(mat,
+                                mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                         cap_to=cap_to__step_1,                 iota_of_dim=iota_of_dim)
-                                mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                                         cap_to=cap_to__step_2_list[_y_axis_count],  iota_of_dim=iota_of_dim).T
                                 _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                                 _raw_result__score[_y_axis_count, _test_count] = angle_loss__in_the_beginning-angle_loss__after
@@ -3110,8 +3155,8 @@ if "scan for the adaptive angle correct" and True:
                             #-------------------#-------------------#-------------------
                             #<  init
                             while True:
-                                ori_mat = random_dummy_mat__v2__from_target(dim=dim, target_angle_loss= target_init_angle_loss,
-                                                        device=device, iota_of_dim=iota_of_dim)#or maybe the noise_0.5
+                                ori_mat = random_dummy_matrix__from_angle_score(dim=dim, 
+                                        target_angle_loss= target_init_angle_loss, device=device, iota_of_dim=iota_of_dim)#or maybe the noise_0.5
                                 _, angle_loss__in_the_beginning, _ = LOSS__mat_is_standard_orthogonal(ori_mat)
                                 if _tensor_equal(angle_loss__in_the_beginning, target_init_angle_loss, epsilon= 0.05):
                                     break
@@ -3123,9 +3168,9 @@ if "scan for the adaptive angle correct" and True:
                             #<  calc
                             for _y_axis_count in range(y_axis__dim):
                                 mat = ori_mat.detach().clone()
-                                mat = full_test_version_of_angle_correction__by_row(mat,
+                                mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat,
                                         cap_to=cap_to__step_1,                 iota_of_dim=iota_of_dim)
-                                mat = full_test_version_of_angle_correction__by_row(mat.T,
+                                mat = full_test_version_of_angle_correction__by_row________the_manual_backward_style(mat.T,
                                         cap_to=cap_to__step_2_list[_y_axis_count],  iota_of_dim=iota_of_dim).T
                                 _, angle_loss__after, _ = LOSS__mat_is_standard_orthogonal(mat)
                                 _raw_result__score[_y_axis_count, _test_count] = angle_loss__after

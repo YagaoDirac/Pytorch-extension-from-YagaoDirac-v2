@@ -18,6 +18,23 @@ from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_some
 from pytorch_yagaodirac_v2.Random import random_standard_vector, randomly_permutate__matrix, randomly_rotate__matrix
 from pytorch_yagaodirac_v2.measure_for_matrix import LOSS__behavior_similarity, LOSS__mat_is_standard_orthogonal, LOSS__vec_len_retention__of_a_mat_in_matmul
     
+1w
+1w
+1w
+1w笔记
+这个版本暂停了。
+
+原因是我觉得从几何解释来说，这个版本的行为解释不通。
+本身测试也没完全做完。当时以为就这一个版本。反正无所谓了。
+我可能需要一个用随机数去解决两个向量共线的情况的工具，而不是在这个保护算法里面去解决。
+当两个向量共线的时候，他们在神经网络里面的行为是重叠的，我只需要一个，另外一个可以随机到一个新的方向上去。
+
+另外还有一个事情，就是，我突然不记得这个工具要在哪儿用了。
+最早想的是在残差链接里面用，这样整个残差里面，两个方向的传播都是保长度的。
+但是我暂时不牵扯任何这一块的用途了。
+
+
+
 
 
 def __DEBUG_ME__()->bool:
@@ -30,7 +47,7 @@ def _line_():
 
 def get_device(dim:int, threshold = 101)->Literal['cpu', 'cuda']:
     if dim>threshold:
-        device = 'cuda'
+        device:Literal['cpu', 'cuda'] = 'cuda'
         pass
     else:
         device = 'cpu'
@@ -81,75 +98,77 @@ from pytorch_yagaodirac_v2.measure_for_matrix import LOSS__behavior_similarity, 
 
 
 
-def ____test____basic_order_of_magnitude_test():
+def ____test____new_formula_validation():
     
-    "0.58 to 0.82   when accumulating_time == dim-1"    
+    "0.58 to 0.82   when accumulating_time == dim-1   (the diagonal in result.)"    
     if "random len1 vec dot and accululate. It's similar to forward pass." and False:
-        # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.]
-        # cpu
-        # dim == 2 
-        # sum__min           = [ 0.01500,  0.00665,  0.01969,  0.02072,  0.53518]
-        # sum__max           = [ 0.99994,  3.52393,  5.98439,  16.85637,  59.49195]
-        # sum__avg           = [ 0.62658,  1.16668,  1.63911,  5.41536,  17.60757]
-        # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.]
-        # dim == 5              
-        # sum__min           = [ 0.00500,  0.01848,  0.00316,  0.07038,  0.12127]
-        # sum__max           = [ 0.92337,  2.45363,  3.40919,  11.74703,  33.48606]
-        # sum__avg           = [ 0.37021,  0.69509,  1.00356,  3.53499,  10.81130]
-        # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.]
-        # dim == 10              
-        # sum__min           = [ 0.01107,  0.01215,  0.01691,  0.03488,  0.17180]
-        # sum__max           = [ 0.73128,  1.53533,  2.58554,  9.77455,  27.93412]
-        # sum__avg           = [ 0.26163,  0.49004,  0.70206,  2.53179,  8.72839]
-        # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.]
-        # dim == 100              
-        # sum__min           = [ 0.00100,  0.00047,  0.00655,  0.00050,  0.00964]
-        # sum__max           = [ 0.26407,  0.41101,  0.80717,  2.95427,  10.22717]
-        # sum__avg           = [ 0.06868,  0.14782,  0.24610,  0.80938,  2.47465]
-        # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.]
-        # dim == 1000              
-        # sum__min           = [ 0.00001,  0.00026,  0.00012,  0.00048,  0.01112]
-        # sum__max           = [ 0.09448,  0.22957,  0.29213,  0.75334,  2.77561]
-        # sum__avg           = [ 0.02458,  0.05065,  0.07587,  0.23639,  0.75746]
-        # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.]
-        
-        # sum__min               = [ 0.01500, 0.01848,   0.01691,  0.00050, 0.01112]
-        # sum__max               = [ 0.99994, 2.45363,   2.58554,  2.95427, 2.77561]
-        # sum__avg               = [ 0.62658, 0.69509,   0.70206,  0.80938, 0.75746]
-        # accumulate_time and also dim     2, 5.0000,   10.0000,  100.0000, 1000.]
-        
-        
-        # cuda
-        # dim == 2             
-        # sum__min           = [ 0.02648,  0.00699,  0.12668,  0.10067,  0.01249]
-        # sum__max           = [ 0.99999,  3.18379,  5.16254,  20.20586,  61.41320]
-        # sum__avg           = [ 0.59455,  1.17904,  1.75762,  5.61126,  19.14854]
-        # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.0000]
-        # dim == 5             
-        # sum__min           = [ 0.00786,  0.00116,  0.01273,  0.08277,  0.01728]
-        # sum__max           = [ 0.92342,  1.68872,  3.39152,  10.45560,  39.85177]
-        # sum__avg           = [ 0.40593,  0.58058,  1.01392,  3.39034,  11.03279]
-        # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.0000]
-        # dim == 10            
-        # sum__min           = [ 0.00073,  0.00403,  0.00656,  0.01735,  0.00390]
-        # sum__max           = [ 0.81276,  1.76747,  2.90984,  9.46086,  29.39728]
-        # sum__avg           = [ 0.27530,  0.58429,  0.80673,  2.61582,  6.80672]
-        # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.0000]
-        # dim == 100           
-        # sum__min           = [ 0.00043,  0.00081,  0.00018,  0.00079,  0.02054]
-        # sum__max           = [ 0.25698,  0.60732,  1.09038,  2.84871,  7.70734]
-        # sum__avg           = [ 0.07961,  0.16004,  0.25928,  0.85063,  2.36571]
-        # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.0000]
-        # dim == 1000          
-        # sum__min           = [ 0.00011,  0.00039,  0.00049,  0.00388,  0.01125]
-        # sum__max           = [ 0.09817,  0.17504,  0.24787,  0.82352,  3.88339]
-        # sum__avg           = [ 0.02563,  0.04981,  0.07104,  0.26357,  0.81579]
-        # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.0000]
-        
-        # sum__min               = [ 0.02648, 0.00116,   0.00656,  0.00079, 0.01125]
-        # sum__max               = [ 0.99999, 1.68872,   2.90984,  2.84871, 3.88339]
-        # sum__avg               = [ 0.59455, 0.58058,   0.80673,  0.85063, 0.81579]
-        # accumulate_time and also dim     2, 5.0000,   10.0000,  100.0000, 1000.]
+        if True:
+            # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.]
+            # cpu
+            # dim == 2 
+            # sum__min           = [ 0.01500,  0.00665,  0.01969,  0.02072,  0.53518]
+            # sum__max           = [ 0.99994,  3.52393,  5.98439,  16.85637,  59.49195]
+            # sum__avg           = [ 0.62658,  1.16668,  1.63911,  5.41536,  17.60757]
+            # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.]
+            # dim == 5              
+            # sum__min           = [ 0.00500,  0.01848,  0.00316,  0.07038,  0.12127]
+            # sum__max           = [ 0.92337,  2.45363,  3.40919,  11.74703,  33.48606]
+            # sum__avg           = [ 0.37021,  0.69509,  1.00356,  3.53499,  10.81130]
+            # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.]
+            # dim == 10              
+            # sum__min           = [ 0.01107,  0.01215,  0.01691,  0.03488,  0.17180]
+            # sum__max           = [ 0.73128,  1.53533,  2.58554,  9.77455,  27.93412]
+            # sum__avg           = [ 0.26163,  0.49004,  0.70206,  2.53179,  8.72839]
+            # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.]
+            # dim == 100              
+            # sum__min           = [ 0.00100,  0.00047,  0.00655,  0.00050,  0.00964]
+            # sum__max           = [ 0.26407,  0.41101,  0.80717,  2.95427,  10.22717]
+            # sum__avg           = [ 0.06868,  0.14782,  0.24610,  0.80938,  2.47465]
+            # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.]
+            # dim == 1000              
+            # sum__min           = [ 0.00001,  0.00026,  0.00012,  0.00048,  0.01112]
+            # sum__max           = [ 0.09448,  0.22957,  0.29213,  0.75334,  2.77561]
+            # sum__avg           = [ 0.02458,  0.05065,  0.07587,  0.23639,  0.75746]
+            # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.]
+            
+            # sum__min               = [ 0.01500, 0.01848,   0.01691,  0.00050, 0.01112]
+            # sum__max               = [ 0.99994, 2.45363,   2.58554,  2.95427, 2.77561]
+            # sum__avg               = [ 0.62658, 0.69509,   0.70206,  0.80938, 0.75746]
+            # accumulate_time and also dim     2, 5.0000,   10.0000,  100.0000, 1000.]
+            
+            
+            # cuda
+            # dim == 2             
+            # sum__min           = [ 0.02648,  0.00699,  0.12668,  0.10067,  0.01249]
+            # sum__max           = [ 0.99999,  3.18379,  5.16254,  20.20586,  61.41320]
+            # sum__avg           = [ 0.59455,  1.17904,  1.75762,  5.61126,  19.14854]
+            # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.0000]
+            # dim == 5             
+            # sum__min           = [ 0.00786,  0.00116,  0.01273,  0.08277,  0.01728]
+            # sum__max           = [ 0.92342,  1.68872,  3.39152,  10.45560,  39.85177]
+            # sum__avg           = [ 0.40593,  0.58058,  1.01392,  3.39034,  11.03279]
+            # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.0000]
+            # dim == 10            
+            # sum__min           = [ 0.00073,  0.00403,  0.00656,  0.01735,  0.00390]
+            # sum__max           = [ 0.81276,  1.76747,  2.90984,  9.46086,  29.39728]
+            # sum__avg           = [ 0.27530,  0.58429,  0.80673,  2.61582,  6.80672]
+            # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.0000]
+            # dim == 100           
+            # sum__min           = [ 0.00043,  0.00081,  0.00018,  0.00079,  0.02054]
+            # sum__max           = [ 0.25698,  0.60732,  1.09038,  2.84871,  7.70734]
+            # sum__avg           = [ 0.07961,  0.16004,  0.25928,  0.85063,  2.36571]
+            # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.0000]
+            # dim == 1000          
+            # sum__min           = [ 0.00011,  0.00039,  0.00049,  0.00388,  0.01125]
+            # sum__max           = [ 0.09817,  0.17504,  0.24787,  0.82352,  3.88339]
+            # sum__avg           = [ 0.02563,  0.04981,  0.07104,  0.26357,  0.81579]
+            # accumulate_time_list= [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.0000]
+            
+            # sum__min               = [ 0.02648, 0.00116,   0.00656,  0.00079, 0.01125]
+            # sum__max               = [ 0.99999, 1.68872,   2.90984,  2.84871, 3.88339]
+            # sum__avg               = [ 0.59455, 0.58058,   0.80673,  0.85063, 0.81579]
+            # accumulate_time and also dim     2, 5.0000,   10.0000,  100.0000, 1000.]
+            pass
         
         
         #--------------------#--------------------#--------------------
@@ -211,10 +230,12 @@ def ____test____basic_order_of_magnitude_test():
     # so the length of grad_row_i(from j) is 0 to 4/(dim*dim)
     # And in total, there are n-1 rows that provides grad.
     # so the grad_row_i is between 0 and 4(dim-1)/(dim*dim), if dim is big, then 4/dim
+    '''only the last line, the assertion, is the new content.'''
     if "formula test" and False:
         #<  test infra>
         for dim in [2,3,5,10,100,1000]:
             iota_of_dim = iota(dim)
+            # the 1000000 means [1, 0, 0, 0, 0, ... all 0s]
             _1000000_ref_vec = torch.zeros(size=[dim])
             _1000000_ref_vec[0] = 1.
             #prin(_1000000_ref_vec)
@@ -239,6 +260,7 @@ def ____test____basic_order_of_magnitude_test():
             loss.backward(inputs = train_it)
             
             #<  assertion>
+            # the 1000000 means [1, 0, 0, 0, 0, ... all 0s]
             assert _tensor_equal(mat.grad[0], _1000000_ref_vec*4*(dim-1)/(dim*dim), epsilon=1e-7)
             
             pass#for dim
@@ -254,24 +276,24 @@ def ____test____basic_order_of_magnitude_test():
         print("calc from a set of standard vec. What is the avg len of grad*_mul_me")
         
         # result
-        # length__min         = [ 0.00088,  0.30414,  0.55985,  0.91967,  0.99667]
-        # length__max         = [ 1.41844,  2.28061,  2.21400,  1.08100,  1.00781]
-        # length__avg         = [ 0.89991,  0.91720,  0.96060,  0.99669,  1.00265]
-        # log10_of_length__min= [-3.05713, -0.51693, -0.25193, -0.03637, -0.00145]
-        # log10_of_length__max= [ 0.15181,  0.35805,  0.34518,  0.03382,  0.00338]
-        # log10_of_length__avg= [-0.14775, -0.05548, -0.02355, -0.00153,  0.00115]
-        # dim_list             = [ 2.0000,  5.0000,  10.0000,  100.0000,  1000.0000]
+        # scaled_length__min         = [ 0.00088,  0.30414,  0.55985,  0.91967,  0.99667]
+        # scaled_length__max         = [ 1.41844,  2.28061,  2.21400,  1.08100,  1.00781]
+        # scaled_length__avg         = [ 0.89991,  0.91720,  0.96060,  0.99669,  1.00265]
+        # log10_of_scaled_length__min= [-3.05713, -0.51693, -0.25193, -0.03637, -0.00145]
+        # log10_of_scaled_length__max= [ 0.15181,  0.35805,  0.34518,  0.03382,  0.00338]
+        # log10_of_scaled_length__avg= [-0.14775, -0.05548, -0.02355, -0.00153,  0.00115]
+        # dim_list                   = [ 2.,       5.,      10.,       100.,     1000.]
         #
         
         # mean grad row vector length/_div_me == 1.41/dim
         # mean grad row vector length/( 4*(dim-1)/(dim*dim)) == 1.41/dim
         
-        length__min          = []#dont modify this
-        length__max          = []#dont modify this
-        length__avg          = []#dont modify this
-        log10_of_length__min = []#dont modify this
-        log10_of_length__max = []#dont modify this
-        log10_of_length__avg = []#dont modify this
+        scaled_length__min          = []#dont modify this
+        scaled_length__max          = []#dont modify this
+        scaled_length__avg          = []#dont modify this
+        log10_of_scaled_length__min = []#dont modify this
+        log10_of_scaled_length__max = []#dont modify this
+        log10_of_scaled_length__avg = []#dont modify this
         
         #--------------------#--------------------#--------------------
         device = 'cpu'
@@ -279,7 +301,7 @@ def ____test____basic_order_of_magnitude_test():
         test_time_list = [2000,1000,5000,5000, 100]
         for outter_iter_count in range(dim_list.__len__()):
             dim = dim_list[outter_iter_count]
-            _mul_me = dim*dim*dim/(4*1.41*(dim-1))
+            _mul_me = dim*dim*dim/(4*1.41*(dim-1))###########################      the key !!!!!!!!
             
             iota_of_dim = iota(dim)
             test_time = test_time_list[outter_iter_count]
@@ -313,7 +335,6 @@ def ____test____basic_order_of_magnitude_test():
                 #<  measure>
                 grad_len_sqr = mat.grad.mul(mat.grad).sum(dim=1)#mean(dim=1)#mul and then sum, it's a dot.
                 avg_grad_len = grad_len_sqr.sqrt().mean()
-                #scaled_avg_grad_len = avg_grad_len/_div_me old version.
                 scaled_avg_grad_len = avg_grad_len*_mul_me
                 #--------------------#--------------------#--------------------
                 
@@ -321,26 +342,27 @@ def ____test____basic_order_of_magnitude_test():
                 _raw_result_of__log10__scaled_avg_grad_len[test_count] = scaled_avg_grad_len.log10()
                 pass#for accumulate_count
             
-            length__min         .append(_raw_result_of__scaled_avg_grad_len.min() )
-            length__max         .append(_raw_result_of__scaled_avg_grad_len.max() )
-            length__avg         .append(_raw_result_of__scaled_avg_grad_len.mean() )
-            log10_of_length__min.append(_raw_result_of__log10__scaled_avg_grad_len.min() )
-            log10_of_length__max.append(_raw_result_of__log10__scaled_avg_grad_len.max() )
-            log10_of_length__avg.append(_raw_result_of__log10__scaled_avg_grad_len.mean() )
+            scaled_length__min         .append(_raw_result_of__scaled_avg_grad_len.min() )
+            scaled_length__max         .append(_raw_result_of__scaled_avg_grad_len.max() )
+            scaled_length__avg         .append(_raw_result_of__scaled_avg_grad_len.mean() )
+            log10_of_scaled_length__min.append(_raw_result_of__log10__scaled_avg_grad_len.min() )
+            log10_of_scaled_length__max.append(_raw_result_of__log10__scaled_avg_grad_len.max() )
+            log10_of_scaled_length__avg.append(_raw_result_of__log10__scaled_avg_grad_len.mean() )
             pass# for macro_iter_count
         
-        print(f"length__min         = {str_the_list(length__min,          5)}")    
-        print(f"length__max         = {str_the_list(length__max,          5)}")    
-        print(f"length__avg         = {str_the_list(length__avg,          5)}")    
-        print(f"log10_of_length__min= {str_the_list(log10_of_length__min, 5)}")    
-        print(f"log10_of_length__max= {str_the_list(log10_of_length__max, 5)}")    
-        print(f"log10_of_length__avg= {str_the_list(log10_of_length__avg, 5)}")    
-        print(f"dim_list             = {str_the_list(dim_list, 4)}")
+        print(f"scaled_length__min         = {str_the_list(scaled_length__min,          5)}")    
+        print(f"scaled_length__max         = {str_the_list(scaled_length__max,          5)}")    
+        print(f"scaled_length__avg         = {str_the_list(scaled_length__avg,          5)}")    
+        print(f"log10_of_scaled_length__min= {str_the_list(log10_of_scaled_length__min, 5)}")    
+        print(f"log10_of_scaled_length__max= {str_the_list(log10_of_scaled_length__max, 5)}")    
+        print(f"log10_of_scaled_length__avg= {str_the_list(log10_of_scaled_length__avg, 5)}")    
+        print(f"dim_list                   = {str_the_list(dim_list, 0, segment=",     ")}")
         
         pass#/test
     
-    # notice the "manually__mul_me = 4./(dim*dim)" is only the difference between the 
-    # backward style and the manual style.
+    '''notice the "manually__mul_me = 4./(dim*dim)" is only the difference between the 
+    backward style and the manual style.  
+    Notice the "manual" part in the end of this test.'''
     if "to replace the error propagation style" and False:
         "assertion only test. No print"
         #device??
@@ -446,6 +468,8 @@ def ____test____basic_order_of_magnitude_test():
         
         pass#/ test
     
+    '''this adaptive expansion was design to modity the distribution a lil bit.
+    But after further test, this expansion behavior doesn't feel very important. '''
     if "visualization of adaptive expansion" and False:
         expansion_factor = 10.
         dim = 1000
@@ -499,6 +523,13 @@ def ____test____basic_order_of_magnitude_test():
             pass#for test_count 
         
         pass#/ test
+
+____test____new_formula_validation()
+
+
+def ____test____new_formula__and__extreme_case_test():
+
+
 
     # the distribution is very different at different dim.
     if "max length of row vector        backward prapagation style" and False:
@@ -662,20 +693,24 @@ def ____test____basic_order_of_magnitude_test():
     
     return 
 
-____test____basic_order_of_magnitude_test()
+____test____new_formula__and__extreme_case_test()
 
 
 # this part is for the expansion+cap_to style.
 # in later code, since expansion doesn't do too much, it's set to 1.
 # then it's a cap_to only.
-def ____test____correction_method_test():
+def ____test____correction_algo_test():
     #this is a reference. Not a real test.
     # highlight is manually added. It's the best result from the later test.
+    '''method explaination:
+    init a random but standard orthogonal matrix. Measure the init matrix a bit.
+    Replace some of the row vectors with new random standard vectors. Measure again.'''
+    '''I don't remember why I did this test...'''
     if "measure of random 1 to n rows in a standard orthogonal matrix." and False:
         
         assert False, "the new len_loss is 0.5* old result. here is old result."
         
-        #result
+        #result                      the bigger the better. They are all neg, so the after is always worse.
         # dim = 10
         # random_vec_count_list       = [ 1        2        3        5        7]
         # len_loss__opt_value     = [-0.03110, -0.05500, -0.06091, -0.07188, -0.07495]
@@ -747,7 +782,7 @@ def ____test____correction_method_test():
             
             for random_vec_count in random_vec_count_list:
                 if random_vec_count>=dim:
-                    continue
+                    continue#safety
             #------------------#------------------#------------------
             
                 _raw_result__len_loss__after_sub_before                 = torch.empty(size=[test_time])  # dont modity this
@@ -757,7 +792,7 @@ def ____test____correction_method_test():
                 
                 for test_count in range(test_time):
                     #----------------#----------------#----------------#----------------
-                    #<  init
+                    #<  init           init into standard orthogonal matrix
                     mat = torch.eye(n=dim)
                     mat = randomly_rotate__matrix(mat)
                     
@@ -770,7 +805,7 @@ def ____test____correction_method_test():
                         mat[ii] = random_standard_vector(dim=dim)
                         pass
                     
-                    #<  measure the protected.>
+                    #<  measure the messed.>
                     after__len_loss, after__angle_loss, _ = LOSS__mat_is_standard_orthogonal(mat)
                     after__length_retention_loss, _ = LOSS__vec_len_retention__of_a_mat_in_matmul(mat)
                     #----------------#----------------#----------------#----------------
@@ -810,6 +845,9 @@ def ____test____correction_method_test():
         del mat
         pass#/ test
     
+    '''the same as the previous one, but the measurement is behavior similarity.'''
+    '''I don't remember why I did this test...'''
+    '''回头看看要不要和上面的合并了'''
     if "measure of random 1 to n rows in a standard orthogonal matrix.  behavior similarity." and False:
         #result
         assert False, "the new len_loss is 0.5* old result. here is old result."
@@ -948,6 +986,10 @@ def ____test____correction_method_test():
         del mat
         pass#/ test
     
+    '''this test has the full version of the protection algo. 
+    It scans 2 hyperparams.
+    In the conclusion, I wrote: the expansion_factor as 0 fits into most cases.
+    Let me explain it a bit. when the expansion_factor is 0, I only need the direction of what it expands.'''
     if "roughly scan 2 hyperparams." and False:
         # greater is better
         assert False, "the new len_loss is 0.5* old result. here is old result."
@@ -1713,6 +1755,8 @@ def ____test____correction_method_test():
     
     #it feels like, the expansion_factor is better to be 0 or around.
     # behavior similarity doesn't show anything.
+    '''I guess this is the same test as previous, but the measurement is behavior similarity.'''
+    '''考虑一下和上面的合并了'''
     if "behavior similarity" and False:
         # positive is better, greater is better
         assert False, "the new len_loss is 0.5* old result. here is old result."
@@ -2349,11 +2393,18 @@ def ____test____correction_method_test():
         del mat, ori_mat
         pass#/ test
     
+
+    1w 
+    1，继续读这个测试的结果。
+    2，这个方法是否有用到part2的实测里面？
+    一点解释
+    总之就是这个 cap_to 是和维度有关联的。于是用了一个方法从维度来计算这个参数。
+
     # useful.
-    if "accurate scan for the best param combination." and False:
+    if "accurate scan for the best param combination." and True:
         # greater is better
-        assert False, "the new len_loss is 0.5* old result. here is old result."
-        if "result" and False:
+        if "result" and True:
+            assert False, "the new len_loss is 0.5* old result. here is old result."
             # dim = 10
             # scan_factor_list           = [ 0.70,     0.75,     0.79,     0.84,     0.89,     0.94,     0.98,     1.03,     1.08,     1.12,     1.17,     1.22,     1.26,     1.31,     1.36,     1.41,     1.45,     1.50]
             # actual_cap_to           = [ 0.16849,  0.17533,  0.18723,  0.19949,  0.21258,  0.22154,  0.23268,  0.24334,  0.25475,  0.26566,  0.27609,  0.29249,  0.30043,  0.31010,  0.32064,  0.33390,  0.34268,  0.35047]
@@ -2531,7 +2582,7 @@ def ____test____correction_method_test():
         # test_time_list = [100,100,100, 20]
         # test_time_list = [10,10,10, 2]
         
-        dim_list =       [ 10, 100,1000]
+        dim_list =       [ 10, 100,1000]#32 和316 看看。
         test_time_list = [200, 100, 30]
         dim_list =        [100]
         test_time_list = [ 100]
@@ -2541,11 +2592,9 @@ def ____test____correction_method_test():
             print(test_time)
             iota_of_dim = iota(dim)
             #<  device
+            device = 'cpu'
             if dim>100:
                 device = 'cuda'
-                pass
-            else:
-                device = 'cpu'
                 pass
             #<  core_ref_of__avg_abs__capped_grad
             if dim == 10:
@@ -2753,7 +2802,7 @@ def ____test____correction_method_test():
     
     return 
 
-#____test____correction_method_test()
+____test____correction_method_test()
 
 
 
