@@ -18,8 +18,7 @@ def _line_():
 
 
 
-# 正在   改层的形状，删结果和加输入
-# 1是缓冲区的行为，更新当中的更新动力学？？？可能单独写一个gramo？或者单独的优化器？
+# 正在   缓冲区的行为，更新当中的更新动力学？？？可能单独写一个gramo？或者单独的优化器？
 # 一个整体的容器
 #trace back 需要容器的支持。 从整体的class里面得到新的输入数据。
 # 重新做干堆测试。
@@ -27,34 +26,229 @@ def _line_():
 
 
 
+def _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+        extra_in_dim:int, 
+        in_dim_now:int, out_dim_now:int, )->int:
+    '''return new_in_dim'''
+    total_in_dim_needed = extra_in_dim+in_dim_now
+    min_new_nelement = total_in_dim_needed*out_dim_now
+    ONE_M = 1<<20
+    if min_new_nelement<(ONE_M):
+        return total_in_dim_needed*2
+    ONE_G = 1<<30
+    if min_new_nelement<(ONE_G):
+        return int(total_in_dim_needed*1.25)
+    return int(total_in_dim_needed*1.1)
+    #end of function
+if " test" and __DEBUG_ME__() and False:
+    "感觉不用很严格？"
+    def ____test_____only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in():
+        if "result must be greater than input combined" and True:
+            
+            extra_in_dim = 10
+            in_dim_now   = 10
+            out_dim_now  = 10
+
+            new_in_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+                    extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
+            #<  assert
+            assert new_in_dim >= extra_in_dim + in_dim_now
+            assert new_in_dim < 50
+
+
+            extra_in_dim = 100
+            in_dim_now   = 100
+            out_dim_now  = 100
+
+            new_in_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+                    extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
+            #<  assert
+            assert new_in_dim >= extra_in_dim + in_dim_now
+            assert new_in_dim < 500
+
+            
+            extra_in_dim = 1000
+            in_dim_now   = 1000
+            out_dim_now  = 1000
+
+            new_in_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+                    extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
+            #<  assert
+            assert new_in_dim >= extra_in_dim + in_dim_now
+            assert new_in_dim < 3000
+
+
+            extra_in_dim = 10000
+            in_dim_now   = 10000
+            out_dim_now  = 10000
+
+            new_in_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+                    extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
+            #<  assert
+            assert new_in_dim >= extra_in_dim + in_dim_now
+            assert new_in_dim < 30000
+
+            
+            extra_in_dim = 100000
+            in_dim_now   = 100000
+            out_dim_now  = 100000
+
+            new_in_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+                    extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
+            #<  assert
+            assert new_in_dim >= extra_in_dim + in_dim_now
+            assert new_in_dim < 300000
+
+        return
+    ____test_____only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in()
+    pass
+
+def _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+        extra_out_dim:int, 
+        in_dim_now:int, out_dim_now:int, )->int:
+    total_out_dim_needed = extra_out_dim+out_dim_now
+    min_new_nelement = in_dim_now*total_out_dim_needed
+    ONE_M = 1<<20
+    if min_new_nelement<(ONE_M):
+        return total_out_dim_needed*2
+    ONE_G = 1<<30
+    if min_new_nelement<(ONE_G):
+        return int(total_out_dim_needed*1.25)
+    return int(total_out_dim_needed*1.1)
+    #end of function
+if " test" and __DEBUG_ME__() and False:
+    "感觉不用很严格？"
+    def ____test______only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out():
+        if "result must be greater than input combined" and True:
+            
+            extra_out_dim = 10
+            in_dim_now    = 10
+            out_dim_now   = 10
+
+            new_out_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+                    extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
+            #<  assert
+            assert new_out_dim >= extra_out_dim + out_dim_now
+            assert new_out_dim < 50
+
+
+            extra_out_dim = 100
+            in_dim_now    = 100
+            out_dim_now   = 100
+
+            new_out_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+                    extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
+            #<  assert
+            assert new_out_dim >= extra_out_dim + out_dim_now
+            assert new_out_dim < 500
+
+
+            extra_out_dim = 1000
+            in_dim_now    = 1000
+            out_dim_now   = 1000
+
+            new_out_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+                    extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
+            #<  assert
+            assert new_out_dim >= extra_out_dim + out_dim_now
+            assert new_out_dim < 3000
+
+
+            extra_out_dim = 10000
+            in_dim_now    = 10000
+            out_dim_now   = 10000
+
+            new_out_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+                    extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
+            #<  assert
+            assert new_out_dim >= extra_out_dim + out_dim_now
+            assert new_out_dim < 30000
+
+
+            extra_out_dim = 100000
+            in_dim_now    = 100000
+            out_dim_now   = 100000
+
+            new_out_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+                    extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
+            #<  assert
+            assert new_out_dim >= extra_out_dim + out_dim_now
+            assert new_out_dim < 300000
+
+
+        return
+    ____test______only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out()
+    pass
+
+def _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style(out_features, in_features, device, dtype) -> torch.Tensor:
+    result = torch.rand(size=[out_features, in_features], device=device, dtype=dtype)
+    return result
+if " test" and __DEBUG_ME__() and False:
+    '''感觉不用测啊。。。'''
+    pass
 
 
 
-class DigitalMapper_full__2026(torch.nn.Module):
-    def __init__(self, in_features: int, out_features: int, \
+
+
+
+class DigitalMapper_layer__2026(torch.nn.Module):
+    in_dim         :int
+    out_dim        :int
+    _init_to_nan   :bool
+    _raw_weight___oCAP_iCAP    :torch.nn.parameter.Parameter
+
+    #customizable functions.
+    _random_init_algo               :function
+    _calc_bigger_capacity__for_in   :function
+    _calc_bigger_capacity__for_out  :function
+    # _calc_bigger_capacity
+
+    def __init__(self, in_features: int, out_features: int, 
+                init_capacity__for_in = 16, init_capacity__for_out = 16, init_to_nan = True, \
                     device=None, dtype=None) -> None:  
         
         #this dtype is only for a inner memory in training. It must be float point number.
-        assert dtype in [torch.float, torch.float16, torch.float32, torch.float64, torch.bfloat16]
 
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
 
-        if in_features<2:
-            raise Exception("emmmm")
+        if init_capacity__for_in < in_features:
+            init_capacity__for_in = in_features
+            pass
+        if init_capacity__for_out < out_features:
+            init_capacity__for_out = out_features
+            pass
 
-        self.in_features = in_features
-        self.out_features = out_features
-        self.raw_weight = torch.nn.Parameter(torch.empty((out_features, in_features), **factory_kwargs))
-        #self.__reset_parameters__the_plain_rand01_style()
-        #self.grad_protection 1w 继续
+        self.in_dim = in_features
+        self.out_dim = out_features
+        self._init_to_nan = init_to_nan
+        self._raw_weight___oCAP_iCAP = torch.nn.Parameter(torch.empty(
+                init_capacity__for_out, init_capacity__for_in,
+                        requires_grad = False, **factory_kwargs), 
+                        requires_grad = False)
+        assert self._raw_weight___oCAP_iCAP.dtype in [torch.float, torch.float16, torch.float32, torch.float64, torch.bfloat16]
+        if self._init_to_nan:
+            self._raw_weight___oCAP_iCAP.fill_(torch.nan)
+            pass
 
+        #<  modulized functions.
+        self._random_init_algo = _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style
+        self._raw_weight___oCAP_iCAP[:self.out_dim, :self.in_dim] = \
+                self._random_init_algo(out_features, in_features, 
+                        device=device, dtype=self._raw_weight___oCAP_iCAP.dtype)
+        self._calc_bigger_capacity__for_in = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in
+        self._calc_bigger_capacity__for_out = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out
         pass
+    '''plain shape related.'''
+    def capacity_of_in_dim(self)->int:
+        '''get'''
+        return self._raw_weight___oCAP_iCAP.shape[1] 
+    def capacity_of_out_dim(self)->int:
+        '''get'''
+        return self._raw_weight___oCAP_iCAP.shape[0] 
+    
 
-    # def __reset_parameters__the_plain_rand01_style(self) -> None:
-    #     '''copied from torch.nn.Linear'''
-    #     self.raw_weight.data = torch.rand_like(self.raw_weight)*-1.# they should be <0.
-    #     pass
     
     if "idk if it's still useful" and False:
 
@@ -137,43 +331,876 @@ class DigitalMapper_full__2026(torch.nn.Module):
                 pass
             return
         pass
-
-
-
+    '''forward function for neural net like.'''
     def forward(self, input:torch.Tensor)->torch.Tensor:
         '''input.shape must be [ batch, _ ]. Use the input container.'''
+        #<  rename with the shape
         input___b_i = input
 
-        _temp_one_hot___o = self.raw_weight.argmax(dim=1)
-        output___b_o = input___b_i[:, _temp_one_hot___o]
+
+        assert False,"1w 要不要用 get_max_index()"
+
+        the_useful_part___o_i = self.get_useful_part_of_raw_weight()#or do I want to squeeze it??? No for now. Untested.
+        #<  real payload
+        #_temp_index___o = the_useful_part___o_i.argmax(dim=1)
+        _temp_index___o = self.get_max_index()
+        output___b_o = input___b_i[:, _temp_index___o]
+        del _temp_index___o
+        assert False, "untested"
         return output___b_o
-        1w
         #end of function.
-
-
-    def keep_output_slot(self, keep_which:torch.Tensor)->None:
-            assert keep_which.shape.__len__() == 1
-            assert keep_which.dtype == torch.bool
-            self.raw_weight.data = self.raw_weight[keep_which,:]
-            return
-    def remove_output_slot(self, remove_which:torch.Tensor)->None:
-            self.keep_output_slot(remove_which.logical_not())
-            return
-
     def get_max_index(self)->torch.Tensor:
         with torch.no_grad():
-            the_max_index = self.raw_weight.max(dim=1,keepdim=False).indices
+            _temp_useful_part = self.get_useful_part_of_raw_weight()
+            the_max_index = _temp_useful_part.max(dim=1).indices
             return the_max_index
 
+    ''' get useful part         squeeze'''
+    def get_useful_part_of_raw_weight___and_squeeze(self, squeeze_in = False, squeeze_out = False)->torch.Tensor:
+        self._squeeze(squeeze_in = squeeze_in, squeeze_out = squeeze_out)
+        result = self._raw_weight___oCAP_iCAP[:self.out_dim,:self.in_dim]
+        return result
+    
+    def get_useful_part_of_raw_weight(self)->torch.Tensor:
+        result = self._raw_weight___oCAP_iCAP[:self.out_dim,:self.in_dim]
+        return result
+    
+    def _squeeze(self, squeeze_in = False, squeeze_out = False):
+        '''This function is designed for inner use inside this class. 
+
+        If you need to control the timing and you know what you are doing, feel free to do anything.'''
+        #<  safety
+        assert squeeze_in or squeeze_out, "No real payload is asked. Why do you call this function? Or if you know what you are doing, comment this line out."
+
+        #<  real payload
+        # calc new capacity.
+        _temp_new_out_capacity = self.capacity_of_out_dim()
+        if squeeze_out:
+            _temp_new_out_capacity = self.out_dim
+            pass
+        _temp_new_in_capacity = self.capacity_of_in_dim()
+        if squeeze_in:
+            _temp_new_in_capacity = self.in_dim
+            pass
+
+        _temp_new_memory = torch.empty(size=[_temp_new_out_capacity,_temp_new_in_capacity])
+        if self._init_to_nan:
+            _temp_new_memory.fill_(torch.nan)
+            pass
+        _temp_new_memory[self.out_dim, self.in_dim] = self._raw_weight___oCAP_iCAP.data[self.out_dim, self.in_dim]
+        self._raw_weight___oCAP_iCAP.data = _temp_new_memory
+        assert False, "untested"
+        return
+
+    '''add input slot'''
+    def add_input_slot__to_the_tail(self, how_many = 0, new_raw_weight_part:torch.Tensor = torch.empty(size=[0]))->None:
+        '''The param combination is either (0, some tensor), or (some number, empty tensor). 
+        
+        If new_raw_weight_part is not empty, its shape must be [out_dim, extra_in_dim]'''
+        #<  wash the param.
+        if how_many == 0:
+            if new_raw_weight_part.nelement() == 0:
+                assert False, "Bad param combination. Either how_many > 0, or new_raw_weight_part is provided."
+                pass# if new_raw_weight_part.nelement() == 0:
+            assert new_raw_weight_part.shape.__len__() == 2
+            how_many = new_raw_weight_part.shape[1]
+            pass# if how_many == 0:
+        else:# how_many != 0:
+            #assert how_many>0#duplicated. 
+            assert new_raw_weight_part.nelement() == 0, "Bad param combination. Both are provided. Remove one of them."
+
+            new_raw_weight_part = self._random_init_algo(self.out_dim, how_many, device=self._raw_weight___oCAP_iCAP.device, dtype=self._raw_weight___oCAP_iCAP.dtype)
+            pass# else of if how_many == 0:
+        
+        #<  real payload
+
+        with torch.no_grad():
+                
+            _size_after = self.in_dim + how_many
+            if _size_after > self.capacity_of_in_dim():# get a bigger new capacity first.
+                _temp___new_capacity = self._calc_bigger_capacity__for_in(
+                        extra_in_dim = how_many, in_dim_now = self.in_dim, out_dim_now = self.out_dim)
+
+                _temp___new_container = torch.empty(size=[self._raw_weight___oCAP_iCAP.shape[0], _temp___new_capacity],
+                        dtype=self._raw_weight___oCAP_iCAP.dtype, device=self._raw_weight___oCAP_iCAP.device)
+                if self._init_to_nan:
+                    _temp___new_container.fill_(torch.nan)
+                    pass
+                _temp___new_container[:self.out_dim, :self.in_dim] = self.get_useful_part_of_raw_weight()
+                self._raw_weight___oCAP_iCAP.data = _temp___new_container
+                pass
+
+            self._raw_weight___oCAP_iCAP.data[:self.out_dim, self.in_dim:self.in_dim + how_many] = new_raw_weight_part
+            self.in_dim = _size_after
+            return
+            #end of function
 
 
+    '''output slot'''
+    def add_output_slot__to_the_tail(self, how_many = 0, new_raw_weight_part:torch.Tensor = torch.empty(size=[0]))->None:
+        '''The param combination is either (0, some tensor), or (some number, empty tensor). 
+        
+        If new_raw_weight_part is not empty, its shape must be [out_dim, extra_in_dim]'''
+        #<  wash the param.
+        if how_many == 0:
+            if new_raw_weight_part.nelement() == 0:
+                assert False, "Bad param combination. Either how_many > 0, or new_raw_weight_part is provided."
+                pass# if new_raw_weight_part.nelement() == 0:
+            assert new_raw_weight_part.shape.__len__() == 2
+            how_many = new_raw_weight_part.shape[0]
+            pass# if how_many == 0:
+        else:# how_many != 0:
+            #assert how_many>0#duplicated. 
+            assert new_raw_weight_part.nelement() == 0, "Bad param combination. Both are provided. Remove one of them."
 
+            new_raw_weight_part = self._random_init_algo(how_many, self.in_dim, device=self._raw_weight___oCAP_iCAP.device, dtype=self._raw_weight___oCAP_iCAP.dtype)
+            pass# else of if how_many == 0:
+        
+        #<  real payload
 
+        with torch.no_grad():
+                
+            _size_after = self.out_dim + how_many
+            if _size_after > self.capacity_of_out_dim():# get a bigger new capacity first.
+                _temp___new_capacity = self._calc_bigger_capacity__for_out(
+                        extra_out_dim = how_many, in_dim_now = self.in_dim, out_dim_now = self.out_dim)
+
+                _temp___new_container = torch.empty(size=[_temp___new_capacity, self._raw_weight___oCAP_iCAP.shape[1]],
+                        dtype=self._raw_weight___oCAP_iCAP.dtype, device=self._raw_weight___oCAP_iCAP.device)
+                if self._init_to_nan:
+                    _temp___new_container.fill_(torch.nan)
+                    pass
+                _temp___new_container[:self.out_dim, :self.in_dim] = self.get_useful_part_of_raw_weight()
+                self._raw_weight___oCAP_iCAP.data = _temp___new_container
+                pass
+
+            self._raw_weight___oCAP_iCAP.data[self.out_dim:self.out_dim + how_many, :self.in_dim] = new_raw_weight_part
+            self.out_dim = _size_after
+            return
+        pass# a dead pass to denote the end of function
+
+    def keep_output_slot(self, keep_which:torch.Tensor, squeeze_the_input_dim = False)->None:
+        '''This function also squeeze the memory to minimum.'''
+        assert keep_which.shape.__len__() == 1
+        assert keep_which.dtype == torch.bool
+        #<  real payload
+        _temp__useful_part = self.get_useful_part_of_raw_weight()
+        _temp__useful_part = _temp__useful_part[keep_which,:]
+        if squeeze_the_input_dim:
+            self._raw_weight___oCAP_iCAP.data = _temp__useful_part
+            pass
+        else:# not to squeeze the input dim.
+            _temp___keep_which___in_int = keep_which.to(torch.int32)
+            how_many_to_keep = int(_temp___keep_which___in_int.sum().to(torch.int32).item())
+            self._raw_weight___oCAP_iCAP.data = torch.empty(size=[how_many_to_keep, self.capacity_of_in_dim()])
+            if self._init_to_nan:
+                self._raw_weight___oCAP_iCAP.data.fill_(torch.nan)
+                pass
+            self._raw_weight___oCAP_iCAP.data[:, :self.in_dim] = _temp__useful_part
+            pass
+        self.out_dim = self._raw_weight___oCAP_iCAP.shape[0]
+        return 
+    def remove_output_slot(self, remove_which:torch.Tensor, squeeze_the_input_dim = False)->None:
+            self.keep_output_slot(remove_which.logical_not(), 
+                    squeeze_the_input_dim = squeeze_the_input_dim)
+            return
+
+    '''stringify'''
     def extra_repr(self) -> str:
         return f'Output is standard binary range. In_features={self.in_features}, out_features={self.out_features}'
 
+    # def __repr__(self):
+    #     return f"{self.get_useful().__repr__()}, size:{self._size}, DNN input container 2026"
+    # def __str__(self):
+    #     return f"{self.get_useful().__str__()}, size:{self._size}, DNN input container 2026"
+
+    pass# end of class.
 
 
+
+
+#改形状，两种改法。反向查询索引。    
+if "basic reshape. " and __DEBUG_ME__() and True:
+    def ____test____basic_reshape____():
+
+        if "add_input_slot__to_the_tail" and True:
+            in_dim = 5
+            out_dim = 33
+            the_layer = DigitalMapper_layer__2026(5, 33)
+            assert the_layer.in_dim == in_dim
+            assert the_layer.out_dim == out_dim
+            assert the_layer.capacity_of_in_dim() >= in_dim
+            assert the_layer.capacity_of_out_dim() >= out_dim
+            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+            assert not flag__is_nan.any()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+            assert flag__is_nan.all()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+            assert flag__is_nan.all()
+
+            x = 7
+            the_layer.add_input_slot__to_the_tail(how_many=x)
+            new__in_dim = in_dim + x
+            assert the_layer.in_dim == new__in_dim
+            assert the_layer.out_dim == out_dim
+            assert the_layer.capacity_of_in_dim() >= in_dim
+            assert the_layer.capacity_of_in_dim() >= new__in_dim
+            assert the_layer.capacity_of_out_dim() >= out_dim
+            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+            assert not flag__is_nan.any()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+            assert flag__is_nan.all()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+            assert flag__is_nan.all()
+
+
+            for in_dim in [5,17,33]:
+                for out_dim in [7,21,37]:
+                    for x in [12,27,57]:
+                        for _ in range(33):
+                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                            assert the_layer.in_dim == in_dim
+                            assert the_layer.out_dim == out_dim
+                            assert the_layer.capacity_of_in_dim() >= in_dim
+                            assert the_layer.capacity_of_out_dim() >= out_dim
+                            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+                            assert not flag__is_nan.any()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+                            assert flag__is_nan.all()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+                            assert flag__is_nan.all()
+                
+                            the_layer.add_input_slot__to_the_tail(how_many=x)
+                            new__in_dim = in_dim + x
+                            assert the_layer.in_dim == new__in_dim
+                            assert the_layer.out_dim == out_dim
+                            assert the_layer.capacity_of_in_dim() >= in_dim
+                            assert the_layer.capacity_of_in_dim() >= new__in_dim
+                            assert the_layer.capacity_of_out_dim() >= out_dim
+                            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+                            assert not flag__is_nan.any()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+                            assert flag__is_nan.all()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+                            assert flag__is_nan.all()
+                            pass#for _
+                        pass#for x
+                    pass#for out_dim
+                pass#for in_dim
+
+            for in_dim in [5,17,33]:
+                for out_dim in [7,21,37]:
+                    for x in [12,27,57]:
+                        for _ in range(33):
+                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                            assert the_layer.in_dim == in_dim
+                            assert the_layer.out_dim == out_dim
+                            assert the_layer.capacity_of_in_dim() >= in_dim
+                            assert the_layer.capacity_of_out_dim() >= out_dim
+                            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+                            assert not flag__is_nan.any()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+                            assert flag__is_nan.all()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+                            assert flag__is_nan.all()
+                
+                            the_layer.add_input_slot__to_the_tail(new_raw_weight_part=torch.rand(size=[out_dim, x])-10.)
+                            new__in_dim = in_dim + x
+                            assert the_layer.in_dim == new__in_dim
+                            assert the_layer.out_dim == out_dim
+                            assert the_layer.capacity_of_in_dim() >= in_dim
+                            assert the_layer.capacity_of_in_dim() >= new__in_dim
+                            assert the_layer.capacity_of_out_dim() >= out_dim
+                            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+                            assert not flag__is_nan.any()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+                            assert flag__is_nan.all()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+                            assert flag__is_nan.all()
+                            flag__new_added = the_layer._raw_weight___oCAP_iCAP[:out_dim, the_layer.in_dim:new__in_dim].lt(-5)
+                            assert flag__new_added.all()
+
+                            flag__ori = the_layer._raw_weight___oCAP_iCAP[:out_dim, :in_dim].gt(-2)
+                            assert flag__ori.all()
+                            pass#for _
+                        pass#for x
+                    pass#for out_dim
+                pass#for in_dim
+            pass#/ test
+
+        if "add_output_slot__to_the_tail" and True:
+            in_dim = 5
+            out_dim = 7
+            the_layer = DigitalMapper_layer__2026(5, 7)
+            assert the_layer.in_dim == in_dim
+            assert the_layer.out_dim == out_dim
+            assert the_layer.capacity_of_in_dim() >= in_dim
+            assert the_layer.capacity_of_out_dim() >= out_dim
+            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+            assert not flag__is_nan.any()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+            assert flag__is_nan.all()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+            assert flag__is_nan.all()
+
+            x = 12
+            the_layer.add_output_slot__to_the_tail(how_many=x)
+            new__out_dim = out_dim + x
+            assert the_layer.in_dim == in_dim
+            assert the_layer.out_dim == new__out_dim
+            assert the_layer.capacity_of_in_dim() >= in_dim
+            assert the_layer.capacity_of_out_dim() >= out_dim
+            assert the_layer.capacity_of_out_dim() >= new__out_dim
+            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+            assert not flag__is_nan.any()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+            assert flag__is_nan.all()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+            assert flag__is_nan.all()
+
+            for in_dim in [5,17,33]:
+                for out_dim in [7,21,37]:
+                    for x in [12,27,57]:
+                        for _ in range(33):
+                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                            assert the_layer.in_dim == in_dim
+                            assert the_layer.out_dim == out_dim
+                            assert the_layer.capacity_of_in_dim() >= in_dim
+                            assert the_layer.capacity_of_out_dim() >= out_dim
+                            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+                            assert not flag__is_nan.any()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+                            assert flag__is_nan.all()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+                            assert flag__is_nan.all()
+                
+                            the_layer.add_output_slot__to_the_tail(how_many=x)
+                            new__out_dim = out_dim + x
+                            assert the_layer.in_dim == in_dim
+                            assert the_layer.out_dim == new__out_dim
+                            assert the_layer.capacity_of_in_dim() >= in_dim
+                            assert the_layer.capacity_of_out_dim() >= out_dim
+                            assert the_layer.capacity_of_out_dim() >= new__out_dim
+                            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+                            assert not flag__is_nan.any()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+                            assert flag__is_nan.all()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+                            assert flag__is_nan.all()
+                            
+                            pass#for _
+                        pass#for x
+                    pass#for out_dim
+                pass#for in_dim
+
+            for in_dim in [5,17,33]:
+                for out_dim in [7,21,37]:
+                    for x in [12,27,57]:
+                        for _ in range(33):
+                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                            assert the_layer.in_dim == in_dim
+                            assert the_layer.out_dim == out_dim
+                            assert the_layer.capacity_of_in_dim() >= in_dim
+                            assert the_layer.capacity_of_out_dim() >= out_dim
+                            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+                            assert not flag__is_nan.any()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+                            assert flag__is_nan.all()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+                            assert flag__is_nan.all()
+                
+                            the_layer.add_output_slot__to_the_tail(new_raw_weight_part=torch.rand(size=[x, in_dim])-10.)
+                            new__out_dim = out_dim + x
+                            assert the_layer.in_dim == in_dim
+                            assert the_layer.out_dim == new__out_dim
+                            assert the_layer.capacity_of_in_dim() >= in_dim
+                            assert the_layer.capacity_of_out_dim() >= out_dim
+                            assert the_layer.capacity_of_out_dim() >= new__out_dim
+                            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+                            assert not flag__is_nan.any()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+                            assert flag__is_nan.all()
+                            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+                            assert flag__is_nan.all()
+                            
+                            flag__new_added = the_layer._raw_weight___oCAP_iCAP[out_dim:out_dim+x, :in_dim].lt(-5)
+                            assert flag__new_added.all()
+                            flag__ori = the_layer._raw_weight___oCAP_iCAP[:out_dim, :in_dim].gt(-2)
+                            assert flag__ori.all()
+                            pass#for _
+                        pass#for x
+                    pass#for out_dim
+                pass#for in_dim
+            pass#/ test
+
+        if "keep_output_slot      no squeeze on input" and False:
+            '''to valid the result, this test calculates the max_index.'''
+            '''
+            before the function call, the data looks like
+            aaaaaaaaaaaaaaa........
+            aaaaaaaaaaaaaaa........
+            aaaaaaaaaaaaaaa........
+            aaaaaaaaaaaaaaa........
+            .......................
+            .......................
+            (where a is a number, . is nan)
+            after the function call, the data looks like
+            aaaaaaaaaaaaaaa........
+            aaaaaaaaaaaaaaa........
+            
+            In_dim capacity is untouched.
+            '''
+            in_dim = 4#5
+            out_dim = 3#7
+            the_layer = DigitalMapper_layer__2026(in_dim, out_dim, 
+                    init_capacity__for_out = 9, init_capacity__for_in = 6)
+            assert the_layer.in_dim == in_dim
+            assert the_layer.out_dim == out_dim
+            assert the_layer.capacity_of_in_dim() >= in_dim
+            assert the_layer.capacity_of_out_dim() >= out_dim
+            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+            assert not flag__is_nan.any()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+            assert flag__is_nan.all()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+            assert flag__is_nan.all()
+
+            #<  manually 
+            max_index = the_layer.get_max_index()
+            keep_which = torch.tensor([1, 0, 1])#1,1,0,0,1,1,0])
+            new__out_dim = keep_which.sum()
+            keep_which = keep_which.to(torch.bool)
+            #prin(the_layer._raw_weight___oCAP_iCAP.tolist())
+            the_layer.keep_output_slot(keep_which, squeeze_the_input_dim=False)#calc
+            #prin(the_layer._raw_weight___oCAP_iCAP.tolist())
+            assert the_layer.in_dim == in_dim
+            assert the_layer.out_dim == new__out_dim
+            assert the_layer.capacity_of_in_dim() >= in_dim
+            assert the_layer.capacity_of_out_dim() == new__out_dim#no useless output dim
+            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+            assert not flag__is_nan.any()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+            assert flag__is_nan.all()
+            assert the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :].nelement() == 0
+            # flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+            # assert flag__is_nan.all()
+
+            manual__max_index = max_index[keep_which]
+            new__max_index = the_layer.get_max_index()
+            assert _tensor_equal(manual__max_index, new__max_index)
+
+            #  re random useless numbers. If anything relies on this part, the assertion will probably fail.
+            # the_layer._raw_weight___oCAP_iCAP.data[:, :] = \          how to fail the assertion.
+            #         torch.randn_like(the_layer._raw_weight___oCAP_iCAP.data[:, :])*123.    how to fail the assertion.
+            the_layer._raw_weight___oCAP_iCAP.data[:, in_dim:] = \
+                    torch.randn_like(the_layer._raw_weight___oCAP_iCAP.data[:, in_dim:])*123.
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP.data)
+            assert not flag__is_nan.any()
+            new__max_index_2 = the_layer.get_max_index()
+            assert _tensor_equal(manual__max_index, new__max_index_2)
+
+
+            for in_dim in [5,17,53]:
+                for out_dim in [7,21,67]:
+                    for _ in range(15):
+
+                        the_layer = DigitalMapper_layer__2026(in_dim, out_dim)
+                        assert the_layer.in_dim == in_dim
+                        assert the_layer.out_dim == out_dim
+                        assert the_layer.capacity_of_in_dim() >= in_dim
+                        assert the_layer.capacity_of_out_dim() >= out_dim
+                        flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+                        assert not flag__is_nan.any()
+                        flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+                        assert flag__is_nan.all()
+                        flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+                        assert flag__is_nan.all()
+            
+                        #<  manually 
+                        max_index = the_layer.get_max_index()
+                        keep_which = torch.randn(size=[out_dim]).gt(0.)
+                        new__out_dim = keep_which.sum()
+                        keep_which = keep_which.to(torch.bool)
+                        the_layer.keep_output_slot(keep_which, squeeze_the_input_dim=False)#calc
+
+                        assert the_layer.in_dim == in_dim
+                        assert the_layer.out_dim == new__out_dim
+                        assert the_layer.capacity_of_in_dim() >= in_dim
+                        assert the_layer.capacity_of_out_dim() == new__out_dim#no useless output dim
+                        flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+                        assert not flag__is_nan.any()
+                        flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+                        assert flag__is_nan.all()
+                        assert the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :].nelement() == 0
+            
+                        manual__max_index = max_index[keep_which]
+                        new__max_index = the_layer.get_max_index()
+                        assert _tensor_equal(manual__max_index, new__max_index)
+
+                        #  re random useless numbers. If anything relies on this part, the assertion will probably fail.
+                        the_layer._raw_weight___oCAP_iCAP.data[:, in_dim:] = \
+                                torch.randn_like(the_layer._raw_weight___oCAP_iCAP.data[:, in_dim:])*123.
+                        flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP.data)
+                        assert not flag__is_nan.any()
+                        new__max_index_2 = the_layer.get_max_index()
+                        assert _tensor_equal(manual__max_index, new__max_index_2)
+            
+                        pass#for _
+                    pass#for out_dim
+                pass#for in_dim
+            pass#/ test
+
+        if "keep_output_slot      with squeeze on input" and False:
+            '''to valid the result, this test calculates the max_index.'''
+            '''
+            before the function call, the data looks like
+            aaaaaaaaaaaaaaa........
+            aaaaaaaaaaaaaaa........
+            aaaaaaaaaaaaaaa........
+            aaaaaaaaaaaaaaa........
+            .......................
+            .......................
+            (where a is a number, . is nan)
+            after the function call, the data looks like
+            aaaaaaaaaaaaaaa
+            aaaaaaaaaaaaaaa
+            '''
+            in_dim = 4#5
+            out_dim = 3#7
+            the_layer = DigitalMapper_layer__2026(in_dim, out_dim, 
+                    init_capacity__for_out = 9, init_capacity__for_in = 6)
+            assert the_layer.in_dim == in_dim
+            assert the_layer.out_dim == out_dim
+            assert the_layer.capacity_of_in_dim() >= in_dim
+            assert the_layer.capacity_of_out_dim() >= out_dim
+            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+            assert not flag__is_nan.any()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+            assert flag__is_nan.all()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+            assert flag__is_nan.all()
+
+            #<  manually 
+            max_index = the_layer.get_max_index()
+            keep_which = torch.tensor([1, 0, 1])#1,1,0,0,1,1,0])
+            new__out_dim = keep_which.sum()
+            keep_which = keep_which.to(torch.bool)
+            #prin(the_layer._raw_weight___oCAP_iCAP.tolist())
+            the_layer.keep_output_slot(keep_which, squeeze_the_input_dim=True)#calc
+            #prin(the_layer._raw_weight___oCAP_iCAP.tolist())
+            assert the_layer.in_dim == in_dim
+            assert the_layer.out_dim == new__out_dim
+            assert the_layer.capacity_of_in_dim() == in_dim
+            assert the_layer.capacity_of_out_dim() == new__out_dim#no useless output dim
+            assert the_layer._raw_weight___oCAP_iCAP.shape == the_layer.get_useful_part_of_raw_weight().shape
+
+            flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+            assert not flag__is_nan.any()
+            flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP)
+            assert not flag__is_nan.any()
+
+            manual__max_index = max_index[keep_which]
+            new__max_index = the_layer.get_max_index()
+            assert _tensor_equal(manual__max_index, new__max_index)
+
+            for in_dim in [5,17,53]:
+                for out_dim in [7,21,67]:
+                    for _ in range(15):
+
+                        the_layer = DigitalMapper_layer__2026(in_dim, out_dim)
+                        assert the_layer.in_dim == in_dim
+                        assert the_layer.out_dim == out_dim
+                        assert the_layer.capacity_of_in_dim() >= in_dim
+                        assert the_layer.capacity_of_out_dim() >= out_dim
+                        flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+                        assert not flag__is_nan.any()
+                        flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[:, the_layer.in_dim:])
+                        assert flag__is_nan.all()
+                        flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP[the_layer.out_dim:, :])
+                        assert flag__is_nan.all()
+            
+                        #<  manually 
+                        max_index = the_layer.get_max_index()
+                        keep_which = torch.randn(size=[out_dim]).gt(0.)
+                        new__out_dim = keep_which.sum()
+                        keep_which = keep_which.to(torch.bool)
+                        the_layer.keep_output_slot(keep_which, squeeze_the_input_dim=True)#calc
+
+                        assert the_layer.in_dim == in_dim
+                        assert the_layer.out_dim == new__out_dim
+                        assert the_layer.capacity_of_in_dim() == in_dim
+                        assert the_layer.capacity_of_out_dim() == new__out_dim#no useless output dim
+                        assert the_layer._raw_weight___oCAP_iCAP.shape == the_layer.get_useful_part_of_raw_weight().shape
+            
+                        flag__is_nan = torch.isnan(the_layer.get_useful_part_of_raw_weight())
+                        assert not flag__is_nan.any()
+                        flag__is_nan = torch.isnan(the_layer._raw_weight___oCAP_iCAP)
+                        assert not flag__is_nan.any()
+            
+                        manual__max_index = max_index[keep_which]
+                        new__max_index = the_layer.get_max_index()
+                        assert _tensor_equal(manual__max_index, new__max_index)
+                        pass#for _
+                    pass#for out_dim
+                pass#for in_dim
+            pass#/ test
+
+        return 
+    ____test____basic_reshape____()
+    pass
+
+
+
+
+if "add input slot" and __DEBUG_ME__() and True:
+    def ____add_input____():
+
+        if "add input.     full assert      no class" and True:
+
+            batch = 2
+            out_dim = 3
+            in_dim___ori = 5
+            in_dim___new = 7
+
+            #<  dataset
+            input___b_i = torch.tensor([[11.,  12,  13,  14,  15],
+                                        [21.,  22,  23,  24,  25],])
+            assert input___b_i.shape == torch.Size([batch, in_dim___ori])
+
+            extra_input___b_ii = torch.tensor([
+                    [511.,  512,  513,  514,  515,  516,  517],
+                    [521.,  522,  523,  524,  525,  526,  527],])
+            assert extra_input___b_ii.shape == torch.Size([batch, in_dim___new])
+            
+            #<  model param
+            ori___training_buffer___o_i = torch.tensor([  
+                                                    [0.1, 0.2, 0.3, 0.4, 0.5],
+                                                    [0.1, 0.2, 0.3, 1.4, 0.5],
+                                                    [0.1, 1.2, 0.3, 0.4, 0.5],
+                                                    ])### 542 or 431
+            
+            #<  original    forward path
+            _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
+            ori___output___b_o = input___b_i[:, _temp_one_hot___o]
+            del _temp_one_hot___o
+            assert ori___output___b_o.shape == torch.Size([batch, out_dim])
+            assert _tensor_equal(ori___output___b_o, torch.tensor([ [15,  14,  12,],  
+                                                                    [25,  24,  22,],]))
+
+            #<  the new shape
+            in_dim_in_total = in_dim___ori + in_dim___new
+            new___training_buffer___o_ii = torch.empty(size=[out_dim, in_dim_in_total])
+            new___training_buffer___o_ii[:, :in_dim___ori] = ori___training_buffer___o_i[:, :in_dim___ori]
+            new___training_buffer___o_ii[:, in_dim___ori:in_dim_in_total] = torch.tensor([  
+                                                                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                                                                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                                                                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                                                                ])# nothing.
+            assert _tensor_equal(new___training_buffer___o_ii, torch.tensor([  
+                            [0.1, 0.2, 0.3, 0.4, 0.5,           0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                            [0.1, 0.2, 0.3, 1.4, 0.5,           0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                            [0.1, 1.2, 0.3, 0.4, 0.5,           0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                                                                ]))
+
+            assert new___training_buffer___o_ii.shape == torch.Size([out_dim, in_dim_in_total])
+            #<  new         forward path
+            _temp___new____one_hot___o = new___training_buffer___o_ii.argmax(dim=1)
+            flag___same_output_as_ori___o = _temp___new____one_hot___o.lt(in_dim___ori)
+            new___input___b_i = torch.empty(size=[batch, in_dim___ori+in_dim___new])
+            new___input___b_i[:, :in_dim___ori] = input___b_i
+            new___input___b_i[:, in_dim___ori:] = extra_input___b_ii
+            new___output___b_o = new___input___b_i[:, _temp___new____one_hot___o]
+            del _temp___new____one_hot___o
+            #<  assert 
+            assert _tensor_equal(new___output___b_o, torch.tensor([ [517,  14,  12,],  
+                                                                    [527,  24,  22,],]))
+
+            assert _tensor_equal(new___output___b_o[:, [1,2]], ori___output___b_o[:, [1,2]])
+
+            assert _tensor_equal(new___output___b_o[:, [False, True, True]], ori___output___b_o[:, [False, True, True]])
+            assert _tensor_equal(new___output___b_o[:, flag___same_output_as_ori___o], ori___output___b_o[:, flag___same_output_as_ori___o])
+
+            pass#/ test 
+
+        if "add input.     no assert       no class" and True:
+            for batch in[2, 13, 37]:
+                for out_dim in[3, 14, 53]:
+                    for in_dim___ori in[5, 17, 71]:
+                        for in_dim___new in[7, 21, 92]:
+                            for _ in range(22):
+
+                                #<  dataset
+                                input___b_i = torch.rand(size=[batch, in_dim___ori])
+                                extra_input___b_ii = torch.rand(size=[batch, in_dim___new])
+                                
+                                #<  model param
+                                ori___training_buffer___o_i =torch.rand(size=[out_dim, in_dim___ori])
+                                
+                                #<  original    forward path
+                                _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
+                                ori___output___b_o = input___b_i[:, _temp_one_hot___o]
+                                del _temp_one_hot___o
+                                assert ori___output___b_o.shape == torch.Size([batch, out_dim])
+
+                                #<  the new shape
+                                in_dim_in_total = in_dim___ori + in_dim___new
+                                new___training_buffer___o_ii = torch.empty(size=[out_dim, in_dim_in_total])
+                                new___training_buffer___o_ii[:, :in_dim___ori] = ori___training_buffer___o_i[:, :in_dim___ori]
+                                new___training_buffer___o_ii[:, in_dim___ori:in_dim_in_total] = torch.rand(size=[out_dim, in_dim___new])
+                                assert new___training_buffer___o_ii.shape == torch.Size([out_dim, in_dim_in_total])
+                                #<  new         forward path
+                                _temp___new____one_hot___o = new___training_buffer___o_ii.argmax(dim=1)
+                                flag___same_output_as_ori___o = _temp___new____one_hot___o.lt(in_dim___ori)
+                                new___input___b_i = torch.empty(size=[batch, in_dim___ori+in_dim___new])
+                                new___input___b_i[:, :in_dim___ori] = input___b_i
+                                new___input___b_i[:, in_dim___ori:] = extra_input___b_ii
+                                new___output___b_o = new___input___b_i[:, _temp___new____one_hot___o]
+                                del _temp___new____one_hot___o
+                                #<  assert 
+                                assert _tensor_equal(new___output___b_o[:, flag___same_output_as_ori___o], ori___output___b_o[:, flag___same_output_as_ori___o])
+
+                                pass#for _
+                            pass#for batch
+                        pass#for out_dim
+                    pass#for in_dim___ori
+                pass#for in_dim___new
+
+            pass#/ test 
+
+
+        assert False
+        if "add input.     no assert       with class" and True:
+            for batch in[2, 13, 37]:
+                for out_dim in[3, 14, 53]:
+                    for in_dim___ori in[5, 17, 71]:
+                        for in_dim___new in[7, 21, 92]:
+                            for _ in range(22):
+
+                                #<  dataset
+                                input___b_i = torch.rand(size=[batch, in_dim___ori])
+                                extra_input___b_ii = torch.rand(size=[batch, in_dim___new])
+                                
+                                #<  model param
+                                assert False
+                                the_layer = DigitalMapper_layer__2026()
+                                ori___training_buffer___o_i =torch.rand(size=[out_dim, in_dim___ori])
+                                
+                                #<  original    forward path
+                                _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
+                                ori___output___b_o = input___b_i[:, _temp_one_hot___o]
+                                del _temp_one_hot___o
+                                assert ori___output___b_o.shape == torch.Size([batch, out_dim])
+
+                                #<  the new shape
+                                in_dim_in_total = in_dim___ori + in_dim___new
+                                new___training_buffer___o_ii = torch.empty(size=[out_dim, in_dim_in_total])
+                                new___training_buffer___o_ii[:, :in_dim___ori] = ori___training_buffer___o_i[:, :in_dim___ori]
+                                new___training_buffer___o_ii[:, in_dim___ori:in_dim_in_total] = torch.rand(size=[out_dim, in_dim___new])
+                                assert new___training_buffer___o_ii.shape == torch.Size([out_dim, in_dim_in_total])
+                                #<  new         forward path
+                                _temp___new____one_hot___o = new___training_buffer___o_ii.argmax(dim=1)
+                                flag___same_output_as_ori___o = _temp___new____one_hot___o.lt(in_dim___ori)
+                                new___input___b_i = torch.empty(size=[batch, in_dim___ori+in_dim___new])
+                                new___input___b_i[:, :in_dim___ori] = input___b_i
+                                new___input___b_i[:, in_dim___ori:] = extra_input___b_ii
+                                new___output___b_o = new___input___b_i[:, _temp___new____one_hot___o]
+                                del _temp___new____one_hot___o
+                                #<  assert 
+                                assert _tensor_equal(new___output___b_o[:, flag___same_output_as_ori___o], ori___output___b_o[:, flag___same_output_as_ori___o])
+
+                                pass#for _
+                            pass#for batch
+                        pass#for out_dim
+                    pass#for in_dim___ori
+                pass#for in_dim___new
+
+            pass#/ test 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        assert False
+        if "这个怎么写？？？" and True:
+            for batch in [2,5,10]:
+                for out_dim in [3,7,11]:
+                    for in_dim in [6,9,13]:
+                        for _ in range(5):
+                            #<  the answer
+                            keep_these_output = torch.rand(size=[out_dim])
+                            keep_these_output = keep_these_output.gt(0.5)
+
+                            new_out_dim = int(keep_these_output.sum().item())
+
+                            #<  dataset
+                            input___b_i = torch.randn(size=[batch, in_dim])
+                            #<  model param
+                            ori___training_buffer___o_i = torch.randn(size=[out_dim, in_dim])
+                            #<  original    forward path
+                            _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
+                            ori___output___b_o = input___b_i[:, _temp_one_hot___o]
+                            del _temp_one_hot___o
+                            assert ori___output___b_o.shape == torch.Size([batch, out_dim])
+                            #<  the new shape
+                            new___training_buffer___o_i = ori___training_buffer___o_i[keep_these_output,:]
+                            assert new___training_buffer___o_i.shape == torch.Size([new_out_dim, in_dim])
+                            _temp___new____one_hot___o = new___training_buffer___o_i.argmax(dim=1)
+                            new___output___b_o = input___b_i[:, _temp___new____one_hot___o]
+                            del _temp___new____one_hot___o
+                            #<  assert 
+                            assert _tensor_equal(new___output___b_o, ori___output___b_o[:, keep_these_output])
+                            pass#for _
+                        pass#for in_dim
+                    pass#for out_dim
+                pass#for batch
+            pass#/ test
+        
+        if "xxxxxxxxxxxxxxxxxx" and True:
+            for batch in [2,5,10]:
+                for out_dim in [3,7,11]:
+                    for in_dim in [6,9,13]:
+                        for _ in range(5):
+                            #<  the answer
+                            keep_these_output = torch.rand(size=[out_dim])
+                            keep_these_output = keep_these_output.gt(0.5)
+
+                            new_out_dim = int(keep_these_output.sum().item())
+
+                            #<  dataset
+                            input___b_i = torch.randn(size=[batch, in_dim])
+                            #<  model
+                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                            #<  original    forward path
+                            ori___output___b_o = the_layer.forward(input___b_i)
+                            assert ori___output___b_o.shape == torch.Size([batch, out_dim])
+                            #<  the new shape
+                            the_layer.keep_output_slot(keep_these_output)
+                            assert the_layer.raw_weight.shape == torch.Size([new_out_dim, in_dim])
+                            new___output___b_o = the_layer.forward(input___b_i)
+                            #<  assert 
+                            assert _tensor_equal(new___output___b_o, ori___output___b_o[:, keep_these_output])
+                            pass#for _
+                        pass#for in_dim
+                    pass#for out_dim
+                pass#for batch
+            pass#/ test
+
+
+
+
+        return 
+    ____add_input____()
     pass
 
 
@@ -184,7 +1211,8 @@ class DigitalMapper_full__2026(torch.nn.Module):
 
 
 
-if "改形状，两种改法。反向查询。     这个属于 the layer class.  " and __DEBUG_ME__() and True:
+
+if "delete output slot" and __DEBUG_ME__() and False:
     def ____delete_output____():
         if "delete output.      without class" and True:
 
@@ -238,7 +1266,6 @@ if "改形状，两种改法。反向查询。     这个属于 the layer class.
 
                             #<  dataset
                             input___b_i = torch.randn(size=[batch, in_dim])
-                            label___b_o = torch.randn(size=[batch, out_dim])
                             #<  model param
                             ori___training_buffer___o_i = torch.randn(size=[out_dim, in_dim])
                             #<  original    forward path
@@ -261,7 +1288,6 @@ if "改形状，两种改法。反向查询。     这个属于 the layer class.
             pass#/ test
         
         if "delete output,      with class         scan it" and True:
-            1w  继续
             for batch in [2,5,10]:
                 for out_dim in [3,7,11]:
                     for in_dim in [6,9,13]:
@@ -274,20 +1300,15 @@ if "改形状，两种改法。反向查询。     这个属于 the layer class.
 
                             #<  dataset
                             input___b_i = torch.randn(size=[batch, in_dim])
-                            label___b_o = torch.randn(size=[batch, out_dim])
-                            #<  model param
-                            ori___training_buffer___o_i = torch.randn(size=[out_dim, in_dim])
+                            #<  model
+                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
                             #<  original    forward path
-                            _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
-                            ori___output___b_o = input___b_i[:, _temp_one_hot___o]
-                            del _temp_one_hot___o
+                            ori___output___b_o = the_layer.forward(input___b_i)
                             assert ori___output___b_o.shape == torch.Size([batch, out_dim])
                             #<  the new shape
-                            new___training_buffer___o_i = ori___training_buffer___o_i[keep_these_output,:]
-                            assert new___training_buffer___o_i.shape == torch.Size([new_out_dim, in_dim])
-                            _temp___new____one_hot___o = new___training_buffer___o_i.argmax(dim=1)
-                            new___output___b_o = input___b_i[:, _temp___new____one_hot___o]
-                            del _temp___new____one_hot___o
+                            the_layer.keep_output_slot(keep_these_output)
+                            assert the_layer.raw_weight.shape == torch.Size([new_out_dim, in_dim])
+                            new___output___b_o = the_layer.forward(input___b_i)
                             #<  assert 
                             assert _tensor_equal(new___output___b_o, ori___output___b_o[:, keep_these_output])
                             pass#for _

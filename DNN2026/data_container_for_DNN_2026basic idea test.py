@@ -131,7 +131,7 @@ if "how to update output    example.    not the final version." and __DEBUG_ME__
             #<  model param
             training_buffer___o_i = torch.tensor([   [0.1, 0.2, 0.3],
                                                     [0.1, 1.2, 0.3]])
-            #training_target___b_o____or_empty = torch.empty(size=[])  not for now.
+            #training_target___b_o____or_empty = torch.empty(size=[0])  not for now.
 
             #<  forward path
             the_input_for_this_layer___b_i = input___b_i.detach().clone()
@@ -159,6 +159,8 @@ if "how to update output    example.    not the final version." and __DEBUG_ME__
     ____how_to_update_example____()
     pass
 
+
+1w 测一下squeeze
 class DNN_input_container_2026(torch.nn.Module):
     '''According to the entire design, this container only provides 1 api.
     
