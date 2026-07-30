@@ -24,6 +24,230 @@ def _line_():
 # 重新做干堆测试。
 
 
+if "some pytorch feature test" and False:
+
+    aaaaaaa = []
+
+    from typing import Any
+    class pytorch_customized_autograd_test(torch.autograd.Function):
+        '''实际上和最早的写法，调用关系上，先forward，后setup_context。两个在forward pass都会调用。
+        以前的写法就是全部都在forward函数里面。感觉区别不大。
+        我以前的笔记里面写过一个，新的3段式的forward好像提供类型检查。'''
+        @staticmethod
+        #def forward(*args: Any, **kwargs: Any)->Any:
+        def forward(*args: Any, **kwargs: Any)->Any:
+            print("inside forward")
+            input_0:torch.Tensor = args[0]
+            return input_0 +1.
+
+        @staticmethod
+        def setup_context(ctx:torch.autograd.function.FunctionCtx, inputs, output):
+            print("inside setup_context")
+            input_0:torch.Tensor = inputs[0]
+            input_1:torch.Tensor = inputs[1]
+            
+            input_0_needs_grad = torch.tensor([input_0.requires_grad])
+            input_1_needs_grad = torch.tensor([input_1.requires_grad])
+            ctx.save_for_backward(input_0, input_1, input_0_needs_grad, input_1_needs_grad)
+
+            aaaaaaa.append(ctx)
+            return
+
+        @staticmethod
+        def backward(ctx, g_in_b_o):
+            (input_0, input_1, input_0_needs_grad, input_1_needs_grad) = ctx.saved_tensors
+            return None, None
+
+        pass  # class
+    if "test" and __DEBUG_ME__() and False:
+        def ____def____call_sequence_test():
+            input_0 = torch.tensor([123.])
+            input_1 = torch.tensor([555.])
+            output:torch.Tensor = pytorch_customized_autograd_test.apply(input_0, input_1)
+            aaaaaaa
+            output.backward(gradient=torch.tensor([1212.]), inputs=[input_0, input_1]) 
+
+
+            return 
+        ____def____call_sequence_test()
+
+        pass
+    pass    
+
+
+if "it looks buggy when output multiple results" and False:
+    '''https://docs.pytorch.org/docs/2.13/notes/extending.html'''
+
+    class MyCube(torch.autograd.Function):
+        @staticmethod
+        def forward(x):
+            # We wish to save dx for backward. In order to do so, it must
+            # be returned as an output.
+            dx = 3 * x ** 2
+            result = x ** 3
+            return result, dx
+
+        @staticmethod
+        def setup_context(ctx, inputs, output):
+            x, = inputs
+            result, dx = output
+            ctx.save_for_backward(x, dx)
+
+        @staticmethod
+        def backward(ctx, grad_output, grad_dx):
+            x, dx = ctx.saved_tensors
+            # In order for the autograd.Function to work with higher-order
+            # gradients, we must add the gradient contribution of `dx`,
+            # which is grad_dx * 6 * x.
+            result = grad_output * dx + grad_dx * 6 * x
+            return result
+
+    # Wrap MyCube in a function so that it is clearer what the output is
+
+    input = torch.tensor([2.], requires_grad=True)
+    result:torch.Tensor
+    result, dx = MyCube.apply(input)
+
+    dx.backward(gradient=torch.tensor([7.]), inputs=[input])
+    result.backward(gradient=torch.tensor([3.]), inputs=[input])
+    pass
+
+
+
+
+
+
+
+
+
+
+
+if "backward algo test" and True:
+    batch = 3
+    in_dim = 5
+    out_dim = 2
+    #<  all the data.
+    target___b_o = torch.tensor([   [1., 1,],
+                                    [1., 1,],
+                                    [1., 1,],])
+    assert target___b_o.shape == torch.Size([batch, out_dim])
+
+    input___b_i = torch.tensor([[1., 1,1,1,1,],
+                                [1., 1,1,1,1,],
+                                [1., 1,1,1,1,],])
+    assert input___b_i.shape == torch.Size([batch, in_dim])
+
+    raw_weight___o_i = torch.tensor([   [1., 1,1,1,1,],
+                                        [1., 1,1,1,1,],])
+    assert raw_weight___o_i.shape == torch.Size([out_dim, in_dim])
+    
+    output___b_o = torch.tensor([   [1., 1,],
+                                    [1., 1,],
+                                    [1., 1,],])
+    assert output___b_o.shape == torch.Size([batch, out_dim])
+
+    #<  init results to None
+    grad__input___b_i     :tuple[torch.tensor|None] = None
+    grad__raw_weight___o_i:tuple[torch.tensor|None] = None
+
+
+
+    
+
+    if "input___b_i.requires_grad":
+        这个比较复杂。。。。
+
+
+        pass
+
+
+    if "raw_weight___o_i.requires_grad":
+
+
+
+
+
+
+        pass
+    pass
+
+
+
+
+
+
+
+assert False, "继续"
+class autograd_function_class_for__DigitalMapper_layer__2026(torch.autograd.Function):
+    r'''
+    forward input list:
+    >>> input___b_i
+    >>> raw_weight___o_i (make sure this is output of get_useful())
+    
+    backward input list:
+    >>> g_in #shape of g_in must be [batch, out_features]
+    '''
+    @staticmethod
+    def forward(input___b_i:torch.Tensor, raw_weight___o_i:torch.Tensor)->torch.Tensor:
+        # input___b_i:torch.Tensor = args[0]# shape must be [batch, in_features]
+        # raw_weight___o_i:torch.Tensor = args[1]# shape must be [out_features, in_features]
+
+        #<  real payload
+        _temp_index___o = raw_weight___o_i.max(dim=1).indices
+        output___b_o = input___b_i[:, _temp_index___o]
+        return output___b_o
+
+    @staticmethod
+    def setup_context(ctx, inputs, output):
+        input___b_i:torch.Tensor = inputs[0]
+        raw_weight___o_i:torch.Tensor = inputs[1]
+        output___b_o:torch.Tensor = output
+        ctx.save_for_backward(input___b_i, raw_weight___o_i, output___b_o)
+
+    @staticmethod
+    def backward(ctx, target___b_o):
+        #shape of g_in must be [batch, out_features]
+        input___b_i:torch.Tensor
+        raw_weight___o_i:torch.Tensor
+        output___b_o:torch.Tensor
+        (input___b_i, raw_weight___o_i, output___b_o) = ctx.saved_tensors
+
+        grad__input___b_i     :tuple[torch.tensor|None] = None
+        grad__raw_weight___o_i:tuple[torch.tensor|None] = None
+
+        
+        
+        assert False
+        
+
+        # if input___b_i.requires_grad:
+        # if raw_weight___o_i.requires_grad:
+
+
+
+        return grad__input___b_i, grad__raw_weight___o_i
+    
+    
+    pass  # class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
