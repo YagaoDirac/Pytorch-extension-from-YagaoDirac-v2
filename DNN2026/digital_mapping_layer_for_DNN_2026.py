@@ -1,7 +1,7 @@
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from pytorch_yagaodirac_v2.Util import _tensor_equal, _bool_equal___0_as_false, \
+from pytorch_yagaodirac_v2.Util import _tensor_equal, _bool_equal___0_as_false, _either_1_or_neg1, _tensor_shape_check, \
         iota
 
 import torch
@@ -74,7 +74,6 @@ if "some pytorch feature test" and False:
         pass
     pass    
 
-
 if "it looks buggy when output multiple results" and False:
     '''https://docs.pytorch.org/docs/2.13/notes/extending.html'''
 
@@ -121,54 +120,146 @@ if "it looks buggy when output multiple results" and False:
 
 
 
-
+'''let me assume the distribution of raw weight is a uniform distribution between -1 to 0 for now.
+        come back later.
+        come back later.
+        come back later.
+'''
 if "backward algo test" and True:
-    batch = 3
-    in_dim = 5
-    out_dim = 2
-    #<  all the data.
-    target___b_o = torch.tensor([   [1., 1,],
-                                    [1., 1,],
-                                    [1., 1,],])
-    assert target___b_o.shape == torch.Size([batch, out_dim])
+    def ____backward_algo_test____():
+        if "fixed shape test" and True:
+            batch = 3
+            in_dim = 5
+            out_dim = 2
+            SOME_HYPER_PARAM___s = 1.
 
-    input___b_i = torch.tensor([[1., 1,1,1,1,],
-                                [1., 1,1,1,1,],
-                                [1., 1,1,1,1,],])
-    assert input___b_i.shape == torch.Size([batch, in_dim])
+            #<  all the data.
+            target___b_o = torch.tensor([   [1., 1,],
+                                            [1., 1,],
+                                            [1., 1,],])
+            assert _tensor_shape_check(target___b_o, batch, out_dim)
 
-    raw_weight___o_i = torch.tensor([   [1., 1,1,1,1,],
+            input_posneg1___b_i = torch.tensor([[1., 1,1,1,1,],
+                                        [1., 1,1,1,1,],
                                         [1., 1,1,1,1,],])
-    assert raw_weight___o_i.shape == torch.Size([out_dim, in_dim])
-    
-    output___b_o = torch.tensor([   [1., 1,],
-                                    [1., 1,],
-                                    [1., 1,],])
-    assert output___b_o.shape == torch.Size([batch, out_dim])
+            assert _tensor_shape_check(input_posneg1___b_i, batch, in_dim)
+            assert _either_1_or_neg1(input_posneg1___b_i)
 
-    #<  init results to None
-    grad__input___b_i     :tuple[torch.tensor|None] = None
-    grad__raw_weight___o_i:tuple[torch.tensor|None] = None
+            raw_weight___o_i = torch.tensor([   [0., -0.5, -1, -1, -1,],
+                                                [0., -0.5, -1, -1, -1,],])
+            assert _tensor_shape_check(raw_weight___o_i, out_dim, in_dim)
+            assert raw_weight___o_i.ge(-1.).all()
+            assert raw_weight___o_i.le( 0.).all()
 
 
+            index_of_max_of_raw_weight___o = raw_weight___o_i.max(dim=1).indices
+            assert _tensor_shape_check(index_of_max_of_raw_weight___o, out_dim)
+            output_posneg1___b_o = input_posneg1___b_i[:, index_of_max_of_raw_weight___o]
+            # output_posneg1___b_o = torch.tensor([   [1., 1,],
+            #                                         [1., 1,],
+            #                                         [1., 1,],])
+            assert _either_1_or_neg1(output_posneg1___b_o)
+            assert _tensor_shape_check(output_posneg1___b_o, batch, out_dim)
 
-    
+            #<  real payload
+            #<  init results to None
+            grad_like_for___input___b_i     :torch.Tensor|None = None
+            grad_like_for___raw_weight___o_i:torch.Tensor|None = None
 
-    if "input___b_i.requires_grad":
-        这个比较复杂。。。。
-
-
-        pass
-
-
-    if "raw_weight___o_i.requires_grad":
-
-
+            if "raw_weight___o_i.requires_grad" or "input___b_i.requires_grad":
+                target___b_o_EXPANDi = target___b_o.reshape(shape=[target___b_o.shape[0], target___b_o.shape[1], 1]). \
+                        expand(size=[-1, -1, input_posneg1___b_i.shape[1]])
+                assert _tensor_shape_check(target___b_o_EXPANDi, batch, out_dim, in_dim)
+                pass
 
 
+            if "raw_weight___o_i.requires_grad":
+                input_posneg1___b_oEXPAND_i = input_posneg1___b_i.reshape(shape=[input_posneg1___b_i.shape[0], 1, input_posneg1___b_i.shape[1]]). \
+                        expand(size=[-1, target___b_o.shape[1], -1])
+                assert _tensor_shape_check(input_posneg1___b_oEXPAND_i, batch, out_dim, in_dim)
+
+                grad_like_for___raw_weight___before_sum___b_o_i = input_posneg1___b_oEXPAND_i*target___b_o_EXPANDi
+                assert grad_like_for___raw_weight___before_sum___b_o_i.shape == torch.Size([batch, out_dim, in_dim])
+                grad_like_for___raw_weight___o_i = grad_like_for___raw_weight___before_sum___b_o_i.sum(dim=0)
+                assert grad_like_for___raw_weight___o_i.shape == torch.Size([out_dim, in_dim])
+
+                #控制变量的范围是优化器的事情.
+                pass
 
 
-        pass
+            if "input___b_i.requires_grad":
+                #<  accuracy
+                target_posneg1___b_o = target___b_o.gt(0.)
+                target_posneg1___b_o = target_posneg1___b_o.to(torch.int32)
+                target_posneg1___b_o = target_posneg1___b_o*2 -1
+                assert _either_1_or_neg1(target_posneg1___b_o)
+                assert target_posneg1___b_o.shape == torch.Size([batch, out_dim])
+                element_mul_of_target_and_output___b_o = target_posneg1___b_o * output_posneg1___b_o
+                element_mul_of_target_and_output___b_o = element_mul_of_target_and_output___b_o.to(torch.float32)
+                accuracy___o = element_mul_of_target_and_output___b_o.mean(dim=0)
+                accuracy___o = (accuracy___o +1.)*0.5
+                assert accuracy___o.shape == torch.Size([out_dim])
+                assert accuracy___o.ge(0.).all()
+                assert accuracy___o.le(1.).all()
+                #assert False, "the sharpness-controlled softmax also is not tested."
+                #<  a sharpness-controlled softmax.
+                # let me assume the distribution of raw weight is a uniform distribution between -1 to 0.
+                sharpen_factor__from_accuracy___o:torch.Tensor = accuracy___o*SOME_HYPER_PARAM___s
+                assert sharpen_factor__from_accuracy___o.shape == torch.Size([out_dim])
+                assert sharpen_factor__from_accuracy___o.ge(0.).all()
+                sharpen_factor__from_accuracy___o_EXPANDi = sharpen_factor__from_accuracy___o. \
+                        reshape(shape=[-1, 1]).expand(size=[-1, raw_weight___o_i.shape[1]])
+                assert sharpen_factor__from_accuracy___o_EXPANDi.shape == torch.Size([out_dim, in_dim])
+
+                sharpened_raw_weight___o_i = raw_weight___o_i*sharpen_factor__from_accuracy___o_EXPANDi
+
+                soft_part_of_the_one_hot___o_i = sharpened_raw_weight___o_i.softmax(dim=1)
+                _assert_only___sum_of_so_how_should_I_name_it___o = soft_part_of_the_one_hot___o_i.sum(dim=1)
+                assert _assert_only___sum_of_so_how_should_I_name_it___o.shape == torch.Size([out_dim])
+                assert _tensor_equal(_assert_only___sum_of_so_how_should_I_name_it___o, 
+                                        torch.ones_like(_assert_only___sum_of_so_how_should_I_name_it___o))
+
+                #some pytorch feature test
+                a = torch.zeros(size=[2,7])
+                a[[0,1], [6,3]] = 1.
+                assert _tensor_equal(a, [   [0, 0, 0, 0, 0, 0, 1],
+                                            [0, 0, 0, 1, 0, 0, 0]])
+                
+                a = torch.zeros(size=[2,7])
+                a[:, [6,3]] = 1.
+                assert _tensor_equal(a, [   [0, 0, 0, 0, 0, 0, 1],
+                                            [0, 0, 0, 1, 0, 0, 0]]) == False
+
+                iota_of_out = iota(out_dim)
+                hard_part_of_the_one_hot___o_i = torch.zeros_like(soft_part_of_the_one_hot___o_i)
+                hard_part_of_the_one_hot___o_i[iota_of_out, index_of_max_of_raw_weight___o] = 1.
+                
+
+                accuracy___o_EXPANDi = accuracy___o.reshape(shape=[-1, 1]).expand(size=[-1, raw_weight___o_i.shape[1]])
+                assert _tensor_shape_check(accuracy___o_EXPANDi, out_dim, in_dim)
+                the_one_hot___o_i =       accuracy___o_EXPANDi  * hard_part_of_the_one_hot___o_i + \
+                                    (1. - accuracy___o_EXPANDi) * soft_part_of_the_one_hot___o_i
+                
+                
+                the_one_hot___EXPANDb_o_i = the_one_hot___o_i. \
+                        reshape(shape=[1, the_one_hot___o_i.shape[0], the_one_hot___o_i.shape[1]]). \
+                        expand(size=[target___b_o_EXPANDi.shape[0], -1, -1])
+                assert the_one_hot___EXPANDb_o_i.shape == torch.Size([batch, out_dim, in_dim])
+                
+                
+                grad_like_for___input___before_sum___b_o_i = the_one_hot___EXPANDb_o_i*target___b_o_EXPANDi
+                assert grad_like_for___input___before_sum___b_o_i.shape == torch.Size([batch, out_dim, in_dim])
+                grad_like_for___input___b_i = grad_like_for___input___before_sum___b_o_i.sum(dim=1)
+                assert grad_like_for___input___b_i.shape == torch.Size([batch, in_dim])
+
+                #更精细的控制是gramo的事情。
+                pass
+                #return ???????????
+            pass#/ test
+
+
+        return
+    ____backward_algo_test____()
     pass
 
 
@@ -201,8 +292,8 @@ class autograd_function_class_for__DigitalMapper_layer__2026(torch.autograd.Func
     def setup_context(ctx, inputs, output):
         input___b_i:torch.Tensor = inputs[0]
         raw_weight___o_i:torch.Tensor = inputs[1]
-        output___b_o:torch.Tensor = output
-        ctx.save_for_backward(input___b_i, raw_weight___o_i, output___b_o)
+        #output___b_o:torch.Tensor = output
+        ctx.save_for_backward(input___b_i, raw_weight___o_i, )
 
     @staticmethod
     def backward(ctx, target___b_o):
@@ -210,14 +301,14 @@ class autograd_function_class_for__DigitalMapper_layer__2026(torch.autograd.Func
         input___b_i:torch.Tensor
         raw_weight___o_i:torch.Tensor
         output___b_o:torch.Tensor
-        (input___b_i, raw_weight___o_i, output___b_o) = ctx.saved_tensors
+        (input___b_i, raw_weight___o_i) = ctx.saved_tensors
 
         grad__input___b_i     :tuple[torch.tensor|None] = None
         grad__raw_weight___o_i:tuple[torch.tensor|None] = None
 
         
         
-        assert False
+        assert False, "在前面的测试里面"
         
 
         # if input___b_i.requires_grad:

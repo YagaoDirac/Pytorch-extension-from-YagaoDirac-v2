@@ -50,6 +50,68 @@ if "test" and __DEBUG_ME__() and False:
         return 
     ____test_____float_equal()
     pass
+
+
+
+# def my_function(*args):
+#     for arg in args:
+#         print(arg)
+# my_function(1, 2, 3, "a", "b", "c")
+
+
+def _tensor_shape_check(the_tensor:torch.Tensor, *args)->bool:
+    _temp_shape = torch.Size(args)
+    return the_tensor.shape == _temp_shape
+
+if "test" and __DEBUG_ME__() and False:
+    def ____test______tensor_shape_check():
+        assert _tensor_shape_check(torch.rand(size=[2,3,4]), 2,3,4)
+
+        import random
+        for _ in range(155):
+            a = random.randint(3,20)
+            b = random.randint(3,20)
+            assert _tensor_shape_check(torch.rand(size=[a,b]), a,b)
+            pass
+
+        for _ in range(155):
+            a = random.randint(3,20)
+            b = random.randint(3,20)
+            c = random.randint(3,20)
+            assert _tensor_shape_check(torch.rand(size=[a,b,c]), a,b,c)
+            pass
+
+        for _ in range(155):
+            a = random.randint(3,20)
+            b = random.randint(3,20)
+            c = random.randint(3,20)
+            d = random.randint(3,20)
+            assert _tensor_shape_check(torch.rand(size=[a,b,c,d]), a,b,c,d)
+            pass
+
+        for _ in range(155):
+            a = random.randint(3,20)
+            b = random.randint(3,20)
+            if a == b:
+                continue
+            assert _tensor_shape_check(torch.rand(size=[b,a]), a,b) == False
+            pass
+        
+        for _ in range(155):
+            a = random.randint(3,20)
+            b = random.randint(3,20)
+            assert _tensor_shape_check(torch.rand(size=[a,b]), a+1,b) == False
+            pass
+
+        return
+    ____test______tensor_shape_check()
+    pass
+
+
+
+
+
+
 def _tensor_equal(  a:torch.Tensor|list[float]|list[list[float]], \
                     b:torch.Tensor|list[float]|list[list[float]], \
                         epsilon:float = 0.0001)->bool:
@@ -84,20 +146,133 @@ def _tensor_equal(  a:torch.Tensor|list[float]|list[list[float]], \
         return the_item
     pass#end of function
 if "test" and __DEBUG_ME__() and False:
-    assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.]))
-    assert _tensor_equal(torch.tensor([1.,2.]), [1.,2.])
-    #assert _tensor_equal(torch.tensor([1.]), torch.tensor([[1.]]))
-    assert _tensor_equal(torch.tensor([[1.]]), torch.tensor([[1.]]))
-    assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.000001]))
-    assert _tensor_equal(torch.tensor([1.]), torch.tensor([0.99999]))
-    assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.001])) == False
-    
-    #shape
-    assert _tensor_equal(torch.tensor([0.]), torch.tensor([0.]))
-    assert _tensor_equal(torch.tensor([0.]), torch.tensor(0.))
-    assert _tensor_equal(torch.tensor(0.), torch.tensor([0.]))
-    assert _tensor_equal(torch.tensor(0.), torch.tensor(0.))
+    def ____test_____tensor_equal():
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.]))
+        assert _tensor_equal(torch.tensor([1.,2.]), [1.,2.])
+        #assert _tensor_equal(torch.tensor([1.]), torch.tensor([[1.]]))
+        assert _tensor_equal(torch.tensor([[1.]]), torch.tensor([[1.]]))
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.000001]))
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([0.99999]))
+        assert _tensor_equal(torch.tensor([1.]), torch.tensor([1.001])) == False
+        
+        #shape
+        assert _tensor_equal(torch.tensor([0.]), torch.tensor([0.]))
+        assert _tensor_equal(torch.tensor([0.]), torch.tensor(0.))
+        assert _tensor_equal(torch.tensor(0.), torch.tensor([0.]))
+        assert _tensor_equal(torch.tensor(0.), torch.tensor(0.))
+
+        return
+    ____test_____tensor_equal()
     pass
+
+
+
+
+
+
+def _bool_equal___0_as_false(  a:torch.Tensor|list[int]|list[list[int]], \
+                    b:torch.Tensor|list[int]|list[list[int]], )->bool:
+    if not isinstance(a, torch.Tensor):
+        a = torch.tensor(a, dtype = torch.bool)
+        pass
+    if not isinstance(b, torch.Tensor):
+        b = torch.tensor(b, dtype = torch.bool)
+        pass
+    #check the shape.
+    if a.shape == torch.Size([]):
+        assert b.shape == torch.Size([]) or b.shape == torch.Size([1])
+        pass
+    elif b.shape == torch.Size([]):#a is not Size([])
+        assert a.shape == torch.Size([1])
+        pass
+    else:#no Size([]), a normal check.
+        assert a.shape == b.shape
+        pass
+    
+    # maybe I should not do this???
+    # if a.device.type!=b.device.type or a.device.index!=b.device.index:
+    #     proxy_of_a = a.detach().clone().to(b.device)
+    with torch.inference_mode():
+        result = a.eq(b).all()
+        return result
+    pass#end of function
+if "test" and __DEBUG_ME__() and False:
+    def ____test____bool_equal____():
+        if "dtype test" and True:
+            int_test_1 = torch.tensor([1,  -1,  0], dtype=torch.int32)
+            int_test_1 = int_test_1.to(torch.bool)
+            assert int_test_1.dtype == torch.bool
+            assert int_test_1[0] == True
+            assert int_test_1[1] == True
+            assert int_test_1[2] == False
+            int_test_2 = torch.tensor([1,  -1,  0], dtype=torch.int32)
+            int_test_2 = int_test_2.bool()
+            assert int_test_2.dtype == torch.bool
+            assert int_test_2[0] == True
+            assert int_test_2[1] == True
+            assert int_test_2[2] == False
+
+            float_test_1 = torch.tensor([1., -1., 0.], dtype=torch.float)
+            float_test_1 = float_test_1.to(torch.bool)
+            assert float_test_1.dtype == torch.bool
+            assert float_test_1[0] == True
+            assert float_test_1[1] == True
+            assert float_test_1[2] == False
+            float_test_2 = torch.tensor([1., -1., 0.], dtype=torch.float)
+            float_test_2 = float_test_2.bool()
+            assert float_test_2.dtype == torch.bool
+            assert float_test_2[0] == True
+            assert float_test_2[1] == True
+            assert float_test_2[2] == False
+            pass#/ test
+
+        if "function behavior" and True:
+            assert _tensor_equal(torch.tensor([1]), torch.tensor([1]))
+            assert _tensor_equal(torch.tensor([1, 1]), [1, 1])
+            assert _tensor_equal(torch.tensor(1), [1])
+
+            assert _tensor_equal(torch.tensor([1]), torch.tensor([0])) == False
+            assert _tensor_equal(torch.tensor([1, 1]), [1, 0]) == False
+            assert _tensor_equal(torch.tensor([1, 1]), [0, 0]) == False
+            assert _tensor_equal(torch.tensor(1), [0]) == False
+            pass#/ test
+
+        return  
+    ____test____bool_equal____()
+    pass
+
+def _either_1_or_neg1(input:torch.Tensor)->torch.Tensor:
+    flag__is_1 = input.eq(1)
+    flag__is_neg1 = input.eq(-1)
+    flag__either = flag__is_1.logical_or(flag__is_neg1)
+    return flag__either.all()
+if "test" and __DEBUG_ME__() and False:
+    def ____test____either_1_or_neg1():
+        assert _either_1_or_neg1(torch.tensor([1, -1, 1]))
+        assert _either_1_or_neg1(torch.tensor([[1, -1, 1]]))
+        assert _either_1_or_neg1(torch.tensor([[1, -1, 1], [1, -1, 1]]))
+        assert _either_1_or_neg1(torch.tensor([[1, -1, 1], [1, -1, 0]])) == False
+        assert _either_1_or_neg1(torch.tensor([[1, -1, 1], [1, -1, torch.nan]])) == False
+        assert _either_1_or_neg1(torch.tensor([[1, -1, 1], [1, -1, torch.inf]])) == False
+        assert _either_1_or_neg1(torch.tensor([[1, -1, 1], [1, -1, -torch.inf]])) == False
+
+        return 
+    ____test____either_1_or_neg1()
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -420,6 +595,143 @@ if "can it be index?" and __DEBUG_ME__() and False:
         _part_of_data = _data[iota_of_data.to(torch.uint8), iota_of_data]
         pass
     pass
+
+
+
+
+
+
+'''measuren a M@(M.T). 再想想'''
+def info_of_abs_of_triu(input:torch.Tensor, including_diagonal = False, 
+                                needs_max = False)->tuple[torch.Tensor, torch.Tensor|None]:
+    assert False, "再想想"
+    '''return the_avg, the_max
+    
+    This function was designed to measuren a M@(M.T).'''
+    assert input.shape.__len__() == 2
+    dim = input.shape[-1]
+    
+    if including_diagonal:#with diag
+        before_sum__d_d = input.triu(diagonal=0).abs()#with diag
+        the_sum = before_sum__d_d.sum()
+        the_avg = the_sum/((dim+1)*dim/2.)
+        pass
+    else:#no diag
+        before_sum__d_d = input.triu(diagonal=1).abs()#no diag
+        the_sum = before_sum__d_d.sum()
+        the_avg = the_sum/((dim-1)*dim/2.)
+        pass
+
+    the_max = None
+    if needs_max:
+        the_max = before_sum__d_d.max()
+        assert the_max.shape == torch.Size([])
+        pass
+
+    return the_avg, the_max
+if "test" and __DEBUG_ME__() and False:
+    def ____debug____info_of_abs_of_triu():
+        if "basic" and True:
+
+            input = torch.tensor([[  11., 12, 13],
+                                    [51., 52, 53],
+                                    [61., 62, 63],])
+
+            the_avg, the_max = info_of_abs_of_triu(input, needs_max=True)
+            assert _tensor_equal(input, torch.tensor([[  11., 12, 13],
+                                                        [51., 52, 53],
+                                                        [61., 62, 63],]))
+            assert the_avg == (12+13+53)/3.
+            assert the_max == 53
+
+            input = torch.tensor([[  11., 12, 13],
+                                    [51., 52, 53],
+                                    [61., 62, 63],])
+            the_avg, the_max = info_of_abs_of_triu(input, including_diagonal = True, needs_max=True)
+            assert _tensor_equal(input, torch.tensor([[  11., 12, 13],
+                                                        [51., 52, 53],
+                                                        [61., 62, 63],]))
+            assert the_avg == (11+12+13+52+53+63)/6
+            assert the_max == 63
+            
+            
+            input = torch.tensor([[  11., 12, 13],
+                                    [51., 52, 53],
+                                    [61., 62, 63],])
+            the_avg, the_max = info_of_abs_of_triu(input)
+            assert _tensor_equal(input, torch.tensor([[  11., 12, 13],
+                                                        [51., 52, 53],
+                                                        [61., 62, 63],]))
+            assert the_avg == (12+13+53)/3.
+            assert the_max is None
+            pass#/ test
+
+        if "not including diag" and False:
+            for dim in [3,5,10]:
+                for ii_test in range(33):
+                    #<  ori
+                    input = torch.randn(size=[dim,dim])
+                    ori_input = input.detach().clone()
+                    before_avg, before_max = info_of_abs_of_triu(ori_input, needs_max=True)
+                    #<  modified
+                    for _ in range(dim*dim//2):
+                        sum_of_2_index = random.randint(0, dim-1)
+                        index_0 = random.randint(0, sum_of_2_index)
+                        index_1 = sum_of_2_index - index_0
+                        assert index_0 <= dim-1
+                        assert index_1 <= dim-1
+                        index_0 = (dim-1)-index_0
+                        assert index_0 <= dim-1 and index_0 >= 0
+                        input[index_0, index_1] = torch.randn(size=[])
+                        pass
+                    #<  calc new
+                    # prin(ori_input)
+                    # prin(input)
+                    after_avg, after_max = info_of_abs_of_triu(input, needs_max=True)
+                    #<  assert
+                    assert _tensor_equal(before_avg, after_avg)
+                    assert _tensor_equal(before_max, after_max)
+                    pass# for ii_test
+                pass# for dim
+            pass#/ test
+
+        if "including diag" and True:
+            for dim in [3, 5, 10]:
+                for ii_test in range(33):
+                    #<  ori
+                    input = torch.randn(size=[dim,dim])
+                    ori_input = input.detach().clone()
+                    before_avg, before_max = info_of_abs_of_triu(ori_input, including_diagonal=True, needs_max=True)
+                    #<  modified
+                    for _ in range(dim*dim//2):
+                        sum_of_2_index = random.randint(0, dim-2)
+                        index_0 = random.randint(0, sum_of_2_index)
+                        index_1 = sum_of_2_index - index_0
+                        assert index_0 <= dim-1
+                        assert index_1 <= dim-1
+                        index_0 = (dim-1)-index_0
+                        assert index_0 <= dim-1 and index_0 >= 0
+
+                        #input[index_0, index_1] = torch.nan
+                        input[index_0, index_1] = torch.randn(size=[])
+                        pass
+                    #<  calc new
+                    print(ori_input)
+                    print(input)
+
+                    after_avg, after_max = info_of_abs_of_triu(input, including_diagonal=True, needs_max=True)
+                    #<  assert
+                    assert _tensor_equal(before_avg, after_avg)
+                    assert _tensor_equal(before_max, after_max)
+                    pass# for ii_test
+                pass# for dim
+            pass#/ test
+
+        return 
+    ____debug____info_of_abs_of_triu()
+    pass
+
+
 
 
 
@@ -792,8 +1104,9 @@ if "test get_vector_length" and __DEBUG_ME__() and False:
     ____test____get_vector_length()
     pass
 
-def get_full_info_of_vector_length__1d(input:torch.Tensor, epi = 0.000001)->torch.Tensor:
-    '''return normalized_vector, length_of_input'''
+def get_full_info_of_vector_length__1d(input:torch.Tensor, epi = 0.000001)-> \
+                                                    tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    '''return normalized_vector, length_of_input, sqr_length_of_input'''
     assert input.shape.__len__() == 1# [dim]
     
     sqr_length_of_input__s = input.mul(input).sum()
@@ -802,29 +1115,33 @@ def get_full_info_of_vector_length__1d(input:torch.Tensor, epi = 0.000001)->torc
     length_of_input_safe__s = length_of_input__s.maximum(epi_tensor)
     normalized_vector = input.div(length_of_input_safe__s)
 
-    return normalized_vector, length_of_input__s.squeeze(dim=-1)
+    return normalized_vector, length_of_input__s.squeeze(dim=-1), sqr_length_of_input__s.squeeze(dim=-1)
 if '''some basic test.''' and __DEBUG_ME__() and False:
     def ____test____get_full_info_of_vector_length__1d():
         #this test func is a raw combination of the 2 above.
         input = torch.tensor([0.,0.])
-        normalized_vector, length_of_input = get_full_info_of_vector_length__1d(input)
+        normalized_vector, length_of_input, sqr_length_of_input = get_full_info_of_vector_length__1d(input)
         assert _tensor_equal(normalized_vector, [0.,0.])
         assert normalized_vector.dtype == torch.float32
         assert _tensor_equal(get_vector_length(normalized_vector), [0.])
         assert _tensor_equal(length_of_input, [0.])
         assert length_of_input.dtype == torch.float32
+        assert _tensor_equal(sqr_length_of_input, [0.])
+        assert sqr_length_of_input.dtype == torch.float32
         
         input = torch.tensor([1.,0.])
-        normalized_vector, length_of_input = get_full_info_of_vector_length__1d(input)
+        normalized_vector, length_of_input, sqr_length_of_input = get_full_info_of_vector_length__1d(input)
         assert _tensor_equal(normalized_vector, [1.,0.])
         assert _tensor_equal(get_vector_length(normalized_vector), [1.])
         assert _tensor_equal(length_of_input, [1.])
+        assert _tensor_equal(sqr_length_of_input, [1.])
         
         input = torch.tensor([1.,1.])
-        normalized_vector, length_of_input = get_full_info_of_vector_length__1d(input)
+        normalized_vector, length_of_input, sqr_length_of_input = get_full_info_of_vector_length__1d(input)
         assert _tensor_equal(normalized_vector, [0.7071, 0.7071])
         assert _tensor_equal(get_vector_length(normalized_vector), [1.])
         assert _tensor_equal(length_of_input, [1.4142])
+        assert _tensor_equal(sqr_length_of_input, [2.])
         
         return 
     
@@ -832,8 +1149,9 @@ if '''some basic test.''' and __DEBUG_ME__() and False:
     pass
 
 def get_full_info_of_vector_length__2d(input:torch.Tensor, epi = 0.000001, #dtype_inner = torch.float64,
-                                length_result_dtype = torch.float64, keepdim_for_length = False)->torch.Tensor:
-    '''return normalized_vector, length_of_input'''
+                                length_result_dtype = torch.float64, keepdim_for_length = False)-> \
+                                                            tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    '''return normalized_vector, length_of_input, sqr_length_of_input'''
     assert input.shape.__len__() == 2, "Manully reshape please."# [..., dim]
     
     # __bat = input.shape[0]
@@ -853,58 +1171,72 @@ def get_full_info_of_vector_length__2d(input:torch.Tensor, epi = 0.000001, #dtyp
     normalized_vector__b_d = input.div(length_of_input_safe__b_1EXPANDdim)
     #assert length_of_input_safe__b_1EXPANDdim.shape == torch.Size([__bat, __dim])
     if keepdim_for_length:
-        return normalized_vector__b_d, length_of_input__b_1
-    return     normalized_vector__b_d, length_of_input__b_1.squeeze(dim=-1)
+        return normalized_vector__b_d, length_of_input__b_1, sqr_length_of_input__b_1
+    return     normalized_vector__b_d, length_of_input__b_1.squeeze(dim=-1), sqr_length_of_input__b_1.squeeze(dim=-1)
     #end of function
 if '''some basic test.''' and __DEBUG_ME__() and False:
     def ____test____get_full_info_of_vector_length__2d():
         
         #this test func is a raw combination of the 2 above.
         input = torch.tensor([[0.,0.],[0.,1.],[1.,1.]])
-        normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input)
+        normalized_vector, length_of_input, sqr_length_of_input = get_full_info_of_vector_length__2d(input)
         assert _tensor_equal(normalized_vector, [[0.,0.],[0.,1.],[0.7,0.7]], 0.05)
         assert normalized_vector.dtype == torch.float32
         assert _tensor_equal(get_vector_length(normalized_vector), [0., 1., 1.], 0.001)
         assert _tensor_equal(length_of_input, [0., 1., 1.414], 0.001)
         assert length_of_input.dtype == torch.float64
-        
+        assert _tensor_equal(sqr_length_of_input, [0., 1., 2.], 0.001)
+        assert sqr_length_of_input.dtype == torch.float64
+
         _vector_len = normalized_vector.mul(normalized_vector).sum(dim=1)
         assert _tensor_equal(_vector_len[0 ], torch.zeros_like(_vector_len[0 ]), 0.05)
         assert _tensor_equal(_vector_len[1:], torch.ones_like (_vector_len[1:]), 0.05)
         
         input = torch.tensor([[  1.,   1],
                                 [0.1,  0.1]])
-        transpost_of_normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input.T)
+        transpost_of_normalized_vector, length_of_input, sqr_length_of_input = get_full_info_of_vector_length__2d(input.T)
         normalized_vector = transpost_of_normalized_vector.T
         assert _tensor_equal(normalized_vector,[[0.9950, 0.9950],
                                                 [0.0995, 0.0995]], epsilon=0.001)
         
         input = torch.tensor([[1.,1],[1,2]])
-        normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input)
+        normalized_vector, length_of_input, sqr_length_of_input = get_full_info_of_vector_length__2d(input)
         assert length_of_input.shape == torch.Size([2])
         assert _tensor_equal(length_of_input, [1.4142,2.2361])
-        
+        assert sqr_length_of_input.shape == torch.Size([2])
+        assert _tensor_equal(sqr_length_of_input, [2., 5.])
+
+
         input = torch.tensor([[0.71, 0.71],[1,0]])
-        normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input)
+        normalized_vector, length_of_input, sqr_length_of_input = get_full_info_of_vector_length__2d(input)
         assert length_of_input.shape == torch.Size([2])
         assert _tensor_equal(length_of_input, [1., 1], epsilon=0.01)
-        
+        assert sqr_length_of_input.shape == torch.Size([2])
+        assert _tensor_equal(sqr_length_of_input, [1., 1], epsilon=0.01)
+
         input = torch.tensor([[  0.71, 1],
                                 [0.71, 0]])
-        normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input.T)
+        normalized_vector, length_of_input, sqr_length_of_input = get_full_info_of_vector_length__2d(input.T)
         assert length_of_input.shape == torch.Size([2])
         assert _tensor_equal(length_of_input, [1., 1], epsilon=0.01)
-        
+        assert sqr_length_of_input.shape == torch.Size([2])
+        assert _tensor_equal(sqr_length_of_input, [1., 1], epsilon=0.01)
+
         "dtype"
         input = torch.tensor([[1.],[1]])
-        normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input, length_result_dtype=torch.float16)
+        normalized_vector, length_of_input, sqr_length_of_input = \
+                get_full_info_of_vector_length__2d(input, length_result_dtype=torch.float16)
         assert length_of_input.dtype == torch.float16
-        
+        assert sqr_length_of_input.dtype == torch.float16
+
         "keep dim"
         input = torch.tensor([[1.],[1]])
-        normalized_vector, length_of_input = get_full_info_of_vector_length__2d(input, keepdim_for_length=True)
+        normalized_vector, length_of_input, sqr_length_of_input = \
+                get_full_info_of_vector_length__2d(input, keepdim_for_length=True)
         assert length_of_input.shape.__len__() == 2
         assert length_of_input.shape == torch.Size([2,1])
+        assert sqr_length_of_input.shape.__len__() == 2
+        assert sqr_length_of_input.shape == torch.Size([2,1])
 
         return 
     
@@ -1605,7 +1937,7 @@ if "test" and __DEBUG_ME__() and False:
 
 '''this is the proj == (a.b)/(b.b) * b version.'''
 def vector_proj(input:torch.Tensor, proj_to:torch.Tensor, 
-                needs_error = False, 
+                needs_error = False, proj_to__already_normalized = False
                 )->tuple[torch.Tensor, torch.Tensor|None]:
     '''return proj_vec, error_vec
 
@@ -1615,9 +1947,14 @@ def vector_proj(input:torch.Tensor, proj_to:torch.Tensor,
 
     #input is b_1, proj_to is b_1.
     a_dot_b___b_1 = input.mul(proj_to).sum(dim=-1, keepdim=True)
-    b_dot_b___b_1 = proj_to.mul(proj_to).sum(dim=-1, keepdim=True)
-    t___b_1 = a_dot_b___b_1.div(b_dot_b___b_1)
-    proj_vec = proj_to.mul(t___b_1.expand_as(proj_to))
+    if proj_to__already_normalized :
+        proj_vec = proj_to.mul(a_dot_b___b_1.expand_as(proj_to))
+        pass
+    else:
+        b_dot_b___b_1 = proj_to.mul(proj_to).sum(dim=-1, keepdim=True)
+        t___b_1 = a_dot_b___b_1.div(b_dot_b___b_1)
+        proj_vec = proj_to.mul(t___b_1.expand_as(proj_to))
+        pass
     if needs_error:
         error_vec = input - proj_vec
         pass
@@ -1626,7 +1963,7 @@ def vector_proj(input:torch.Tensor, proj_to:torch.Tensor,
         pass
 
     return proj_vec, error_vec
-if "test" and __DEBUG_ME__() and False:
+if "test" and __DEBUG_ME__() and True:
     def ____basic_behavior_test____vector_proj():
         if "basic" and True:
             input = torch.tensor([[1., 1]])
@@ -1646,6 +1983,30 @@ if "test" and __DEBUG_ME__() and False:
             proj_vec, error_vec = vector_proj(input, proj_to, needs_error=True)
             assert _tensor_equal(proj_vec, torch.tensor([[1.,  1]]))
             assert _tensor_equal(error_vec, torch.tensor([[1., -1]]))
+
+            input = torch.tensor([[2., 0]])
+            proj_to = vector_length_norm(torch.tensor([[1., 1]]))
+            proj_vec, error_vec = vector_proj(input, proj_to, needs_error=True, proj_to__already_normalized=True)
+            assert _tensor_equal(proj_vec, torch.tensor([[1.,  1]]))
+            assert _tensor_equal(error_vec, torch.tensor([[1., -1]]))
+
+
+            '''proj_to__already_normalized'''
+            for batch in [3,11,101]:
+                for dim in [2, 10, 100]:
+                    for _ in range(33):
+
+                        input = torch.randn(size=[batch, dim])
+                        proj_to = torch.randn(size=[batch, dim])
+                        without_the_flag__proj_vec, without_the_flag__error_vec = vector_proj(input,                    proj_to,  needs_error=True)
+                        with_the_flag__proj_vec,    with_the_flag__error_vec    = vector_proj(input, vector_length_norm(proj_to), needs_error=True, \
+                                                                                        proj_to__already_normalized=True)
+                        assert _tensor_equal(without_the_flag__proj_vec,  with_the_flag__proj_vec)
+                        assert _tensor_equal(without_the_flag__error_vec, with_the_flag__error_vec)
+                        pass# for _
+                    pass#for dim
+                pass#for batch
+
 
             '''some geometric check.    direction???'''
             for dim in [2, 10, 100]:
