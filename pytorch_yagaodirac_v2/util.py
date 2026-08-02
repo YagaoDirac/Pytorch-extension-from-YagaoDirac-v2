@@ -60,11 +60,27 @@ if "test" and __DEBUG_ME__() and False:
 
 
 def _tensor_shape_check(the_tensor:torch.Tensor, *args)->bool:
+    #assert isinstance(args, list)
+    if (args.__len__() == 0) or (args.__len__() == 1 and args[0] == 1):
+        if the_tensor.shape == torch.Size([1]):
+            return True
+        if the_tensor.shape == torch.Size([]):
+            return True
+        else:
+            return False
+        pass# if (args.__len__() == 0) or (args.__len__() == 1 and args[0] == 1):
     _temp_shape = torch.Size(args)
     return the_tensor.shape == _temp_shape
 
-if "test" and __DEBUG_ME__() and False:
+if "test" and __DEBUG_ME__() and True:
     def ____test______tensor_shape_check():
+        assert _tensor_shape_check(torch.rand(size=[]))
+        assert _tensor_shape_check(torch.rand(size=[]), 1)
+        assert _tensor_shape_check(torch.rand(size=[1]))
+        assert _tensor_shape_check(torch.rand(size=[1]), 1)
+        assert _tensor_shape_check(torch.rand(size=[]), 0) == False
+        assert _tensor_shape_check(torch.rand(size=[1]), 0) == False
+
         assert _tensor_shape_check(torch.rand(size=[2,3,4]), 2,3,4)
 
         import random
