@@ -116,11 +116,75 @@ if "it looks buggy when output multiple results" and False:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 '''图方便而已'''
-def _test___DNN_forward___full_safety(input_posneg1___b_i:torch.Tensor, raw_weight___o_i:torch.Tensor, 
-                                    safety_check = True)->torch.Tensor:
-    '''return output_posneg1___b_o
+def DNN___to_posneg1(input:torch.Tensor, gt_0__true___ge_0__false = True)->torch.Tensor:
+    if gt_0__true___ge_0__false:
+        _temp_1 = input.gt(0.)
+        pass
+    else:
+        _temp_1 = input.ge(0.)
+        pass
+    _temp_2 = _temp_1.to(torch.int32)
+    result = _temp_2*2 -1
+    #assert _either_1_or_neg1(result)  debug code.
+    return result
+if "test" and False:
+    def ____test____DNN___to_posneg1():
+        for _ in range(33):
+            a = torch.randn(size=[10000])
+            b = DNN___to_posneg1(a)
+            assert _either_1_or_neg1(b)
+            pass
+
+        for _ in range(33):
+            a = torch.rand(size=[10000])
+            b = DNN___to_posneg1(a, gt_0__true___ge_0__false=False)
+            assert _tensor_equal(b, torch.ones_like(b))
+            pass
+
+        for _ in range(33):
+            a = torch.rand(size=[10000]) * -1
+            b = DNN___to_posneg1(a, gt_0__true___ge_0__false=True)
+            assert _tensor_equal(b, torch.ones_like(b)*-1.)
+            pass
+
+        return 
+    ____test____DNN___to_posneg1()
+    pass
+
+
+'''图方便而已'''
+def _test___DNN_forward___full_safety(input___b_i:torch.Tensor, raw_weight___o_i:torch.Tensor, 
+                                    input_is_already_posneg1 = False, safety_check = True)->torch.Tensor:
+    '''return output_posneg1___b_o, index_of_max_of_raw_weight___o
     '''
+    if input_is_already_posneg1:
+        input_posneg1___b_i = input___b_i
+        pass
+    else:
+        input_posneg1___b_i = DNN___to_posneg1(input___b_i)
+        pass
     index_of_max_of_raw_weight___o = raw_weight___o_i.max(dim=1).indices
     output_posneg1___b_o = input_posneg1___b_i[:, index_of_max_of_raw_weight___o]
 
@@ -128,25 +192,28 @@ def _test___DNN_forward___full_safety(input_posneg1___b_i:torch.Tensor, raw_weig
         assert _either_1_or_neg1(input_posneg1___b_i)
         assert _either_1_or_neg1(output_posneg1___b_o)
         pass
-    return output_posneg1___b_o
-if "test" and True:
+    return output_posneg1___b_o, index_of_max_of_raw_weight___o
+if "test" and False:
     def ____test_____test___DNN_forward___full_safety():
-        if "xxxxxxxxxxxxxxxxxx":
-
-
-
-1w继续
-
-
-
-            pass
+        if "emmmm.  This should be enough.":
+            batch = 5
+            in_dim = 7
+            out_dim = 11
+            for input__mul_me in [1., -1.]:
+                for _ in range(6):
+                    input_posneg1___b_i = torch.ones(size=[batch, in_dim])*input__mul_me
+                    raw_weight___o_i = torch.rand(size=[out_dim, in_dim])*-1.
+                    output_posneg1___b_o, _ = _test___DNN_forward___full_safety(input___b_i=input_posneg1___b_i, 
+                                                                                raw_weight___o_i=raw_weight___o_i)
+                    assert output_posneg1___b_o.eq(input__mul_me).all()
+                    assert _tensor_shape_check(output_posneg1___b_o, batch, out_dim)
+                    pass#for _
+                pass#for input__mul_me
+            pass#/ test
 
         return 
     ____test_____test___DNN_forward___full_safety()
     pass
-
-
-
 
 
 '''图方便而已'''
@@ -154,14 +221,21 @@ def _test___binary_accuracy___full_safety(target___b_o:torch.Tensor, output_posn
                     mean_per:Literal["per_batch", "per_output", "for_all"], 
                     target_is_already_posneg1 = False, safety_check = True)->tuple[torch.Tensor, str]:
     '''return accuracy___o, recommended_result_value_name
+    
+
+    >>> accuracy___?, return_value_name = _test___binary_accuracy___full_safety(target___b_o=target___b_o, output_posneg1___b_o=output_posneg1___b_o, mean_per= ??? )
+    >>> assert return_value_name == "accuracy___?"
+    >>> assert _tensor_shape_check(accuracy___?, target___b_o.shape[?])
     '''
     if target_is_already_posneg1:
         target_posneg1___b_o = target___b_o
         pass
     else:
-        target_posneg1___b_o = target___b_o.gt(0.)
-        target_posneg1___b_o = target_posneg1___b_o.to(torch.int32)
-        target_posneg1___b_o = target_posneg1___b_o*2 -1
+        target_posneg1___b_o = DNN___to_posneg1(target___b_o)
+        
+        # old code    target_posneg1___b_o = target___b_o.gt(0.)
+        # target_posneg1___b_o = target_posneg1___b_o.to(torch.int32)
+        # target_posneg1___b_o = target_posneg1___b_o*2 -1
         pass
 
     element_mul_of_target_and_output___b_o = target_posneg1___b_o * output_posneg1___b_o
@@ -307,16 +381,113 @@ if "test" and False:
     pass
 
 
+'''图方便而已'''
+def _test___optimizer_algo___full_safety(ori__raw_weight___o_i:torch.Tensor, grad_like_for___raw_weight___o_i:torch.Tensor, 
+            learning_rate: torch.Tensor|float, safety_check = True)->torch.Tensor:
+    '''return new__raw_weight___o_i
+    
+    The formula is like, shift all grad to negative. Scale it to around -1 to 0, 
+    but the formula only makes the avg to -0.5. So some extreme elements may still be < -1.
+    Then, new raw_weight is tanh(raw_weight + grad_like * lr).
+
+    It's +, not -. Different from error propagation.
+
+    The grad_like name is from the convention of deep learning. 
+    But in this case, it's actually the ideal raw_weight in this epoch. 
+    '''
+
+    protected__grad_like_for___raw_weight___o_i = grad_like_for___raw_weight___o_i - grad_like_for___raw_weight___o_i.max()
+    if safety_check:
+        assert protected__grad_like_for___raw_weight___o_i.le(0).all()
+        pass
+    protected__grad_like_for___raw_weight___o_i = protected__grad_like_for___raw_weight___o_i.to(torch.float32)
+    _temp__mean_of__protected__grad_like_for___raw_weight___s = protected__grad_like_for___raw_weight___o_i.mean().abs()
+    protected__grad_like_for___raw_weight___o_i /= _temp__mean_of__protected__grad_like_for___raw_weight___s
+    protected__grad_like_for___raw_weight___o_i *= 0.5
+    if safety_check:
+        assert protected__grad_like_for___raw_weight___o_i.le(0.).all()
+        assert _tensor_equal(protected__grad_like_for___raw_weight___o_i.mean(), [-0.5])
+        pass
+    new__raw_weight___o_i = torch.tanh(ori__raw_weight___o_i + protected__grad_like_for___raw_weight___o_i* learning_rate) #没乘任何系数  可能要改？？？？？？？？
+    if safety_check:
+        assert ori__raw_weight___o_i.le(0.).all()
+        assert new__raw_weight___o_i.le(0.).all()
+        pass
+    return new__raw_weight___o_i
+if "test" and False:
+    def ____test_____test___optimizer_algo___full_safety():
+        if "does it run???" and True: 
+            import random
+
+            learning_rate = 1.
+    
+            out_dim = 7
+            in_dim = 11
+            ori__raw_weight___o_i = torch.rand(size=[out_dim, in_dim])*-1.
+            grad_like_for___raw_weight___o_i = torch.randn(size=[out_dim, in_dim])* (random.random()+0.1)*3. + random.random()*5.
+
+            new__raw_weight___o_i = _test___optimizer_algo___full_safety(ori__raw_weight___o_i = ori__raw_weight___o_i,
+                    grad_like_for___raw_weight___o_i = grad_like_for___raw_weight___o_i, learning_rate = learning_rate)
+            pass
+
+        return
+    ____test_____test___optimizer_algo___full_safety()
+    pass
 
 
 
+def partly_reasonable_label_from_input(input___b_i, out_dim:int, random_ratio:float|torch.Tensor, 
+                            input_is_already_posneg1 = False, safety_check = True)->torch.Tensor:
+    '''return target___b_o
+    
+    When random_ratio is 1., the output is purely random. In this case, the accuracy should be 0.5.
+    If the random_ratio is 0., the output is purely reasonable. For a trained model, the accuracy can go up to 1..
+    
+    Anyway, the range for accuracy should always be [0.5, 1]. But it can be a bit less than 0.5.'''
+    if random_ratio == 1.:
+        target___b_o = rand_sign(size=[input___b_i.shape[0], out_dim], dtype=torch.float32)
+        if safety_check:
+            assert _either_1_or_neg1(target___b_o)
+            pass
+        return target___b_o
+
+    #<  safety    
+    assert random_ratio>=0.
+    assert random_ratio<1.
+
+    if input_is_already_posneg1:
+        input_posneg1___b_i = input___b_i
+        pass
+    else:
+        input_posneg1___b_i = DNN___to_posneg1(input___b_i)
+        pass
+    #<  real payload
+    _temp___index_of_max_of_raw_weight___o = torch.randint(low=0, high=input___b_i.shape[1], size=[out_dim])
+    target___b_o = input_posneg1___b_i[:, _temp___index_of_max_of_raw_weight___o]
+    del _temp___index_of_max_of_raw_weight___o
+
+    if random_ratio == 0.:
+        if safety_check:
+            assert _either_1_or_neg1(target___b_o)
+            pass
+        return target___b_o
+    
+    flag_to_random = torch.rand_like(target___b_o)
+    flag_to_random = flag_to_random.lt(random_ratio)
+
+    target___b_o = flag_to_random * rand_sign(size=[input___b_i.shape[0], out_dim], dtype=torch.float32)
+                (1.-flag_to_random) * target___b_o
+    if safety_check:
+        assert _either_1_or_neg1(target___b_o)
+        pass
+    return target___b_o
+'''behavior test is in the test for _algo_test__backward_function'''
+if "test" and True:
+    def ____test____partly_reasonable_label_from_input
+    1w
 
 
-'''let me assume the distribution of raw weight is a uniform distribution between -1 to 0 for now.
-        come back later.
-        come back later.
-        come back later.
-'''
+
 
 
 
@@ -324,13 +495,19 @@ if "test" and False:
 def _algo_test__backward_function(input_posneg1___b_i:torch.Tensor, 
             target___b_o:torch.Tensor, raw_weight___o_i:torch.Tensor, 
             SOME_HYPER_PARAM___s = 1. )->tuple[torch.Tensor|None, torch.Tensor|None]:
-    '''return grad_like_for___input___b_i, grad_like_for___raw_weight___o_i
+    '''
+    !!!!!!!!!!!!!!!!!!!! assert False, "the sharpness-controlled softmax also is not tested."
+    
+    return grad_like_for___input___b_i, grad_like_for___raw_weight___o_i
 
     This is algo test for the backward function.
     '''
+    #<  safety
+    assert _either_1_or_neg1(input_posneg1___b_i)
+    assert raw_weight___o_i.ge(-1.).all()
+    assert raw_weight___o_i.le( 0.).all()
     #<  shape
     assert input_posneg1___b_i.shape.__len__() == 2
-    assert _either_1_or_neg1(input_posneg1___b_i)
     batch = input_posneg1___b_i.shape[0]  
     in_dim = input_posneg1___b_i.shape[1]  
 
@@ -339,22 +516,20 @@ def _algo_test__backward_function(input_posneg1___b_i:torch.Tensor,
     out_dim = target___b_o.shape[1]
 
     assert _tensor_shape_check(raw_weight___o_i, out_dim, in_dim), "not sure if this one is wrong or the previous one?"
-    assert raw_weight___o_i.ge(-1.).all()
-    assert raw_weight___o_i.le( 0.).all()
 
     #recomputation
-    output_posneg1___b_o = _test___DNN_forward___full_safety( \
-            input_posneg1___b_i = input_posneg1___b_i, raw_weight___o_i = raw_weight___o_i)
+    output_posneg1___b_o, index_of_max_of_raw_weight___o = _test___DNN_forward___full_safety( \
+            input___b_i = input_posneg1___b_i, raw_weight___o_i = raw_weight___o_i, input_is_already_posneg1=True)
     # index_of_max_of_raw_weight___o = raw_weight___o_i.max(dim=1).indices
     # output_posneg1___b_o = input_posneg1___b_i[:, index_of_max_of_raw_weight___o]
     # assert _either_1_or_neg1(output_posneg1___b_o)
 
 
-    #<  real payload
     #<  init results to None
     grad_like_for___input___b_i     :torch.Tensor|None = None
     grad_like_for___raw_weight___o_i:torch.Tensor|None = None
 
+    #<  real payload
     if "raw_weight___o_i.requires_grad" or "input___b_i.requires_grad":
         target___b_o_EXPANDi = target___b_o.reshape(shape=[target___b_o.shape[0], target___b_o.shape[1], 1]). \
                 expand(size=[-1, -1, input_posneg1___b_i.shape[1]])
@@ -374,38 +549,62 @@ def _algo_test__backward_function(input_posneg1___b_i:torch.Tensor,
 
     if "input___b_i.requires_grad":
         #<  accuracy
-        target_posneg1___b_o = target___b_o.gt(0.)
-        target_posneg1___b_o = target_posneg1___b_o.to(torch.int32)
-        target_posneg1___b_o = target_posneg1___b_o*2 -1
-        assert _either_1_or_neg1(target_posneg1___b_o)
+        target_posneg1___b_o = DNN___to_posneg1(target___b_o)
+        # old code    target_posneg1___b_o = target___b_o.gt(0.)
+        # target_posneg1___b_o = target_posneg1___b_o.to(torch.int32)
+        # target_posneg1___b_o = target_posneg1___b_o*2 -1
+        # assert _either_1_or_neg1(target_posneg1___b_o)
 
-        element_mul_of_target_and_output___b_o = target_posneg1___b_o * output_posneg1___b_o
-        element_mul_of_target_and_output___b_o = element_mul_of_target_and_output___b_o.to(torch.float32)
 
-        accuracy___o = element_mul_of_target_and_output___b_o.mean(dim=0)
-        accuracy___o = (accuracy___o +1.)*0.5
-        assert accuracy___o.ge(0.).all()
-        assert accuracy___o.le(1.).all()
+        accuracy___o, return_value_name = _test___binary_accuracy___full_safety(target___b_o=target___b_o, 
+                                                output_posneg1___b_o=output_posneg1___b_o, mean_per= "per_output" )
+        assert return_value_name == "accuracy___o"
+        assert _tensor_shape_check(accuracy___o, out_dim)
+        # old code    element_mul_of_target_and_output___b_o = target_posneg1___b_o * output_posneg1___b_o
+        # element_mul_of_target_and_output___b_o = element_mul_of_target_and_output___b_o.to(torch.float32)
 
-        #assert False, "the sharpness-controlled softmax also is not tested."
+        # accuracy___o = element_mul_of_target_and_output___b_o.mean(dim=0)
+        # accuracy___o = (accuracy___o +1.)*0.5
+        # assert accuracy___o.ge(0.).all()
+        # assert accuracy___o.le(1.).all()
+
+
+
+        # assert False, "the sharpness-controlled softmax also is not tested."
+        #<  soft part of the backward mapping.
+        assert SOME_HYPER_PARAM___s > 0.
         sharpen_factor__from_accuracy___o:torch.Tensor = accuracy___o*SOME_HYPER_PARAM___s
+        assert _tensor_shape_check(sharpen_factor__from_accuracy___o, out_dim)
         assert sharpen_factor__from_accuracy___o.ge(0.).all()
         sharpen_factor__from_accuracy___o_EXPANDi = sharpen_factor__from_accuracy___o. \
                 reshape(shape=[-1, 1]).expand(size=[-1, raw_weight___o_i.shape[1]])
 
         sharpened_raw_weight___o_i = raw_weight___o_i*sharpen_factor__from_accuracy___o_EXPANDi
-
         soft_part_of_the_one_hot___o_i = sharpened_raw_weight___o_i.softmax(dim=1)
-        # _assert_only___sum_of_so_how_should_I_name_it___o = soft_part_of_the_one_hot___o_i.sum(dim=1)
-        # assert _assert_only___sum_of_so_how_should_I_name_it___o.shape == torch.Size([out_dim])
-        # assert _tensor_equal(_assert_only___sum_of_so_how_should_I_name_it___o, 
-        #                         torch.ones_like(_assert_only___sum_of_so_how_should_I_name_it___o))
+        #   a bit assertion
+        _assert_only___sum_of_soft_part_of_the_one_hot___o = soft_part_of_the_one_hot___o_i.sum(dim=1)
+        assert _tensor_shape_check(_assert_only___sum_of_soft_part_of_the_one_hot___o, out_dim)
+        assert _tensor_equal(_assert_only___sum_of_soft_part_of_the_one_hot___o, 
+                                torch.ones_like(_assert_only___sum_of_soft_part_of_the_one_hot___o))
 
+        #<  hard part of the backward mapping.
         iota_of_out = iota(out_dim)
         hard_part_of_the_one_hot___o_i = torch.zeros_like(soft_part_of_the_one_hot___o_i)
         hard_part_of_the_one_hot___o_i[iota_of_out, index_of_max_of_raw_weight___o] = 1.
+        #   a bit assertion
+        _assert_only___sum_of_hard_part_of_the_one_hot___o = soft_part_of_the_one_hot___o_i.sum(dim=1)
+        assert _tensor_shape_check(_assert_only___sum_of_hard_part_of_the_one_hot___o, out_dim)
+        assert _tensor_equal(_assert_only___sum_of_hard_part_of_the_one_hot___o, 
+                                torch.ones_like(_assert_only___sum_of_hard_part_of_the_one_hot___o))
+
+        assert _tensor_equal(_assert_only___sum_of_hard_part_of_the_one_hot___o, 
+                                torch.ones_like(_assert_only___sum_of_hard_part_of_the_one_hot___o))
+        
         #linear interpolation.
         accuracy___o_EXPANDi = accuracy___o.reshape(shape=[-1, 1]).expand(size=[-1, raw_weight___o_i.shape[1]])
+        assert _tensor_shape_check(accuracy___o_EXPANDi, out_dim, in_dim)
+        #   accurate output makes the corresponding target go through a  sharp  mapping. 
+        # inaccurate output makes the corresponding target go through a blurred mapping. 
         the_one_hot_like___o_i =       accuracy___o_EXPANDi  * hard_part_of_the_one_hot___o_i + \
                             (1. - accuracy___o_EXPANDi) * soft_part_of_the_one_hot___o_i
         
@@ -413,17 +612,19 @@ def _algo_test__backward_function(input_posneg1___b_i:torch.Tensor,
         the_one_hot___EXPANDb_o_i = the_one_hot_like___o_i. \
                 reshape(shape=[1, the_one_hot_like___o_i.shape[0], the_one_hot_like___o_i.shape[1]]). \
                 expand(size=[target___b_o_EXPANDi.shape[0], -1, -1])
-        
+        assert _tensor_shape_check(the_one_hot___EXPANDb_o_i, batch, out_dim, in_dim)
         
         grad_like_for___input___before_sum___b_o_i = the_one_hot___EXPANDb_o_i*target___b_o_EXPANDi
         grad_like_for___input___b_i = grad_like_for___input___before_sum___b_o_i.sum(dim=1)
+        assert isinstance(grad_like_for___input___b_i, torch.Tensor)
+        assert _tensor_shape_check(grad_like_for___input___b_i, batch, in_dim)
 
-        #更精细的控制是gramo的事情。
+        #更精细的层间控制是gramo的事情。（如果你不熟悉gramo，不一定是某一个特定的gramo，不一定是绿色五角星那个）
         pass
 
     return grad_like_for___input___b_i, grad_like_for___raw_weight___o_i
 if "test" and True:
-    def ____test_____algo_test__backward_function()-> None:
+    def ____test_____algo_test__backward_function________grad_like_for___raw_weight___o_i()-> None:
         if "VISUAL     grad_like_for___raw_weight___o_i  distribution and how to protect it." and False:
             target_style:Literal["reasonable", "random"] = "random"
 
@@ -479,23 +680,13 @@ if "test" and True:
                 pass#for _ 
             pass#/ test
 
-
-
-
-
-
-
-
-
-
-
-        if "prototype xxxxxxxxxxxxxxxxxxxxx" and True:
+        if "prototype      this is only a backup version.       dont use it." and False:
+            assert False, "this is only a backup version."
             learning_rate = 0.5
             batch = 1000
             in_dim = 500
             out_dim = 100
             for _ in range(11):
-
 
                 input_posneg1___b_i = rand_sign(size=[batch, in_dim], dtype=torch.int32)
                 assert _either_1_or_neg1(input_posneg1___b_i)
@@ -519,57 +710,130 @@ if "test" and True:
 
 
                 #<  calc    ori  output
-                ori__index_of_max_of_raw_weight___o = ori__raw_weight___o_i.max(dim=1).indices
-                ori__output_posneg1___b_o = input_posneg1___b_i[:, ori__index_of_max_of_raw_weight___o]
-                assert _either_1_or_neg1(ori__output_posneg1___b_o)
-                #<  ori   accuracy
-                ori__element_mul_of_target_and_output___b_o = target_posneg1___b_o * ori__output_posneg1___b_o
-                ori__element_mul_of_target_and_output___b_o = ori__element_mul_of_target_and_output___b_o.to(torch.float32)
+                ori__output_posneg1___b_o, _ = _test___DNN_forward___full_safety(input___b_i=input_posneg1___b_i, 
+                                                raw_weight___o_i=ori__raw_weight___o_i, input_is_already_posneg1=True)
 
-                ori__accuracy___o = ori__element_mul_of_target_and_output___b_o.mean(dim=0)
-                ori__accuracy___o = ori__accuracy___o *0.5 + 0.5
-                assert ori__accuracy___o.ge(0.).all()
-                assert ori__accuracy___o.le(1.).all()
+                # old code    ori__index_of_max_of_raw_weight___o = ori__raw_weight___o_i.max(dim=1).indices
+                # ori__output_posneg1___b_o = input_posneg1___b_i[:, ori__index_of_max_of_raw_weight___o]
+                # assert _either_1_or_neg1(ori__output_posneg1___b_o)
+
+                #<  ori   accuracy
+                ori__accuracy___o, recommended_result_value_name = \
+                        _test___binary_accuracy___full_safety(target___b_o=target_posneg1___b_o, 
+                                output_posneg1___b_o=ori__output_posneg1___b_o, mean_per="per_output", target_is_already_posneg1=True)
+                assert recommended_result_value_name == "accuracy___o"
+                # old code     ori__element_mul_of_target_and_output___b_o = target_posneg1___b_o * ori__output_posneg1___b_o
+                # ori__element_mul_of_target_and_output___b_o = ori__element_mul_of_target_and_output___b_o.to(torch.float32)
+
+                # ori__accuracy___o = ori__element_mul_of_target_and_output___b_o.mean(dim=0)
+                # ori__accuracy___o = ori__accuracy___o *0.5 + 0.5
+                # assert ori__accuracy___o.ge(0.).all()
+                # assert ori__accuracy___o.le(1.).all()
 
 
                 #<  new raw_weight
                 #new__raw_weight___o_i = ori__raw_weight___o_i+grad_like_for___raw_weight___o_i.to(torch.float32)/float(batch) * 0.3 #1w 需要一个自适应。 #没乘任何系数  可能要改？？？？？？？？
-                
-                protected__grad_like_for___raw_weight___o_i = grad_like_for___raw_weight___o_i - grad_like_for___raw_weight___o_i.max()
-                assert protected__grad_like_for___raw_weight___o_i.le(0).all()
-                protected__grad_like_for___raw_weight___o_i = protected__grad_like_for___raw_weight___o_i.to(torch.float32)
-                _temp__mean_of__protected__grad_like_for___raw_weight___s = protected__grad_like_for___raw_weight___o_i.mean().abs()
-                protected__grad_like_for___raw_weight___o_i = \
-                        protected__grad_like_for___raw_weight___o_i/_temp__mean_of__protected__grad_like_for___raw_weight___s * 0.5
-                assert protected__grad_like_for___raw_weight___o_i.le(0.).all()
-                new__raw_weight___o_i = torch.tanh(ori__raw_weight___o_i + protected__grad_like_for___raw_weight___o_i* learning_rate) #没乘任何系数  可能要改？？？？？？？？
-                assert new__raw_weight___o_i.le(0.).all()
+                new__raw_weight___o_i = _test___optimizer_algo___full_safety(ori__raw_weight___o_i = ori__raw_weight___o_i,
+                        grad_like_for___raw_weight___o_i = grad_like_for___raw_weight___o_i, learning_rate = learning_rate)
 
-                #<  calc    ori  output
-                new__index_of_max_of_raw_weight___o = new__raw_weight___o_i.max(dim=1).indices
-                new__output_posneg1___b_o = input_posneg1___b_i[:, new__index_of_max_of_raw_weight___o]
-                assert _either_1_or_neg1(new__output_posneg1___b_o)
-                #<  ori   accuracy
-                new__element_mul_of_target_and_output___b_o = target_posneg1___b_o * new__output_posneg1___b_o
-                new__element_mul_of_target_and_output___b_o = new__element_mul_of_target_and_output___b_o.to(torch.float32)
 
-                new__accuracy___o = new__element_mul_of_target_and_output___b_o.mean(dim=0)
-                new__accuracy___o = new__accuracy___o *0.5 + 0.5
-                assert new__accuracy___o.ge(0.).all()
-                assert new__accuracy___o.le(1.).all()
+
+                # old code     protected__grad_like_for___raw_weight___o_i = grad_like_for___raw_weight___o_i - grad_like_for___raw_weight___o_i.max()
+                # assert protected__grad_like_for___raw_weight___o_i.le(0).all()
+                # protected__grad_like_for___raw_weight___o_i = protected__grad_like_for___raw_weight___o_i.to(torch.float32)
+                # _temp__mean_of__protected__grad_like_for___raw_weight___s = protected__grad_like_for___raw_weight___o_i.mean().abs()
+                # protected__grad_like_for___raw_weight___o_i = \
+                #         protected__grad_like_for___raw_weight___o_i/_temp__mean_of__protected__grad_like_for___raw_weight___s * 0.5
+                # assert protected__grad_like_for___raw_weight___o_i.le(0.).all()
+                # new__raw_weight___o_i = torch.tanh(ori__raw_weight___o_i + protected__grad_like_for___raw_weight___o_i* learning_rate) #没乘任何系数  可能要改？？？？？？？？
+                # assert new__raw_weight___o_i.le(0.).all()
+
+
+                #<  calc    new  output
+                new__output_posneg1___b_o, _ = _test___DNN_forward___full_safety(input___b_i=input_posneg1___b_i, 
+                                        raw_weight___o_i=new__raw_weight___o_i, input_is_already_posneg1=True)
+                #  old code     new__index_of_max_of_raw_weight___o = new__raw_weight___o_i.max(dim=1).indices
+                # new__output_posneg1___b_o = input_posneg1___b_i[:, new__index_of_max_of_raw_weight___o]
+                # assert _either_1_or_neg1(new__output_posneg1___b_o)
+                #<  new   accuracy
+                new__accuracy___o, recommended_result_value_name = \
+                        _test___binary_accuracy___full_safety(target___b_o=target_posneg1___b_o, 
+                                output_posneg1___b_o=new__output_posneg1___b_o, mean_per="per_output", target_is_already_posneg1=True)
+                assert recommended_result_value_name == "accuracy___o"
+
+                # old code     new__element_mul_of_target_and_output___b_o = target_posneg1___b_o * new__output_posneg1___b_o
+                # new__element_mul_of_target_and_output___b_o = new__element_mul_of_target_and_output___b_o.to(torch.float32)
+
+                # new__accuracy___o = new__element_mul_of_target_and_output___b_o.mean(dim=0)
+                # new__accuracy___o = new__accuracy___o *0.5 + 0.5
+                # assert new__accuracy___o.ge(0.).all()
+                # assert new__accuracy___o.le(1.).all()
 
                 print(ori__accuracy___o.mean().item(), new__accuracy___o.mean().item())
                 pass#for _
             pass#/ test
 
-        a1w继续 = fdsfds
+
+        if "prototype" and True:
+            learning_rate = 0.5
+            batch = 1000
+            in_dim = 500
+            out_dim = 100
+            for _ in range(11):
+
+                input_posneg1___b_i = rand_sign(size=[batch, in_dim], dtype=torch.int32)
+                assert _either_1_or_neg1(input_posneg1___b_i)
+
+                #  lets use a partly reasonable target
+                _temp___index_of_max_of_raw_weight___o = torch.randint(low=0, high=in_dim, size=[out_dim])
+                target___b_o = input_posneg1___b_i[:, _temp___index_of_max_of_raw_weight___o]
+                del _temp___index_of_max_of_raw_weight___o
+                assert _either_1_or_neg1(target___b_o)
+                # this is a pure random target target___b_o = torch.rand(size=[batch, out_dim])*2. -1. #  -1 to 1
+
+                ori__raw_weight___o_i = torch.rand(size=[out_dim, in_dim])*-1.
+
+                _, grad_like_for___raw_weight___o_i = _algo_test__backward_function( \
+                    input_posneg1___b_i=input_posneg1___b_i, target___b_o=target___b_o,raw_weight___o_i=ori__raw_weight___o_i)
+                assert isinstance(grad_like_for___raw_weight___o_i, torch.Tensor)
+                assert _tensor_shape_check(grad_like_for___raw_weight___o_i, out_dim, in_dim)
+
+                #<  target into pos neg 1 form.      This is for both ori and new.
+                target_posneg1___b_o = DNN___to_posneg1(target___b_o)
+
+                #<  ori   accuracy
+                ori__output_posneg1___b_o, _ = _test___DNN_forward___full_safety(input___b_i=input_posneg1___b_i, 
+                                                raw_weight___o_i=ori__raw_weight___o_i, input_is_already_posneg1=True)
+                ori__accuracy___s, recommended_result_value_name = \
+                        _test___binary_accuracy___full_safety(target___b_o=target_posneg1___b_o, 
+                                output_posneg1___b_o=ori__output_posneg1___b_o, mean_per="for_all", target_is_already_posneg1=True)
+                assert recommended_result_value_name == "accuracy___s"
+
+                #<  step
+                new__raw_weight___o_i = _test___optimizer_algo___full_safety(ori__raw_weight___o_i = ori__raw_weight___o_i,
+                        grad_like_for___raw_weight___o_i = grad_like_for___raw_weight___o_i, learning_rate = learning_rate)
+
+                #<  new   accuracy
+                new__output_posneg1___b_o, _ = _test___DNN_forward___full_safety(input___b_i=input_posneg1___b_i, 
+                                        raw_weight___o_i=new__raw_weight___o_i, input_is_already_posneg1=True)
+                new__accuracy___s, recommended_result_value_name = \
+                        _test___binary_accuracy___full_safety(target___b_o=target_posneg1___b_o, 
+                                output_posneg1___b_o=new__output_posneg1___b_o, mean_per="for_all", target_is_already_posneg1=True)
+                assert recommended_result_value_name == "accuracy___s"
+
+                assert new__accuracy___s>ori__accuracy___s
+                print(f"{ori__accuracy___s.item():.4f}  old///new  {new__accuracy___s.item():.4f}")
+                pass#for _
+            pass#/ test
+
+1w 继续
 
 
 
 
 
         return 
-    ____test_____algo_test__backward_function()
+    ____test_____algo_test__backward_function________grad_like_for___raw_weight___o_i()
     pass
 
 
