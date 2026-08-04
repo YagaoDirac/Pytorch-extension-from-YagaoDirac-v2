@@ -1250,8 +1250,8 @@ def LOSS__mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least
     
     dim = matrix.shape[0]
     
-    mat_sqr = matrix*matrix
-    assert mat_sqr.shape == matrix.shape
+    mat_element_mul_mat_itself__d_d = matrix*matrix
+    assert mat_element_mul_mat_itself__d_d.shape == matrix.shape
     
     if _debug__needs_log:
         _log:list[tuple[str, torch.Tensor]]|None = [("****** if you see this, the code is wrong.", torch.empty(size=[]))]*2
@@ -1263,22 +1263,22 @@ def LOSS__mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least
     
     #<  horizontal length score>
     #所以要输出的东西，这个应该是1的原始值，log10之后的原始值，再abs再mean的实际分数。
-    hor_sum__as_len_sqr___1_is_good__dim = mat_sqr.sum(dim=1)# if it's 1, it's good. 
-    hor_sum__as_len_log10___0_is_good__dim = hor_sum__as_len_sqr___1_is_good__dim.log10()/2.# if it's 0, it's good. 
+    mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good = mat_element_mul_mat_itself__d_d.sum(dim=1)# if it's 1, it's good. 
+    len_log10__by_horizontal__d__0_is_good = mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good.log10()/2.# if it's 0, it's good. 
     
-    hor_len_score__raw = hor_sum__as_len_log10___0_is_good__dim[hor_sum__as_len_log10___0_is_good__dim>_result_log10_at_least]
+    hor_len_score__raw = len_log10__by_horizontal__d__0_is_good[len_log10__by_horizontal__d__0_is_good>_result_log10_at_least]
     hor_len_score__raw_mean_without_abs   = hor_len_score__raw.mean()# as a ref. 
     hor_len_score = hor_len_score__raw.abs().mean()# [almost RETURN VALUE]
     if _log is not None:
-        _log.append(("hor_sum__as_len_sqr___1_is_good__dim", hor_sum__as_len_sqr___1_is_good__dim))#[2]
-        _log.append(("hor_sum__as_len_log10___0_is_good__dim", hor_sum__as_len_log10___0_is_good__dim))#[3]
+        _log.append(("mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good", mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good))#[2]
+        _log.append(("len_log10__by_horizontal__d__0_is_good", len_log10__by_horizontal__d__0_is_good))#[3]
         _log.append(("hor_len_score__raw", hor_len_score__raw))#[4]
         _log.append(("hor_len_score__raw_mean_without_abs", hor_len_score__raw_mean_without_abs))#[5]
         _log.append(("hor_len_score", hor_len_score))#[6]
         pass
     
     assert hor_len_score.ge(_result_log10_at_least)
-    #assert hor_sum__as_len_log10___0_is_good__dim.ge(_result_log10_at_least)#??????????????
+    #assert len_log10__by_horizontal__d__0_is_good.ge(_result_log10_at_least)#??????????????
     
     #old code
     #hor_len_score__mse = hor_sum__as_len_sqr__should_be_1.mean().sqrt()
@@ -1287,15 +1287,15 @@ def LOSS__mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least
     
     
     #<  vertical length score>
-    ver_sum__as_len_sqr___1_is_good__dim = mat_sqr.sum(dim=0)# if it's 1, it's good.
-    ver_sum__as_len_log10___0_is_good__dim = ver_sum__as_len_sqr___1_is_good__dim.log10()/2.# if it's 0, it's good. 
+    mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good = mat_element_mul_mat_itself__d_d.sum(dim=0)# if it's 1, it's good.
+    len_log10__by_vertical__d__0_is_good = mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good.log10()/2.# if it's 0, it's good. 
     
-    ver_len_score__raw = ver_sum__as_len_log10___0_is_good__dim[ver_sum__as_len_log10___0_is_good__dim>_result_log10_at_least]
+    ver_len_score__raw = len_log10__by_vertical__d__0_is_good[len_log10__by_vertical__d__0_is_good>_result_log10_at_least]
     ver_len_score__raw_mean_without_abs   = ver_len_score__raw.mean()# as a ref. 
     ver_len_score = ver_len_score__raw.abs().mean()# [almost RETURN VALUE]
     if _log is not None:
-        _log.append(("ver_sum__as_len_sqr___1_is_good__dim", ver_sum__as_len_sqr___1_is_good__dim))#[7]
-        _log.append(("ver_sum__as_len_log10___0_is_good__dim", ver_sum__as_len_log10___0_is_good__dim))
+        _log.append(("mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good", mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good))#[7]
+        _log.append(("len_log10__by_vertical__d__0_is_good", len_log10__by_vertical__d__0_is_good))
         _log.append(("ver_len_score__raw", ver_len_score__raw))
         _log.append(("ver_len_score__raw_mean_without_abs", ver_len_score__raw_mean_without_abs))
         _log.append(("ver_len_score", ver_len_score))#[11]
@@ -1303,7 +1303,7 @@ def LOSS__mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least
         pass
     
     assert ver_len_score.ge(_result_log10_at_least)
-    #assert ver_sum__as_len_log10___0_is_good__dim.ge(_result_log10_at_least)#???????????
+    #assert len_log10__by_vertical__d__0_is_good.ge(_result_log10_at_least)#???????????
     
     #old code
     #ver_len_score__mse = ver_sum__as_len_sqr.mean().sqrt()
@@ -1314,7 +1314,7 @@ def LOSS__mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least
     iota_of_dim = iota(dim, device=matrix.device)
     
     #<  horizontal sub vectors   angle score>  
-    hor_len = hor_sum__as_len_sqr___1_is_good__dim.sqrt()
+    hor_len = mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good.sqrt()
     matrix_into_hor_len_1 = matrix/(hor_len.reshape([-1,1]).expand([-1,dim]))
     if _log is not None:
         _log.append(("matrix_into_hor_len_1 before nan_to_num", matrix_into_hor_len_1.detach().clone()))#[10]
@@ -1335,7 +1335,7 @@ def LOSS__mat_is_standard_orthogonal(matrix:torch.Tensor, _result_log10_at_least
     
     
     #<  vertical sub vectors   angle score>    
-    ver_len = ver_sum__as_len_sqr___1_is_good__dim.sqrt()
+    ver_len = mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good.sqrt()
     matrix_into_ver_len_1 = matrix/(ver_len.reshape([1,-1]).expand([dim,-1]))
     if _log is not None:
         _log.append(("matrix_into_ver_len_1 before nan_to_num", matrix_into_ver_len_1.detach().clone()))#[13]
@@ -1400,17 +1400,17 @@ if "test" and __DEBUG_ME__() and True:
             mat = torch.tensor([[1.,1],
                                 [0, 0]])
             len_score, angle_score, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
-            assert _log[2][0] == 'hor_sum__as_len_sqr___1_is_good__dim'
+            assert _log[2][0] == 'mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good'
             assert _tensor_equal(_log[2][1], [2., 0])
-            assert _log[3][0] == 'hor_sum__as_len_log10___0_is_good__dim'
+            assert _log[3][0] == 'len_log10__by_horizontal__d__0_is_good'
             assert _tensor_equal(   _log[3][1][0], [math.log10(2.)/2.])
             assert                  _log[3][1][1].isneginf()
             assert _log[6][0] == 'hor_len_score'
             assert _tensor_equal(_log[6][1], [math.log10(2.)/2.])# the neginf is not counted.
             
-            assert _log[7][0] == 'ver_sum__as_len_sqr___1_is_good__dim'
+            assert _log[7][0] == 'mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good'
             assert _tensor_equal(_log[7][1], [1., 1])
-            assert _log[8][0] == 'ver_sum__as_len_log10___0_is_good__dim'
+            assert _log[8][0] == 'len_log10__by_vertical__d__0_is_good'
             assert _tensor_equal(_log[8][1], [0., 0])
             assert _log[11][0] == 'ver_len_score'
             assert _tensor_equal(_log[11][1], [0.])
@@ -1454,16 +1454,16 @@ if "test" and __DEBUG_ME__() and True:
             mat = torch.tensor([[1.,0],
                                 [1, 0]])
             len_score, angle_score, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
-            assert _log[2][0] == 'hor_sum__as_len_sqr___1_is_good__dim'
+            assert _log[2][0] == 'mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good'
             assert _tensor_equal(_log[2][1], [1., 1])
-            assert _log[3][0] == 'hor_sum__as_len_log10___0_is_good__dim'
+            assert _log[3][0] == 'len_log10__by_horizontal__d__0_is_good'
             assert _tensor_equal(_log[3][1], [0., 0])
             assert _log[6][0] == 'hor_len_score'
             assert _tensor_equal(_log[6][1], [0.])
             
-            assert _log[7][0] == 'ver_sum__as_len_sqr___1_is_good__dim'
+            assert _log[7][0] == 'mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good'
             assert _tensor_equal(_log[7][1], [2., 0])
-            assert _log[8][0] == 'ver_sum__as_len_log10___0_is_good__dim'
+            assert _log[8][0] == 'len_log10__by_vertical__d__0_is_good'
             assert _tensor_equal(   _log[8][1][0], [math.log10(2.)/2.])
             assert                  _log[8][1][1].isneginf()
             assert _log[11][0] == 'ver_len_score'
@@ -1498,16 +1498,16 @@ if "test" and __DEBUG_ME__() and True:
             mat = torch.tensor([[1.,-1],
                                 [1, -1]])
             len_score, angle_score, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
-            assert _log[2][0] == 'hor_sum__as_len_sqr___1_is_good__dim'
+            assert _log[2][0] == 'mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good'
             assert _tensor_equal(_log[2][1], [2., 2])
-            assert _log[3][0] == 'hor_sum__as_len_log10___0_is_good__dim'
+            assert _log[3][0] == 'len_log10__by_horizontal__d__0_is_good'
             assert _tensor_equal(_log[3][1], [math.log10(2.)/2., math.log10(2.)/2.])
             assert _log[6][0] == 'hor_len_score'
             assert _tensor_equal(_log[6][1], [math.log10(2.)/2.])
             
-            assert _log[7][0] == 'ver_sum__as_len_sqr___1_is_good__dim'
+            assert _log[7][0] == 'mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good'
             assert _tensor_equal(_log[7][1], [2., 2])
-            assert _log[8][0] == 'ver_sum__as_len_log10___0_is_good__dim'
+            assert _log[8][0] == 'len_log10__by_vertical__d__0_is_good'
             assert _tensor_equal(_log[8][1], [math.log10(2.)/2., math.log10(2.)/2.])
             assert _log[11][0] == 'ver_len_score'
             assert _tensor_equal(_log[11][1], [math.log10(2.)/2.])
@@ -1542,16 +1542,16 @@ if "test" and __DEBUG_ME__() and True:
                                 [1 ,-1,-1, 1],
                                 [1 ,-1, 1,-1],])
             len_score, angle_score, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
-            assert _log[2][0] == 'hor_sum__as_len_sqr___1_is_good__dim'
+            assert _log[2][0] == 'mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good'
             assert _tensor_equal(_log[2][1], [4.]*4)
-            assert _log[3][0] == 'hor_sum__as_len_log10___0_is_good__dim'
+            assert _log[3][0] == 'len_log10__by_horizontal__d__0_is_good'
             assert _tensor_equal(_log[3][1], [math.log10(4.)/2.]*4)
             assert _log[6][0] == 'hor_len_score'
             assert _tensor_equal(_log[6][1], [math.log10(4.)/2.])
             
-            assert _log[7][0] == 'ver_sum__as_len_sqr___1_is_good__dim'
+            assert _log[7][0] == 'mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good'
             assert _tensor_equal(_log[7][1], [4.]*4)
-            assert _log[8][0] == 'ver_sum__as_len_log10___0_is_good__dim'
+            assert _log[8][0] == 'len_log10__by_vertical__d__0_is_good'
             assert _tensor_equal(_log[8][1], [math.log10(4.)/2.]*4)
             assert _log[11][0] == 'ver_len_score'
             assert _tensor_equal(_log[11][1], [math.log10(4.)/2.])
@@ -1600,16 +1600,16 @@ if "test" and __DEBUG_ME__() and True:
                     #</ init a standard orthogonal matrix.
                     
                     len_score, angle_score, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
-                    assert _log[2][0] == 'hor_sum__as_len_sqr___1_is_good__dim'
+                    assert _log[2][0] == 'mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good'
                     assert _tensor_equal(_log[2][1], [1.]*dim)
-                    assert _log[3][0] == 'hor_sum__as_len_log10___0_is_good__dim'
+                    assert _log[3][0] == 'len_log10__by_horizontal__d__0_is_good'
                     assert _tensor_equal(_log[3][1], [0.]*dim)
                     assert _log[6][0] == 'hor_len_score'
                     assert _tensor_equal(_log[6][1], [0.])# the neginf is not counted.
                     
-                    assert _log[7][0] == 'ver_sum__as_len_sqr___1_is_good__dim'
+                    assert _log[7][0] == 'mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good'
                     assert _tensor_equal(_log[7][1], [1.]*dim)
-                    assert _log[8][0] == 'ver_sum__as_len_log10___0_is_good__dim'
+                    assert _log[8][0] == 'len_log10__by_vertical__d__0_is_good'
                     assert _tensor_equal(_log[8][1], [0.]*dim)
                     assert _log[11][0] == 'ver_len_score'
                     assert _tensor_equal(_log[11][1], [0.])# the neginf is not counted.
@@ -1858,8 +1858,8 @@ if "test" and __DEBUG_ME__() and True:
                         assert _tensor_equal(before_entry, after_entry)
                         pass
                     if name in [
-                        "hor_sum__as_len_sqr___1_is_good__dim" # ([2.6050, 0.6573, 1.3940]) tensor([ 65.7252, 260.5022, 139.3987])
-                        "ver_sum__as_len_sqr___1_is_good__dim" # ([0.8186, 2.2877, 1.5500]) tensor([155.0018,  81.8580, 228.7663])
+                        "mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good" # ([2.6050, 0.6573, 1.3940]) tensor([ 65.7252, 260.5022, 139.3987])
+                        "mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good" # ([0.8186, 2.2877, 1.5500]) tensor([155.0018,  81.8580, 228.7663])
                     ]:
                         assert _tensor_equal(before_entry.flatten().sort().values*100., after_entry.flatten().sort().values)# new version is 0.5*old verion?????
                         pass
@@ -1867,7 +1867,7 @@ if "test" and __DEBUG_ME__() and True:
                         "hor_sum__as_len_log10___0_is_good__dim" #([ 0.2079, -0.0911,  0.0721]) tensor([0.9089, 1.2079, 1.0721])
                         "hor_len_score__raw" #              tensor([ 0.2079, -0.0911,  0.0721]) tensor([0.9089, 1.2079, 1.0721])
                         "hor_len_score__raw_mean_without_abs" #0.0629 1.0629
-                        "ver_sum__as_len_log10___0_is_good__dim" #([-0.0435,  0.1797,  0.0952]) tensor([1.0952, 0.9565, 1.1797])
+                        "len_log10__by_vertical__d__0_is_good__dim" #([-0.0435,  0.1797,  0.0952]) tensor([1.0952, 0.9565, 1.1797])
                         "ver_len_score__raw" #              tensor([-0.0435,  0.1797,  0.0952]) tensor([1.0952, 0.9565, 1.1797])
                         "ver_len_score__raw_mean_without_abs" #0.0771 1.0771
                     ]:
@@ -1977,8 +1977,8 @@ if "test" and __DEBUG_ME__() and True:
                             assert _tensor_equal(before_entry, after_entry)
                             pass
                         if name in [
-                            "hor_sum__as_len_sqr___1_is_good__dim" # ([2.6050, 0.6573, 1.3940]) tensor([ 65.7252, 260.5022, 139.3987])
-                            "ver_sum__as_len_sqr___1_is_good__dim" # ([0.8186, 2.2877, 1.5500]) tensor([155.0018,  81.8580, 228.7663])
+                            "mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good" # ([2.6050, 0.6573, 1.3940]) tensor([ 65.7252, 260.5022, 139.3987])
+                            "mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good" # ([0.8186, 2.2877, 1.5500]) tensor([155.0018,  81.8580, 228.7663])
                         ]:
                             assert _tensor_equal(before_entry.flatten().sort().values*100., after_entry.flatten().sort().values)
                             pass
@@ -1986,7 +1986,7 @@ if "test" and __DEBUG_ME__() and True:
                             "hor_sum__as_len_log10___0_is_good__dim" #([ 0.2079, -0.0911,  0.0721]) tensor([0.9089, 1.2079, 1.0721])
                             "hor_len_score__raw" #              tensor([ 0.2079, -0.0911,  0.0721]) tensor([0.9089, 1.2079, 1.0721])
                             "hor_len_score__raw_mean_without_abs" #0.0629 1.0629
-                            "ver_sum__as_len_log10___0_is_good__dim" #([-0.0435,  0.1797,  0.0952]) tensor([1.0952, 0.9565, 1.1797])
+                            "len_log10__by_vertical__d__0_is_good__dim" #([-0.0435,  0.1797,  0.0952]) tensor([1.0952, 0.9565, 1.1797])
                             "ver_len_score__raw" #              tensor([-0.0435,  0.1797,  0.0952]) tensor([1.0952, 0.9565, 1.1797])
                             "ver_len_score__raw_mean_without_abs" #0.0771 1.0771
                         ]:
@@ -2265,6 +2265,88 @@ if "test" and __DEBUG_ME__() and True:
         return 
     #____test____device_adaption____LOSS__the_mat_is_standard_orthogonal()
     pass
+
+
+
+
+'''要不要合并到原来的里面？'''
+def LOSS__mat_is_standard_orthogonal____but_only_raw_length_score(matrix:torch.Tensor, _result_log10_at_least = -10., 
+                                #_correct_offset_for_angle_score = -0.4
+                                )\
+                    -> tuple[torch.Tensor,torch.Tensor, list[tuple[str, torch.Tensor]]|None]:
+    '''return  raw_len_score
+    
+    The closer to 0. the result is, the better.
+    
+    When the elements are too big or small, the result may be unstable.'''
+    assert is_square_matrix(matrix)
+    assert _result_log10_at_least < -2., "if you know what you are doing, modify this line."
+    
+    #assert _correct_offset_for_angle_score in [0., -1., -0.4], "if you know what you are doing..."
+    #I tested with torch.randn. -0.4 is recommended. It helps low dim cases to result the same result as high dim cases.
+    
+    mat_element_mul_mat_itself__d_d = matrix*matrix
+    assert mat_element_mul_mat_itself__d_d.shape == matrix.shape
+    
+    #<  horizontal length score>
+    #所以要输出的东西，这个应该是1的原始值，log10之后的原始值，再abs再mean的实际分数。
+    mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good = mat_element_mul_mat_itself__d_d.sum(dim=1)# if it's 1, it's good. 
+    len_log10__by_horizontal__d__0_is_good = mat_dot_mat__the_sqr_len__by_horizontal__d__1_is_good.log10()/2.# if it's 0, it's good. 
+    
+    hor_len_score__raw = len_log10__by_horizontal__d__0_is_good[len_log10__by_horizontal__d__0_is_good>_result_log10_at_least]
+    hor_len_score__raw_mean_without_abs   = hor_len_score__raw.mean()# as a ref. 
+    
+    #</ horizontal length score>
+    
+    
+    #<  vertical length score>
+    mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good = mat_element_mul_mat_itself__d_d.sum(dim=0)# if it's 1, it's good.
+    len_log10__by_vertical__d__0_is_good = mat_dot_mat__the_sqr_len__by_vertical__d__1_is_good.log10()/2.# if it's 0, it's good. 
+    
+    ver_len_score__raw = len_log10__by_vertical__d__0_is_good[len_log10__by_vertical__d__0_is_good>_result_log10_at_least]
+    ver_len_score__raw_mean_without_abs   = ver_len_score__raw.mean()# as a ref. 
+    
+    
+    raw_len_score = (hor_len_score__raw_mean_without_abs+ver_len_score__raw_mean_without_abs)/2.
+    #              If you don't want to scan this _correct_offset_for_angle_score yourself
+    # I scanned it for you. -0.4 works as I expected and simplifies your life.
+    # So, yeah, simply don't touch it.
+    
+    return  raw_len_score
+
+if "test" and __DEBUG_ME__() and False:
+    "for a perfect matrix of this test, the rotation and permutation of it is also perfect. "
+    def ____test____basic_behavior____LOSS__mat_is_standard_orthogonal____but_only_raw_length_score():
+        if "this is a part of the full version of LOSS__mat_is_standard_orthogonal" and True:
+            '''they should behavior the same.'''
+            for dim in [2,3,5,10,100,1000]:
+                for _ in range(33):
+                    #<  init
+                    mat = torch.randn(size=[dim,dim])
+                    scale_factor = torch.randn(size=[])*10+0.3
+                    if torch.randn(size=[]) > 0.5:
+                        scale_factor = 1./scale_factor
+                        pass
+                    mat *= scale_factor
+                    #<  calc
+                    _, _, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
+                    assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
+                    raw_len_score__from_the_full_version = _log[0][1]
+                    raw_len_score = LOSS__mat_is_standard_orthogonal____but_only_raw_length_score(mat)
+                    #<  assert
+                    assert _tensor_equal(raw_len_score__from_the_full_version, raw_len_score)# not updated?
+                    pass# for _
+                pass# for dim
+            pass#/ test
+        
+        return 
+    
+    ____test____basic_behavior____LOSS__mat_is_standard_orthogonal____but_only_raw_length_score()
+    pass
+    
+
+
+
 
 
 
@@ -2711,51 +2793,66 @@ def random_dummy_matrix__from_angle_score(dim:int, target_angle_loss:torch.Tenso
     formula to get a perfect length score(0.). But this function provides a "dim and angle score based" method. 
     It's not adaptive. The purpose is to mimic the real case.
     '''
-    assert target_angle_loss >= 0. and target_angle_loss <= 1.6
-    #old code
-    # noise_strength_list = torch.tensor(
-    #     [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ])
-    # angle_loss_list__full = torch.tensor([
-    #     [ 0.0000,  0.2184,  0.4341,  0.6253,  0.7969,  0.9537,  1.0867,  1.1974,  1.3483,  1.4409,  1.5145,  1.5496,   ],#dim 10
-    #     [ 0.0000,  0.2234,  0.4377,  0.6346,  0.8075,  0.9575,  1.0838,  1.1826,  1.3292,  1.4228,  1.4859,  1.5540,   ],#dim 100
-    #     [ 0.0000,  0.2238,  0.4381,  0.6346,  0.8080,  0.9577,  1.0820,  1.1828,  1.3303,  1.4248,  1.4814,  1.5506,   ],])# dim 1000
+
+    #assert target_angle_loss >= 0. and target_angle_loss <= 1.5, "the accuracy for 1.6 is a bit too bad, even for high dimentions."
+    assert target_angle_loss >= 0. and target_angle_loss <= 1.8
     
-    angle_loss_list__full = torch.tensor([
-            [ 0.000,  0.110,  0.219,  0.328,  0.432,  0.532,  0.629,  0.715,  0.806,  0.883,  0.958, \
-                        1.023,  1.078,  1.193,  1.279,  1.349,  1.398,  1.442,  1.469,  1.521,  1.560],#dim 10
-            [ 0.000,  0.112,  0.224,  0.332,  0.437,  0.538,  0.635,  0.724,  0.809,  0.887,  0.956, \
-                        1.022,  1.081,  1.183,  1.264,  1.330,  1.384,  1.424,  1.458,  1.507,  1.552],#dim 100
-            [ 0.000,  0.113,  0.224,  0.333,  0.438,  0.539,  0.635,  0.725,  0.809,  0.887,  0.958, \
-                        1.023,  1.082,  1.184,  1.265,  1.331,  1.382,  1.423,  1.456,  1.503,  1.552],])# dim 1000
+    angle_loss_list____dim__loss_value = torch.tensor([
+            [ 0.000,  0.110,  0.220,  0.327,  0.433,  0.533,  0.627,  0.717,  0.804,  0.884,  0.962,  1.022,  1.088, \
+                    1.192,  1.277,  1.345,  1.401,  1.439,  1.477,  1.503,  1.521,  1.537,  1.540,  1.554,  1.566],#dim 10
+            [ 0.000,  0.112,  0.224,  0.332,  0.438,  0.538,  0.633,  0.723,  0.808,  0.888,  0.957,  1.022,  1.082, \
+                    1.184,  1.266,  1.331,  1.384,  1.424,  1.458,  1.484,  1.505,  1.523,  1.532,  1.544,  1.553],#dim 100
+            [ 0.000,  0.113,  0.224,  0.333,  0.438,  0.539,  0.635,  0.725,  0.808,  0.886,  0.958,  1.022,  1.082, \
+                    1.183,  1.264,  1.330,  1.383,  1.423,  1.455,  1.482,  1.502,  1.518,  1.532,  1.542,  1.551],])# dim 1000
 
 
     log10_of_dim = torch.tensor(dim).log10()
     log10_of_dim.clamp_(1., 3.)#safety
-    angle_loss_list__for_this_dim = interpolation_of_list(angle_loss_list__full, log10_of_dim -1.)# a row
-    assert angle_loss_list__for_this_dim.shape[0] == angle_loss_list__full.shape[-1]  #debug code. May comment out.
+    angle_loss_list____loss_value = interpolation_of_list(angle_loss_list____dim__loss_value, log10_of_dim -1.)# a row
+    assert angle_loss_list____loss_value.shape[0] == angle_loss_list____dim__loss_value.shape[-1]  #debug code. May comment out.
     
-    _index_float = reverse_interpolation_of_list__list_must_sorted(angle_loss_list__for_this_dim, list_is_Ascending = True, 
+    _index_float = reverse_interpolation_of_list__list_must_sorted(angle_loss_list____loss_value, list_is_Ascending = True, 
                                                         the_input=target_angle_loss, Im_sure_the_list_is_sorted=True)
-    assert _index_float <= angle_loss_list__for_this_dim.nelement()-1    #debug code. May comment out.
+    assert _index_float <= angle_loss_list____loss_value.nelement()-1    #debug code. May comment out.
 
-    noise_strength_list = torch.tensor(
-            [ 0.000,  0.050,  0.100,  0.150,  0.200,  0.250,  0.300,  0.350,  0.400,  0.450,  0.500, \
-                        0.550,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.400,  1.800])
-    
-    
-    noise_strength = interpolation_of_list(noise_strength_list, _index_float)
+    noise_strength_list____loss_value = torch.tensor(
+            [ 0.000,  0.050,  0.100,  0.150,  0.200,  0.250,  0.300,  0.350,  0.400,  0.450,  0.500,  0.550,  0.600, \
+                    0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.300,  1.400,  1.500,  1.600,  1.700,  1.800])
+
+
+    noise_strength = interpolation_of_list(noise_strength_list____loss_value, _index_float)
     
 
     mat = _raw__random_dummy_matrix(dim = dim, noise_strength = noise_strength.item(), #div_sqrt_1_plus_ns_sqr=True,
                                 device = device)#, iota_of_dim = iota_of_dim)
 
     if protect_the_length_score__a_lil_bit:
-        assert False, "unfinished"
+        # noise_stre=[ 0.000,    0.050,    0.100,    0.150,    0.200,    0.250,    0.300,    0.350,    0.400,    0.450,    0.500,    0.550,    0.600, 
+        #                  0.700,    0.800,    0.900,    1.000,    1.100,    1.200,    1.300,    1.400,    1.500,    1.600,    1.700,    1.800]
+        length_loss_list____dim__loss_value = torch.tensor([
+
+            [       -0.00000,  -0.00040,  -0.00173,  -0.00392,  -0.00657,  -0.01079,  -0.01570, -0.02033,  -0.02697,  -0.03325,  -0.04001,  -0.04821,  
+                        -0.05636,  -0.07395,  -0.09312,  -0.11357,  -0.13354,  -0.15354,  -0.17361,  -0.19536,  -0.21434,  0.23523,  0.25462,  0.27286,  0.29307], # dim 10
+            [       -0.00000,  -0.00053,  -0.00216,  -0.00480,  -0.00831,  -0.01303,  -0.01844,  -0.02455,  -0.03163,  -0.03944,  -0.04758,  -0.05638,  -0.06573,
+                        -0.08524,  -0.10600,  -0.12749,  -0.14905,  -0.17018,  -0.19195,  -0.21308,  -0.23365,  -0.25383,  -0.27405,  -0.29310,  -0.31204], #dim 100    
+            [       -0.00000,  -0.00053,  -0.00213,  -0.00481,  -0.00851,  -0.01313,  -0.01875,  -0.02510,  -0.03223,  -0.03997,  -0.04841,  -0.05728,  -0.06663,  
+                        -0.08641,  -0.10720,  -0.12868,  -0.15039,  -0.17206,  -0.19370,  -0.21477,  -0.23535,  -0.25568,  -0.27535,  -0.29478,  -0.31345]]) # dim 1000
+        
+        length_loss_list____loss_value = interpolation_of_list(length_loss_list____dim__loss_value, log10_of_dim -1.)# a row
+        assert length_loss_list____loss_value.shape[0] == length_loss_list____dim__loss_value.shape[-1]  #debug code. May comment out.
+        length_protection_pow = interpolation_of_list(length_loss_list____loss_value, _index_float)
+        mat *= torch.pow(10., length_protection_pow)
+
+        # dim = 3
+        # mat = torch.randn(size=[dim,dim])
+        # length_score_1 = LOSS__mat_is_standard_orthogonal____but_only_raw_length_score(mat*10.)
+        # length_score_2 = LOSS__mat_is_standard_orthogonal____but_only_raw_length_score(mat*100.)
+
         pass
 
     return mat
 
-if "test   random_dummy_mat__v2" and True:
+if "test   random_dummy_mat__v2" and __DEBUG_ME__() and False:
     def ____test____random_dummy_matrix():
         
         if "_raw__random_dummy_matrix  reverse lookup table" and False:
@@ -2765,33 +2862,15 @@ if "test   random_dummy_mat__v2" and True:
                 # angle_loss [ 0.,  0.1,     0.2,         0.3,     0.4,         0.5,      0.6,    0.7    , 0.8   , 0.9       ,   1.,                 ]
                 pass
             
-            if "old result" and True:
-                # dim 10      (x axis is noise_strength, y axis is cap_to)                                                                                                 
-                # noise_stre=[ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ]
-                # angle_loss [ 0.0000,  0.2184,  0.4341,  0.6253,  0.7969,  0.9537,  1.0867,  1.1974,  1.3483,  1.4409,  1.5145,  1.5496,   ]
-                # dim 100      (x axis is noise_strength, y axis is cap_to)                                                                               
-                # noise_stre=[ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ]
-                # angle_loss [ 0.0000,  0.2234,  0.4377,  0.6346,  0.8075,  0.9575,  1.0838,  1.1826,  1.3292,  1.4228,  1.4859,  1.5540,   ]
-                # dim 1000      (x axis is noise_strength, y axis is cap_to)                                                                               
-                # noise_stre=[ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.90,    1.10,    1.30,    1.80,     ]
-                # angle_loss [ 0.0000,  0.2238,  0.4381,  0.6346,  0.8080,  0.9577,  1.0820,  1.1828,  1.3303,  1.4248,  1.4814,  1.5506,   ]
-                
-                pass
-            
             if True:
                 # dim 10          cpu   0.287122 , or 0.028712 per test              cuda   1.742498 , or 0.174250 per test
                 # dim 100         cpu   2.708810 , or 0.270881 per test              cuda   13.697309 , or 1.369731 per test
                 # dim 1000        cpu   3.472387 , or 3.472387 per test              cuda   14.284978 , or 14.284978 per test
 
-                # dim 10
-                # noise_stre=[ 0.000,  0.050,  0.100,  0.150,  0.200,  0.250,  0.300,  0.350,  0.400,  0.450,  0.500,  0.550,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.400,  1.800]
-                # angle_loss [ 0.000,  0.110,  0.219,  0.328,  0.432,  0.532,  0.629,  0.715,  0.806,  0.883,  0.958,  1.023,  1.078,  1.193,  1.279,  1.349,  1.398,  1.442,  1.469,  1.521,  1.560]
-                # dim 100
-                # noise_stre=[ 0.000,  0.050,  0.100,  0.150,  0.200,  0.250,  0.300,  0.350,  0.400,  0.450,  0.500,  0.550,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.400,  1.800]
-                # angle_loss [ 0.000,  0.112,  0.224,  0.332,  0.437,  0.538,  0.635,  0.724,  0.809,  0.887,  0.956,  1.022,  1.081,  1.183,  1.264,  1.330,  1.384,  1.424,  1.458,  1.507,  1.552]
-                # dim 1000
-                # noise_stre=[ 0.000,  0.050,  0.100,  0.150,  0.200,  0.250,  0.300,  0.350,  0.400,  0.450,  0.500,  0.550,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.400,  1.800]
-                # angle_loss [ 0.000,  0.113,  0.224,  0.333,  0.438,  0.539,  0.635,  0.725,  0.809,  0.887,  0.958,  1.023,  1.082,  1.184,  1.265,  1.331,  1.382,  1.423,  1.456,  1.503,  1.552]
+                # noise_stre =         [ 0.000,  0.050,  0.100,  0.150,  0.200,  0.250,  0.300,  0.350,  0.400,  0.450,  0.500,  0.550,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.300,  1.400,  1.500,  1.600,  1.700,  1.800]
+                # dim 10    angle_loss [ 0.000,  0.110,  0.220,  0.327,  0.433,  0.533,  0.627,  0.717,  0.804,  0.884,  0.962,  1.022,  1.088,  1.192,  1.277,  1.345,  1.401,  1.439,  1.477,  1.503,  1.521,  1.537,  1.540,  1.554,  1.566]
+                # dim 100   angle_loss [ 0.000,  0.112,  0.224,  0.332,  0.438,  0.538,  0.633,  0.723,  0.808,  0.888,  0.957,  1.022,  1.082,  1.184,  1.266,  1.331,  1.384,  1.424,  1.458,  1.484,  1.505,  1.523,  1.532,  1.544,  1.553]
+                # dim 1000  angle_loss [ 0.000,  0.113,  0.224,  0.333,  0.438,  0.539,  0.635,  0.725,  0.808,  0.886,  0.958,  1.022,  1.082,  1.183,  1.264,  1.330,  1.383,  1.423,  1.455,  1.482,  1.502,  1.518,  1.532,  1.542,  1.551]
                 pass
             #result 
             
@@ -2816,7 +2895,7 @@ if "test   random_dummy_mat__v2" and True:
                 
                 #-------------------#-------------------#-------------------
                 noise_strength_list = torch.tensor( [0., 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, \
-                                                        0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.4, 1.8]) #x axis##################################
+                                                        0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8]) #x axis##################################
                 for noise_strength in noise_strength_list:
                 #-------------------#-------------------#-------------------
                     
@@ -2847,7 +2926,7 @@ if "test   random_dummy_mat__v2" and True:
             
             pass#/ test
         
-        if "random_dummy_matrix__from_angle_score accuracy test" and False:
+        if "random_dummy_matrix__from_angle_score accuracy test        angle score" and False:
             if True:
                     
                 # dim 10   test_time 240    device cpu    9.888305 , or  0.041201 per test        cuda   107.780332 , or 0.449085 per test
@@ -2859,38 +2938,30 @@ if "test   random_dummy_mat__v2" and True:
 
                 # the vertical bar seperates at +- 0.1. On the left is, always within the range. On the right is, maybe outside the range.
                 # dim 10    
-                # target= [ 0.00,    0.10,    0.20,    0.30,   |  0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
-                # neg   = [ 0.0000, -0.0285, -0.0615, -0.0666, | -0.1186, -0.1347, -0.1426, -0.1635, -0.2005, -0.2249, -0.1736, -0.2109, -0.3233, -0.3255, -0.2716, -0.2825, -0.2928]
-                # pos   = [ 0.0000,  0.0200,  0.0506,  0.0922, |  0.1214,  0.0912,  0.1882,  0.2069,  0.2128,  0.2424,  0.2801,  0.2858,  0.2955,  0.4143,  0.4111,  0.6698,  0.5242]
-                # diff  = [ 0.0000,  0.0006,  0.0013, -0.0007, | -0.0024, -0.0010,  0.0003,  0.0032,  0.0086, -0.0015,  0.0040, -0.0119,  0.0089,  0.0248,  0.0140, -0.0039, -0.0076]
-                # dim 32   test_time 100    device cpu
-                # cpu   10.409307 , or 0.104093 per test
+                # target= [ 0.00,    0.10,    0.20,   |  0.30,   ||  0.40,    0.50,    0.60,    0.70,   ||  0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60,    1.70,    1.80]
+                # neg   = [ 0.0000, -0.0220, -0.0437, | -0.0673, || -0.1248, -0.1609, -0.1265, -0.1520, || -0.2200, -0.2307, -0.2267, -0.3072, -0.3093, -0.2405, -0.2949, -0.2962, -0.3539, -0.5108, -0.5942]
+                # pos   = [ 0.0000,  0.0284,  0.0421, |  0.0711, ||  0.0958,  0.1522,  0.1367,  0.1813, ||  0.2471,  0.2631,  0.3595,  0.2784,  0.3158,  0.3293,  0.4452,  0.3793,  0.3152,  0.2445,  0.1489]
+                # diff  = [ 0.0000, -0.0002,  0.0009, |  0.0022, || -0.0057, -0.0093, -0.0016,  0.0018, || -0.0120,  0.0082, -0.0041, -0.0025,  0.0023,  0.0079, -0.0070, -0.0121, -0.0374, -0.1553, -0.2441]
                 # dim 32    
-                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,   |  1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
-                # neg   = [ 0.0000, -0.0084, -0.0127, -0.0245, -0.0297, -0.0369, -0.0446, -0.0390, -0.0720, -0.0507, | -0.0769, -0.1083, -0.1020, -0.0849, -0.1079, -0.1172, -0.1527]
-                # pos   = [ 0.0000,  0.0092,  0.0202,  0.0265,  0.0420,  0.0414,  0.0441,  0.0552,  0.0556,  0.0752, |  0.1253,  0.0786,  0.1480,  0.1357,  0.0872,  0.1005,  0.0674]
-                # diff  = [ 0.0000,  0.0011,  0.0010,  0.0014,  0.0033,  0.0022,  0.0002,  0.0023, -0.0019,  0.0034, | -0.0022,  0.0075,  0.0024, -0.0046, -0.0130, -0.0007, -0.0393]
-                # dim 100   test_time 90    device cpu
-                # cpu   29.499873 , or 0.327776 per test
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,   |  0.50,    0.60,    0.70,    0.80,    0.90,    1.00,   ||  1.10,    1.20,    1.30,    1.40,    1.50,    1.60,    1.70,    1.80]
+                # neg   = [ 0.0000, -0.0077, -0.0115, -0.0171, -0.0250, | -0.0503, -0.0397, -0.0676, -0.0651, -0.0827, -0.0885, || -0.0933, -0.1074, -0.1053, -0.1023, -0.1116, -0.1663, -0.2986, -0.3365]
+                # pos   = [ 0.0000,  0.0115,  0.0218,  0.0294,  0.0304, |  0.0546,  0.0504,  0.0739,  0.0873,  0.0668,  0.0672, ||  0.1415,  0.1107,  0.1235,  0.1085,  0.1171,  0.0649,  0.0174, -0.0951]
+                # diff  = [ 0.0000,  0.0006,  0.0020,  0.0011,  0.0019, |  0.0026,  0.0045,  0.0041,  0.0055, -0.0007, -0.0021, || -0.0012, -0.0000, -0.0036,  0.0002, -0.0060, -0.0481, -0.1382, -0.2385]
                 # dim 100    
-                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
-                # neg   = [ 0.0000, -0.0023, -0.0044, -0.0096, -0.0085, -0.0133, -0.0200, -0.0184, -0.0240, -0.0218, -0.0192, -0.0222, -0.0225, -0.0216, -0.0335, -0.0360, -0.0816]
-                # pos   = [ 0.0000,  0.0029,  0.0073,  0.0085,  0.0114,  0.0125,  0.0148,  0.0258,  0.0162,  0.0267,  0.0236,  0.0241,  0.0315,  0.0396,  0.0396,  0.0368, -0.0162]
-                # diff  = [ 0.0000,  0.0004, -0.0001,  0.0003,  0.0010,  0.0011, -0.0003,  0.0011,  0.0000, -0.0002,  0.0009,  0.0039,  0.0014,  0.0063,  0.0014, -0.0014, -0.0494]
-                # dim 316   test_time 20    device cpu
-                # cpu   21.464065 , or 1.073203 per test
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,   |  1.60,   ||  1.70,    1.80]
+                # neg   = [ 0.0000, -0.0020, -0.0054, -0.0071, -0.0079, -0.0126, -0.0159, -0.0153, -0.0144, -0.0240, -0.0260, -0.0268, -0.0327, -0.0354, -0.0316, -0.0360, | -0.0887, || -0.1887, -0.2916]
+                # pos   = [ 0.0000,  0.0032,  0.0042,  0.0079,  0.0099,  0.0124,  0.0153,  0.0146,  0.0197,  0.0161,  0.0343,  0.0328,  0.0389,  0.0287,  0.0292,  0.0264, | -0.0102, || -0.1088, -0.2077]
+                # diff  = [ 0.0000,  0.0004, -0.0002,  0.0005,  0.0003,  0.0001,  0.0015,  0.0016,  0.0006, -0.0006,  0.0010,  0.0004, -0.0026,  0.0015, -0.0006, -0.0014, | -0.0499, || -0.1469, -0.2489]
                 # dim 316    
-                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
-                # neg   = [ 0.0000, -0.0003, -0.0011, -0.0017, -0.0017, -0.0014, -0.0027, -0.0067, -0.0029, -0.0057, -0.0057, -0.0031, -0.0052, -0.0028, -0.0041, -0.0121, -0.0587]
-                # pos   = [ 0.0000,  0.0008,  0.0010,  0.0020,  0.0046,  0.0042,  0.0040,  0.0046,  0.0039,  0.0040,  0.0034,  0.0055,  0.0092,  0.0088,  0.0099,  0.0060, -0.0376]
-                # diff  = [ 0.0000,  0.0001, -0.0001,  0.0004,  0.0014,  0.0012,  0.0014,  0.0007,  0.0000, -0.0009,  0.0001,  0.0015,  0.0014,  0.0024,  0.0010, -0.0025, -0.0472]
-                # dim 1000   test_time 5    device cpu
-                # cpu   19.136855 , or 3.827371 per test
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,   |  1.60,    1.70,    1.80]
+                # neg   = [ 0.0000, -0.0004, -0.0015, -0.0008, -0.0031, -0.0020, -0.0036, -0.0031, -0.0041, -0.0065, -0.0051, -0.0040, -0.0071, -0.0048, -0.0050, -0.0064, | -0.0541, -0.1548, -0.2574]
+                # pos   = [ 0.0000,  0.0008,  0.0009,  0.0019,  0.0037,  0.0032,  0.0052,  0.0053,  0.0059,  0.0048,  0.0074,  0.0085,  0.0097,  0.0085,  0.0082,  0.0071, | -0.0369, -0.1360, -0.2362]
+                # diff  = [ 0.0000,  0.0001,  0.0001,  0.0005,  0.0005,  0.0008,  0.0011,  0.0014,  0.0005, -0.0012,  0.0006,  0.0021,  0.0012,  0.0006,  0.0004, -0.0008, | -0.0461, -0.1474, -0.2485]
                 # dim 1000    
-                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60]
-                # neg   = [ 0.0000, -0.0004, -0.0003, -0.0004,  0.0003,  0.0004,  0.0005, -0.0005, -0.0019, -0.0007, -0.0006, -0.0005, -0.0000, -0.0002,  0.0003, -0.0023, -0.0506]
-                # pos   = [ 0.0000, -0.0002,  0.0002,  0.0005,  0.0007,  0.0010,  0.0017,  0.0009,  0.0014,  0.0010,  0.0033,  0.0021,  0.0039,  0.0064,  0.0027,  0.0008, -0.0484]
-                # diff  = [ 0.0000, -0.0003, -0.0000,  0.0001,  0.0006,  0.0008,  0.0011,  0.0001, -0.0001, -0.0002,  0.0004,  0.0010,  0.0012,  0.0024,  0.0012, -0.0006, -0.0495]
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60,   ||  1.70,   ||  1.80]
+                # neg   = [ 0.0000, -0.0004, -0.0004, -0.0003,  0.0003,  0.0002, -0.0007, -0.0002,  0.0001, -0.0019,  0.0009, -0.0015,  0.0008,  0.0006, -0.0020, -0.0009, -0.0493, || -0.1529, || -0.2498]
+                # pos   = [ 0.0000, -0.0002,  0.0001,  0.0004,  0.0010,  0.0011,  0.0012,  0.0005,  0.0017,  0.0014,  0.0019,  0.0026,  0.0018,  0.0038,  0.0009,  0.0029, -0.0474, || -0.1478, || -0.2479]
+                # diff  = [ 0.0000, -0.0003, -0.0000,  0.0002,  0.0007,  0.0007,  0.0002,  0.0002,  0.0008,  0.0002,  0.0014,  0.0008,  0.0013,  0.0024, -0.0000,  0.0015, -0.0483, || -0.1497, || -0.2487]
                 pass
 
 
@@ -2923,7 +2994,7 @@ if "test   random_dummy_mat__v2" and True:
                 _when_start = time.perf_counter()
                 
                 #---------------------#---------------------#---------------------
-                target_list = torch.linspace(0., 1.6, 17)
+                target_list = torch.linspace(0., 1.8, 19)
                 for target_angle_loss in target_list:
                 #---------------------#---------------------#---------------------
                     
@@ -2954,27 +3025,29 @@ if "test   random_dummy_mat__v2" and True:
             
             pass#/ test
         
-
-
-
-
-
-        if "length score     _raw__random_dummy_matrix  reverse lookup table" and True:
+        if "length score     _raw__random_dummy_matrix  reverse lookup table" and False:
 
             if True:
                 # dim 10   number_of_tests 1000  cpu   140.648863 , or 0.140649 per test      cuda   20.638997 , or 0.206390 per test
                 # dim 100   number_of_tests 100  cpu   119.048742 , or 1.190487 per test      cuda   17.953814 , or 1.795381 per test
                 # dim 1000   number_of_tests 10  cpu   139.401843 , or 13.940185 per          cuda   17.682783 , or 17.682783 per test
 
-                # dim 10
-                # noise_stre=[  0.000,    0.050,    0.100,    0.150,    0.200,    0.250,    0.300,    0.350,    0.400,    0.450,    0.500,    0.550,    0.600,    0.700,    0.800,    0.900,    1.000,    1.100,    1.200,    1.400,    1.800]
-                # length_loss [-0.00000,  0.00032,  0.00171,  0.00366,  0.00655,  0.01082,  0.01588,  0.02029,  0.02616,  0.03362,  0.04036,  0.04782,  0.05656,  0.07469,  0.09121,  0.11440,  0.13320,  0.15358,  0.17480,  0.21447,  0.29326]
-                #  dim 100
-                # length_loss [-0.00000,  0.00054,  0.00214,  0.00482,  0.00839,  0.01291,  0.01841,  0.02454,  0.03181,  0.03919,  0.04767,  0.05624,  0.06554,  0.08530,  0.10592,  0.12757,  0.14902,  0.17005,  0.19207,  0.23346,  0.31205]
-                # dim 1000
-                # length_loss [-0.00000,  0.00053,  0.00214,  0.00482,  0.00849,  0.01314,  0.01875,  0.02509,  0.03220,  0.04001,  0.04840,  0.05731,  0.06662,  0.08629,  0.10722,  0.12866,  0.15042,  0.17221,  0.19375,  0.23531,  0.31339]
-                pass
+                # length_loss [-0.00000,  0.00043,  0.00171,  0.00400,  0.00644,  0.01095,  0.01558,  0.02058,  0.02723,  0.03328,  0.04001,  0.04835,  0.05625, 
+                # #dim10                        0.07345,  0.09432,  0.11334,  0.13350,  0.15374,  0.17221,  0.19536,  0.21424,  0.23523,  0.25462,  0.27286,  0.29297]
+                # noise_stre=[ 0.000,    0.050,    0.100,    0.150,    0.200,    0.250,    0.300,    0.350,    0.400,    0.450,    0.500,    0.550,    0.600, 
+                #                             0.700,    0.800,    0.900,    1.000,    1.100,    1.200,    1.300,    1.400,    1.500,    1.600,    1.700,    1.800]
 
+                # dim 100     [-0.00000,  0.00052,  0.00218,  0.00478,  0.00825,  0.01313,  0.01846,  0.02455,  0.03145,  0.03969,  0.04749,  0.05652,  0.06592,
+                #                               0.08518,  0.10608,  0.12742,  0.14907,  0.17031,  0.19183,  0.21308,  0.23385,  0.25383,  0.27405,  0.29310,  0.31203]
+                # noise_stre=[ 0.000,    0.050,    0.100,    0.150,    0.200,    0.250,    0.300,    0.350,    0.400,    0.450,    0.500,    0.550,    0.600, 
+                #                             0.700,    0.800,    0.900,    1.000,    1.100,    1.200,    1.300,    1.400,    1.500,    1.600,    1.700,    1.800]
+                
+                # dim 1000    [-0.00000,  0.00053,  0.00213,  0.00480,  0.00852,  0.01313,  0.01875,  0.02510,  0.03225,  0.03994,  0.04841,  0.05726,  0.06664,  
+                #                               0.08653,  0.10719,  0.12870,  0.15036,  0.17191,  0.19366,  0.21477,  0.23538,  0.25568,  0.27535,  0.29478,  0.31350]
+
+
+
+                pass
 
 
             #-------------------#-------------------#-------------------
@@ -2986,17 +3059,14 @@ if "test   random_dummy_mat__v2" and True:
                 # iota_of_dim = iota(dim)
                 number_of_tests = number_of_tests_list[outter_param_set]
                 device = 'cpu'
-                # if dim>100:
-                #     device = 'cuda'
-                #     pass
                 print(f"dim {dim}   number_of_tests {number_of_tests}  {device}")
             #-------------------#-------------------#-------------------
                 raw_length_loss__avg = []#dont modify this.
                 _when_start = time.perf_counter()
                 
                 #-------------------#-------------------#-------------------
-                noise_strength_list = torch.tensor( [0., 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, \
-                                                        0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.4, 1.8]) #x axis##################################
+                noise_strength_list = torch.tensor([ 0.000,  0.050,  0.100,  0.150,  0.200,  0.250,  0.300,  0.350,  0.400,  0.450,  0.500, \
+                                0.550,  0.600,  0.700,  0.800,  0.900,  1.000,  1.100,  1.200,  1.300,  1.400,  1.500,  1.600,  1.700,  1.800]) #x axis##################################
                 for noise_strength in noise_strength_list:
                 #-------------------#-------------------#-------------------
                     
@@ -3009,10 +3079,7 @@ if "test   random_dummy_mat__v2" and True:
                         mat = _raw__random_dummy_matrix(dim=dim, noise_strength=noise_strength,
                                                 device=device, )
                                                 
-                        _, _, _log = LOSS__mat_is_standard_orthogonal(mat, _debug__needs_log = True)
-                        assert _log[0][0] == "sum of two len_score__raw_mean_without_abs"
-                        _raw_length_score = _log[0][1]###############################
-
+                        _raw_length_score = LOSS__mat_is_standard_orthogonal____but_only_raw_length_score(mat)
                         #-------------------#-------------------#-------------------
                         
                         _raw_result__raw_length_loss[ii__test] = _raw_length_score
@@ -3030,12 +3097,104 @@ if "test   random_dummy_mat__v2" and True:
                 pass# for outter_iter_count
             
             pass#/ test
+
+        if "random_dummy_matrix__from_angle_score accuracy test        length score" and True:
+            if True:
+                # dim 10   test_time 240    device cpu    7.807385 , or 0.039037 per test        cuda  54.066674 , or 0.270333
+                # dim 32   test_time 100    device cpu   21.532407 , or 0.107662 per test        cuda  178.908737 , or 0.894544 
+                # dim 100   test_time 36    device cpu   61.924184 , or 0.344023 per test        cuda  
+                # dim 316   test_time 8     device cpu   44.726335 , or 1.118158 per test        cuda  
+                # dim 1000   test_time 2    device cpu   39.693035 , or 3.969304 per test        cuda  
+
+                # the vertical bar seperates at +- 0.01. On the left is, always within the range. On the right is, maybe outside the range.
+                # dim 10    
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60,    1.70,    1.80]
+                # neg   = [-0.0000, -0.0060, -0.0137, -0.0187, -0.0249, -0.0269, -0.0281, -0.0435, -0.0638, -0.0483, -0.0456, -0.0751, -0.0550, -0.0691, -0.0769, -0.0965,  0.5110,  0.4916,  0.5034]
+                # pos   = [ 0.0000,  0.0058,  0.0081,  0.0182,  0.0207,  0.0247,  0.0274,  0.0342,  0.0336,  0.0519,  0.0541,  0.0692,  0.0641,  0.0699,  0.0876,  0.0712,  0.6622,  0.6599,  0.6597]
+                # diff  = [-0.0000,  0.0001, -0.0005,  0.0000,  0.0001, -0.0011, -0.0007, -0.0005, -0.0018, -0.0015,  0.0023,  0.0012, -0.0010,  0.0011,  0.0002, -0.0030,  0.5878,  0.5825,  0.5830]
+                # dim 32    
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60,    1.70,    1.80]
+                # neg   = [-0.0000, -0.0016, -0.0034, -0.0052, -0.0067, -0.0080, -0.0087, -0.0093, -0.0117, -0.0114, -0.0141, -0.0190, -0.0199, -0.0247, -0.0173, -0.0235,  0.2649,  0.2678,  0.2708]
+                # pos   = [ 0.0000,  0.0014,  0.0029,  0.0044,  0.0066,  0.0100,  0.0096,  0.0122,  0.0138,  0.0169,  0.0160,  0.0206,  0.0284,  0.0209,  0.0282,  0.0295,  0.3150,  0.3126,  0.3187]
+                # diff  = [-0.0000, -0.0000, -0.0000, -0.0002,  0.0007,  0.0006,  0.0005,  0.0010,  0.0010,  0.0015,  0.0017,  0.0033,  0.0029,  0.0033,  0.0040,  0.0049,  0.2951,  0.2938,  0.2940]
+                # dim 100    
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60,    1.70,    1.80]
+                # neg   = [-0.0000, -0.0006, -0.0013, -0.0018, -0.0019, -0.0022, -0.0037, -0.0032, -0.0041, -0.0050, -0.0049, -0.0044, -0.0059, -0.0063, -0.0070, -0.0111, -0.0069, -0.0103, -0.0082]
+                # pos   = [ 0.0000,  0.0006,  0.0010,  0.0017,  0.0021,  0.0034,  0.0029,  0.0036,  0.0040,  0.0043,  0.0060,  0.0050,  0.0082,  0.0060,  0.0076,  0.0067,  0.0095,  0.0071,  0.0079]
+                # diff  = [-0.0000, -0.0001, -0.0001, -0.0002, -0.0001, -0.0001, -0.0002,  0.0002, -0.0001, -0.0001,  0.0001,  0.0002,  0.0002, -0.0001, -0.0000, -0.0002, -0.0003, -0.0007, -0.0003]
+                # dim 316    
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60,    1.70,    1.80]
+                # neg   = [-0.0000, -0.0002, -0.0003, -0.0006, -0.0005, -0.0007, -0.0008, -0.0011, -0.0009, -0.0011, -0.0012, -0.0014, -0.0011, -0.0013, -0.0013, -0.0016, -0.0026, -0.0032, -0.0016]
+                # pos   = [ 0.0000,  0.0001,  0.0002,  0.0003,  0.0004,  0.0007,  0.0007,  0.0008,  0.0010,  0.0015,  0.0015,  0.0017,  0.0017,  0.0017,  0.0019,  0.0021,  0.0019,  0.0020,  0.0027]
+                # diff  = [-0.0000, -0.0000, -0.0001, -0.0001, -0.0001, -0.0001, -0.0000, -0.0001,  0.0001,  0.0002,  0.0002,  0.0002,  0.0003,  0.0002,  0.0002,  0.0004,  0.0003,  0.0003,  0.0005]
+                # dim 1000    
+                # target= [ 0.00,    0.10,    0.20,    0.30,    0.40,    0.50,    0.60,    0.70,    0.80,    0.90,    1.00,    1.10,    1.20,    1.30,    1.40,    1.50,    1.60,    1.70,    1.80]
+                # neg   = [-0.0000, -0.0001, -0.0001, -0.0002, -0.0002, -0.0003, -0.0002, -0.0005, -0.0003, -0.0004, -0.0003, -0.0005, -0.0003, -0.0003, -0.0007, -0.0005, -0.0004, -0.0002, -0.0004]
+                # pos   = [ 0.0000, -0.0000,  0.0000, -0.0000,  0.0000,  0.0001,  0.0001,  0.0001,  0.0002,  0.0002,  0.0002,  0.0002,  0.0006,  0.0005,  0.0004,  0.0005,  0.0005,  0.0007,  0.0005]
+                # diff  = [-0.0000, -0.0000, -0.0001, -0.0001, -0.0001, -0.0001, -0.0001, -0.0002, -0.0001, -0.0001, -0.0001, -0.0000,  0.0001,  0.0000, -0.0002, -0.0001,  0.0001,  0.0002,  0.0001]pass
+                pass
+
+
+            # conclusion
+            # more dim, less error.
+            # smaller target, less error.
+            
+            #---------------------#---------------------#---------------------
+            dim_list =                          [10,  32, 100, 316, 1000]
+            number_of_tests_list = torch.tensor([120, 50,  18,  4,  1])
+            number_of_tests_list = torch.tensor([ 20, 20,  18,  4,  1])
+            #dim_list =                          [100]
+            #number_of_tests_list = torch.tensor([10])
+            number_of_tests_list = number_of_tests_list.mul(10.).to(torch.int32)
+            for outter_param_set in range(dim_list.__len__()):
+                dim = dim_list[outter_param_set]
+                # iota_of_dim = iota(dim)
+                number_of_tests = number_of_tests_list[outter_param_set]
+                device = 'cpu'
+                # if dim>100:
+                #     device = 'cuda'
+                #     pass
+                print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+            #---------------------#---------------------#---------------------
+                
+                neg = []
+                pos = []
+                diff = []#dont modify this.
+                _when_start = time.perf_counter()
+                
+                #---------------------#---------------------#---------------------
+                target_list = torch.linspace(0., 1.8, 19)
+                for target_angle_loss in target_list:
+                #---------------------#---------------------#---------------------
+                    
+                    _raw_result = torch.empty(size=[number_of_tests])
+                    for ii__test in range(number_of_tests):
+                        
+                        #---------------------#---------------------#---------------------
+                        mat = random_dummy_matrix__from_angle_score(dim=dim,target_angle_loss=target_angle_loss, 
+                                                                    protect_the_length_score__a_lil_bit=True,
+                                                                                        device=device)
+                        raw_len_score = LOSS__mat_is_standard_orthogonal____but_only_raw_length_score(mat)
+                        #---------------------#---------------------#---------------------
+                        
+                        _raw_result[ii__test] = raw_len_score
+                        pass# for _test_count
+                    neg .append(_raw_result.min() )
+                    pos .append(_raw_result.max() )
+                    diff.append(_raw_result.mean())
+                    pass# for target_angle_loss
+                _when_end = time.perf_counter()
+                print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+                
+                print(f"dim {dim}    ")
+                print(f"target= {str_the_list(target_list, 2, segment=",   ")}")
+                print(f"neg   = {str_the_list(neg, 4)}")
+                print(f"pos   = {str_the_list(pos, 4)}")
+                print(f"diff  = {str_the_list(diff, 4)}")
+                pass# for outter_param_list   dim
+            
+            pass#/ test
         
-1w 回来查长度的公式，修正，然后验证准确性。
-
-
-
-
 
         return
         

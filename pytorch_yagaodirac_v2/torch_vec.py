@@ -1,19 +1,21 @@
-#from typing import Union
 import torch
 import math
 
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
-#print(sys.path[-1])
 
-# ori_path = sys.path[0]
-# index = ori_path.rfind("\\")
-# upper_folder = ori_path[:index]
-# del ori_path
-# del index
-# del upper_folder
-# #sys.path.append(os.getcwd())
+def __DEBUG_ME__()->bool:
+    return __name__ == "__main__"
+def _line_():
+    caller_s_frame = sys._getframe(1)
+    caller_s_line_number = caller_s_frame.f_lineno
+    assert caller_s_line_number is not None
+    return caller_s_line_number#######
+
+
+
+assert False, "疑似没测试清楚。而且在新的dnn专用容器里面有类似的。"
 
 class torch_vec(torch.nn.Module):
     def __init__(self, DIM:int, init_cap = 4, device=None, dtype=None):
@@ -56,17 +58,22 @@ class torch_vec(torch.nn.Module):
         #return super().extra_repr()
     pass#end of class.
         
-if 'basic test' and False:
-    vec = torch_vec(2, init_cap=1)
-    print(vec)
-    vec.pushback(torch.tensor([22,33]))
-    print(vec)
-    vec.pushback(torch.tensor([22,44]))
-    print(vec)
-    vec.pushback(torch.tensor([22,55]))
-    print(vec)
-    vec.pushback(torch.tensor([33,66]))
-    print(vec)
+if 'basic test' and __DEBUG_ME__() and True:
+    def ____test____():
+            
+        vec = torch_vec(2, init_cap=1)
+        print(vec)
+        vec.pushback(torch.tensor([22,33]))
+        print(vec)
+        vec.pushback(torch.tensor([22,44]))
+        print(vec)
+        vec.pushback(torch.tensor([22,55]))
+        print(vec)
+        vec.pushback(torch.tensor([33,66]))
+        print(vec)
+        return 
+    ____test____()
+    pass
     
     
     

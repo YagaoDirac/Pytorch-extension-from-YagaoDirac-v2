@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from pytorch_yagaodirac_v2.Util import is_square_matrix, _tensor_equal, have_same_elements, \
+    _either_1_or_neg1, \
     get_vector_length, vector_length_norm, iota,\
         str_the_list \
 
@@ -55,6 +56,10 @@ if "test" and __DEBUG_ME__() and False:
         result = rand_sign(size=size, dtype=torch.int64)
         assert result.dtype == torch.int64
         assert result.eq(1).sum() + result.eq(-1).sum() == 120
+
+        assert _either_1_or_neg1(rand_sign(size=size, dtype=torch.int64))
+        assert _either_1_or_neg1(rand_sign(size=size, dtype=torch.int32))
+        assert _either_1_or_neg1(rand_sign(size=size, dtype=torch.float32))
         
         return
     ____test____rand_sign()

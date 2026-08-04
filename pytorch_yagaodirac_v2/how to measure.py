@@ -115,8 +115,9 @@ if "test" and __DEBUG_ME__() and True:
                     
                     pass#for scanned_param
                 _when_end = time.perf_counter()
-                
                 print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+
+                
                 print(f"dim {dim}")
                 print(f"scanned_param_list = {str_the_list(scanned_param_list, 3)}")#########################
                 print(f"xxxxxxxxxxxxxxxx = {str_the_list(xxxxxxxxxxxxxxxx, 3)}")#########################
