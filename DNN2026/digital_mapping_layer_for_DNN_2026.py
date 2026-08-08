@@ -1122,7 +1122,7 @@ class autograd_function_class_for__DigitalMapper_layer__2026(torch.autograd.Func
     >>> SOME_HYPER_PARAM___s(>0.)
     
     backward input list:
-    >>> g_in #shape of g_in must be [batch, out_features]
+    >>> target___b_o (shape must be [batch, out_features]. can be any value.)
     '''
     @staticmethod
     def forward(input_posneg1___b_i:torch.Tensor, raw_weight___o_i:torch.Tensor, 
@@ -1221,6 +1221,7 @@ class autograd_function_class_for__DigitalMapper_layer__2026(torch.autograd.Func
             #<  soft part of the backward mapping.
             assert SOME_HYPER_PARAM___s > 0.#############################################################移出去
             sharpen_factor__from_accuracy___o:torch.Tensor = accuracy___o*SOME_HYPER_PARAM___s
+            assert sharpen_factor__from_accuracy___o.dtype == accuracy___o.dtype##################################################
             assert sharpen_factor__from_accuracy___o.ge(0.).all()##########################################################
             sharpen_factor__from_accuracy___o_EXPANDi = sharpen_factor__from_accuracy___o. \
                     reshape(shape=[-1, 1]).expand(size=[-1, raw_weight___o_i.shape[1]])
@@ -1272,11 +1273,11 @@ class autograd_function_class_for__DigitalMapper_layer__2026(torch.autograd.Func
             #更精细的层间控制是gramo的事情。（如果你不熟悉gramo，不一定是某一个特定的gramo，不一定是绿色五角星那个）
             pass
 
-        return grad_like_for___input___b_i, grad_like_for___raw_weight___o_i # 手动维护类型吧。实在写不来了。。
+        return grad_like_for___input___b_i, grad_like_for___raw_weight___o_i, None # 手动维护类型吧。实在写不来了。。
     
     
     pass  # class
-if "equivalence of this class version and the prototype function version" and True:
+if "equivalence of this class version and the prototype function version" and False:
     def ____test____equivalence_of_this_class_and_______():
         if "forward" and True:
 
@@ -1296,16 +1297,84 @@ if "equivalence of this class version and the prototype function version" and Tr
                 assert _either_1_or_neg1(function_output)
                 pass#for _
             pass#/ test
-        
-        backward继续 
-        1w
-        1w
-        1w
-        1w
 
+
+        if "backward" and True:
+
+            batch = 100
+            in_dim = 320
+            out_dim = 77
+            some_hyper_param = torch.tensor(1.)
+            for _ in range(33):
+                #<  dataset and forward
+                input_posneg1___b_i = rand_sign(size=[batch, in_dim])
+                input_posneg1___b_i.requires_grad_()
+                raw_weight___o_i = torch.rand(size=[out_dim, in_dim], requires_grad=True)*-1.
+                target___b_o = torch.randn(size=[batch, out_dim])
+                function_output, _ = _test___DNN_forward___full_safety(input___b_i=input_posneg1___b_i.detach().clone(), 
+                                                                        raw_weight___o_i=raw_weight___o_i.detach().clone())
+                class_output:torch.Tensor = autograd_function_class_for__DigitalMapper_layer__2026.apply(input_posneg1___b_i, 
+                                                                    raw_weight___o_i, some_hyper_param)
+                assert function_output.eq(class_output).all()#redundant a bit.
+                #<  backward
+                class_output.backward(gradient=target___b_o, inputs=[input_posneg1___b_i, raw_weight___o_i])
+
+                function_backward___grad_like_for___input___b_i, function_backward___grad_like_for___raw_weight___o_i = \
+                        _algo_test__backward_function(input_posneg1___b_i = input_posneg1___b_i.detach().clone(), 
+                                target___b_o = target___b_o.detach().clone(), raw_weight___o_i = raw_weight___o_i.detach().clone(), 
+                                SOME_HYPER_PARAM___s = some_hyper_param.detach().clone())
+
+                assert function_backward___grad_like_for___input___b_i.eq(input_posneg1___b_i.grad).all()
+                assert _tensor_shape_check(function_backward___grad_like_for___input___b_i, batch, in_dim)
+                assert function_backward___grad_like_for___raw_weight___o_i.eq(raw_weight___o_i.grad).all()
+                assert _tensor_shape_check(function_backward___grad_like_for___raw_weight___o_i, out_dim, in_dim)
+
+                pass#for _
+            pass#/ test
 
         return
     ____test____equivalence_of_this_class_and_______()
+    pass
+if "dtype adaption" and False:
+    def ____test____dtype_adaption_of____the_backward_function_in__autograd_subclass()->None:
+        '''the output of forward function should be the same as the input. 
+        It must keep the dtype across layers.'''
+
+        float_dtype_list = [torch.float, torch.float16, torch.float32, torch.float64, torch.bfloat16]
+        
+        batch = 2
+        in_dim = 3
+        out_dim = 7
+        for some_hype_param_dtype in float_dtype_list:
+            for input_dtype in float_dtype_list:
+                some_hyper_param = torch.tensor(1., dtype=some_hype_param_dtype)
+                #<  dataset and forward
+                input_posneg1___b_i = rand_sign(size=[batch, in_dim], dtype=input_dtype)
+                assert _either_1_or_neg1(input_posneg1___b_i)
+                input_posneg1___b_i.requires_grad_()
+
+                raw_weight___o_i = torch.rand(size=[out_dim, in_dim], requires_grad=True)*-1.
+                target___b_o = torch.randn(size=[batch, out_dim])
+
+                class_output:torch.Tensor = autograd_function_class_for__DigitalMapper_layer__2026.apply(input_posneg1___b_i, 
+                                                                    raw_weight___o_i, some_hyper_param)
+                assert class_output.dtype == input_dtype
+
+                #<  backward
+                '''the dtype of the result of backward is aligned to the forward dtype by pytorch.
+                So, no need to check it.'''
+                class_output.backward(gradient=target___b_o, inputs=[input_posneg1___b_i, raw_weight___o_i])
+
+                assert isinstance(input_posneg1___b_i.grad, torch.Tensor)
+                assert input_posneg1___b_i.grad.dtype == input_posneg1___b_i.dtype
+                assert isinstance(raw_weight___o_i.grad, torch.Tensor)
+                assert raw_weight___o_i.grad.dtype == raw_weight___o_i.dtype
+                pass#for some_hype_param_dtype
+            pass#for input_dtype
+        pass#/ test
+
+        return
+    ____test____dtype_adaption_of____the_backward_function_in__autograd_subclass()
     pass
 
 
@@ -1319,13 +1388,7 @@ if "equivalence of this class version and the prototype function version" and Tr
 
 
 
-
-
-
-
-
-
-
+'''2个申请内存的函数单独拿出来，方便以后调整。'''
 def _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
         extra_in_dim:int, 
         in_dim_now:int, out_dim_now:int, )->int:
@@ -1480,11 +1543,44 @@ if " test" and __DEBUG_ME__() and False:
     ____test______only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out()
     pass
 
-def _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style(out_features, in_features, device, dtype) -> torch.Tensor:
-    result = torch.rand(size=[out_features, in_features], device=device, dtype=dtype)
+'''随机初始化的的函数，单独拿出来，方便以后调整'''
+def _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style( \
+        out_features:int, in_features:int, device = None, dtype = None) -> torch.Tensor:
+    result = torch.rand(size=[out_features, in_features], device=device, dtype=dtype)*-1.
     return result
 if " test" and __DEBUG_ME__() and False:
-    '''感觉不用测啊。。。'''
+    def ____test_____only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style():
+        import random
+        if "basic behavior" and True:
+            for _ in range(33):
+                out_features = random.randint(3,100)
+                in_features = random.randint(5,87)
+                some_random_tensor = _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style(
+                    out_features = out_features, in_features=in_features)
+                assert some_random_tensor.le(0.).all()
+                pass#for _  
+            pass#/ test
+
+        if "dtype adaption" and True:
+            
+            some_random_tensor = _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style(
+                    out_features = 3, in_features=2, dtype=torch.bfloat16)
+            assert some_random_tensor.dtype == torch.bfloat16
+            
+            some_random_tensor = _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style(
+                    out_features = 3, in_features=2, dtype=torch.float64)
+            assert some_random_tensor.dtype == torch.float64
+            pass
+        
+        if "device adaption" and True:
+            
+            some_random_tensor = _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style(
+                    out_features = 3, in_features=2, device='cuda')
+            assert some_random_tensor.device.type == 'cuda'
+            pass
+
+        return 
+    ____test_____only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style()
     pass
 
 
@@ -1496,7 +1592,9 @@ class DigitalMapper_layer__2026(torch.nn.Module):
     in_dim         :int
     out_dim        :int
     _init_to_nan   :bool
-    _raw_weight___oCAP_iCAP    :torch.nn.parameter.Parameter
+    _raw_weight___oCAP_iCAP     :torch.nn.parameter.Parameter
+    some_hyper_param            :torch.nn.parameter.Parameter
+    _always_check_input_is_posneg1__in_forward :bool
 
     #customizable functions.
     _random_init_algo               :function
@@ -1504,15 +1602,20 @@ class DigitalMapper_layer__2026(torch.nn.Module):
     _calc_bigger_capacity__for_out  :function
     # _calc_bigger_capacity
 
-    def __init__(self, in_features: int, out_features: int, 
+    def __init__(self, in_features: int, out_features: int, some_hyper_param = 1., 
                 init_capacity__for_in = 16, init_capacity__for_out = 16, init_to_nan = True, \
-                    device=None, dtype=None) -> None:  
+                _dtype_for_raw_weight = torch.float32, 
+                _always_check_input_is_posneg1__in_forward = True, 
+                    device=None,
+                    #dtype=None
+                    ) -> None:  
         
         #this dtype is only for a inner memory in training. It must be float point number.
-
-        factory_kwargs = {'device': device, 'dtype': dtype}
+        #<  pytorch format
+        #factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
-
+        #<  safety
+        assert _dtype_for_raw_weight in [torch.float, torch.float32, torch.float64, torch.float16, torch.bfloat16]
         if init_capacity__for_in < in_features:
             init_capacity__for_in = in_features
             pass
@@ -1523,14 +1626,28 @@ class DigitalMapper_layer__2026(torch.nn.Module):
         self.in_dim = in_features
         self.out_dim = out_features
         self._init_to_nan = init_to_nan
+        self._always_check_input_is_posneg1__in_forward = _always_check_input_is_posneg1__in_forward
         self._raw_weight___oCAP_iCAP = torch.nn.Parameter(torch.empty(
-                init_capacity__for_out, init_capacity__for_in,
-                        requires_grad = False, **factory_kwargs), 
+                size=[init_capacity__for_out, init_capacity__for_in], dtype=_dtype_for_raw_weight, device=device, 
+                        requires_grad = False),#, **factory_kwargs), 
                         requires_grad = False)
         assert self._raw_weight___oCAP_iCAP.dtype in [torch.float, torch.float16, torch.float32, torch.float64, torch.bfloat16]
         if self._init_to_nan:
             self._raw_weight___oCAP_iCAP.fill_(torch.nan)
             pass
+
+        if isinstance(some_hyper_param, float):
+            self.some_hyper_param = torch.nn.Parameter(torch.tensor(some_hyper_param, dtype=torch.float64, device=device, 
+                        requires_grad = False),#, **factory_kwargs), 
+                        requires_grad = False)
+            pass
+        elif isinstance(some_hyper_param, torch.Tensor):
+            self.some_hyper_param = torch.nn.Parameter(some_hyper_param.detach().clone(), requires_grad = False)
+            pass
+        self.some_hyper_param.data = self.some_hyper_param.to(self._raw_weight___oCAP_iCAP.device)
+        #if this is a higher precision, the final result may get effected. It doesn't help. So let's keep it simple.
+        self.some_hyper_param.data = self.some_hyper_param.to(self._raw_weight___oCAP_iCAP.dtype)
+        assert self.some_hyper_param.data.requires_grad == False
 
         #<  modulized functions.
         self._random_init_algo = _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style
@@ -1547,23 +1664,18 @@ class DigitalMapper_layer__2026(torch.nn.Module):
     def capacity_of_out_dim(self)->int:
         '''get'''
         return self._raw_weight___oCAP_iCAP.shape[0] 
-    
 
     
     if "idk if it's still useful" and False:
 
         def get_one_hot_format(self)->torch.Tensor:
-            with torch.no_grad():
-                #raw_weight = torch.tensor([[1., 2., 3.], [4., 2., 3.], [4., 5., 8.], [6., 2., 9.],[6., 2., 9.], ])
-                out_features_s = self.raw_weight.shape[0]
-                out_features_iota_o = torch.linspace(0, out_features_s-1, out_features_s, dtype=torch.int32)
-                #print(out_features_iota, "out_features_iota")
-                index_of_max_o = self.raw_weight.max(dim=1).indices
-                #print(index_of_max_o, "index_of_max_o")
+            iota_of_out_dim___o = iota(self.out_dim)
+            index_of_max___o = self.raw_weight.max(dim=1).indices
 
-                one_hot_o_i = torch.zeros_like(self.raw_weight)
-                one_hot_o_i[out_features_iota_o, index_of_max_o] = 1.
-                return one_hot_o_i
+            one_hot___o_i = torch.zeros_like(self._raw_weight___)
+            one_hot___o_i[iota_of_out_dim___o, index_of_max___o] = 1.
+            assert False, "untested."
+            return one_hot___o_i
 
         def debug_get_zero_grad_ratio(self, directly_print_out:float = False)->float:
             with torch.no_grad():
@@ -1631,29 +1743,39 @@ class DigitalMapper_layer__2026(torch.nn.Module):
                 pass
             return
         pass
+
     '''forward function for neural net like.'''
     def forward(self, input:torch.Tensor)->torch.Tensor:
         '''input.shape must be [ batch, _ ]. Use the input container.'''
         #<  rename with the shape
+        #<  safety
         input___b_i = input
+        if self._always_check_input_is_posneg1__in_forward:
+            assert _either_1_or_neg1(input___b_i)
+            pass
 
-
-        assert False,"1w 要不要用 get_max_index()"
-
-        the_useful_part___o_i = self.get_useful_part_of_raw_weight()#or do I want to squeeze it??? No for now. Untested.
         #<  real payload
-        #_temp_index___o = the_useful_part___o_i.argmax(dim=1)
-        _temp_index___o = self.get_max_index()
-        output___b_o = input___b_i[:, _temp_index___o]
-        del _temp_index___o
-        assert False, "untested"
+        output___b_o = autograd_function_class_for__DigitalMapper_layer__2026.apply(input___b_i, 
+                                        self.get_useful_part_of_raw_weight(), self.some_hyper_param)
+                                        # self._raw_weight___oCAP_iCAP, self.some_hyper_param)
+
         return output___b_o
         #end of function.
+    
+    '''index tool'''
     def get_max_index(self)->torch.Tensor:
-        with torch.no_grad():
-            _temp_useful_part = self.get_useful_part_of_raw_weight()
-            the_max_index = _temp_useful_part.max(dim=1).indices
-            return the_max_index
+        '''return index_of_max_of_useful_part___o
+        '''
+        _temp_useful_part = self.get_useful_part_of_raw_weight()
+        index_of_max_of_useful_part___o = _temp_useful_part.max(dim=1).indices#copied from _test___DNN_forward___full_safety
+        return index_of_max_of_useful_part___o
+
+    def backward_index_quiry(self, output_slot_list:torch.Tensor)->torch.Tensor:
+        index_of_max_of_useful_part___o = self.get_max_index()
+        result = index_of_max_of_useful_part___o[output_slot_list]
+        assert False, "untested      都必须比in dim小"
+        return result
+
 
     ''' get useful part         squeeze'''
     def get_useful_part_of_raw_weight___and_squeeze(self, squeeze_in = False, squeeze_out = False)->torch.Tensor:
@@ -1683,7 +1805,8 @@ class DigitalMapper_layer__2026(torch.nn.Module):
             _temp_new_in_capacity = self.in_dim
             pass
 
-        _temp_new_memory = torch.empty(size=[_temp_new_out_capacity,_temp_new_in_capacity])
+        _temp_new_memory = torch.empty(size=[_temp_new_out_capacity,_temp_new_in_capacity], 
+                    dtype=self._raw_weight___oCAP_iCAP.dtype, device=self._raw_weight___oCAP_iCAP.device)
         if self._init_to_nan:
             _temp_new_memory.fill_(torch.nan)
             pass
@@ -1711,6 +1834,8 @@ class DigitalMapper_layer__2026(torch.nn.Module):
 
             new_raw_weight_part = self._random_init_algo(self.out_dim, how_many, device=self._raw_weight___oCAP_iCAP.device, dtype=self._raw_weight___oCAP_iCAP.dtype)
             pass# else of if how_many == 0:
+        assert new_raw_weight_part.shape[0] == self.out_dim
+
         
         #<  real payload
 
@@ -1755,6 +1880,7 @@ class DigitalMapper_layer__2026(torch.nn.Module):
 
             new_raw_weight_part = self._random_init_algo(how_many, self.in_dim, device=self._raw_weight___oCAP_iCAP.device, dtype=self._raw_weight___oCAP_iCAP.dtype)
             pass# else of if how_many == 0:
+        assert new_raw_weight_part.shape[1] == self.in_dim
         
         #<  real payload
 
@@ -1816,11 +1942,736 @@ class DigitalMapper_layer__2026(torch.nn.Module):
 
     pass# end of class.
 
+if "forward in module class      basic behavior test" and False:
+    def ____test____forward_in_module_class():
+        if "allow non posneg1 input?" and True:
+            the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
+            output = the_layer(torch.tensor([[1., 1, 1], [1, -1, 1]]))
+            #output = the_layer(torch.tensor([[1.1, 1, 1], [1, -1, 1]]))   this must NOT work.
+
+            the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= False)
+            output = the_layer(torch.tensor([[1., 1, 1], [1, -1, 1]]))
+            output = the_layer(torch.tensor([[1.1, 1, 1], [1, -1, 1]]))   
+            pass#/ test
+
+        if "equivalence with the algo test function?":
+
+            for batch in[2, 13, 37]:
+                for out_dim in[3, 14, 53]:
+                    for in_dim in[5, 17, 71]:
+
+                        for _ in range(16):
+                            #<  dataset
+                            input___b_i = rand_sign(size=[batch, in_dim])
+                            assert input___b_i.shape == torch.Size([batch, in_dim])
+
+                            #<  the layer
+                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+
+                            #<  calc
+                            layer_output = the_layer(input___b_i)
+
+                            function_output, _ = _test___DNN_forward___full_safety(input___b_i=input___b_i, 
+                                    raw_weight___o_i=the_layer.get_useful_part_of_raw_weight().detach().clone())
+
+                            #<  assert
+                            assert layer_output.eq(function_output).all()
+                            pass#for _
+
+                        pass#for in_dim
+                    pass#for out_dim
+                pass#for batch
+            pass#/ test
+
+        return
+    ____test____forward_in_module_class()
+    pass
+if "get_max_index in module class      basic behavior test" and False:
+    def ____test____get_max_index_in_module_class():
+        import random
+        if "allow non posneg1 input?" and True:
+            for _ in range(33):
+                in_dim = random.randint(2,100)
+                the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features= random.randint(2,100))
+                the_max_index = the_layer.get_max_index()
+                assert the_max_index.lt(in_dim).all()
+                pass#for _
+            pass#/ test
+        return
+    ____test____get_max_index_in_module_class()
+    pass
+    
+#改形状，3种改法。反向查询索引。    
+
+if "add input slot     algo test      and class equivalence" and __DEBUG_ME__() and False:
+    def ____add_input____():
+
+        if "add input.     full assert      no class     no shape scan" and True:
+
+            batch = 2
+            out_dim = 3
+            in_dim___ori = 5
+            in_dim___new = 7
+
+            #<  dataset
+            input___b_i = torch.tensor([[11.,  12,  13,  14,  15],
+                                        [21.,  22,  23,  24,  25],])
+            assert input___b_i.shape == torch.Size([batch, in_dim___ori])
+
+            extra_input___b_ii = torch.tensor([
+                    [511.,  512,  513,  514,  515,  516,  517],
+                    [521.,  522,  523,  524,  525,  526,  527],])
+            assert extra_input___b_ii.shape == torch.Size([batch, in_dim___new])
+            
+            #<  model param
+            ori___training_buffer___o_i = torch.tensor([  
+                                                    [0.1, 0.2, 0.3, 0.4, 0.5],
+                                                    [0.1, 0.2, 0.3, 1.4, 0.5],
+                                                    [0.1, 1.2, 0.3, 0.4, 0.5],
+                                                    ])### 542 or 431
+            
+            #<  original    forward path
+            ori___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i=input___b_i, 
+                                    raw_weight___o_i = ori___training_buffer___o_i, 
+                                    input_is_already_posneg1 = True, safety_check=False)# in order to fool the function. debug purpose.
+            # old code      _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
+            # ori___output___b_o = input___b_i[:, _temp_one_hot___o]
+            # del _temp_one_hot___o
+            assert ori___output___b_o.shape == torch.Size([batch, out_dim])
+            assert _tensor_equal(ori___output___b_o, torch.tensor([ [15,  14,  12,],  
+                                                                    [25,  24,  22,],]))
+
+            #<  the new shape
+            in_dim_in_total = in_dim___ori + in_dim___new
+            new___training_buffer___o_ii = torch.empty(size=[out_dim, in_dim_in_total])
+            new___training_buffer___o_ii[:, :in_dim___ori] = ori___training_buffer___o_i[:, :in_dim___ori]
+            new___training_buffer___o_ii[:, in_dim___ori:in_dim_in_total] = torch.tensor([  
+                                                                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                                                                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                                                                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                                                                ])# nothing.
+            assert _tensor_equal(new___training_buffer___o_ii, torch.tensor([  
+                            [0.1, 0.2, 0.3, 0.4, 0.5,           0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                            [0.1, 0.2, 0.3, 1.4, 0.5,           0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                            [0.1, 1.2, 0.3, 0.4, 0.5,           0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                                                                ]))
+
+            assert new___training_buffer___o_ii.shape == torch.Size([out_dim, in_dim_in_total])
+
+            #<  new        input
+            new___input___b_i = torch.empty(size=[batch, in_dim___ori+in_dim___new])
+            new___input___b_i[:, :in_dim___ori] = input___b_i
+            new___input___b_i[:, in_dim___ori:] = extra_input___b_ii
+
+            #<  new         forward path
+            new___output___b_o, _temp___new____one_hot___o = _test___DNN_forward___full_safety(input___b_i=new___input___b_i, 
+                                                                            raw_weight___o_i = new___training_buffer___o_ii, 
+                                    input_is_already_posneg1 = True, safety_check=False)# in order to fool the function. debug purpose.
+
+            # old code     _temp___new____one_hot___o = new___training_buffer___o_ii.argmax(dim=1)
+            # new___output___b_o = new___input___b_i[:, _temp___new____one_hot___o]
+            flag___same_output_as_ori___o = _temp___new____one_hot___o.lt(in_dim___ori)
+            del _temp___new____one_hot___o
+            #<  assert 
+            assert _tensor_equal(new___output___b_o, torch.tensor([ [517,  14,  12,],  
+                                                                    [527,  24,  22,],]))
+
+            assert _tensor_equal(new___output___b_o[:, [1,2]], ori___output___b_o[:, [1,2]])
+
+            assert _tensor_equal(new___output___b_o[:, [False, True, True]], ori___output___b_o[:, [False, True, True]])
+            assert _tensor_equal(new___output___b_o[:, flag___same_output_as_ori___o], ori___output___b_o[:, flag___same_output_as_ori___o])
+
+            pass#/ test 
+
+        if "add input.     no assert        no class     with shape scan" and True:
+            for batch in[2, 13, 37]:
+                for out_dim in[3, 14, 53]:
+                    for in_dim___ori in[5, 17, 71]:
+                        for in_dim___new in[7, 21, 92]:
+                            for _ in range(22):
+
+                                #<  dataset
+                                input___b_i = torch.rand(size=[batch, in_dim___ori])
+                                extra_input___b_ii = torch.rand(size=[batch, in_dim___new])
+                                
+                                #<  model param
+                                ori___training_buffer___o_i =torch.rand(size=[out_dim, in_dim___ori])
+                                
+                                #<  original    forward path
+
+                                ori___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i=input___b_i, 
+                                    raw_weight___o_i = ori___training_buffer___o_i, 
+                                    input_is_already_posneg1 = True, safety_check=False)# in order to fool the function. debug purpose.
+                                # old code      _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
+                                # ori___output___b_o = input___b_i[:, _temp_one_hot___o]
+                                # del _temp_one_hot___o
+                                assert ori___output___b_o.shape == torch.Size([batch, out_dim])
+
+                                #<  the new shape
+                                in_dim_in_total = in_dim___ori + in_dim___new
+                                new___training_buffer___o_ii = torch.empty(size=[out_dim, in_dim_in_total])
+                                new___training_buffer___o_ii[:, :in_dim___ori] = ori___training_buffer___o_i[:, :in_dim___ori]
+                                new___training_buffer___o_ii[:, in_dim___ori:in_dim_in_total] = torch.rand(size=[out_dim, in_dim___new])
+                                assert new___training_buffer___o_ii.shape == torch.Size([out_dim, in_dim_in_total])
+                                #<  new        input
+                                new___input___b_i = torch.empty(size=[batch, in_dim___ori+in_dim___new])
+                                new___input___b_i[:, :in_dim___ori] = input___b_i
+                                new___input___b_i[:, in_dim___ori:] = extra_input___b_ii
+
+                                #<  new         forward path
+
+                                new___output___b_o, _temp___new____one_hot___o = _test___DNN_forward___full_safety(input___b_i=new___input___b_i, 
+                                                                            raw_weight___o_i = new___training_buffer___o_ii, 
+                                    input_is_already_posneg1 = True, safety_check=False)# in order to fool the function. debug purpose.
+                                # old code     _temp___new____one_hot___o = new___training_buffer___o_ii.argmax(dim=1)
+                                # new___output___b_o = new___input___b_i[:, _temp___new____one_hot___o]
+                                flag___same_output_as_ori___o = _temp___new____one_hot___o.lt(in_dim___ori)
+                                del _temp___new____one_hot___o
+                                #<  assert 
+                                assert _tensor_equal(new___output___b_o[:, flag___same_output_as_ori___o], ori___output___b_o[:, flag___same_output_as_ori___o])
+
+                                pass#for _
+                            pass#for batch
+                        pass#for out_dim
+                    pass#for in_dim___ori
+                pass#for in_dim___new
+
+            pass#/ test 
+        #assert False, '''继续'''
+        if "class equivalence" and True:
+            for batch in[2, 13, 37]:
+                for out_dim in[3, 14, 53]:
+                    for in_dim___ori in[5, 17, 71]:
+                        for in_dim___new in[7, 21, 92]:
+                            for is_posneg1 in [True, False]:
+                                for _ in range(6):
+
+                                    #<  dataset
+                                    if is_posneg1:
+                                        input___b_i = rand_sign(size=[batch, in_dim___ori], dtype=torch.float32)
+                                        extra_input___b_ii = rand_sign(size=[batch, in_dim___new], dtype=torch.float32)
+                                        pass
+                                    else:#debug purpose.
+                                        input___b_i = torch.randn(size=[batch, in_dim___ori])#debug purpose.
+                                        extra_input___b_ii = torch.randn(size=[batch, in_dim___new])#debug purpose.
+                                        pass
+                                    
+                                    #<  model param
+                                    if is_posneg1:
+                                        the_layer = DigitalMapper_layer__2026(in_features=in_dim___ori, out_features=out_dim)
+                                        pass
+                                    else:#debug purpose.
+                                        the_layer = DigitalMapper_layer__2026(in_features=in_dim___ori, out_features=out_dim, 
+                                                            _always_check_input_is_posneg1__in_forward = False)#debug purpose.
+                                        pass
+
+                                    ori___training_buffer___o_i = the_layer.get_useful_part_of_raw_weight().detach().clone()
+                                    
+                                    #<  original    forward path
+                                    layer_ori___output___b_o = the_layer(input___b_i)
+
+
+                                    ori___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i=input___b_i, 
+                                        raw_weight___o_i = ori___training_buffer___o_i, 
+                                        input_is_already_posneg1 = True, safety_check=False)# in order to fool the function. debug purpose.
+                                    # old code      _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
+                                    # ori___output___b_o = input___b_i[:, _temp_one_hot___o]
+                                    # del _temp_one_hot___o
+                                    assert ori___output___b_o.shape == torch.Size([batch, out_dim])
+
+                                    assert layer_ori___output___b_o.eq(ori___output___b_o).all()
+
+                                    #<  the new shape
+                                    the_layer.add_input_slot__to_the_tail(how_many=in_dim___new)
+
+                                    in_dim_in_total = in_dim___ori + in_dim___new
+                                    new___training_buffer___o_ii = torch.empty(size=[out_dim, in_dim_in_total])
+                                    new___training_buffer___o_ii[:, :in_dim___ori] = ori___training_buffer___o_i[:, :in_dim___ori]
+                                    #new___training_buffer___o_ii[:, in_dim___ori:in_dim_in_total] =  torch.rand(size=[out_dim, in_dim___new])
+                                    new___training_buffer___o_ii[:, in_dim___ori:in_dim_in_total] =  the_layer._raw_weight___oCAP_iCAP[:out_dim, in_dim___ori:in_dim_in_total]#########
+                                    assert new___training_buffer___o_ii.shape == torch.Size([out_dim, in_dim_in_total])
+
+                                    _temp___useful_part = the_layer.get_useful_part_of_raw_weight()
+                                    assert _temp___useful_part.eq(new___training_buffer___o_ii).all()
+                                    del _temp___useful_part
+
+                                    #<  new input      the new in_dim is different.
+                                    new___input___b_i = torch.empty(size=[batch, in_dim___ori+in_dim___new])
+                                    new___input___b_i[:, :in_dim___ori] = input___b_i
+                                    new___input___b_i[:, in_dim___ori:] = extra_input___b_ii
+
+                                    #<  new         forward path
+                                    layer_new___output___b_o = the_layer(new___input___b_i)
+                                    _temp___layer_new____one_hot___o = the_layer.get_useful_part_of_raw_weight().argmax(dim=1)#debug purpose
+                                    layer___flag___same_output_as_ori___o = _temp___layer_new____one_hot___o.lt(in_dim___ori)#debug purpose
+                                    del _temp___layer_new____one_hot___o
 
 
 
-#改形状，两种改法。反向查询索引。    
-if "basic reshape. " and __DEBUG_ME__() and True:
+                                    new___output___b_o, _temp___new____one_hot___o = _test___DNN_forward___full_safety(input___b_i=new___input___b_i, 
+                                                                                raw_weight___o_i = new___training_buffer___o_ii, 
+                                        input_is_already_posneg1 = True, safety_check=False)# in order to fool the function. debug purpose.
+                                    # old code     _temp___new____one_hot___o = new___training_buffer___o_ii.argmax(dim=1)
+                                    # new___output___b_o = new___input___b_i[:, _temp___new____one_hot___o]
+                                    flag___same_output_as_ori___o = _temp___new____one_hot___o.lt(in_dim___ori)#debug purpose
+                                    del _temp___new____one_hot___o
+
+                                    assert layer_new___output___b_o.eq(new___output___b_o).all()
+                                    assert layer___flag___same_output_as_ori___o.eq(flag___same_output_as_ori___o).all()#debug purpose
+
+                                    #<  assert 
+                                    _temp___iota_of_out = iota(out_dim)
+                                    flag_in_index___same_output_as_ori___FAKEo = _temp___iota_of_out[flag___same_output_as_ori___o]
+                                    del _temp___iota_of_out
+                                    assert _tensor_equal(   new___output___b_o      [:, flag_in_index___same_output_as_ori___FAKEo], 
+                                                            ori___output___b_o      [:, flag_in_index___same_output_as_ori___FAKEo])
+                                    assert _tensor_equal(   layer_new___output___b_o[:, flag_in_index___same_output_as_ori___FAKEo], 
+                                                            layer_new___output___b_o[:, flag_in_index___same_output_as_ori___FAKEo])
+
+                                    pass#for _
+                                pass#for is_posneg1
+                            pass#for batch
+                        pass#for out_dim
+                    pass#for in_dim___ori
+                pass#for in_dim___new
+
+            pass#/ test 
+
+        return 
+    ____add_input____()
+    pass
+if "add input slot with specified new raw_weight" and __DEBUG_ME__() and False:
+    def ____add_input_with_specified_new_raw_weight____():
+        for in_dim in [3,6,11]:
+            for out_dim in [2,8,15]:
+                for _ in range(6):
+                    the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                    the_layer.add_input_slot__to_the_tail(new_raw_weight_part = torch.ones(size=[out_dim, 1]))
+                    the_max_index___o = the_layer.get_max_index()
+                    assert the_max_index___o.eq(torch.ones(size=[out_dim])*in_dim).all()
+
+                    pass#for _
+                pass#for out_dim
+            pass#for in_dim
+
+        return
+    ____add_input_with_specified_new_raw_weight____()
+    pass
+if "add output slot     algo test      and class equivalence" and __DEBUG_ME__() and False:
+    def ____add_output____():
+
+        if "add output.     full assert      no class     no shape scan" and True:
+
+            batch = 2
+            in_dim = 3
+            out_dim___ori = 5
+            out_dim___new = 7
+
+            #<  dataset
+            input___b_i = torch.tensor([[11.,  12,  13],
+                                        [21.,  22,  23],])
+            assert input___b_i.shape == torch.Size([batch, in_dim])
+
+            #<  model param
+            ori___training_buffer___o_i = torch.tensor([  
+                                                    [0.1, 0.2, 0.3],
+                                                    [0.1, 1.2, 0.3],
+                                                    [1.1, 0.2, 0.3],
+                                                    [0.1, 1.2, 0.3],
+                                                    [1.1, 0.2, 0.3],
+                                                    ])### 32121 or 21010
+            
+            #<  original    forward path
+            ori___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i = input___b_i, 
+                                                    raw_weight___o_i = ori___training_buffer___o_i, 
+                    input_is_already_posneg1 = True, safety_check=False)#in order to fool the function. debug purpose
+            assert ori___output___b_o.shape == torch.Size([batch, out_dim___ori])
+            assert _tensor_equal(ori___output___b_o, torch.tensor([ [13, 12, 11, 12, 11],  
+                                                                    [23, 22, 21, 22, 21],]))
+
+            #<  the new shape
+            out_dim_in_total = out_dim___ori + out_dim___new
+            new___training_buffer___oo_i = torch.empty(size=[out_dim_in_total, in_dim])
+            new___training_buffer___oo_i[:out_dim___ori, :] = ori___training_buffer___o_i[:out_dim___ori, :in_dim]
+
+            new___training_buffer___oo_i[out_dim___ori:out_dim_in_total, :in_dim] = torch.tensor([  
+                                                                [0.1, 0.2, 0.3],
+                                                                [0.1, 1.2, 0.3],
+                                                                [1.1, 0.2, 0.3],
+                                                                [0.1, 1.2, 0.3],
+                                                                [1.1, 0.2, 0.3],
+                                                                [0.1, 0.2, 0.3],
+                                                                [1.1, 0.2, 0.3],
+                                                                ])# 3212131 or 2101020
+            assert _tensor_equal(new___training_buffer___oo_i, torch.tensor([  
+                                                                [0.1, 0.2, 0.3],
+                                                                [0.1, 1.2, 0.3],
+                                                                [1.1, 0.2, 0.3],
+                                                                [0.1, 1.2, 0.3],
+                                                                [1.1, 0.2, 0.3],
+                                                                [0.1, 0.2, 0.3],
+                                                                [0.1, 1.2, 0.3],
+                                                                [1.1, 0.2, 0.3],
+                                                                [0.1, 1.2, 0.3],
+                                                                [1.1, 0.2, 0.3],
+                                                                [0.1, 0.2, 0.3],
+                                                                [1.1, 0.2, 0.3],
+                                                                ]))
+            assert new___training_buffer___oo_i.shape == torch.Size([out_dim_in_total, in_dim])
+            #<  new         forward path
+            new___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i = input___b_i, 
+                                                                raw_weight___o_i= new___training_buffer___oo_i, 
+                    input_is_already_posneg1 = True, safety_check=False)#in order to fool the function. debug purpose
+            #<  assert 
+
+            assert _tensor_equal(new___output___b_o, torch.tensor([ [13, 12, 11, 12, 11, 13, 12, 11, 12, 11, 13, 11],  
+                                                                    [23, 22, 21, 22, 21, 23, 22, 21, 22, 21, 23, 21],]))
+            assert _tensor_equal(new___output___b_o[:, :out_dim___ori], ori___output___b_o)
+
+            pass#/ test 
+
+
+        if "add input.     no assert        no class     with shape scan" and True:
+            for batch in[2, 13, 37]:
+                for in_dim in[3, 14, 53]:
+                    for out_dim___ori in[5, 17, 71]:
+                        for out_dim___new in[7, 21, 92]:
+                            for _ in range(22):
+
+                                #<  dataset
+                                input___b_i = torch.rand(size=[batch, in_dim])
+                                assert input___b_i.shape == torch.Size([batch, in_dim])
+
+                                #<  model param
+                                ori___training_buffer___o_i = torch.rand(size=[out_dim___ori, in_dim])*-1.# this *-1. doesn't matter in this test.
+                                
+                                #<  original    forward path
+                                ori___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i = input___b_i, 
+                                                                        raw_weight___o_i = ori___training_buffer___o_i, 
+                                        input_is_already_posneg1 = True, safety_check=False)#in order to fool the function. debug purpose
+                                assert ori___output___b_o.shape == torch.Size([batch, out_dim___ori])
+
+                                #<  the new shape
+                                out_dim_in_total = out_dim___ori + out_dim___new
+                                new___training_buffer___oo_i = torch.empty(size=[out_dim_in_total, in_dim])
+                                new___training_buffer___oo_i[:out_dim___ori, :] = ori___training_buffer___o_i[:out_dim___ori, :in_dim]
+
+                                new___training_buffer___oo_i[out_dim___ori:out_dim_in_total, :in_dim] = \
+                                        torch.rand(size=[out_dim___new, in_dim])*-1.# this *-1. doesn't matter in this test.
+                                assert new___training_buffer___oo_i.shape == torch.Size([out_dim_in_total, in_dim])
+                                #<  new         forward path
+                                new___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i = input___b_i, 
+                                                                                    raw_weight___o_i= new___training_buffer___oo_i, 
+                                        input_is_already_posneg1 = True, safety_check=False)#in order to fool the function. debug purpose
+                                #<  assert 
+                                assert _tensor_equal(new___output___b_o[:, :out_dim___ori], ori___output___b_o)
+
+                                pass#for _
+                            pass#for batch
+                        pass#for out_dim
+                    pass#for in_dim___ori
+                pass#for in_dim___new
+
+            pass#/ test 
+
+
+        if "class equivalence" and True:
+            for batch in[2, 13, 37]:
+                for in_dim in[3, 14, 53]:
+                    for out_dim___ori in[5, 17, 71]:
+                        for out_dim___new in[7, 21, 92]:
+                            for is_posneg1 in [True, False]:
+                                for _ in range(6):
+
+                                    #<  dataset
+                                    if is_posneg1:
+                                        input___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)
+                                        pass
+                                    else:#debug purpose.
+                                        input___b_i = torch.rand(size=[batch, in_dim])#debug purpose.
+                                        pass
+                                    assert input___b_i.shape == torch.Size([batch, in_dim])
+
+                                    #<  model param
+                                    if is_posneg1:
+                                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim___ori)
+                                        pass
+                                    else:#debug purpose.
+                                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim___ori, 
+                                                            _always_check_input_is_posneg1__in_forward = False)#debug purpose.
+                                        pass
+                                    
+                                    ori___training_buffer___o_i = the_layer.get_useful_part_of_raw_weight().detach().clone()
+                                    assert _tensor_shape_check(ori___training_buffer___o_i, out_dim___ori, in_dim)
+
+                                    #<  original    forward path
+                                    layer_ori___output___b_o = the_layer(input___b_i)
+
+                                    ori___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i = input___b_i, 
+                                                                            raw_weight___o_i = ori___training_buffer___o_i, 
+                                            input_is_already_posneg1 = True, safety_check=False)#in order to fool the function. debug purpose
+                                    assert ori___output___b_o.shape == torch.Size([batch, out_dim___ori])
+
+                                    assert layer_ori___output___b_o.eq(ori___output___b_o).all()
+
+                                    #<  the new shape
+                                    the_layer.add_output_slot__to_the_tail(how_many=out_dim___new)
+
+                                    out_dim_in_total = out_dim___ori + out_dim___new
+                                    new___training_buffer___oo_i = torch.empty(size=[out_dim_in_total, in_dim])
+                                    new___training_buffer___oo_i[:out_dim___ori, :] = ori___training_buffer___o_i[:out_dim___ori, :in_dim]
+                                    new___training_buffer___oo_i[out_dim___ori:out_dim_in_total, :in_dim] = \
+                                            the_layer._raw_weight___oCAP_iCAP[out_dim___ori:out_dim_in_total, :in_dim]
+                                    
+                                    assert new___training_buffer___oo_i.shape == torch.Size([out_dim_in_total, in_dim])
+
+                                    assert the_layer.get_useful_part_of_raw_weight().eq(new___training_buffer___oo_i).all()
+
+                                    #<  new         forward path
+                                    layer_new___output___b_o = the_layer(input___b_i)
+
+                                    new___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i = input___b_i, 
+                                                                                        raw_weight___o_i= new___training_buffer___oo_i, 
+                                            input_is_already_posneg1 = True, safety_check=False)#in order to fool the function. debug purpose
+
+                                    assert layer_new___output___b_o.eq(new___output___b_o).all()
+                                    #<  assert 
+                                    assert _tensor_equal(layer_new___output___b_o[:, :out_dim___ori], layer_ori___output___b_o)
+                                    assert _tensor_equal(new___output___b_o[:, :out_dim___ori], ori___output___b_o)
+                                    assert the_layer.get_useful_part_of_raw_weight().eq(new___training_buffer___oo_i).all()
+
+                                    pass#for _
+                                pass#for is_posneg1
+                            pass#for batch
+                        pass#for out_dim
+                    pass#for in_dim___ori
+                pass#for in_dim___new
+
+            pass#/ test 
+
+        return 
+    ____add_output____()
+    pass
+if "add output slot with specified new raw_weight" and __DEBUG_ME__() and False:
+    def ____add_output_with_specified_new_raw_weight____():
+        for in_dim in [3,6,11]:
+            for out_dim in [2,8,15]:
+                for _ in range(6):
+                    the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                    the_layer.add_output_slot__to_the_tail(new_raw_weight_part = torch.ones(size=[1, in_dim]))
+                    the_layer._raw_weight___oCAP_iCAP[out_dim, in_dim-1] = 2.123
+                    the_max_index___o = the_layer.get_max_index()
+                    assert the_max_index___o[out_dim-1+1] == in_dim-1
+
+                    the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                    the_layer.add_output_slot__to_the_tail(new_raw_weight_part = torch.ones(size=[1, in_dim]))
+                    the_layer._raw_weight___oCAP_iCAP[out_dim, 2] = 5.123
+                    the_max_index___o = the_layer.get_max_index()
+                    assert the_max_index___o[out_dim-1+1] == 2
+
+                    pass#for _
+                pass#for out_dim
+            pass#for in_dim
+
+        return
+    ____add_output_with_specified_new_raw_weight____()
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if "delete output slot" and __DEBUG_ME__() and True:
+    def ____delete_output____():
+        if "delete output.      without class" and False:
+
+            batch = 2
+            out_dim = 5
+            in_dim = 3
+            #<  the answer
+            keep_these_output = torch.tensor([1,1,1,0,1], dtype=torch.bool)
+            new_out_dim = int(keep_these_output.sum().item())
+            #assert isinstance(new_out_dim, int)
+
+            #<  dataset
+            input___b_i = torch.tensor([[11.,  12,  13],
+                                        [21.,  22,  23],])
+            #<  model param
+            ori___training_buffer___o_i = torch.tensor([  
+                                                    [0.1, 0.2, 0.3],
+                                                    [0.1, 1.2, 0.3],
+                                                    [1.1, 0.2, 0.3],
+                                                    [0.1, 1.2, 0.3],
+                                                    [1.1, 0.2, 0.3],])#32121
+            #<  original    forward path
+            ori___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i = input___b_i, 
+                                                    raw_weight___o_i = ori___training_buffer___o_i, 
+                    input_is_already_posneg1 = True, safety_check=False)#in order to fool the function. debug purpose
+            assert ori___output___b_o.shape == torch.Size([batch, out_dim])
+            assert _tensor_equal(ori___output___b_o, torch.tensor([   [13, 12, 11, 12, 11],  
+                                                                        [23, 22, 21, 22, 21],]))
+
+            #<  the new shape
+            new___training_buffer___o_i = ori___training_buffer___o_i[keep_these_output, :]
+            assert new___training_buffer___o_i.shape == torch.Size([new_out_dim, in_dim])
+            #<  new         forward path
+            new___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i = input___b_i, 
+                                                    raw_weight___o_i= new___training_buffer___o_i, 
+                    input_is_already_posneg1 = True, safety_check=False)#in order to fool the function. debug purpose
+            #<  assert 
+            assert _tensor_equal(new___output___b_o, ori___output___b_o[:, keep_these_output])
+
+            pass#/ test
+
+        if "delete output,      without class         scan it" and False:
+            for batch in [2,5,10]:
+                for out_dim in [3,7,11]:
+                    for in_dim in [6,9,13]:
+                        for _ in range(5):
+                            #<  the answer
+                            keep_these_output = torch.rand(size=[out_dim])
+                            keep_these_output = keep_these_output.gt(0.5)
+
+                            new_out_dim = int(keep_these_output.sum().item())
+
+                            #<  dataset
+                            input___b_i = torch.rand(size=[batch, in_dim])
+                            #<  model param
+                            ori___training_buffer___o_i = torch.rand(size=[out_dim, in_dim])*-1.#the *-1. is debug purpose
+                            #<  original    forward path
+                            ori___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i = input___b_i, 
+                                                                    raw_weight___o_i = ori___training_buffer___o_i, 
+                                    input_is_already_posneg1 = True, safety_check=False)#in order to fool the function. debug purpose
+                            assert ori___output___b_o.shape == torch.Size([batch, out_dim])
+
+                            #<  the new shape
+                            new___training_buffer___o_i = ori___training_buffer___o_i[keep_these_output,:]
+                            assert new___training_buffer___o_i.shape == torch.Size([new_out_dim, in_dim])
+
+                            #<  new         forward path
+                            new___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i = input___b_i, 
+                                                                    raw_weight___o_i= new___training_buffer___o_i, 
+                                    input_is_already_posneg1 = True, safety_check=False)#in order to fool the function. debug purpose
+
+                            #<  assert 
+                            assert _tensor_equal(new___output___b_o, ori___output___b_o[:, keep_these_output])
+                            pass#for _
+                        pass#for in_dim
+                    pass#for out_dim
+                pass#for batch
+            pass#/ test
+        
+        if "delete output,      with class         scan it" and True:
+            for batch in [2,5,10]:
+                for out_dim in [3,7,11]:
+                    for in_dim in [6,9,13]:
+                        for is_posneg1 in [True, False]:
+                            for _ in range(5):
+                                #<  the answer
+                                keep_these_output = torch.rand(size=[out_dim])
+                                keep_these_output = keep_these_output.gt(0.5)
+
+                                new_out_dim = int(keep_these_output.sum().item())
+
+                                #<  dataset
+
+                                if is_posneg1:
+                                    input___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)
+                                    pass
+                                else:#debug purpose.
+                                    input___b_i = torch.rand(size=[batch, in_dim])#debug purpose.
+                                    pass
+                                assert input___b_i.shape == torch.Size([batch, in_dim])
+
+                                #<  model param
+                                if is_posneg1:
+                                    the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                                    pass
+                                else:#debug purpose.
+                                    the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim, 
+                                                _always_check_input_is_posneg1__in_forward = False)#debug purpose.
+                                    pass
+
+                                ori___training_buffer___o_i = the_layer.get_useful_part_of_raw_weight().detach().clone()
+                                assert _tensor_shape_check(ori___training_buffer___o_i, out_dim___ori, in_dim)
+
+                                #<  original    forward path
+                                layer_ori___output___b_o = the_layer(input___b_i)
+
+                                ori___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i = input___b_i.detach().clone(), 
+                                                                        raw_weight___o_i = ori___training_buffer___o_i.detach().clone(), 
+                                        input_is_already_posneg1 = True, safety_check=False)#in order to fool the function. debug purpose
+                                assert ori___output___b_o.shape == torch.Size([batch, out_dim])
+
+                                assert layer_ori___output___b_o.eq(ori___output___b_o).all()
+                                #<  the new shape
+                                the_layer.keep_output_slot(keep_these_output)
+                                assert _tensor_shape_check(the_layer.get_useful_part_of_raw_weight(), new_out_dim, in_dim)
+
+                                new___training_buffer___o_i = ori___training_buffer___o_i[keep_these_output, :]
+                                assert _tensor_shape_check(new___training_buffer___o_i, new_out_dim, in_dim)
+
+                                #<  new         forward path
+                                layer_new___output___b_o = the_layer(input___b_i)
+
+
+                                new___output___b_o, _ = _test___DNN_forward___full_safety(input___b_i = input___b_i, 
+                                                                                    raw_weight___o_i= new___training_buffer___o_i, 
+                                        input_is_already_posneg1 = True, safety_check=False)#in order to fool the function. debug purpose
+
+                                assert layer_new___output___b_o.eq(new___output___b_o).all()
+                                #<  assert 
+                                1w
+                                1w
+                                1w
+                                assert _tensor_equal(layer_new___output___b_o[:, :out_dim___ori], layer_ori___output___b_o)
+                                assert _tensor_equal(new___output___b_o[:, :out_dim___ori], ori___output___b_o)
+                                assert the_layer.get_useful_part_of_raw_weight().eq(new___training_buffer___oo_i).all()
+
+
+                                new___output___b_o = the_layer.forward(input___b_i)
+                                #<  assert 
+                                assert _tensor_equal(new___output___b_o, ori___output___b_o[:, keep_these_output])
+                                pass#for _
+                            pass#for is_posneg1
+                        pass#for in_dim
+                    pass#for out_dim
+                pass#for batch
+            pass#/ test
+
+
+
+
+        return 
+    ____delete_output____()
+    pass
+
+
+
+
+
+
+
+
+
+
+
+if "basic reshape.     data member test" and __DEBUG_ME__() and True:
     def ____test____basic_reshape____():
 
         if "add_input_slot__to_the_tail" and True:
@@ -2245,6 +3096,8 @@ if "basic reshape. " and __DEBUG_ME__() and True:
                 pass#for in_dim
             pass#/ test
 
+        
+
         return 
     ____test____basic_reshape____()
     pass
@@ -2252,377 +3105,6 @@ if "basic reshape. " and __DEBUG_ME__() and True:
 
 
 
-if "add input slot" and __DEBUG_ME__() and True:
-    def ____add_input____():
-
-        if "add input.     full assert      no class" and True:
-
-            batch = 2
-            out_dim = 3
-            in_dim___ori = 5
-            in_dim___new = 7
-
-            #<  dataset
-            input___b_i = torch.tensor([[11.,  12,  13,  14,  15],
-                                        [21.,  22,  23,  24,  25],])
-            assert input___b_i.shape == torch.Size([batch, in_dim___ori])
-
-            extra_input___b_ii = torch.tensor([
-                    [511.,  512,  513,  514,  515,  516,  517],
-                    [521.,  522,  523,  524,  525,  526,  527],])
-            assert extra_input___b_ii.shape == torch.Size([batch, in_dim___new])
-            
-            #<  model param
-            ori___training_buffer___o_i = torch.tensor([  
-                                                    [0.1, 0.2, 0.3, 0.4, 0.5],
-                                                    [0.1, 0.2, 0.3, 1.4, 0.5],
-                                                    [0.1, 1.2, 0.3, 0.4, 0.5],
-                                                    ])### 542 or 431
-            
-            #<  original    forward path
-            _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
-            ori___output___b_o = input___b_i[:, _temp_one_hot___o]
-            del _temp_one_hot___o
-            assert ori___output___b_o.shape == torch.Size([batch, out_dim])
-            assert _tensor_equal(ori___output___b_o, torch.tensor([ [15,  14,  12,],  
-                                                                    [25,  24,  22,],]))
-
-            #<  the new shape
-            in_dim_in_total = in_dim___ori + in_dim___new
-            new___training_buffer___o_ii = torch.empty(size=[out_dim, in_dim_in_total])
-            new___training_buffer___o_ii[:, :in_dim___ori] = ori___training_buffer___o_i[:, :in_dim___ori]
-            new___training_buffer___o_ii[:, in_dim___ori:in_dim_in_total] = torch.tensor([  
-                                                                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
-                                                                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
-                                                                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
-                                                                ])# nothing.
-            assert _tensor_equal(new___training_buffer___o_ii, torch.tensor([  
-                            [0.1, 0.2, 0.3, 0.4, 0.5,           0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
-                            [0.1, 0.2, 0.3, 1.4, 0.5,           0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
-                            [0.1, 1.2, 0.3, 0.4, 0.5,           0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
-                                                                ]))
-
-            assert new___training_buffer___o_ii.shape == torch.Size([out_dim, in_dim_in_total])
-            #<  new         forward path
-            _temp___new____one_hot___o = new___training_buffer___o_ii.argmax(dim=1)
-            flag___same_output_as_ori___o = _temp___new____one_hot___o.lt(in_dim___ori)
-            new___input___b_i = torch.empty(size=[batch, in_dim___ori+in_dim___new])
-            new___input___b_i[:, :in_dim___ori] = input___b_i
-            new___input___b_i[:, in_dim___ori:] = extra_input___b_ii
-            new___output___b_o = new___input___b_i[:, _temp___new____one_hot___o]
-            del _temp___new____one_hot___o
-            #<  assert 
-            assert _tensor_equal(new___output___b_o, torch.tensor([ [517,  14,  12,],  
-                                                                    [527,  24,  22,],]))
-
-            assert _tensor_equal(new___output___b_o[:, [1,2]], ori___output___b_o[:, [1,2]])
-
-            assert _tensor_equal(new___output___b_o[:, [False, True, True]], ori___output___b_o[:, [False, True, True]])
-            assert _tensor_equal(new___output___b_o[:, flag___same_output_as_ori___o], ori___output___b_o[:, flag___same_output_as_ori___o])
-
-            pass#/ test 
-
-        if "add input.     no assert       no class" and True:
-            for batch in[2, 13, 37]:
-                for out_dim in[3, 14, 53]:
-                    for in_dim___ori in[5, 17, 71]:
-                        for in_dim___new in[7, 21, 92]:
-                            for _ in range(22):
-
-                                #<  dataset
-                                input___b_i = torch.rand(size=[batch, in_dim___ori])
-                                extra_input___b_ii = torch.rand(size=[batch, in_dim___new])
-                                
-                                #<  model param
-                                ori___training_buffer___o_i =torch.rand(size=[out_dim, in_dim___ori])
-                                
-                                #<  original    forward path
-                                _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
-                                ori___output___b_o = input___b_i[:, _temp_one_hot___o]
-                                del _temp_one_hot___o
-                                assert ori___output___b_o.shape == torch.Size([batch, out_dim])
-
-                                #<  the new shape
-                                in_dim_in_total = in_dim___ori + in_dim___new
-                                new___training_buffer___o_ii = torch.empty(size=[out_dim, in_dim_in_total])
-                                new___training_buffer___o_ii[:, :in_dim___ori] = ori___training_buffer___o_i[:, :in_dim___ori]
-                                new___training_buffer___o_ii[:, in_dim___ori:in_dim_in_total] = torch.rand(size=[out_dim, in_dim___new])
-                                assert new___training_buffer___o_ii.shape == torch.Size([out_dim, in_dim_in_total])
-                                #<  new         forward path
-                                _temp___new____one_hot___o = new___training_buffer___o_ii.argmax(dim=1)
-                                flag___same_output_as_ori___o = _temp___new____one_hot___o.lt(in_dim___ori)
-                                new___input___b_i = torch.empty(size=[batch, in_dim___ori+in_dim___new])
-                                new___input___b_i[:, :in_dim___ori] = input___b_i
-                                new___input___b_i[:, in_dim___ori:] = extra_input___b_ii
-                                new___output___b_o = new___input___b_i[:, _temp___new____one_hot___o]
-                                del _temp___new____one_hot___o
-                                #<  assert 
-                                assert _tensor_equal(new___output___b_o[:, flag___same_output_as_ori___o], ori___output___b_o[:, flag___same_output_as_ori___o])
-
-                                pass#for _
-                            pass#for batch
-                        pass#for out_dim
-                    pass#for in_dim___ori
-                pass#for in_dim___new
-
-            pass#/ test 
-
-
-        assert False
-        if "add input.     no assert       with class" and True:
-            for batch in[2, 13, 37]:
-                for out_dim in[3, 14, 53]:
-                    for in_dim___ori in[5, 17, 71]:
-                        for in_dim___new in[7, 21, 92]:
-                            for _ in range(22):
-
-                                #<  dataset
-                                input___b_i = torch.rand(size=[batch, in_dim___ori])
-                                extra_input___b_ii = torch.rand(size=[batch, in_dim___new])
-                                
-                                #<  model param
-                                assert False
-                                the_layer = DigitalMapper_layer__2026()
-                                ori___training_buffer___o_i =torch.rand(size=[out_dim, in_dim___ori])
-                                
-                                #<  original    forward path
-                                _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
-                                ori___output___b_o = input___b_i[:, _temp_one_hot___o]
-                                del _temp_one_hot___o
-                                assert ori___output___b_o.shape == torch.Size([batch, out_dim])
-
-                                #<  the new shape
-                                in_dim_in_total = in_dim___ori + in_dim___new
-                                new___training_buffer___o_ii = torch.empty(size=[out_dim, in_dim_in_total])
-                                new___training_buffer___o_ii[:, :in_dim___ori] = ori___training_buffer___o_i[:, :in_dim___ori]
-                                new___training_buffer___o_ii[:, in_dim___ori:in_dim_in_total] = torch.rand(size=[out_dim, in_dim___new])
-                                assert new___training_buffer___o_ii.shape == torch.Size([out_dim, in_dim_in_total])
-                                #<  new         forward path
-                                _temp___new____one_hot___o = new___training_buffer___o_ii.argmax(dim=1)
-                                flag___same_output_as_ori___o = _temp___new____one_hot___o.lt(in_dim___ori)
-                                new___input___b_i = torch.empty(size=[batch, in_dim___ori+in_dim___new])
-                                new___input___b_i[:, :in_dim___ori] = input___b_i
-                                new___input___b_i[:, in_dim___ori:] = extra_input___b_ii
-                                new___output___b_o = new___input___b_i[:, _temp___new____one_hot___o]
-                                del _temp___new____one_hot___o
-                                #<  assert 
-                                assert _tensor_equal(new___output___b_o[:, flag___same_output_as_ori___o], ori___output___b_o[:, flag___same_output_as_ori___o])
-
-                                pass#for _
-                            pass#for batch
-                        pass#for out_dim
-                    pass#for in_dim___ori
-                pass#for in_dim___new
-
-            pass#/ test 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        assert False
-        if "这个怎么写？？？" and True:
-            for batch in [2,5,10]:
-                for out_dim in [3,7,11]:
-                    for in_dim in [6,9,13]:
-                        for _ in range(5):
-                            #<  the answer
-                            keep_these_output = torch.rand(size=[out_dim])
-                            keep_these_output = keep_these_output.gt(0.5)
-
-                            new_out_dim = int(keep_these_output.sum().item())
-
-                            #<  dataset
-                            input___b_i = torch.randn(size=[batch, in_dim])
-                            #<  model param
-                            ori___training_buffer___o_i = torch.randn(size=[out_dim, in_dim])
-                            #<  original    forward path
-                            _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
-                            ori___output___b_o = input___b_i[:, _temp_one_hot___o]
-                            del _temp_one_hot___o
-                            assert ori___output___b_o.shape == torch.Size([batch, out_dim])
-                            #<  the new shape
-                            new___training_buffer___o_i = ori___training_buffer___o_i[keep_these_output,:]
-                            assert new___training_buffer___o_i.shape == torch.Size([new_out_dim, in_dim])
-                            _temp___new____one_hot___o = new___training_buffer___o_i.argmax(dim=1)
-                            new___output___b_o = input___b_i[:, _temp___new____one_hot___o]
-                            del _temp___new____one_hot___o
-                            #<  assert 
-                            assert _tensor_equal(new___output___b_o, ori___output___b_o[:, keep_these_output])
-                            pass#for _
-                        pass#for in_dim
-                    pass#for out_dim
-                pass#for batch
-            pass#/ test
-        
-        if "xxxxxxxxxxxxxxxxxx" and True:
-            for batch in [2,5,10]:
-                for out_dim in [3,7,11]:
-                    for in_dim in [6,9,13]:
-                        for _ in range(5):
-                            #<  the answer
-                            keep_these_output = torch.rand(size=[out_dim])
-                            keep_these_output = keep_these_output.gt(0.5)
-
-                            new_out_dim = int(keep_these_output.sum().item())
-
-                            #<  dataset
-                            input___b_i = torch.randn(size=[batch, in_dim])
-                            #<  model
-                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
-                            #<  original    forward path
-                            ori___output___b_o = the_layer.forward(input___b_i)
-                            assert ori___output___b_o.shape == torch.Size([batch, out_dim])
-                            #<  the new shape
-                            the_layer.keep_output_slot(keep_these_output)
-                            assert the_layer.raw_weight.shape == torch.Size([new_out_dim, in_dim])
-                            new___output___b_o = the_layer.forward(input___b_i)
-                            #<  assert 
-                            assert _tensor_equal(new___output___b_o, ori___output___b_o[:, keep_these_output])
-                            pass#for _
-                        pass#for in_dim
-                    pass#for out_dim
-                pass#for batch
-            pass#/ test
-
-
-
-
-        return 
-    ____add_input____()
-    pass
-
-
-
-
-
-
-
-
-
-
-if "delete output slot" and __DEBUG_ME__() and False:
-    def ____delete_output____():
-        if "delete output.      without class" and True:
-
-            batch = 2
-            out_dim = 5
-            in_dim = 3
-            #<  the answer
-            keep_these_output = torch.tensor([1,1,1,0,1], dtype=torch.bool)
-            new_out_dim = int(keep_these_output.sum().item())
-            #assert isinstance(new_out_dim, int)
-
-            #<  dataset
-            input___b_i = torch.tensor([[1.,  1.,  1.],
-                                        [1.,  1.,  1.],])
-            label___b_o = torch.tensor([[1.,  1.,  1.,  1.,  1.],
-                                        [1.,  1.,  1.,  1.,  1.],])
-            #<  model param
-            ori___training_buffer___o_i = torch.tensor([  
-                                                    [0.1, 0.2, 0.3],
-                                                    [0.1, 1.2, 0.3],
-                                                    [0.1, 0.2, 0.3],
-                                                    [0.1, 1.2, 0.3],
-                                                    [1.1, 0.2, 0.3],])#32321
-            #<  original    forward path
-            _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
-            ori___output___b_o = input___b_i[:, _temp_one_hot___o]
-            del _temp_one_hot___o
-            assert ori___output___b_o.shape == torch.Size([batch, out_dim])
-            #<  the new shape
-            new___training_buffer___o_i = ori___training_buffer___o_i[keep_these_output,:]
-            assert new___training_buffer___o_i.shape == torch.Size([new_out_dim, in_dim])
-            #<  new         forward path
-            _temp___new____one_hot___o = new___training_buffer___o_i.argmax(dim=1)
-            new___output___b_o = input___b_i[:, _temp___new____one_hot___o]
-            del _temp___new____one_hot___o
-            #<  assert 
-            assert _tensor_equal(new___output___b_o, ori___output___b_o[:, keep_these_output])
-
-            pass#/ test
-
-        if "delete output,      without class         scan it" and True:
-            for batch in [2,5,10]:
-                for out_dim in [3,7,11]:
-                    for in_dim in [6,9,13]:
-                        for _ in range(5):
-                            #<  the answer
-                            keep_these_output = torch.rand(size=[out_dim])
-                            keep_these_output = keep_these_output.gt(0.5)
-
-                            new_out_dim = int(keep_these_output.sum().item())
-
-                            #<  dataset
-                            input___b_i = torch.randn(size=[batch, in_dim])
-                            #<  model param
-                            ori___training_buffer___o_i = torch.randn(size=[out_dim, in_dim])
-                            #<  original    forward path
-                            _temp_one_hot___o = ori___training_buffer___o_i.argmax(dim=1)
-                            ori___output___b_o = input___b_i[:, _temp_one_hot___o]
-                            del _temp_one_hot___o
-                            assert ori___output___b_o.shape == torch.Size([batch, out_dim])
-                            #<  the new shape
-                            new___training_buffer___o_i = ori___training_buffer___o_i[keep_these_output,:]
-                            assert new___training_buffer___o_i.shape == torch.Size([new_out_dim, in_dim])
-                            _temp___new____one_hot___o = new___training_buffer___o_i.argmax(dim=1)
-                            new___output___b_o = input___b_i[:, _temp___new____one_hot___o]
-                            del _temp___new____one_hot___o
-                            #<  assert 
-                            assert _tensor_equal(new___output___b_o, ori___output___b_o[:, keep_these_output])
-                            pass#for _
-                        pass#for in_dim
-                    pass#for out_dim
-                pass#for batch
-            pass#/ test
-        
-        if "delete output,      with class         scan it" and True:
-            for batch in [2,5,10]:
-                for out_dim in [3,7,11]:
-                    for in_dim in [6,9,13]:
-                        for _ in range(5):
-                            #<  the answer
-                            keep_these_output = torch.rand(size=[out_dim])
-                            keep_these_output = keep_these_output.gt(0.5)
-
-                            new_out_dim = int(keep_these_output.sum().item())
-
-                            #<  dataset
-                            input___b_i = torch.randn(size=[batch, in_dim])
-                            #<  model
-                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
-                            #<  original    forward path
-                            ori___output___b_o = the_layer.forward(input___b_i)
-                            assert ori___output___b_o.shape == torch.Size([batch, out_dim])
-                            #<  the new shape
-                            the_layer.keep_output_slot(keep_these_output)
-                            assert the_layer.raw_weight.shape == torch.Size([new_out_dim, in_dim])
-                            new___output___b_o = the_layer.forward(input___b_i)
-                            #<  assert 
-                            assert _tensor_equal(new___output___b_o, ori___output___b_o[:, keep_these_output])
-                            pass#for _
-                        pass#for in_dim
-                    pass#for out_dim
-                pass#for batch
-            pass#/ test
-
-
-
-
-        return 
-    ____delete_output____()
-    pass
 
 
 
