@@ -1629,12 +1629,15 @@ class DigitalMapper_layer__2026(torch.nn.Module):
         self._always_check_input_is_posneg1__in_forward = _always_check_input_is_posneg1__in_forward
         self._raw_weight___oCAP_iCAP = torch.nn.Parameter(torch.empty(
                 size=[init_capacity__for_out, init_capacity__for_in], dtype=_dtype_for_raw_weight, device=device, 
-                        requires_grad = False),#, **factory_kwargs), 
-                        requires_grad = False)
+                        requires_grad = True))#, **factory_kwargs), 
+        
+        
         assert self._raw_weight___oCAP_iCAP.dtype in [torch.float, torch.float16, torch.float32, torch.float64, torch.bfloat16]
         if self._init_to_nan:
-            self._raw_weight___oCAP_iCAP.fill_(torch.nan)
-            pass
+            with torch.no_grad():
+                self._raw_weight___oCAP_iCAP.fill_(torch.nan)
+                pass
+            pass# if self._init_to_nan:
 
         if isinstance(some_hyper_param, float):
             self.some_hyper_param = torch.nn.Parameter(torch.tensor(some_hyper_param, dtype=torch.float64, device=device, 
@@ -1651,9 +1654,11 @@ class DigitalMapper_layer__2026(torch.nn.Module):
 
         #<  modulized functions.
         self._random_init_algo = _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style
-        self._raw_weight___oCAP_iCAP[:self.out_dim, :self.in_dim] = \
-                self._random_init_algo(out_features, in_features, 
-                        device=device, dtype=self._raw_weight___oCAP_iCAP.dtype)
+        with torch.no_grad():
+            self._raw_weight___oCAP_iCAP[:self.out_dim, :self.in_dim] = \
+                    self._random_init_algo(out_features, in_features, 
+                            device=device, dtype=self._raw_weight___oCAP_iCAP.dtype)
+            pass
         self._calc_bigger_capacity__for_in = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in
         self._calc_bigger_capacity__for_out = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out
         pass
@@ -1757,7 +1762,6 @@ class DigitalMapper_layer__2026(torch.nn.Module):
         #<  real payload
         output___b_o = autograd_function_class_for__DigitalMapper_layer__2026.apply(input___b_i, 
                                         self.get_useful_part_of_raw_weight(), self.some_hyper_param)
-                                        # self._raw_weight___oCAP_iCAP, self.some_hyper_param)
 
         return output___b_o
         #end of function.
@@ -1778,14 +1782,13 @@ class DigitalMapper_layer__2026(torch.nn.Module):
 
 
     ''' get useful part         squeeze'''
-    def get_useful_part_of_raw_weight___and_squeeze(self, squeeze_in = False, squeeze_out = False)->torch.Tensor:
-        self._squeeze(squeeze_in = squeeze_in, squeeze_out = squeeze_out)
-        result = self._raw_weight___oCAP_iCAP[:self.out_dim,:self.in_dim]
-        return result
-    
     def get_useful_part_of_raw_weight(self)->torch.Tensor:
         result = self._raw_weight___oCAP_iCAP[:self.out_dim,:self.in_dim]
         return result
+    def get_useful_part_of_raw_weight___and_squeeze(self, squeeze_in = False, squeeze_out = False)->torch.Tensor:
+        self._squeeze(squeeze_in = squeeze_in, squeeze_out = squeeze_out)
+        #result = self._raw_weight___oCAP_iCAP[:self.out_dim,:self.in_dim]
+        return self.get_useful_part_of_raw_weight()
     
     def _squeeze(self, squeeze_in = False, squeeze_out = False):
         '''This function is designed for inner use inside this class. 
@@ -1810,9 +1813,10 @@ class DigitalMapper_layer__2026(torch.nn.Module):
         if self._init_to_nan:
             _temp_new_memory.fill_(torch.nan)
             pass
-        _temp_new_memory[self.out_dim, self.in_dim] = self._raw_weight___oCAP_iCAP.data[self.out_dim, self.in_dim]
-        self._raw_weight___oCAP_iCAP.data = _temp_new_memory
-        assert False, "untested"
+        _temp_new_memory[:self.out_dim, :self.in_dim] = self._raw_weight___oCAP_iCAP.data[:self.out_dim, :self.in_dim]
+        with torch.no_grad():
+            self._raw_weight___oCAP_iCAP.data = _temp_new_memory
+            pass
         return
 
     '''add input slot'''
@@ -1910,22 +1914,25 @@ class DigitalMapper_layer__2026(torch.nn.Module):
         assert keep_which.shape.__len__() == 1
         assert keep_which.dtype == torch.bool
         #<  real payload
-        _temp__useful_part = self.get_useful_part_of_raw_weight()
-        _temp__useful_part = _temp__useful_part[keep_which,:]
-        if squeeze_the_input_dim:
-            self._raw_weight___oCAP_iCAP.data = _temp__useful_part
-            pass
-        else:# not to squeeze the input dim.
-            _temp___keep_which___in_int = keep_which.to(torch.int32)
-            how_many_to_keep = int(_temp___keep_which___in_int.sum().to(torch.int32).item())
-            self._raw_weight___oCAP_iCAP.data = torch.empty(size=[how_many_to_keep, self.capacity_of_in_dim()])
-            if self._init_to_nan:
-                self._raw_weight___oCAP_iCAP.data.fill_(torch.nan)
+        with torch.no_grad():
+
+            _temp__useful_part = self.get_useful_part_of_raw_weight()
+            _temp__useful_part = _temp__useful_part[keep_which,:]
+            if squeeze_the_input_dim:
+                self._raw_weight___oCAP_iCAP.data = _temp__useful_part
                 pass
-            self._raw_weight___oCAP_iCAP.data[:, :self.in_dim] = _temp__useful_part
-            pass
-        self.out_dim = self._raw_weight___oCAP_iCAP.shape[0]
-        return 
+            else:# not to squeeze the input dim.
+                _temp___keep_which___in_int = keep_which.to(torch.int32)
+                how_many_to_keep = int(_temp___keep_which___in_int.sum().to(torch.int32).item())
+                self._raw_weight___oCAP_iCAP.data = torch.empty(size=[how_many_to_keep, self.capacity_of_in_dim()])
+                if self._init_to_nan:
+                    self._raw_weight___oCAP_iCAP.data.fill_(torch.nan)
+                    pass
+                self._raw_weight___oCAP_iCAP.data[:, :self.in_dim] = _temp__useful_part
+                pass
+            self.out_dim = self._raw_weight___oCAP_iCAP.shape[0]
+            return 
+        #end of function
     def remove_output_slot(self, remove_which:torch.Tensor, squeeze_the_input_dim = False)->None:
             self.keep_output_slot(remove_which.logical_not(), 
                     squeeze_the_input_dim = squeeze_the_input_dim)
@@ -1933,7 +1940,10 @@ class DigitalMapper_layer__2026(torch.nn.Module):
 
     '''stringify'''
     def extra_repr(self) -> str:
-        return f'Output is standard binary range. In_features={self.in_features}, out_features={self.out_features}'
+        if self._always_check_input_is_posneg1__in_forward:
+            return f'Output is pos/neg 1. In_features={self.in_features}, out_features={self.out_features}'
+        return f'In_features={self.in_features}, out_features={self.out_features}'
+        
 
     # def __repr__(self):
     #     return f"{self.get_useful().__repr__()}, size:{self._size}, DNN input container 2026"
@@ -1942,6 +1952,7 @@ class DigitalMapper_layer__2026(torch.nn.Module):
 
     pass# end of class.
 
+# all the forward related                 forward
 if "forward in module class      basic behavior test" and False:
     def ____test____forward_in_module_class():
         if "allow non posneg1 input?" and True:
@@ -2000,9 +2011,86 @@ if "get_max_index in module class      basic behavior test" and False:
         return
     ____test____get_max_index_in_module_class()
     pass
-    
-#改形状，3种改法。反向查询索引。    
 
+# all the backward related            backward
+if "backward equivalence" and False:
+    def ____test____backward_in_module_class()->None:
+        if "allow non posneg1 input?" and False:
+            the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
+            input = torch.tensor([[1., 1, 1], [1, -1, 1]], requires_grad=True)
+            output:torch.Tensor = the_layer(input)
+            output.backward(gradient=torch.tensor([[1.1, 1], [1, -1]]), inputs=[input])
+
+            the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
+            #output = the_layer(torch.tensor([[1.1, 1, 1], [1, -1, 1]]))   this must NOT work.
+
+            the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= False)
+            input = torch.tensor([[1., 1, 1], [1, -1, 1]], requires_grad=True)
+            output = the_layer(input)
+            output.backward(gradient=torch.tensor([[1.1, 1], [1, -1]]), inputs=[input])
+            
+            the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= False)
+            input = torch.tensor([[1.1, 1, 1], [1, -1, 1]], requires_grad=True)
+            output = the_layer(input)
+            output.backward(gradient=torch.tensor([[1.1, 1], [1, -1]]), inputs=[input])
+            pass#/ test
+
+        if "equivalence with the algo test function?":
+
+            for batch in[2, 13, 37]:
+                for out_dim in[3, 14, 53]:
+                    for in_dim in[5, 17, 71]:
+
+                        for _ in range(16):
+                            #<  dataset
+                            layer___input___b_i = rand_sign(size=[batch, in_dim])
+                            layer___input___b_i.requires_grad_()
+                            function___input___b_i = layer___input___b_i.detach().clone()
+
+                            target___b_o = torch.randn(size=[batch, out_dim])
+
+                            #<  the layer
+                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+
+                            raw_weight___o_i = the_layer.get_useful_part_of_raw_weight().detach().clone()
+
+                            #<  forward pass
+                            layer_output:torch.Tensor = the_layer(layer___input___b_i)
+
+                            function_output, _ = _test___DNN_forward___full_safety(input___b_i=function___input___b_i, 
+                                    raw_weight___o_i=raw_weight___o_i)
+
+                            #<  backward pass
+                            layer_output.backward(gradient=target___b_o.detach().clone(), 
+                                                        inputs=[layer___input___b_i, the_layer._raw_weight___oCAP_iCAP])
+
+
+                            function___grad_like_for___input___b_i, function___grad_like_for___raw_weight___o_i = \
+                                        _algo_test__backward_function( input_posneg1___b_i = function___input___b_i, 
+                                        target___b_o=target___b_o.detach().clone(), raw_weight___o_i = raw_weight___o_i, 
+                                                    SOME_HYPER_PARAM___s = torch.tensor(1.))
+
+                            #<  assert
+                            assert isinstance(layer___input___b_i.grad, torch.Tensor)
+                            assert isinstance(function___grad_like_for___input___b_i, torch.Tensor)
+                            assert layer___input___b_i.grad.eq(function___grad_like_for___input___b_i).all()
+                            assert isinstance(the_layer._raw_weight___oCAP_iCAP.grad, torch.Tensor)
+                            assert isinstance(function___grad_like_for___raw_weight___o_i, torch.Tensor)
+                            assert _tensor_shape_check(raw_weight___o_i, the_layer.out_dim, the_layer.in_dim)
+                            assert the_layer._raw_weight___oCAP_iCAP.grad[:the_layer.out_dim, :the_layer.in_dim].eq( \
+                                                function___grad_like_for___raw_weight___o_i).all()
+
+                            pass#for _
+                        pass#for in_dim
+                    pass#for out_dim
+                pass#for batch
+            pass#/ test
+
+        return
+    ____test____backward_in_module_class()
+    pass
+
+#<  all the shape related                 shape
 if "add input slot     algo test      and class equivalence" and __DEBUG_ME__() and False:
     def ____add_input____():
 
@@ -2477,26 +2565,7 @@ if "add output slot with specified new raw_weight" and __DEBUG_ME__() and False:
     ____add_output_with_specified_new_raw_weight____()
     pass
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-if "delete output slot" and __DEBUG_ME__() and True:
+if "delete output slot" and __DEBUG_ME__() and False:
     def ____delete_output____():
         if "delete output.      without class" and False:
 
@@ -2576,7 +2645,7 @@ if "delete output slot" and __DEBUG_ME__() and True:
                 pass#for batch
             pass#/ test
         
-        if "delete output,      with class         scan it" and True:
+        if "delete output,       class equivalence" and False:
             for batch in [2,5,10]:
                 for out_dim in [3,7,11]:
                     for in_dim in [6,9,13]:
@@ -2608,7 +2677,7 @@ if "delete output slot" and __DEBUG_ME__() and True:
                                     pass
 
                                 ori___training_buffer___o_i = the_layer.get_useful_part_of_raw_weight().detach().clone()
-                                assert _tensor_shape_check(ori___training_buffer___o_i, out_dim___ori, in_dim)
+                                assert _tensor_shape_check(ori___training_buffer___o_i, out_dim, in_dim)
 
                                 #<  original    forward path
                                 layer_ori___output___b_o = the_layer(input___b_i)
@@ -2636,17 +2705,12 @@ if "delete output slot" and __DEBUG_ME__() and True:
 
                                 assert layer_new___output___b_o.eq(new___output___b_o).all()
                                 #<  assert 
-                                1w
-                                1w
-                                1w
-                                assert _tensor_equal(layer_new___output___b_o[:, :out_dim___ori], layer_ori___output___b_o)
-                                assert _tensor_equal(new___output___b_o[:, :out_dim___ori], ori___output___b_o)
-                                assert the_layer.get_useful_part_of_raw_weight().eq(new___training_buffer___oo_i).all()
+                                assert new___output___b_o.eq(ori___output___b_o[:, keep_these_output]).all()
+                                assert layer_new___output___b_o.eq(layer_ori___output___b_o[:, keep_these_output]).all()
+                                #assert _tensor_equal(layer_new___output___b_o[:, :out_dim___ori], layer_ori___output___b_o)
+                                #assert _tensor_equal(new___output___b_o[:, :out_dim___ori], ori___output___b_o)
+                                assert the_layer.get_useful_part_of_raw_weight().eq(new___training_buffer___o_i).all()
 
-
-                                new___output___b_o = the_layer.forward(input___b_i)
-                                #<  assert 
-                                assert _tensor_equal(new___output___b_o, ori___output___b_o[:, keep_these_output])
                                 pass#for _
                             pass#for is_posneg1
                         pass#for in_dim
@@ -2655,23 +2719,78 @@ if "delete output slot" and __DEBUG_ME__() and True:
             pass#/ test
 
 
+        if "keep function and the remove function, equivalence" and True:
+            for batch in [2,5,10]:
+                for out_dim in [3,7,11]:
+                    for in_dim in [6,9,13]:
+                        for is_posneg1 in [True, False]:
+                            for _ in range(5):
+                                #<  the answer
+                                keep_these_output = torch.rand(size=[out_dim])
+                                keep_these_output = keep_these_output.gt(0.5)
 
+                                new_out_dim = int(keep_these_output.sum().item())
+
+                                #<  dataset
+
+                                if is_posneg1:
+                                    input___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)
+                                    pass
+                                else:#debug purpose.
+                                    input___b_i = torch.rand(size=[batch, in_dim])#debug purpose.
+                                    pass
+                                assert input___b_i.shape == torch.Size([batch, in_dim])
+
+                                #<  model param
+                                if is_posneg1:
+                                    the_layer_keep = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                                    the_layer_remove = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                                    pass
+                                else:#debug purpose.
+                                    the_layer_keep = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim, 
+                                                _always_check_input_is_posneg1__in_forward = False)#debug purpose.
+                                    the_layer_remove = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim,
+                                                _always_check_input_is_posneg1__in_forward = False)#debug purpose.
+                                    pass
+
+                                the_layer_keep          ._raw_weight___oCAP_iCAP.data[:out_dim, :in_dim] = \
+                                        the_layer_remove._raw_weight___oCAP_iCAP.data[:out_dim, :in_dim].detach().clone()
+
+                                #<  original    forward path
+                                keep_ver_ori___output___b_o   = the_layer_keep  (input___b_i)
+                                remove_ver_ori___output___b_o = the_layer_remove(input___b_i)
+
+                                assert _tensor_shape_check(keep_ver_ori___output___b_o,   batch, out_dim)
+                                assert _tensor_shape_check(remove_ver_ori___output___b_o, batch, out_dim)
+
+                                assert keep_ver_ori___output___b_o.eq(remove_ver_ori___output___b_o).all()
+                                #<  the new shape
+                                the_layer_keep.keep_output_slot(keep_these_output)
+                                the_layer_remove.remove_output_slot(keep_these_output.logical_not())
+
+                                assert _tensor_shape_check(the_layer_keep.get_useful_part_of_raw_weight(), new_out_dim, in_dim)
+                                assert _tensor_shape_check(the_layer_remove.get_useful_part_of_raw_weight(), new_out_dim, in_dim)
+
+                                assert the_layer_keep.get_useful_part_of_raw_weight().eq(the_layer_remove.get_useful_part_of_raw_weight()).all()
+
+                                #<  new         forward path
+                                keep_ver___new___output___b_o = the_layer_keep(input___b_i)
+                                remove_ver___new___output___b_o = the_layer_remove(input___b_i)
+
+                                assert keep_ver___new___output___b_o.eq(remove_ver___new___output___b_o).all()
+
+                                pass#for _
+                            pass#for is_posneg1
+                        pass#for in_dim
+                    pass#for out_dim
+                pass#for batch
+            pass#/ test
 
         return 
     ____delete_output____()
     pass
 
-
-
-
-
-
-
-
-
-
-
-if "basic reshape.     data member test" and __DEBUG_ME__() and True:
+if "basic reshape.     data member for the shape info, and padding with nan, test" and __DEBUG_ME__() and False:
     def ____test____basic_reshape____():
 
         if "add_input_slot__to_the_tail" and True:
@@ -2884,7 +3003,7 @@ if "basic reshape.     data member test" and __DEBUG_ME__() and True:
                 pass#for in_dim
             pass#/ test
 
-        if "keep_output_slot      no squeeze on input" and False:
+        if "keep_output_slot      no squeeze on input" and True:
             '''to valid the result, this test calculates the max_index.'''
             '''
             before the function call, the data looks like
@@ -3001,7 +3120,7 @@ if "basic reshape.     data member test" and __DEBUG_ME__() and True:
                 pass#for in_dim
             pass#/ test
 
-        if "keep_output_slot      with squeeze on input" and False:
+        if "keep_output_slot      with squeeze on input" and True:
             '''to valid the result, this test calculates the max_index.'''
             '''
             before the function call, the data looks like
@@ -3102,6 +3221,411 @@ if "basic reshape.     data member test" and __DEBUG_ME__() and True:
     ____test____basic_reshape____()
     pass
 
+if "squeeze" and False:
+    def ____test____squeeze():
+        import random 
+        if "the squeeze funciont" and False:
+            for in_dim in [3,6,11, 33, ]:
+                for out_dim in [2,8,15, 57]:
+                    for _ in range(6):
+                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, init_capacity__for_in=random.randint(in_dim+3, in_dim+111),
+                                                            out_features=out_dim, init_capacity__for_out=random.randint(out_dim+3, out_dim+111))
+                        assert the_layer.capacity_of_in_dim()  != the_layer.in_dim
+                        assert the_layer.capacity_of_out_dim() != the_layer.out_dim
+                        the_layer._squeeze(squeeze_in=True)
+                        assert the_layer.capacity_of_in_dim()  == the_layer.in_dim
+                        assert the_layer.capacity_of_out_dim() != the_layer.out_dim
+
+                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, init_capacity__for_in=random.randint(in_dim+3, in_dim+111),
+                                                            out_features=out_dim, init_capacity__for_out=random.randint(out_dim+3, out_dim+111))
+                        assert the_layer.capacity_of_in_dim()  != the_layer.in_dim
+                        assert the_layer.capacity_of_out_dim() != the_layer.out_dim
+                        the_layer._squeeze(squeeze_out=True)
+                        assert the_layer.capacity_of_in_dim()  != the_layer.in_dim
+                        assert the_layer.capacity_of_out_dim() == the_layer.out_dim
+                        
+                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, init_capacity__for_in=random.randint(in_dim+3, in_dim+111),
+                                                            out_features=out_dim, init_capacity__for_out=random.randint(out_dim+3, out_dim+111))
+                        assert the_layer.capacity_of_in_dim()  != the_layer.in_dim
+                        assert the_layer.capacity_of_out_dim() != the_layer.out_dim
+                        the_layer._squeeze(squeeze_in=True, squeeze_out=True)
+                        assert the_layer.capacity_of_in_dim()  == the_layer.in_dim
+                        assert the_layer.capacity_of_out_dim() == the_layer.out_dim
+
+                        pass#for _
+                    pass#for out_dim
+                pass#for in_dim
+            pass#/ test
+        return
+    ____test____squeeze()
+    pass
+#</  all the shape related                 shape
+
+
+
+
+
+
+
+
+def only_for_DigitalMapper_layer__2026_to_use___optim_step___only_for(raw_weight___o_i:torch.Tensor, grad_like_for_raw_weight___o_i:torch.Tensor, 
+            learning_rate___s:torch.Tensor|float, safety_check = True)->torch.Tensor:
+    
+# pseudo_raw_weight = torch.tanh(pseudo_raw_weight___before_protection)
+
+    if safety_check:#这两个搬到外面去
+        assert raw_weight___o_i.le(0.).all()#bc of the design. No other reason.
+        assert learning_rate___s > 0.
+        pass
+    #<  real payload
+    with torch.no_grad():
+        _temp___max___o:torch.Tensor = grad_like_for_raw_weight___o_i.max(dim=1).values
+        _temp___max___o_EXPANDi = _temp___max___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+        inner___grad_like_for_raw_weight___o_i:torch.Tensor = grad_like_for_raw_weight___o_i-_temp___max___o_EXPANDi
+        del _temp___max___o, _temp___max___o_EXPANDi
+        if safety_check:
+            assert inner___grad_like_for_raw_weight___o_i.le(0.).all()#################
+            pass
+
+        _temp___mean_of_abs___o = inner___grad_like_for_raw_weight___o_i.mean(dim=1).abs()# notice.  
+        #In some of the previous test, there was a *0.5 in the tail of the line above. But maybe it's ok without it.
+        if safety_check:
+            assert _temp___mean_of_abs___o.ge(0.).all()
+            pass
+
+        _temp___temp___mean_of_abs___o_EXPANDi = _temp___mean_of_abs___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+        inner___grad_like_for_raw_weight___o_i /= _temp___temp___mean_of_abs___o_EXPANDi
+        del _temp___mean_of_abs___o, _temp___temp___mean_of_abs___o_EXPANDi
+
+        new___raw_weight___before_tanh___o_i = raw_weight___o_i + inner___grad_like_for_raw_weight___o_i * learning_rate___s
+        if safety_check:
+            assert new___raw_weight___before_tanh___o_i.le(0.).all()
+            pass
+
+        new___raw_weight___o_i = new___raw_weight___before_tanh___o_i.tanh()
+        if safety_check:
+            assert new___raw_weight___o_i.ge(-1.).all()##############
+            assert new___raw_weight___o_i.le(-0.).all()##############
+            pass
+        return new___raw_weight___o_i
+    #end of function.
+
+if "optim step algo test" and False:
+    def ____test____only_for_DigitalMapper_layer__2026_to_use___optim_step___only_for()->None:
+
+        if "basic algo test" and False:
+            out_dim = 2
+            in_dim = 3
+            #<  data
+            raw_weight___o_i = torch.tensor([   [-10., -11, 0], 
+                                                [-100., -11, 0]]) 
+            #raw_weight___o_i = torch.rand(size=(out_dim, in_dim))*-1.
+            assert raw_weight___o_i.le(0.).all()#bc of the design. No other reason.
+            learning_rate___s = 1.1
+            grad_like_for_raw_weight___o_i = torch.tensor([ [1231.,  1232, 1233], 
+                                                            [3211.,  3213, 3215], ])
+
+            #<  real payload
+            _temp___max___o:torch.Tensor  = grad_like_for_raw_weight___o_i.max(dim=1).values
+            assert _tensor_shape_check(_temp___max___o, out_dim)
+            assert _tensor_equal(_temp___max___o, torch.tensor([1233, 3215]))
+            _temp___max___o_EXPANDi = _temp___max___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+            assert _tensor_shape_check(_temp___max___o_EXPANDi, out_dim, in_dim)
+            inner___grad_like_for_raw_weight___o_i:torch.Tensor = grad_like_for_raw_weight___o_i-_temp___max___o_EXPANDi
+            del _temp___max___o, _temp___max___o_EXPANDi
+            assert _tensor_equal(inner___grad_like_for_raw_weight___o_i, [  [-2., -1, 0], 
+                                                                            [-4., -2, 0], ])
+
+            _temp___mean_of_abs___o = inner___grad_like_for_raw_weight___o_i.mean(dim=1).abs()# notice.  
+            #In some of the previous test, there was a *0.5 in the tail of the line above. But maybe it's ok without it.
+            assert _tensor_shape_check(_temp___mean_of_abs___o, out_dim)
+            assert _tensor_equal(_temp___mean_of_abs___o, [1., 2])
+
+            _temp___temp___mean_of_abs___o_EXPANDi = _temp___mean_of_abs___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+            assert _tensor_shape_check(_temp___temp___mean_of_abs___o_EXPANDi, out_dim, in_dim)
+            inner___grad_like_for_raw_weight___o_i /= _temp___temp___mean_of_abs___o_EXPANDi
+            del _temp___mean_of_abs___o, _temp___temp___mean_of_abs___o_EXPANDi
+            assert _tensor_equal(inner___grad_like_for_raw_weight___o_i, torch.tensor([ [-2., -1, 0], 
+                                                                                        [-2., -1, 0], ]))
+
+            new___raw_weight___before_tanh___o_i = raw_weight___o_i + inner___grad_like_for_raw_weight___o_i * learning_rate___s
+
+            assert _tensor_equal(new___raw_weight___before_tanh___o_i, torch.tensor([   [-12.2,  -12.1, 0], 
+                                                                                        [-102.2, -12.1, 0]]))
+            assert new___raw_weight___before_tanh___o_i.le(-0.).all()##############
+            new___raw_weight___o_i = new___raw_weight___before_tanh___o_i.tanh()
+            assert new___raw_weight___o_i.ge(-1.).all()##############
+            assert new___raw_weight___o_i.le(-0.).all()##############
+            #return new___raw_weight___o_i
+            pass#/ test
+
+        if "scan" and True:
+            for in_dim in [3,6,11, 33, ]:
+                for out_dim in [2,8,15, 57]:
+                    for _ in range(6):
+                        #<  data
+                        raw_weight___o_i = torch.rand(size=(out_dim, in_dim))*-1.
+                        assert raw_weight___o_i.le(0.).all()#bc of the design. No other reason.
+                        learning_rate___s = 1.1
+                        grad_like_for_raw_weight___o_i = torch.randn(size=[out_dim, in_dim])
+
+                        #<  real payload
+                        #_temp___max___o:torch.Tensor  = grad_like_for_raw_weight___o_i.max(dim=1).values
+                        _temp___max___o                = grad_like_for_raw_weight___o_i.max(dim=1).values
+                        assert _tensor_shape_check(_temp___max___o, out_dim)
+                        _temp___max___o_EXPANDi = _temp___max___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+                        assert _tensor_shape_check(_temp___max___o_EXPANDi, out_dim, in_dim)
+                        inner___grad_like_for_raw_weight___o_i:torch.Tensor = grad_like_for_raw_weight___o_i-_temp___max___o_EXPANDi
+                        del _temp___max___o, _temp___max___o_EXPANDi
+                        assert inner___grad_like_for_raw_weight___o_i.le(0.).all()#################
+
+                        _temp___mean_of_abs___o = inner___grad_like_for_raw_weight___o_i.mean(dim=1).abs()# notice.  
+                        #In some of the previous test, there was a *0.5 in the tail of the line above. But maybe it's ok without it.
+                        assert _tensor_shape_check(_temp___mean_of_abs___o, out_dim)
+                        assert _temp___mean_of_abs___o.ge(0.).all()
+
+                        _temp___temp___mean_of_abs___o_EXPANDi = _temp___mean_of_abs___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+                        assert _tensor_shape_check(_temp___temp___mean_of_abs___o_EXPANDi, out_dim, in_dim)
+                        inner___grad_like_for_raw_weight___o_i /= _temp___temp___mean_of_abs___o_EXPANDi
+                        del _temp___mean_of_abs___o, _temp___temp___mean_of_abs___o_EXPANDi
+
+                        new___raw_weight___before_tanh___o_i = raw_weight___o_i + inner___grad_like_for_raw_weight___o_i * learning_rate___s
+                        assert new___raw_weight___before_tanh___o_i.le(0.).all()
+
+                        new___raw_weight___o_i = new___raw_weight___before_tanh___o_i.tanh()
+                        assert new___raw_weight___o_i.ge(-1.).all()##############
+                        assert new___raw_weight___o_i.le(-0.).all()##############
+                        #return new___raw_weight___o_i
+
+                    pass#for out_dim
+                pass#for in_dim
+            pass#/ test
+
+        if "function_version equivalence" and True:
+            for in_dim in [3,6,11, 33, ]:
+                for out_dim in [2,8,15, 57]:
+                    for _ in range(6):
+                        #<  data
+                        raw_weight___o_i = torch.rand(size=(out_dim, in_dim))*-1.
+                        learning_rate___s = 1.1
+                        grad_like_for_raw_weight___o_i = torch.randn(size=[out_dim, in_dim])
+
+                        #<  real payload
+                        #_temp___max___o:torch.Tensor  = grad_like_for_raw_weight___o_i.max(dim=1).values
+                        _temp___max___o                = grad_like_for_raw_weight___o_i.max(dim=1).values
+                        _temp___max___o_EXPANDi = _temp___max___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+                        inner___grad_like_for_raw_weight___o_i:torch.Tensor = grad_like_for_raw_weight___o_i.detach().clone()-_temp___max___o_EXPANDi
+                        del _temp___max___o, _temp___max___o_EXPANDi
+
+                        _temp___mean_of_abs___o = inner___grad_like_for_raw_weight___o_i.mean(dim=1).abs()# notice.  
+                        #In some of the previous test, there was a *0.5 in the tail of the line above. But maybe it's ok without it.
+
+                        _temp___temp___mean_of_abs___o_EXPANDi = _temp___mean_of_abs___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+                        inner___grad_like_for_raw_weight___o_i /= _temp___temp___mean_of_abs___o_EXPANDi
+                        del _temp___mean_of_abs___o, _temp___temp___mean_of_abs___o_EXPANDi
+
+                        new___raw_weight___before_tanh___o_i = raw_weight___o_i.detach().clone() + inner___grad_like_for_raw_weight___o_i * learning_rate___s
+
+                        new___raw_weight___o_i = new___raw_weight___before_tanh___o_i.tanh()
+
+                        #<  function version
+                        function_return_value = only_for_DigitalMapper_layer__2026_to_use___optim_step___only_for( \
+                                    raw_weight___o_i = raw_weight___o_i.detach().clone(), 
+                                    grad_like_for_raw_weight___o_i = grad_like_for_raw_weight___o_i.detach().clone(), 
+                                    learning_rate___s = learning_rate___s)
+                        #<  assert
+                        assert new___raw_weight___o_i.eq(function_return_value).all()
+                        pass#for _
+                    pass#for out_dim
+                pass#for in_dim
+            pass#/ test
+
+        return
+    ____test____only_for_DigitalMapper_layer__2026_to_use___optim_step___only_for()
+    pass
+
+class optim_for___DigitalMapper_layer__2026(torch.nn.Module):#torch.optim.Optimizer):
+    '''I need the useful shape information.
+    The torch.optim.Optimizer only accepts torch.Tensor. It needs a lot hack
+    to get this DigitalMapper_layer__2026 to work along with it.
+    The reason to choose torch.nn.Module is I want the convenience 
+    when I move it between devices and save/load it.'''
+
+    learning_rate___s:torch.Tensor
+    def __init__(self, DigitalMapper_layers:list[DigitalMapper_layer__2026], learning_rate___s=0.01, device = None, dtype = None):
+        super().__init__()
+        #<  safety
+        if learning_rate___s <= 0.:
+            assert False, "Bad param"
+            pass
+        for DigitalMapper_layer in DigitalMapper_layers:
+            assert isinstance(DigitalMapper_layer, DigitalMapper_layer__2026)
+            pass
+        #<  real payload
+        if isinstance(learning_rate___s, float):
+            self.learning_rate___s = torch.nn.parameter(torch.tensor(learning_rate___s, device=device, dtype=dtype), 
+                    requires_grad_ = False)
+            pass
+        else:#torch.tensor
+            learning_rate___s = learning_rate___s.to(dtype).to(device)
+            self.learning_rate___s = torch.nn.parameter(torch.tensor(learning_rate___s), 
+                    requires_grad_ = False)
+            pass
+        assert self.learning_rate___s.requires_grad == False
+1w
+1w
+1w
+
+        # Initialize state (although often done lazily in step)
+        # We don't strictly need this here if we initialize in step
+        # for group in self.param_groups:
+        #     for p in group['params']:
+        #         self.state[p] = dict(momentum_buffer=None)
+
+    def forward():
+        assert False, "This tool is designed as an optimizer, not a layer. Please search torch.optim.Optimizer for reference."
+    def parameters(self, recurse = True):
+        assert False, "This tool is designed as an optimizer, not a layer. Please search torch.optim.Optimizer for reference."
+        return super().parameters(recurse) #unreachable!!!!!!!
+    
+    @torch.no_grad() # Important: disable gradient tracking within the optimizer step
+    def step(self, closure=None):
+        """Performs a single optimization step.
+
+        Args:
+            closure (callable, optional): A closure that reevaluates the model
+                and returns the loss.
+        """
+        loss = None
+        if closure is not None:
+            with torch.enable_grad(): # Ensure gradients are enabled for closure
+                loss = closure()
+                assert False, '''Bc I don't use this style, and I have no idea how it works.
+Just in case, let me turn it off. 
+Fyi, https://apxml.com/courses/advanced-pytorch/chapter-6-custom-extensions-interoperability/custom-optimizers'''
+
+        for group in self.param_groups:
+            learning_rate___s = group['learning_rate___s']
+
+            for parameter in group['params']:
+                if parameter.grad is None:
+                    continue # Skip parameters without gradients
+
+                grad_like = parameter.grad[] # Get the gradient tensor
+                only_for_DigitalMapper_layer__2026_to_use___optim_step___only_for
+
+                new_data_for_parameter = only_for_DigitalMapper_layer__2026_to_use___optim_step___only_for( \
+                                    raw_weight___o_i = parameter.data,  
+                                    grad_like_for_raw_weight___o_i = grad_like, 
+                                    learning_rate___s = learning_rate___s)
+                # Perform the parameter update step
+                # p = p - lr * momentum_buffer
+                parameter.data = new_data_for_parameter
+
+        return loss# for now the loss is always None.
+
+if "basic behavior" and True:
+    def ____test____optim_for___DigitalMapper_layer__2026():
+        if "zero grad function.      scan" and True:
+            for batch in [2,5,10]:
+                for out_dim in [3,7,11]:
+                    for in_dim in [6,9,13]:
+                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                        assert the_layer._raw_weight___oCAP_iCAP.requires_grad == True
+                        assert the_layer._raw_weight___oCAP_iCAP.grad is None
+                        assert the_layer.some_hyper_param.requires_grad == False
+                        assert the_layer.some_hyper_param.grad is None
+                        
+                        the_optim = optim_for___DigitalMapper_layer__2026(params=the_layer.parameters(), learning_rate___s=0.1)
+                        the_optim.zero_grad()
+                        assert the_layer._raw_weight___oCAP_iCAP.grad is None
+
+
+                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                        assert the_layer._raw_weight___oCAP_iCAP.requires_grad == True
+                        assert the_layer._raw_weight___oCAP_iCAP.grad is None
+                        assert the_layer.some_hyper_param.requires_grad == False
+                        assert the_layer.some_hyper_param.grad is None
+
+                        the_optim = optim_for___DigitalMapper_layer__2026(params=the_layer.parameters(), learning_rate___s=10.)#big enough. debug purpose.
+
+                        input___b_i = rand_sign(size=[batch, in_dim])
+                        input___b_i.requires_grad_()
+                        output___b_o:torch.Tensor = the_layer(input___b_i)
+                        _temp_inputs = [input___b_i]
+                        _temp_inputs.append(the_layer._raw_weight___oCAP_iCAP)
+                        output___b_o.backward(gradient=torch.randn_like(output___b_o), inputs = _temp_inputs)
+                        del _temp_inputs
+                        assert input___b_i.grad is not None
+
+                        assert the_layer._raw_weight___oCAP_iCAP.grad is not None
+                        assert the_layer.some_hyper_param.grad is None
+
+                        the_optim.zero_grad()
+                        assert the_layer._raw_weight___oCAP_iCAP.grad is None
+                        pass#for in_dim
+                    pass#for out_dim
+                pass#for batch
+            pass#/ test
+
+
+
+
+
+
+xxxxxxxx
+        if "basic algo test" and True:
+            out_dim = 2
+            in_dim = 3
+
+            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+            learning_rate___s = 1.1
+            the_optim = optim_for___DigitalMapper_layer__2026(params=the_layer.parameters(), 
+                                                        learning_rate___s=learning_rate___s)
+
+
+            #<  data
+            the_layer._raw_weight___oCAP_iCAP.grad = torch.empty_like()
+            raw_weight___o_i = torch.tensor([   [-10., -11, 0], 
+                                                [-100., -11, 0]]) 
+            #raw_weight___o_i = torch.rand(size=(out_dim, in_dim))*-1.
+            assert raw_weight___o_i.le(0.).all()#bc of the design. No other reason.
+            grad_like_for_raw_weight___o_i = torch.tensor([ [1231.,  1232, 1233], 
+                                                            [3211.,  3213, 3215], ])
+
+            #<  real payload
+            _temp___max___o:torch.Tensor  = grad_like_for_raw_weight___o_i.max(dim=1).values
+            assert _tensor_shape_check(_temp___max___o, out_dim)
+            assert _tensor_equal(_temp___max___o, torch.tensor([1233, 3215]))
+            _temp___max___o_EXPANDi = _temp___max___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+            assert _tensor_shape_check(_temp___max___o_EXPANDi, out_dim, in_dim)
+            inner___grad_like_for_raw_weight___o_i:torch.Tensor = grad_like_for_raw_weight___o_i-_temp___max___o_EXPANDi
+            del _temp___max___o, _temp___max___o_EXPANDi
+            assert _tensor_equal(inner___grad_like_for_raw_weight___o_i, [  [-2., -1, 0], 
+                                                                            [-4., -2, 0], ])
+
+            _temp___mean_of_abs___o = inner___grad_like_for_raw_weight___o_i.mean(dim=1).abs()# notice.  
+            #In some of the previous test, there was a *0.5 in the tail of the line above. But maybe it's ok without it.
+            assert _tensor_shape_check(_temp___mean_of_abs___o, out_dim)
+            assert _tensor_equal(_temp___mean_of_abs___o, [1., 2])
+
+            _temp___temp___mean_of_abs___o_EXPANDi = _temp___mean_of_abs___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+            assert _tensor_shape_check(_temp___temp___mean_of_abs___o_EXPANDi, out_dim, in_dim)
+            inner___grad_like_for_raw_weight___o_i /= _temp___temp___mean_of_abs___o_EXPANDi
+            del _temp___mean_of_abs___o, _temp___temp___mean_of_abs___o_EXPANDi
+            assert _tensor_equal(inner___grad_like_for_raw_weight___o_i, torch.tensor([ [-2., -1, 0], 
+                                                                                        [-2., -1, 0], ]))
+
+            new___raw_weight___before_tanh___o_i = raw_weight___o_i + inner___grad_like_for_raw_weight___o_i * learning_rate___s
+
+            assert _tensor_equal(new___raw_weight___before_tanh___o_i, torch.tensor([   [-12.2,  -12.1, 0], 
+                                                                                        [-102.2, -12.1, 0]]))
+            assert new___raw_weight___before_tanh___o_i.le(-0.).all()##############
+            new___raw_weight___o_i = new___raw_weight___before_tanh___o_i.tanh()
+            assert new___raw_weight___o_i.ge(-1.).all()##############
+            assert new___raw_weight___o_i.le(-0.).all()##############
+            #return new___raw_weight___o_i
+            pass#/ test
 
 
 
@@ -3112,6 +3636,6 @@ if "basic reshape.     data member test" and __DEBUG_ME__() and True:
 
 
 
-assert False, "专用的优化器还没写"
-
-
+        return
+    ____test____optim_for___DigitalMapper_layer__2026()
+    pass
