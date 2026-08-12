@@ -202,33 +202,40 @@ class autograd_function_class_for__DigitalMapper_layer__2026(torch.autograd.Func
 
 
 
-
 '''2个申请内存的函数单独拿出来，方便以后调整。'''
 def _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
         extra_in_dim:int, 
-        in_dim_now:int, out_dim_now:int, )->int:
+        in_dim_now:int, out_dim_now:int, recommended_min = 16 )->int:
     '''return new_in_dim'''
     total_in_dim_needed = extra_in_dim+in_dim_now
     min_new_nelement = total_in_dim_needed*out_dim_now
+
     ONE_M = 1<<20
-    if min_new_nelement<(ONE_M):
-        return total_in_dim_needed*2
+    if min_new_nelement<ONE_M:
+        assert recommended_min>0
+        result = total_in_dim_needed*2+recommended_min
+        return result
+    
     ONE_G = 1<<30
-    if min_new_nelement<(ONE_G):
+    if min_new_nelement<ONE_G:
         return int(total_in_dim_needed*1.25)
     return int(total_in_dim_needed*1.1)
     #end of function
 
 def _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
         extra_out_dim:int, 
-        in_dim_now:int, out_dim_now:int, )->int:
+        in_dim_now:int, out_dim_now:int, recommended_min = 16)->int:
     total_out_dim_needed = extra_out_dim+out_dim_now
     min_new_nelement = in_dim_now*total_out_dim_needed
+
     ONE_M = 1<<20
-    if min_new_nelement<(ONE_M):
-        return total_out_dim_needed*2
+    if min_new_nelement<ONE_M:
+        assert recommended_min>0
+        result = total_out_dim_needed*2+recommended_min
+        return result
+    
     ONE_G = 1<<30
-    if min_new_nelement<(ONE_G):
+    if min_new_nelement<ONE_G:
         return int(total_out_dim_needed*1.25)
     return int(total_out_dim_needed*1.1)
     #end of function
@@ -603,6 +610,9 @@ class DigitalMapper_layer__2026(torch.nn.Module):
                 self._raw_weight___oCAP_iCAP.data = _temp__useful_part
                 pass
             else:# not to squeeze the input dim.
+                assert False, "unreachable" 
+                # for non-last layer, if the later layer needs more input, then this layer needs more output dimention.
+                # but for last layer, in no case it needs any extra output dimention.
                 _temp___keep_which___in_int = keep_which.to(torch.int32)
                 how_many_to_keep = int(_temp___keep_which___in_int.sum().to(torch.int32).item())
                 self._raw_weight___oCAP_iCAP.data = torch.empty(size=[how_many_to_keep, self.capacity_of_in_dim()])
@@ -632,6 +642,13 @@ class DigitalMapper_layer__2026(torch.nn.Module):
     #     return f"{self.get_useful().__str__()}, size:{self._size}, DNN input container 2026"
 
     pass# end of class.
+
+
+
+
+
+
+
 
 
 

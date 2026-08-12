@@ -456,3 +456,264 @@ if "basic test" and False:
     ____test____partly_reasonable_label_from_input()
     pass
 
+
+
+'''general GPU container'''
+
+
+
+
+
+
+'''申请内存的函数单独拿出来，方便以后调整。'''
+def _only_for_Index_container_to_use____calc_bigger_capacity__for_in(
+        extra_len:int, 
+        len_now:int, recommended_min = 16)->int:
+    '''return new_in_dim'''
+    total_len_needed = extra_len+len_now
+    ONE_M = 1<<20
+    if total_len_needed<ONE_M:
+        assert recommended_min>0
+        result = total_len_needed*2+recommended_min
+        return result
+    ONE_G = 1<<30
+    if total_len_needed<ONE_G:
+        return int(total_len_needed*1.25)
+    return int(total_len_needed*1.1)
+    #end of function
+if " test" and __DEBUG_ME__() and False:
+    "感觉不用很严格？"
+    def ____test_____only_for_Index_container_to_use____calc_bigger_capacity__for_in():
+        if "result must be greater than input combined" and True:
+            extra_len = 0
+            len_now   = 0
+
+            new_len = _only_for_Index_container_to_use____calc_bigger_capacity__for_in(
+                    extra_len = extra_len, len_now = len_now)
+            #<  assert
+            assert new_len >= extra_len + len_now
+            assert new_len < 50
+
+
+            extra_len = 10
+            len_now   = 10
+
+            new_len = _only_for_Index_container_to_use____calc_bigger_capacity__for_in(
+                    extra_len = extra_len, len_now = len_now)
+            #<  assert
+            assert new_len >= extra_len + len_now
+            assert new_len < 100
+
+
+            extra_len = 100
+            len_now   = 100
+
+            new_len = _only_for_Index_container_to_use____calc_bigger_capacity__for_in(
+                    extra_len = extra_len, len_now = len_now)
+            #<  assert
+            assert new_len >= extra_len + len_now
+            assert new_len < 500
+
+
+            extra_len = 1000
+            len_now   = 1000
+
+            new_len = _only_for_Index_container_to_use____calc_bigger_capacity__for_in(
+                    extra_len = extra_len, len_now = len_now)
+            #<  assert
+            assert new_len >= extra_len + len_now
+            assert new_len < 5000
+
+            extra_len = 10000
+            len_now   = 10000
+
+            new_len = _only_for_Index_container_to_use____calc_bigger_capacity__for_in(
+                    extra_len = extra_len, len_now = len_now)
+            #<  assert
+            assert new_len >= extra_len + len_now
+            assert new_len < 50000
+
+            extra_len = 100000
+            len_now   = 100000
+
+            new_len = _only_for_Index_container_to_use____calc_bigger_capacity__for_in(
+                    extra_len = extra_len, len_now = len_now)
+            #<  assert
+            assert new_len >= extra_len + len_now
+            assert new_len < 500000
+
+        return
+    ____test_____only_for_Index_container_to_use____calc_bigger_capacity__for_in()
+    pass
+
+
+
+
+class Index_container(torch.nn.Module):
+    '''The only difference from DNN_input_container_2026 is, this class doesn't have batch, and dtype is always int(not uint).'''
+    _data___CAPlen:torch.nn.parameter.Parameter
+    _len:int
+    init_to_neg1:bool
+
+    #customized memory related function
+    _calc_bigger_capacity:function
+    def __init__(self, dtype:torch.dtype|None = None, device:torch.device|str|None = "cpu", 
+                init_capacity = 16, init_to_neg1 = False):
+        
+        super().__init__()
+        if dtype is None:
+            dtype = torch.int32
+            pass
+        self._data___CAPlen = torch.nn.Parameter(torch.empty(size=[init_capacity], 
+                    dtype=dtype, device=device, requires_grad=False), requires_grad=False)
+        assert self._data___CAPlen.requires_grad == False
+        assert self._data___CAPlen.dtype in [torch.int, torch.int32, torch.int64, torch.int16]
+        self._len = 0
+        self.init_to_neg1 = init_to_neg1
+        if init_to_neg1:
+            self._data___CAPlen.fill_(-1)
+            pass
+
+        self._calc_bigger_capacity = _only_for_Index_container_to_use____calc_bigger_capacity__for_in
+        return
+    def _capacity(self)->int:
+        '''get'''
+        return self._data___CAPlen.shape[0]
+    def __len__(self)->int:
+        '''get'''
+        return self._len
+    def squeeze(self):
+        self._data___CAPlen.data = self.get_useful()
+        return
+
+    def append(self, new_element:torch.Tensor|int)->None:
+        if isinstance(new_element, int):
+            new_element = torch.tensor(new_element, dtype=self._data___CAPlen.dtype, device=self._data___CAPlen.device)
+            pass
+        if isinstance(new_element, torch.Tensor):
+            new_element = new_element.reshape([1])
+            pass
+        self.extend(new_element)
+        return
+    
+    def extend(self, other:torch.Tensor)->None:
+        assert other.shape.__len__() == 1
+        with torch.no_grad():
+                
+            _temp__how_many_to_add = other.shape[0]
+            _len_after = self._len + _temp__how_many_to_add
+            if _len_after > self._capacity():# get a bigger new capacity first.
+                _temp___new_capacity = self._calc_bigger_capacity(extra_len = _temp__how_many_to_add, len_now = self._len)
+
+                _temp___new_container = torch.empty(size=[_temp___new_capacity], 
+                        dtype=self._data___CAPlen.dtype, device=self._data___CAPlen.device)
+                if self.init_to_neg1:
+                    _temp___new_container.fill_(-1)
+                    pass
+                _temp___new_container[0:self._len] = self.get_useful()
+                self._data___CAPlen.data = _temp___new_container
+                pass
+
+            self._data___CAPlen[self._len:self._len + _temp__how_many_to_add] = other
+            self._len = _len_after
+            return
+        pass#end of function
+
+    def get_useful(self)->torch.Tensor:
+        result = self._data___CAPlen[:self._len]
+        return result
+    
+    # def __repr__(self):
+    #     return f"{self.get_useful().__repr__()}, size:{self._size}, _only_for_output_container_to_use____DNN_container_2026"
+    # def __str__(self):
+    #     return f"{self.get_useful().__str__()}, size:{self._size}, _only_for_output_container_to_use____DNN_container_2026"
+
+    pass
+if "how to add element." and __DEBUG_ME__() and False:
+    def ____test____index_container():
+        if "extend function" and True:
+            #<  the container
+            the_container = Index_container(init_capacity=6, init_to_neg1=True)
+            assert the_container.__len__() == 0
+            assert the_container._capacity() == 6
+            assert the_container.init_to_neg1 == True
+            the_container.extend(torch.tensor([ 11,  22,  33]))
+            assert the_container.__len__() == 3
+            assert the_container._capacity() == 6
+            the_container.extend(torch.tensor([ 77,  88]))
+            assert the_container.__len__() == 5
+            assert the_container._capacity() == 6
+            assert _tensor_equal(the_container.get_useful(), torch.tensor([ 11,  22,  33,  77,  88]))
+            assert _tensor_equal(the_container._data___CAPlen, torch.tensor([ 11,  22,  33,  77,  88, -1]))
+
+            the_container.extend(torch.tensor([ 111,  222]))
+            assert the_container.__len__() == 7
+            assert the_container._capacity() >= 7
+            assert the_container._capacity() <= 50
+            assert _tensor_equal(the_container.get_useful(), torch.tensor([ 11,  22,  33,  77,  88,  111,  222]))
+            assert _tensor_equal(the_container._data___CAPlen[:10], torch.tensor([ 11,  22,  33,  77,  88,  111,  222, -1, -1, -1]))#may not stable.
+            pass#/ test
+
+        if "append " and True:
+            #<  the container
+            the_container = Index_container(init_capacity=2, init_to_neg1=True)
+            assert the_container.__len__() == 0
+            assert the_container._capacity() == 2
+            assert the_container.init_to_neg1 == True
+
+            the_container.append(torch.tensor(11))
+            assert the_container.__len__() == 1
+            assert the_container._capacity() == 2
+            assert _tensor_equal(the_container.get_useful(), torch.tensor([ 11]))
+            assert _tensor_equal(the_container._data___CAPlen, torch.tensor([ 11, -1]))
+
+            the_container.append(22)
+            assert the_container.__len__() == 2
+            assert the_container._capacity() == 2
+            assert _tensor_equal(the_container.get_useful(), torch.tensor([ 11, 22]))
+            assert _tensor_equal(the_container._data___CAPlen, torch.tensor([ 11, 22]))
+
+            
+            the_container.append(torch.tensor([33]))
+            assert the_container.__len__() == 3
+            #assert the_container._capacity() == 4#may unstable, it depends on the algo.
+            assert _tensor_equal(the_container.get_useful(), torch.tensor([ 11, 22, 33]))
+            assert _tensor_equal(the_container._data___CAPlen[:4], torch.tensor([ 11, 22, 33, -1]))
+            pass#/ test
+
+        if "squeeze function" and True:
+            the_container = Index_container(init_capacity=6, init_to_neg1=True)
+            assert the_container.__len__() == 0
+            assert the_container._capacity() == 6
+            assert the_container.init_to_neg1 == True
+            the_container.squeeze()
+            assert the_container.__len__() == 0
+            assert the_container._capacity() == 0
+            the_container.append(11)
+            assert the_container.__len__() == 1
+            assert the_container._capacity() >=1
+            assert the_container._capacity() <=50
+            the_container.squeeze()
+            assert the_container.__len__() == 1
+            assert the_container._capacity() == 1
+            pass#/ test
+
+        if "device adaption" and True:
+            the_container = Index_container()
+            assert the_container._data___CAPlen.device.type == "cpu"
+            the_container.cuda()
+            assert the_container._data___CAPlen.device.type == "cuda"
+            the_container = Index_container(device="cuda")
+            assert the_container._data___CAPlen.device.type == "cuda"
+            the_container.cpu()
+            assert the_container._data___CAPlen.device.type == "cpu"
+            pass
+
+        return
+    ____test____index_container()
+    pass
+
+
+
+
+

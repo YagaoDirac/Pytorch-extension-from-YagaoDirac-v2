@@ -402,7 +402,7 @@ def _algo_test__backward_function(input_posneg1___b_i:torch.Tensor,
         pass
 
     return grad_like_for___input___b_i, grad_like_for___raw_weight___o_i
-if "test" and False:
+if "test" and __DEBUG_ME__() and False:
     def ____test_____algo_test__backward_function________grad_like_for___raw_weight___o_i()-> None:
         if "VISUAL     grad_like_for___raw_weight___o_i  distribution and how to protect it." and True:
             target_style:Literal["reasonable", "random"] = "random"
@@ -835,7 +835,7 @@ class autograd_function_class_for__DigitalMapper_layer__2026(torch.autograd.Func
     
     
     pass  # class
-if "equivalence of this class version and the prototype function version" and False:
+if "equivalence of this class version and the prototype function version" and __DEBUG_ME__() and False:
     def ____test____equivalence_of_this_class_and_______():
         if "forward" and True:
 
@@ -893,7 +893,7 @@ if "equivalence of this class version and the prototype function version" and Fa
         return
     ____test____equivalence_of_this_class_and_______()
     pass
-if "dtype adaption" and False:
+if "dtype adaption" and __DEBUG_ME__() and False:
     def ____test____dtype_adaption_of____the_backward_function_in__autograd_subclass()->None:
         '''the output of forward function should be the same as the input. 
         It must keep the dtype across layers.'''
@@ -949,15 +949,19 @@ if "dtype adaption" and False:
 '''2个申请内存的函数单独拿出来，方便以后调整。'''
 def _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
         extra_in_dim:int, 
-        in_dim_now:int, out_dim_now:int, )->int:
+        in_dim_now:int, out_dim_now:int, recommended_min = 16 )->int:
     '''return new_in_dim'''
     total_in_dim_needed = extra_in_dim+in_dim_now
     min_new_nelement = total_in_dim_needed*out_dim_now
+
     ONE_M = 1<<20
-    if min_new_nelement<(ONE_M):
-        return total_in_dim_needed*2
+    if min_new_nelement<ONE_M:
+        assert recommended_min>0
+        result = total_in_dim_needed*2+recommended_min
+        return result
+    
     ONE_G = 1<<30
-    if min_new_nelement<(ONE_G):
+    if min_new_nelement<ONE_G:
         return int(total_in_dim_needed*1.25)
     return int(total_in_dim_needed*1.1)
     #end of function
@@ -965,7 +969,17 @@ if " test" and __DEBUG_ME__() and False:
     "感觉不用很严格？"
     def ____test_____only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in():
         if "result must be greater than input combined" and True:
-            
+            extra_in_dim = 0
+            in_dim_now   = 0
+            out_dim_now  = 10
+
+            new_in_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+                    extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
+            #<  assert
+            assert new_in_dim >= extra_in_dim + in_dim_now
+            assert new_in_dim < 50
+
+
             extra_in_dim = 10
             in_dim_now   = 10
             out_dim_now  = 10
@@ -974,7 +988,7 @@ if " test" and __DEBUG_ME__() and False:
                     extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_in_dim >= extra_in_dim + in_dim_now
-            assert new_in_dim < 50
+            assert new_in_dim < 100
 
 
             extra_in_dim = 100
@@ -1026,14 +1040,18 @@ if " test" and __DEBUG_ME__() and False:
 
 def _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
         extra_out_dim:int, 
-        in_dim_now:int, out_dim_now:int, )->int:
+        in_dim_now:int, out_dim_now:int, recommended_min = 16)->int:
     total_out_dim_needed = extra_out_dim+out_dim_now
     min_new_nelement = in_dim_now*total_out_dim_needed
+
     ONE_M = 1<<20
-    if min_new_nelement<(ONE_M):
-        return total_out_dim_needed*2
+    if min_new_nelement<ONE_M:
+        assert recommended_min>0
+        result = total_out_dim_needed*2+recommended_min
+        return result
+    
     ONE_G = 1<<30
-    if min_new_nelement<(ONE_G):
+    if min_new_nelement<ONE_G:
         return int(total_out_dim_needed*1.25)
     return int(total_out_dim_needed*1.1)
     #end of function
@@ -1041,7 +1059,18 @@ if " test" and __DEBUG_ME__() and False:
     "感觉不用很严格？"
     def ____test______only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out():
         if "result must be greater than input combined" and True:
-            
+
+            extra_out_dim = 0
+            in_dim_now    = 10
+            out_dim_now   = 0
+
+            new_out_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+                    extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
+            #<  assert
+            assert new_out_dim >= extra_out_dim + out_dim_now
+            assert new_out_dim < 50
+
+
             extra_out_dim = 10
             in_dim_now    = 10
             out_dim_now   = 10
@@ -1050,7 +1079,7 @@ if " test" and __DEBUG_ME__() and False:
                     extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_out_dim >= extra_out_dim + out_dim_now
-            assert new_out_dim < 50
+            assert new_out_dim < 100
 
 
             extra_out_dim = 100
@@ -1507,6 +1536,9 @@ class DigitalMapper_layer__2026(torch.nn.Module):
                 self._raw_weight___oCAP_iCAP.data = _temp__useful_part
                 pass
             else:# not to squeeze the input dim.
+                assert False, "unreachable" 
+                # for non-last layer, if the later layer needs more input, then this layer needs more output dimention.
+                # but for last layer, in no case it needs any extra output dimention.
                 _temp___keep_which___in_int = keep_which.to(torch.int32)
                 how_many_to_keep = int(_temp___keep_which___in_int.sum().to(torch.int32).item())
                 self._raw_weight___oCAP_iCAP.data = torch.empty(size=[how_many_to_keep, self.capacity_of_in_dim()])
@@ -1538,7 +1570,7 @@ class DigitalMapper_layer__2026(torch.nn.Module):
     pass# end of class.
 
 # all the forward related                 forward
-if "forward in module class      basic behavior test" and False:
+if "forward in module class      basic behavior test" and __DEBUG_ME__() and False:
     def ____test____forward_in_module_class():
         if "allow non posneg1 input?" and True:
             the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
@@ -1582,7 +1614,7 @@ if "forward in module class      basic behavior test" and False:
         return
     ____test____forward_in_module_class()
     pass
-if "get_max_index in module class      basic behavior test" and False:
+if "get_max_index in module class      basic behavior test" and __DEBUG_ME__() and False:
     def ____test____get_max_index_in_module_class():
         import random
         if "allow non posneg1 input?" and True:
@@ -1598,7 +1630,7 @@ if "get_max_index in module class      basic behavior test" and False:
     pass
 
 # all the backward related            backward
-if "backward equivalence" and False:
+if "backward equivalence" and __DEBUG_ME__() and False:
     def ____test____backward_in_module_class()->None:
         if "allow non posneg1 input?" and False:
             the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
@@ -2806,7 +2838,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
     ____test____basic_reshape____()
     pass
 
-if "squeeze" and False:
+if "squeeze" and __DEBUG_ME__() and False:
     def ____test____squeeze():
         import random 
         if "the squeeze funciont" and False:
@@ -2898,7 +2930,7 @@ def only_for_DigitalMapper_layer__2026_to_use___optim_step(raw_weight___o_i:torc
         return new___raw_weight___o_i
     #end of function.
 
-if "optim step algo test" and False:
+if "optim step algo test" and __DEBUG_ME__() and False:
     def ____test____only_for_DigitalMapper_layer__2026_to_use___optim_step()->None:
 
         if "basic algo test" and False:
@@ -3146,7 +3178,7 @@ class optim_for___DigitalMapper_layer__2026(torch.nn.Module):#torch.optim.Optimi
             digitalmapping_layer.set_useful_part_of_raw_weight(new___raw_weight___o_i)
         return
 
-if "basic behavior" and False:
+if "basic behavior" and __DEBUG_ME__() and False:
     def ____test____optim_for___DigitalMapper_layer__2026()->None:
         if "zero grad function.      scan" and False:
             for batch in [2,5,10]:
@@ -3312,7 +3344,7 @@ if "basic behavior" and False:
 
 
 
-if "integrated test" and False:
+if "integrated test" and __DEBUG_ME__() and False:
     def ____test____integrated_test()->None:
         '''modified from the backward algo test.'''
 
