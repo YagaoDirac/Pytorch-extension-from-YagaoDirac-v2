@@ -672,7 +672,7 @@ from typing import Any
 '''auto grad function class'''
 '''auto grad function class'''
 '''auto grad function class'''
-class autograd_function_class_for__DigitalMapper_layer__2026(torch.autograd.Function):
+class autograd_function_class_for__DigitalMapping_layer__2026(torch.autograd.Function):
     r'''
     forward input list:
     >>> input_posneg1___b_i(if the input is not posneg1, then the output is not guarunteed to be posneg1)
@@ -847,7 +847,7 @@ if "equivalence of this class version and the prototype function version" and __
                 raw_weight___o_i = torch.rand(size=[out_dim, in_dim])*-1.
                 function_output, _ = _test___DNN_forward___full_safety(input___b_i=input_posneg1___b_i, 
                                                                         raw_weight___o_i=raw_weight___o_i)
-                class_output = autograd_function_class_for__DigitalMapper_layer__2026.apply(input_posneg1___b_i, 
+                class_output = autograd_function_class_for__DigitalMapping_layer__2026.apply(input_posneg1___b_i, 
                                                                     raw_weight___o_i, torch.tensor(1.))
 
                 assert function_output.eq(class_output).all()
@@ -871,7 +871,7 @@ if "equivalence of this class version and the prototype function version" and __
                 target___b_o = torch.randn(size=[batch, out_dim])
                 function_output, _ = _test___DNN_forward___full_safety(input___b_i=input_posneg1___b_i.detach().clone(), 
                                                                         raw_weight___o_i=raw_weight___o_i.detach().clone())
-                class_output:torch.Tensor = autograd_function_class_for__DigitalMapper_layer__2026.apply(input_posneg1___b_i, 
+                class_output:torch.Tensor = autograd_function_class_for__DigitalMapping_layer__2026.apply(input_posneg1___b_i, 
                                                                     raw_weight___o_i, some_hyper_param)
                 assert function_output.eq(class_output).all()#redundant a bit.
                 #<  backward
@@ -914,7 +914,7 @@ if "dtype adaption" and __DEBUG_ME__() and False:
                 raw_weight___o_i = torch.rand(size=[out_dim, in_dim], requires_grad=True)*-1.
                 target___b_o = torch.randn(size=[batch, out_dim])
 
-                class_output:torch.Tensor = autograd_function_class_for__DigitalMapper_layer__2026.apply(input_posneg1___b_i, 
+                class_output:torch.Tensor = autograd_function_class_for__DigitalMapping_layer__2026.apply(input_posneg1___b_i, 
                                                                     raw_weight___o_i, some_hyper_param)
                 assert class_output.dtype == input_dtype
 
@@ -947,7 +947,7 @@ if "dtype adaption" and __DEBUG_ME__() and False:
 
 
 '''2个申请内存的函数单独拿出来，方便以后调整。'''
-def _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+def _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_in(
         extra_in_dim:int, 
         in_dim_now:int, out_dim_now:int, recommended_min = 16 )->int:
     '''return new_in_dim'''
@@ -967,13 +967,13 @@ def _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
     #end of function
 if " test" and __DEBUG_ME__() and False:
     "感觉不用很严格？"
-    def ____test_____only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in():
+    def ____test_____only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_in():
         if "result must be greater than input combined" and True:
             extra_in_dim = 0
             in_dim_now   = 0
             out_dim_now  = 10
 
-            new_in_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+            new_in_dim = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_in(
                     extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_in_dim >= extra_in_dim + in_dim_now
@@ -984,7 +984,7 @@ if " test" and __DEBUG_ME__() and False:
             in_dim_now   = 10
             out_dim_now  = 10
 
-            new_in_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+            new_in_dim = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_in(
                     extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_in_dim >= extra_in_dim + in_dim_now
@@ -995,7 +995,7 @@ if " test" and __DEBUG_ME__() and False:
             in_dim_now   = 100
             out_dim_now  = 100
 
-            new_in_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+            new_in_dim = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_in(
                     extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_in_dim >= extra_in_dim + in_dim_now
@@ -1006,7 +1006,7 @@ if " test" and __DEBUG_ME__() and False:
             in_dim_now   = 1000
             out_dim_now  = 1000
 
-            new_in_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+            new_in_dim = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_in(
                     extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_in_dim >= extra_in_dim + in_dim_now
@@ -1017,7 +1017,7 @@ if " test" and __DEBUG_ME__() and False:
             in_dim_now   = 10000
             out_dim_now  = 10000
 
-            new_in_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+            new_in_dim = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_in(
                     extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_in_dim >= extra_in_dim + in_dim_now
@@ -1028,17 +1028,17 @@ if " test" and __DEBUG_ME__() and False:
             in_dim_now   = 100000
             out_dim_now  = 100000
 
-            new_in_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in(
+            new_in_dim = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_in(
                     extra_in_dim = extra_in_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_in_dim >= extra_in_dim + in_dim_now
             assert new_in_dim < 300000
 
         return
-    ____test_____only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in()
+    ____test_____only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_in()
     pass
 
-def _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+def _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_out(
         extra_out_dim:int, 
         in_dim_now:int, out_dim_now:int, recommended_min = 16)->int:
     total_out_dim_needed = extra_out_dim+out_dim_now
@@ -1057,14 +1057,14 @@ def _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
     #end of function
 if " test" and __DEBUG_ME__() and False:
     "感觉不用很严格？"
-    def ____test______only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out():
+    def ____test______only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_out():
         if "result must be greater than input combined" and True:
 
             extra_out_dim = 0
             in_dim_now    = 10
             out_dim_now   = 0
 
-            new_out_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+            new_out_dim = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_out(
                     extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_out_dim >= extra_out_dim + out_dim_now
@@ -1075,7 +1075,7 @@ if " test" and __DEBUG_ME__() and False:
             in_dim_now    = 10
             out_dim_now   = 10
 
-            new_out_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+            new_out_dim = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_out(
                     extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_out_dim >= extra_out_dim + out_dim_now
@@ -1086,7 +1086,7 @@ if " test" and __DEBUG_ME__() and False:
             in_dim_now    = 100
             out_dim_now   = 100
 
-            new_out_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+            new_out_dim = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_out(
                     extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_out_dim >= extra_out_dim + out_dim_now
@@ -1097,7 +1097,7 @@ if " test" and __DEBUG_ME__() and False:
             in_dim_now    = 1000
             out_dim_now   = 1000
 
-            new_out_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+            new_out_dim = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_out(
                     extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_out_dim >= extra_out_dim + out_dim_now
@@ -1108,7 +1108,7 @@ if " test" and __DEBUG_ME__() and False:
             in_dim_now    = 10000
             out_dim_now   = 10000
 
-            new_out_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+            new_out_dim = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_out(
                     extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_out_dim >= extra_out_dim + out_dim_now
@@ -1119,7 +1119,7 @@ if " test" and __DEBUG_ME__() and False:
             in_dim_now    = 100000
             out_dim_now   = 100000
 
-            new_out_dim = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out(
+            new_out_dim = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_out(
                     extra_out_dim = extra_out_dim, in_dim_now = in_dim_now, out_dim_now = out_dim_now)
             #<  assert
             assert new_out_dim >= extra_out_dim + out_dim_now
@@ -1127,22 +1127,22 @@ if " test" and __DEBUG_ME__() and False:
 
 
         return
-    ____test______only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out()
+    ____test______only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_out()
     pass
 
 '''随机初始化的的函数，单独拿出来，方便以后调整'''
-def _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style( \
+def _only_for_DigitalMapping_layer__2026_to_use__reset_parameters__the_plain_rand01_style( \
         out_features:int, in_features:int, device = None, dtype = None) -> torch.Tensor:
     result = torch.rand(size=[out_features, in_features], device=device, dtype=dtype)*-1.
     return result
 if " test" and __DEBUG_ME__() and False:
-    def ____test_____only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style():
+    def ____test_____only_for_DigitalMapping_layer__2026_to_use__reset_parameters__the_plain_rand01_style():
         import random
         if "basic behavior" and True:
             for _ in range(33):
                 out_features = random.randint(3,100)
                 in_features = random.randint(5,87)
-                some_random_tensor = _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style(
+                some_random_tensor = _only_for_DigitalMapping_layer__2026_to_use__reset_parameters__the_plain_rand01_style(
                     out_features = out_features, in_features=in_features)
                 assert some_random_tensor.le(0.).all()
                 pass#for _  
@@ -1150,24 +1150,24 @@ if " test" and __DEBUG_ME__() and False:
 
         if "dtype adaption" and True:
             
-            some_random_tensor = _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style(
+            some_random_tensor = _only_for_DigitalMapping_layer__2026_to_use__reset_parameters__the_plain_rand01_style(
                     out_features = 3, in_features=2, dtype=torch.bfloat16)
             assert some_random_tensor.dtype == torch.bfloat16
             
-            some_random_tensor = _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style(
+            some_random_tensor = _only_for_DigitalMapping_layer__2026_to_use__reset_parameters__the_plain_rand01_style(
                     out_features = 3, in_features=2, dtype=torch.float64)
             assert some_random_tensor.dtype == torch.float64
             pass
         
         if "device adaption" and True:
             
-            some_random_tensor = _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style(
+            some_random_tensor = _only_for_DigitalMapping_layer__2026_to_use__reset_parameters__the_plain_rand01_style(
                     out_features = 3, in_features=2, device='cuda')
             assert some_random_tensor.device.type == 'cuda'
             pass
 
         return 
-    ____test_____only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style()
+    ____test_____only_for_DigitalMapping_layer__2026_to_use__reset_parameters__the_plain_rand01_style()
     pass
 
 
@@ -1175,7 +1175,7 @@ if " test" and __DEBUG_ME__() and False:
 
 
 from collections.abc import Iterator
-class DigitalMapper_layer__2026(torch.nn.Module):
+class DigitalMapping_layer__2026(torch.nn.Module):
     in_dim         :int
     out_dim        :int
     _init_to_nan   :bool
@@ -1226,7 +1226,7 @@ class DigitalMapper_layer__2026(torch.nn.Module):
                 pass
             pass# if self._init_to_nan:
 
-        if isinstance(some_hyper_param, float):
+        if isinstance(some_hyper_param, float) or isinstance(some_hyper_param, int):
             self.some_hyper_param = torch.nn.Parameter(torch.tensor(some_hyper_param, dtype=torch.float64, device=device, 
                         requires_grad = False),#, **factory_kwargs), 
                         requires_grad = False)
@@ -1234,6 +1234,8 @@ class DigitalMapper_layer__2026(torch.nn.Module):
         elif isinstance(some_hyper_param, torch.Tensor):
             self.some_hyper_param = torch.nn.Parameter(some_hyper_param.detach().clone(), requires_grad = False)
             pass
+        else:
+            assert False, "unreachable"
         self.some_hyper_param.data = self.some_hyper_param.to(self._raw_weight___oCAP_iCAP.device)
         #if this is a higher precision, the final result may get effected. It doesn't help. So let's keep it simple.
         self.some_hyper_param.data = self.some_hyper_param.to(self._raw_weight___oCAP_iCAP.dtype)
@@ -1241,14 +1243,14 @@ class DigitalMapper_layer__2026(torch.nn.Module):
         assert self.some_hyper_param.shape.__len__() == 0#not important
 
         #<  modulized functions.
-        self._random_init_algo = _only_for_DigitalMapper_layer__2026_to_use__reset_parameters__the_plain_rand01_style
+        self._random_init_algo = _only_for_DigitalMapping_layer__2026_to_use__reset_parameters__the_plain_rand01_style
         with torch.no_grad():
             self._raw_weight___oCAP_iCAP[:self.out_dim, :self.in_dim] = \
                     self._random_init_algo(out_features, in_features, 
                             device=device, dtype=self._raw_weight___oCAP_iCAP.dtype)
             pass
-        self._calc_bigger_capacity__for_in = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_in
-        self._calc_bigger_capacity__for_out = _only_for_DigitalMapper_layer__2026_to_use____calc_bigger_capacity__for_out
+        self._calc_bigger_capacity__for_in = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_in
+        self._calc_bigger_capacity__for_out = _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_out
         pass
 
     '''parameters function.         This only gives out the raw_weight___o_i.'''
@@ -1358,7 +1360,7 @@ class DigitalMapper_layer__2026(torch.nn.Module):
             pass
 
         #<  real payload
-        output___b_o = autograd_function_class_for__DigitalMapper_layer__2026.apply(input___b_i, 
+        output___b_o = autograd_function_class_for__DigitalMapping_layer__2026.apply(input___b_i, 
                                         self.get_useful_part_of_raw_weight(), self.some_hyper_param)
 
         return output___b_o
@@ -1437,11 +1439,14 @@ class DigitalMapper_layer__2026(torch.nn.Module):
     def add_input_slot__to_the_tail(self, how_many = 0, new_raw_weight_part:torch.Tensor = torch.empty(size=[0]))->None:
         '''The param combination is either (0, some tensor), or (some number, empty tensor). 
         
+        If (0, empty tensor) is provided, this function is no-op.
+
         If new_raw_weight_part is not empty, its shape must be [out_dim, extra_in_dim]'''
         #<  wash the param.
         if how_many == 0:
             if new_raw_weight_part.nelement() == 0:
-                assert False, "Bad param combination. Either how_many > 0, or new_raw_weight_part is provided."
+                return
+                # old code    assert False, "Bad param combination. Either how_many > 0, or new_raw_weight_part is provided."
                 pass# if new_raw_weight_part.nelement() == 0:
             assert new_raw_weight_part.shape.__len__() == 2
             how_many = new_raw_weight_part.shape[1]
@@ -1482,12 +1487,15 @@ class DigitalMapper_layer__2026(torch.nn.Module):
     '''output slot'''
     def add_output_slot__to_the_tail(self, how_many = 0, new_raw_weight_part:torch.Tensor = torch.empty(size=[0]))->None:
         '''The param combination is either (0, some tensor), or (some number, empty tensor). 
+
+        If (0, empty tensor) is provided, this function is no-op.
         
         If new_raw_weight_part is not empty, its shape must be [out_dim, extra_in_dim]'''
         #<  wash the param.
         if how_many == 0:
             if new_raw_weight_part.nelement() == 0:
-                assert False, "Bad param combination. Either how_many > 0, or new_raw_weight_part is provided."
+                return 
+                #old code    assert False, "Bad param combination. Either how_many > 0, or new_raw_weight_part is provided."
                 pass# if new_raw_weight_part.nelement() == 0:
             assert new_raw_weight_part.shape.__len__() == 2
             how_many = new_raw_weight_part.shape[0]
@@ -1523,7 +1531,7 @@ class DigitalMapper_layer__2026(torch.nn.Module):
             return
         pass# a dead pass to denote the end of function
 
-    def keep_output_slot(self, keep_which:torch.Tensor, squeeze_the_input_dim = False)->None:
+    def keep_output_slot(self, keep_which:torch.Tensor, squeeze_the_input_dim = True)->None:
         '''This function also squeeze the memory to minimum.'''
         assert keep_which.shape.__len__() == 1
         assert keep_which.dtype == torch.bool
@@ -1573,11 +1581,11 @@ class DigitalMapper_layer__2026(torch.nn.Module):
 if "forward in module class      basic behavior test" and __DEBUG_ME__() and False:
     def ____test____forward_in_module_class():
         if "allow non posneg1 input?" and True:
-            the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
+            the_layer = DigitalMapping_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
             output = the_layer(torch.tensor([[1., 1, 1], [1, -1, 1]]))
             #output = the_layer(torch.tensor([[1.1, 1, 1], [1, -1, 1]]))   this must NOT work.
 
-            the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= False)
+            the_layer = DigitalMapping_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= False)
             output = the_layer(torch.tensor([[1., 1, 1], [1, -1, 1]]))
             output = the_layer(torch.tensor([[1.1, 1, 1], [1, -1, 1]]))   
             pass#/ test
@@ -1594,7 +1602,7 @@ if "forward in module class      basic behavior test" and __DEBUG_ME__() and Fal
                             assert input___b_i.shape == torch.Size([batch, in_dim])
 
                             #<  the layer
-                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
 
                             #<  calc
                             layer_output = the_layer(input___b_i)
@@ -1620,7 +1628,7 @@ if "get_max_index in module class      basic behavior test" and __DEBUG_ME__() a
         if "allow non posneg1 input?" and True:
             for _ in range(33):
                 in_dim = random.randint(2,100)
-                the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features= random.randint(2,100))
+                the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features= random.randint(2,100))
                 the_max_index = the_layer.get_max_index()
                 assert the_max_index.lt(in_dim).all()
                 pass#for _
@@ -1633,20 +1641,20 @@ if "get_max_index in module class      basic behavior test" and __DEBUG_ME__() a
 if "backward equivalence" and __DEBUG_ME__() and False:
     def ____test____backward_in_module_class()->None:
         if "allow non posneg1 input?" and False:
-            the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
+            the_layer = DigitalMapping_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
             input = torch.tensor([[1., 1, 1], [1, -1, 1]], requires_grad=True)
             output:torch.Tensor = the_layer(input)
             output.backward(gradient=torch.tensor([[1.1, 1], [1, -1]]), inputs=[input])
 
-            the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
+            the_layer = DigitalMapping_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
             #output = the_layer(torch.tensor([[1.1, 1, 1], [1, -1, 1]]))   this must NOT work.
 
-            the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= False)
+            the_layer = DigitalMapping_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= False)
             input = torch.tensor([[1., 1, 1], [1, -1, 1]], requires_grad=True)
             output = the_layer(input)
             output.backward(gradient=torch.tensor([[1.1, 1], [1, -1]]), inputs=[input])
             
-            the_layer = DigitalMapper_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= False)
+            the_layer = DigitalMapping_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= False)
             input = torch.tensor([[1.1, 1, 1], [1, -1, 1]], requires_grad=True)
             output = the_layer(input)
             output.backward(gradient=torch.tensor([[1.1, 1], [1, -1]]), inputs=[input])
@@ -1667,7 +1675,7 @@ if "backward equivalence" and __DEBUG_ME__() and False:
                             target___b_o = torch.randn(size=[batch, out_dim])
 
                             #<  the layer
-                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
 
                             raw_weight___o_i = the_layer.get_useful_part_of_raw_weight().detach().clone()
 
@@ -1863,10 +1871,10 @@ if "add input slot     algo test      and class equivalence" and __DEBUG_ME__() 
                                     
                                     #<  model param
                                     if is_posneg1:
-                                        the_layer = DigitalMapper_layer__2026(in_features=in_dim___ori, out_features=out_dim)
+                                        the_layer = DigitalMapping_layer__2026(in_features=in_dim___ori, out_features=out_dim)
                                         pass
                                     else:#debug purpose.
-                                        the_layer = DigitalMapper_layer__2026(in_features=in_dim___ori, out_features=out_dim, 
+                                        the_layer = DigitalMapping_layer__2026(in_features=in_dim___ori, out_features=out_dim, 
                                                             _always_check_input_is_posneg1__in_forward = False)#debug purpose.
                                         pass
 
@@ -1950,7 +1958,7 @@ if "add input slot with specified new raw_weight" and __DEBUG_ME__() and False:
         for in_dim in [3,6,11]:
             for out_dim in [2,8,15]:
                 for _ in range(6):
-                    the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                    the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                     the_layer.add_input_slot__to_the_tail(new_raw_weight_part = torch.ones(size=[out_dim, 1]))
                     the_max_index___o = the_layer.get_max_index()
                     assert the_max_index___o.eq(torch.ones(size=[out_dim])*in_dim).all()
@@ -2099,10 +2107,10 @@ if "add output slot     algo test      and class equivalence" and __DEBUG_ME__()
 
                                     #<  model param
                                     if is_posneg1:
-                                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim___ori)
+                                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim___ori)
                                         pass
                                     else:#debug purpose.
-                                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim___ori, 
+                                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim___ori, 
                                                             _always_check_input_is_posneg1__in_forward = False)#debug purpose.
                                         pass
                                     
@@ -2162,13 +2170,13 @@ if "add output slot with specified new raw_weight" and __DEBUG_ME__() and False:
         for in_dim in [3,6,11]:
             for out_dim in [2,8,15]:
                 for _ in range(6):
-                    the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                    the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                     the_layer.add_output_slot__to_the_tail(new_raw_weight_part = torch.ones(size=[1, in_dim]))
                     the_layer._raw_weight___oCAP_iCAP[out_dim, in_dim-1] = 2.123
                     the_max_index___o = the_layer.get_max_index()
                     assert the_max_index___o[out_dim-1+1] == in_dim-1
 
-                    the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                    the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                     the_layer.add_output_slot__to_the_tail(new_raw_weight_part = torch.ones(size=[1, in_dim]))
                     the_layer._raw_weight___oCAP_iCAP[out_dim, 2] = 5.123
                     the_max_index___o = the_layer.get_max_index()
@@ -2286,10 +2294,10 @@ if "delete output slot" and __DEBUG_ME__() and False:
 
                                 #<  model param
                                 if is_posneg1:
-                                    the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                                    the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                                     pass
                                 else:#debug purpose.
-                                    the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim, 
+                                    the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim, 
                                                 _always_check_input_is_posneg1__in_forward = False)#debug purpose.
                                     pass
 
@@ -2360,13 +2368,13 @@ if "delete output slot" and __DEBUG_ME__() and False:
 
                                 #<  model param
                                 if is_posneg1:
-                                    the_layer_keep = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
-                                    the_layer_remove = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                                    the_layer_keep = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+                                    the_layer_remove = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                                     pass
                                 else:#debug purpose.
-                                    the_layer_keep = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim, 
+                                    the_layer_keep = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim, 
                                                 _always_check_input_is_posneg1__in_forward = False)#debug purpose.
-                                    the_layer_remove = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim,
+                                    the_layer_remove = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim,
                                                 _always_check_input_is_posneg1__in_forward = False)#debug purpose.
                                     pass
 
@@ -2413,7 +2421,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
         if "add_input_slot__to_the_tail" and True:
             in_dim = 5
             out_dim = 33
-            the_layer = DigitalMapper_layer__2026(5, 33)
+            the_layer = DigitalMapping_layer__2026(5, 33)
             assert the_layer.in_dim == in_dim
             assert the_layer.out_dim == out_dim
             assert the_layer.capacity_of_in_dim() >= in_dim
@@ -2445,7 +2453,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
                 for out_dim in [7,21,37]:
                     for x in [12,27,57]:
                         for _ in range(33):
-                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                             assert the_layer.in_dim == in_dim
                             assert the_layer.out_dim == out_dim
                             assert the_layer.capacity_of_in_dim() >= in_dim
@@ -2479,7 +2487,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
                 for out_dim in [7,21,37]:
                     for x in [12,27,57]:
                         for _ in range(33):
-                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                             assert the_layer.in_dim == in_dim
                             assert the_layer.out_dim == out_dim
                             assert the_layer.capacity_of_in_dim() >= in_dim
@@ -2518,7 +2526,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
         if "add_output_slot__to_the_tail" and True:
             in_dim = 5
             out_dim = 7
-            the_layer = DigitalMapper_layer__2026(5, 7)
+            the_layer = DigitalMapping_layer__2026(5, 7)
             assert the_layer.in_dim == in_dim
             assert the_layer.out_dim == out_dim
             assert the_layer.capacity_of_in_dim() >= in_dim
@@ -2549,7 +2557,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
                 for out_dim in [7,21,37]:
                     for x in [12,27,57]:
                         for _ in range(33):
-                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                             assert the_layer.in_dim == in_dim
                             assert the_layer.out_dim == out_dim
                             assert the_layer.capacity_of_in_dim() >= in_dim
@@ -2584,7 +2592,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
                 for out_dim in [7,21,37]:
                     for x in [12,27,57]:
                         for _ in range(33):
-                            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                             assert the_layer.in_dim == in_dim
                             assert the_layer.out_dim == out_dim
                             assert the_layer.capacity_of_in_dim() >= in_dim
@@ -2639,7 +2647,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
             '''
             in_dim = 4#5
             out_dim = 3#7
-            the_layer = DigitalMapper_layer__2026(in_dim, out_dim, 
+            the_layer = DigitalMapping_layer__2026(in_dim, out_dim, 
                     init_capacity__for_out = 9, init_capacity__for_in = 6)
             assert the_layer.in_dim == in_dim
             assert the_layer.out_dim == out_dim
@@ -2691,7 +2699,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
                 for out_dim in [7,21,67]:
                     for _ in range(15):
 
-                        the_layer = DigitalMapper_layer__2026(in_dim, out_dim)
+                        the_layer = DigitalMapping_layer__2026(in_dim, out_dim)
                         assert the_layer.in_dim == in_dim
                         assert the_layer.out_dim == out_dim
                         assert the_layer.capacity_of_in_dim() >= in_dim
@@ -2754,7 +2762,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
             '''
             in_dim = 4#5
             out_dim = 3#7
-            the_layer = DigitalMapper_layer__2026(in_dim, out_dim, 
+            the_layer = DigitalMapping_layer__2026(in_dim, out_dim, 
                     init_capacity__for_out = 9, init_capacity__for_in = 6)
             assert the_layer.in_dim == in_dim
             assert the_layer.out_dim == out_dim
@@ -2794,7 +2802,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
                 for out_dim in [7,21,67]:
                     for _ in range(15):
 
-                        the_layer = DigitalMapper_layer__2026(in_dim, out_dim)
+                        the_layer = DigitalMapping_layer__2026(in_dim, out_dim)
                         assert the_layer.in_dim == in_dim
                         assert the_layer.out_dim == out_dim
                         assert the_layer.capacity_of_in_dim() >= in_dim
@@ -2845,7 +2853,7 @@ if "squeeze" and __DEBUG_ME__() and False:
             for in_dim in [3,6,11, 33, ]:
                 for out_dim in [2,8,15, 57]:
                     for _ in range(6):
-                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, init_capacity__for_in=random.randint(in_dim+3, in_dim+111),
+                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, init_capacity__for_in=random.randint(in_dim+3, in_dim+111),
                                                             out_features=out_dim, init_capacity__for_out=random.randint(out_dim+3, out_dim+111))
                         assert the_layer.capacity_of_in_dim()  != the_layer.in_dim
                         assert the_layer.capacity_of_out_dim() != the_layer.out_dim
@@ -2853,7 +2861,7 @@ if "squeeze" and __DEBUG_ME__() and False:
                         assert the_layer.capacity_of_in_dim()  == the_layer.in_dim
                         assert the_layer.capacity_of_out_dim() != the_layer.out_dim
 
-                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, init_capacity__for_in=random.randint(in_dim+3, in_dim+111),
+                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, init_capacity__for_in=random.randint(in_dim+3, in_dim+111),
                                                             out_features=out_dim, init_capacity__for_out=random.randint(out_dim+3, out_dim+111))
                         assert the_layer.capacity_of_in_dim()  != the_layer.in_dim
                         assert the_layer.capacity_of_out_dim() != the_layer.out_dim
@@ -2861,7 +2869,7 @@ if "squeeze" and __DEBUG_ME__() and False:
                         assert the_layer.capacity_of_in_dim()  != the_layer.in_dim
                         assert the_layer.capacity_of_out_dim() == the_layer.out_dim
                         
-                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, init_capacity__for_in=random.randint(in_dim+3, in_dim+111),
+                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, init_capacity__for_in=random.randint(in_dim+3, in_dim+111),
                                                             out_features=out_dim, init_capacity__for_out=random.randint(out_dim+3, out_dim+111))
                         assert the_layer.capacity_of_in_dim()  != the_layer.in_dim
                         assert the_layer.capacity_of_out_dim() != the_layer.out_dim
@@ -2886,7 +2894,7 @@ if "squeeze" and __DEBUG_ME__() and False:
 '''the optimizer'''
 '''the optimizer'''
 '''the optimizer'''
-def only_for_DigitalMapper_layer__2026_to_use___optim_step(raw_weight___o_i:torch.Tensor, grad_like_for_raw_weight___o_i:torch.Tensor, 
+def only_for_DigitalMapping_layer__2026_to_use___optim_step(raw_weight___o_i:torch.Tensor, grad_like_for_raw_weight___o_i:torch.Tensor, 
             learning_rate___s:torch.Tensor|float, safety_check = True, epsilon = torch.tensor(0.01))->torch.Tensor:
     
 # pseudo_raw_weight = torch.tanh(pseudo_raw_weight___before_protection)
@@ -2931,7 +2939,7 @@ def only_for_DigitalMapper_layer__2026_to_use___optim_step(raw_weight___o_i:torc
     #end of function.
 
 if "optim step algo test" and __DEBUG_ME__() and False:
-    def ____test____only_for_DigitalMapper_layer__2026_to_use___optim_step()->None:
+    def ____test____only_for_DigitalMapping_layer__2026_to_use___optim_step()->None:
 
         if "basic algo test" and False:
             out_dim = 2
@@ -3049,7 +3057,7 @@ if "optim step algo test" and __DEBUG_ME__() and False:
                         new___raw_weight___o_i = new___raw_weight___before_tanh___o_i.tanh()
 
                         #<  function version
-                        function_return_value = only_for_DigitalMapper_layer__2026_to_use___optim_step( \
+                        function_return_value = only_for_DigitalMapping_layer__2026_to_use___optim_step( \
                                     raw_weight___o_i = raw_weight___o_i.detach().clone(), 
                                     grad_like_for_raw_weight___o_i = grad_like_for_raw_weight___o_i.detach().clone(), 
                                     learning_rate___s = learning_rate___s)
@@ -3061,32 +3069,32 @@ if "optim step algo test" and __DEBUG_ME__() and False:
             pass#/ test
 
         return
-    ____test____only_for_DigitalMapper_layer__2026_to_use___optim_step()
+    ____test____only_for_DigitalMapping_layer__2026_to_use___optim_step()
     pass
 
-class optim_for___DigitalMapper_layer__2026(torch.nn.Module):#torch.optim.Optimizer):
+class optim_for___DigitalMapping_layer__2026(torch.nn.Module):#torch.optim.Optimizer):
     '''I need the useful shape information.
     The torch.optim.Optimizer only accepts torch.Tensor. It needs a lot hack
-    to get this DigitalMapper_layer__2026 to work along with it.
+    to get this DigitalMapping_layer__2026 to work along with it.
     The reason to choose torch.nn.Module is I want the convenience 
     when I move it between devices and save/load it.'''
 
     learning_rate___s:torch.nn.Parameter
     digitalmapping_layers:torch.nn.ParameterList
     epsilon:torch.nn.Parameter
-    def __init__(self, DigitalMapper_layers:list[DigitalMapper_layer__2026], 
+    def __init__(self, DigitalMapping_layers:list[DigitalMapping_layer__2026], 
                     learning_rate___s=0.01, epsilon = 0.01, device = None, dtype = None):
         super().__init__()
         #<  safety
         assert epsilon > 0., "Bad param"
         assert learning_rate___s> 0., "Bad param"
-        for DigitalMapper_layer in DigitalMapper_layers:
-            assert isinstance(DigitalMapper_layer, DigitalMapper_layer__2026), \
-                        "this is different from the pytorch optim. It must be list[DigitalMapper_layer__2026]."
+        for DigitalMapping_layer in DigitalMapping_layers:
+            assert isinstance(DigitalMapping_layer, DigitalMapping_layer__2026), \
+                        "this is different from the pytorch optim. It must be list[DigitalMapping_layer__2026]."
             pass
 
         #<  real payload
-        self.digitalmapping_layers = torch.nn.ParameterList(DigitalMapper_layers)
+        self.digitalmapping_layers = torch.nn.ParameterList(DigitalMapping_layers)
         #learning_rate___s
         if isinstance(learning_rate___s, float):
             self.learning_rate___s = torch.nn.Parameter(torch.tensor(learning_rate___s, device=device, dtype=dtype), 
@@ -3118,7 +3126,7 @@ class optim_for___DigitalMapper_layer__2026(torch.nn.Module):#torch.optim.Optimi
         return super().parameters(recurse) #unreachable!!!!!!!
     def zero_grad(self, set_to_none: bool = True) -> None:
         for digitalmapping_layer in self.digitalmapping_layers:
-            assert isinstance(digitalmapping_layer, DigitalMapper_layer__2026)
+            assert isinstance(digitalmapping_layer, DigitalMapping_layer__2026)
             digitalmapping_layer._raw_weight___oCAP_iCAP.grad = None
             pass
 
@@ -3130,7 +3138,7 @@ class optim_for___DigitalMapper_layer__2026(torch.nn.Module):#torch.optim.Optimi
         Fyi, https://apxml.com/courses/advanced-pytorch/chapter-6-custom-extensions-interoperability/custom-optimizers'''
 
         for digitalmapping_layer in self.digitalmapping_layers:
-            assert isinstance(digitalmapping_layer, DigitalMapper_layer__2026)
+            assert isinstance(digitalmapping_layer, DigitalMapping_layer__2026)
 
             if digitalmapping_layer._raw_weight___oCAP_iCAP.grad is None:
                 continue # Skip parameters without gradients
@@ -3139,7 +3147,7 @@ class optim_for___DigitalMapper_layer__2026(torch.nn.Module):#torch.optim.Optimi
             if grad_like_for_raw_weight___o_i is None:
                 continue
             
-            # old code      new_data_for_parameter = only_for_DigitalMapper_layer__2026_to_use___optim_step( \
+            # old code      new_data_for_parameter = only_for_DigitalMapping_layer__2026_to_use___optim_step( \
             #                     raw_weight___o_i = digitalmapping_layer.get_useful_part_of_raw_weight(),  
             #                     grad_like_for_raw_weight___o_i = grad_like, 
             #                     learning_rate___s = self.learning_rate___s, 
@@ -3179,30 +3187,30 @@ class optim_for___DigitalMapper_layer__2026(torch.nn.Module):#torch.optim.Optimi
         return
 
 if "basic behavior" and __DEBUG_ME__() and False:
-    def ____test____optim_for___DigitalMapper_layer__2026()->None:
+    def ____test____optim_for___DigitalMapping_layer__2026()->None:
         if "zero grad function.      scan" and False:
             for batch in [2,5,10]:
                 for out_dim in [3,7,11]:
                     for in_dim in [6,9,13]:
-                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                         assert the_layer._raw_weight___oCAP_iCAP.requires_grad == True
                         assert the_layer._raw_weight___oCAP_iCAP.grad is None
                         assert the_layer.some_hyper_param.requires_grad == False
                         assert the_layer.some_hyper_param.grad is None
                         
-                        the_optim = optim_for___DigitalMapper_layer__2026(DigitalMapper_layers=[the_layer], learning_rate___s=0.1)
-                        #the_optim = optim_for___DigitalMapper_layer__2026(params=the_layer.parameters(), learning_rate___s=0.1)
+                        the_optim = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], learning_rate___s=0.1)
+                        #the_optim = optim_for___DigitalMapping_layer__2026(params=the_layer.parameters(), learning_rate___s=0.1)
                         the_optim.zero_grad()
                         assert the_layer._raw_weight___oCAP_iCAP.grad is None
 
 
-                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                         assert the_layer._raw_weight___oCAP_iCAP.requires_grad == True
                         assert the_layer._raw_weight___oCAP_iCAP.grad is None
                         assert the_layer.some_hyper_param.requires_grad == False
                         assert the_layer.some_hyper_param.grad is None
 
-                        the_optim = optim_for___DigitalMapper_layer__2026(DigitalMapper_layers=[the_layer], learning_rate___s=10.)
+                        the_optim = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], learning_rate___s=10.)
 
                         input___b_i = rand_sign(size=[batch, in_dim])
                         input___b_i.requires_grad_()
@@ -3227,9 +3235,9 @@ if "basic behavior" and __DEBUG_ME__() and False:
             out_dim = 2
             in_dim = 3
 
-            the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
             learning_rate___s = 1.1
-            the_optim = optim_for___DigitalMapper_layer__2026(DigitalMapper_layers=[the_layer], 
+            the_optim = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], 
                                                         learning_rate___s=learning_rate___s)
 
 
@@ -3290,9 +3298,9 @@ if "basic behavior" and __DEBUG_ME__() and False:
                 for in_dim in [6,9,13]:
                     for _ in range(11):
                         #<  neural net infra
-                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
+                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                         learning_rate___s = 1.1
-                        the_optim = optim_for___DigitalMapper_layer__2026(DigitalMapper_layers=[the_layer], 
+                        the_optim = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], 
                                                                     learning_rate___s=learning_rate___s)
 
                         #<  data
@@ -3339,7 +3347,7 @@ if "basic behavior" and __DEBUG_ME__() and False:
             pass#/ test
 
         return
-    ____test____optim_for___DigitalMapper_layer__2026()
+    ____test____optim_for___DigitalMapping_layer__2026()
     pass
 
 
@@ -3404,8 +3412,8 @@ if "integrated test" and __DEBUG_ME__() and False:
                                     random_ratio=random_ratio, input_is_already_posneg1 = True)
                         assert _either_1_or_neg1(target_posneg1___b_o)#debug purpose
                         #<  model param       neural net infra
-                        the_layer = DigitalMapper_layer__2026(in_features=in_dim, out_features=out_dim)
-                        the_optim = optim_for___DigitalMapper_layer__2026(DigitalMapper_layers=[the_layer], learning_rate___s=learning_rate)
+                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+                        the_optim = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], learning_rate___s=learning_rate)
                         backward_to_them = []
                         backward_to_them.extend(the_layer.parameters())
                         #backward_to_them.pop()#####
