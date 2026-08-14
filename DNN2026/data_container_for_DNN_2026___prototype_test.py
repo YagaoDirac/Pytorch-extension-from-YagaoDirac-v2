@@ -413,19 +413,10 @@ if "basic test" and __DEBUG_ME__() and False:
 
 
 
-
-
-
-
-
-
-
-
-
-'''output_container'''
-'''output_container'''
-'''output_container'''
-class DNN_output_container_2026(torch.nn.Module):
+'''label_container'''
+'''label_container'''
+'''label_container'''
+class DNN_label_container_2026(torch.nn.Module):
     '''According to the entire design, this container only provides 1 api.
     
     Call extend function to add extra data points.
@@ -453,7 +444,10 @@ class DNN_output_container_2026(torch.nn.Module):
         assert self.data___b_o.dtype in [torch.float, torch.float32, torch.float16, torch.float64, torch.bfloat16]
         assert self.data___b_o.requires_grad == False
         return
-    
+
+    def get_useful(self)->torch.Tensor:
+        '''Probably all the other classes have this function. To make your life easier, this class should also have this function.'''
+        return self.data___b_o
     '''shape related getter        getter'''
     def out_dim(self)->int:
         '''get'''
@@ -580,11 +574,11 @@ class DNN_output_container_2026(torch.nn.Module):
     pass
 
 if "basic test" and __DEBUG_ME__() and False:
-    def ____test____DNN_output_container_2026():
+    def ____test____DNN_label_container_2026():
         if "basic idea" and True:
             batch = 2
             #<  the container
-            the_container = DNN_output_container_2026(data= \
+            the_container = DNN_label_container_2026(data= \
                         torch.tensor([  [ 11.,  22,  33],
                                         [111, 122, 133],]))
             assert the_container.out_dim() == 3
@@ -609,7 +603,7 @@ if "basic test" and __DEBUG_ME__() and False:
             for batch in [2,8,23]:
                 for ori___out_dim in [3,11,29]:
                     #<  the container
-                    the_container = DNN_output_container_2026(data = torch.randn(size=[batch, ori___out_dim]))
+                    the_container = DNN_label_container_2026(data = torch.randn(size=[batch, ori___out_dim]))
                     assert the_container.out_dim() == ori___out_dim
                     assert the_container.batch() == batch
                     #<  the answer
@@ -627,8 +621,8 @@ if "basic test" and __DEBUG_ME__() and False:
             for batch in [2,8,23]:
                 for ori___out_dim in [3,11,29]:
                     #<  the container
-                    the_container_keep = DNN_output_container_2026(data = torch.randn(size=[batch, ori___out_dim]))
-                    the_container_remove = DNN_output_container_2026(data = the_container_keep.data___b_o, detach_clone_the_data=True)
+                    the_container_keep = DNN_label_container_2026(data = torch.randn(size=[batch, ori___out_dim]))
+                    the_container_remove = DNN_label_container_2026(data = the_container_keep.data___b_o, detach_clone_the_data=True)
                     #<  the answer
                     the_answer___o = torch.rand(size=[ori___out_dim]).gt(0.5)
                     #<  calc
@@ -642,29 +636,29 @@ if "basic test" and __DEBUG_ME__() and False:
 
         if "dtype adaption" and True:
             for dtype in [torch.float, torch.float32, torch.float16, torch.float64, torch.bfloat16]:
-                the_container = DNN_output_container_2026(data = torch.randn(size=[2, 3], dtype=dtype))
+                the_container = DNN_label_container_2026(data = torch.randn(size=[2, 3], dtype=dtype))
                 assert the_container.data___b_o.dtype == dtype
                 pass#for dtype
 
-            the_container = DNN_output_container_2026(data = torch.randn(size=[2, 3], dtype=torch.float32))
+            the_container = DNN_label_container_2026(data = torch.randn(size=[2, 3], dtype=torch.float32))
             assert the_container.data___b_o.dtype == torch.float32
             the_container.to(torch.float16)
             assert the_container.data___b_o.dtype == torch.float16
             pass#/ test
 
         if "device adaption" and True:
-            the_container = DNN_output_container_2026(data = torch.randn(size=[2, 3], device="cpu"))
+            the_container = DNN_label_container_2026(data = torch.randn(size=[2, 3], device="cpu"))
             assert the_container.data___b_o.device.type == "cpu"
             the_container.cuda()
             assert the_container.data___b_o.device.type == "cuda"
-            the_container = DNN_output_container_2026(data = torch.randn(size=[2, 3], device="cuda"))
+            the_container = DNN_label_container_2026(data = torch.randn(size=[2, 3], device="cuda"))
             assert the_container.data___b_o.device.type == "cuda"
             the_container.cpu()
             assert the_container.data___b_o.device.type == "cpu"
             pass
 
         return
-    ____test____DNN_output_container_2026()
+    ____test____DNN_label_container_2026()
     pass
 
 if "detect perfect output         only the by position version" and __DEBUG_ME__() and True:
@@ -752,7 +746,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
             for batch in [3,11,35]:
                 for out_dim in [5,18,51]:
                     #<  data 
-                    the_out_container = DNN_output_container_2026(
+                    the_out_container = DNN_label_container_2026(
                             data=rand_sign(size=[batch, out_dim], dtype=torch.float32))
 
                     label_posneg1___b_o = the_out_container.data___b_o.detach().clone()
@@ -788,7 +782,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 
         if "threshold" and False:
             #<  data
-            the_out_container = DNN_output_container_2026(data=torch.tensor([ 
+            the_out_container = DNN_label_container_2026(data=torch.tensor([ 
                     [1,1,1,1,1,1],
                     [1,1,1,1,1,1],
                     [1,1,1,1,1,1],
@@ -815,7 +809,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 
 
             #<  data
-            the_out_container = DNN_output_container_2026(data=torch.tensor([ 
+            the_out_container = DNN_label_container_2026(data=torch.tensor([ 
                     [1,1,1,1,1,1],
                     [1,1,1,1,1,1],
                     [1,1,1,1,1,1],
@@ -842,6 +836,110 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 
             pass#/ test
 
+
+
+
+
+
+
+
+
+
+        if "no scan         what if the perfect/good output slots are removed?          measured by the acc(is 0 or not 0)" and True:
+
+            #<  data
+            the_out_container = DNN_label_container_2026(data=torch.tensor([ 
+                    [1,1,1,1,1,1],
+                    [1,1,1,1,1,1],
+                    [1,1,1,1,1,1],
+                    [1,1,1,1,1,1],
+                    [1,1,1,1,1,1.],
+                            ]), data_is_already_posneg1 = True)
+            output_posneg1___b_o = torch.tensor([   
+                    [1,-1,-1,-1,-1,-1],
+                    [1, 1,-1,-1,-1,-1],
+                    [1, 1, 1,-1,-1,-1],
+                    [1, 1, 1, 1,-1,-1],
+                    [1, 1, 1, 1, 1,-1.],
+                            ])
+            assert _either_1_or_neg1(output_posneg1___b_o)
+            assert output_posneg1___b_o.shape == the_out_container.data___b_o.shape
+            #<  calc
+            flag_perfect___o, flag_good_enough___o = \
+                    the_out_container.detect_good_output___by_position( \
+                            output_posneg1___b_o = output_posneg1___b_o,output_is_already_posneg1=True,
+                            good_threshold = 0.55)
+            #<  assert
+            assert flag_perfect___o.    eq(torch.tensor([1,0,0,0,0,0], dtype=torch.bool)).all()
+            assert flag_good_enough___o.eq(torch.tensor([0,1,1,0,0,0], dtype=torch.bool)).all()
+            #<  remove perfect
+            the_out_container.remove_output_slot(flag_perfect___o)
+            no_perfect___flag_perfect___o, no_perfect___flag_good_enough___o = \
+                    the_out_container.detect_good_output___by_position( \
+                            output_posneg1___b_o = output_posneg1___b_o,output_is_already_posneg1=True,
+                            good_threshold = 0.55)
+            assert no_perfect___flag_perfect___o.any() == False# no perfect
+            assert no_perfect___flag_perfect___o.    eq(torch.tensor([0,0,0,0,0], dtype=torch.bool)).all()
+            assert no_perfect___flag_good_enough___o.eq(torch.tensor([1,1,0,0,0], dtype=torch.bool)).all()
+
+            #<  remove good
+            the_out_container.remove_output_slot(no_perfect___flag_good_enough___o)
+            no_perfect_no_good___flag_perfect___o, no_perfect_no_good___flag_good_enough___o = \
+                    the_out_container.detect_good_output___by_position( \
+                            output_posneg1___b_o = output_posneg1___b_o,output_is_already_posneg1=True,
+                            good_threshold = 0.55)
+            assert no_perfect_no_good___flag_perfect___o.any() == False# no perfect
+            assert no_perfect_no_good___flag_good_enough___o.any() == False# no perfect
+            assert no_perfect_no_good___flag_perfect___o.    eq(torch.tensor([0,0,0], dtype=torch.bool)).all()
+            assert no_perfect_no_good___flag_good_enough___o.eq(torch.tensor([0,0,0], dtype=torch.bool)).all()
+
+
+
+            #<  data
+            the_out_container = DNN_label_container_2026(data=torch.tensor([ 
+                    [1,1,1,1,1,1],
+                    [1,1,1,1,1,1],
+                    [1,1,1,1,1,1],
+                    [1,1,1,1,1,1],
+                    [1,1,1,1,1,1.],
+                            ]), data_is_already_posneg1 = True)
+            output_posneg1___b_o = torch.tensor([   
+                    [1,-1,-1,-1,-1,-1],
+                    [1, 1,-1,-1,-1,-1],
+                    [1, 1, 1,-1,-1,-1],
+                    [1, 1, 1, 1,-1,-1],
+                    [1, 1, 1, 1, 1,-1.],
+                            ])
+            assert _either_1_or_neg1(output_posneg1___b_o)
+            assert output_posneg1___b_o.shape == the_out_container.data___b_o.shape
+            #<  calc
+            flag_perfect___o, flag_good_enough___o = \
+                    the_out_container.detect_good_output___by_position( \
+                            output_posneg1___b_o = output_posneg1___b_o,output_is_already_posneg1=True,
+                            good_threshold = 0.55)
+            #<  assert
+            assert flag_perfect___o.    eq(torch.tensor([1,0,0,0,0,0], dtype=torch.bool)).all()
+            assert flag_good_enough___o.eq(torch.tensor([0,1,1,0,0,0], dtype=torch.bool)).all()
+            #<  remove perfect
+            the_out_container.remove_output_slot(flag_good_enough___o)
+            no_good___flag_perfect___o, no_good___flag_good_enough___o = \
+                    the_out_container.detect_good_output___by_position( \
+                            output_posneg1___b_o = output_posneg1___b_o,output_is_already_posneg1=True,
+                            good_threshold = 0.55)
+            assert no_perfect___flag_perfect___o.    eq(torch.tensor([1,0,0,0], dtype=torch.bool)).all()
+            assert no_perfect___flag_good_enough___o.any() == False# no perfect
+            assert no_perfect___flag_good_enough___o.eq(torch.tensor([0,0,0,0], dtype=torch.bool)).all()
+
+            pass#/ test
+
+
+
+
+
+
+
+
+
         return 
     ____detect_perfect_output___by_position____()
     pass
@@ -853,7 +951,10 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 
 
 
-
+1w
+1w
+1w
+1w测试里面还有没跑通的   878行
 
 
 
@@ -1026,7 +1127,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 #             pass#/ test
 
 #         if "combine of previous 2 tests with the new class" and True:
-#             output_cont = DNN_output_container_2026(torch.tensor([    
+#             output_cont = DNN_label_container_2026(torch.tensor([    
 #                                 [1, 2, 3, 4, 5, ],
 #                                 [0, 0, 0, 0, 0, ],]))
 #             output___b_o = torch.tensor([    
@@ -1042,7 +1143,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 #             assert _tensor_equal(output___b_o[:,0],      output___b_o[:,5])
 
 
-#             output_cont = DNN_output_container_2026(torch.tensor([    
+#             output_cont = DNN_label_container_2026(torch.tensor([    
 #                                 [1, 2, 3, 4, 5, ],
 #                                 [0, 0, 0, 0, 0, ],]))
 #             output___b_o = torch.tensor([    
@@ -1058,7 +1159,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 
 #             batch = 4
 #             #<  data 
-#             output_cont = DNN_output_container_2026(torch.tensor([    
+#             output_cont = DNN_label_container_2026(torch.tensor([    
 #                                 [0, 0, 0, 0, 0, 0, 0, 0, ],
 #                                 [0, 0, 0, 0, 1, 1, 1, 1, ],
 #                                 [0, 0, 1, 1, 0, 0, 1, 1, ],
