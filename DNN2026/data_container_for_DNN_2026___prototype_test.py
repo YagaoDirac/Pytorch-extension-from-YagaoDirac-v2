@@ -472,13 +472,13 @@ class DNN_label_container_2026(torch.nn.Module):
             return
     
     def detect_good_output___by_position(self, output_posneg1___b_o:torch.Tensor, output_is_already_posneg1:bool,
-            good_threshold:torch.Tensor|float, perfect_threshold = 0.999, 
+            good_threshold:torch.Tensor|float, 
             inner_calc_dtype = torch.float32, safety = False  )->tuple[torch.Tensor|torch.Tensor]:
         '''return flag_perfect___o, flag_good_enough___o'''
         #<  safety
         assert output_is_already_posneg1, "还没想好。"
         if safety:
-            assert perfect_threshold > 0.5
+            assert perfect_threshold > 0.5  1w改，必须是彻底的perfect才行
             assert good_threshold > 0.5
             # label_posneg1___b_o is self.data___b_o in class.
             assert _either_1_or_neg1(self.data___b_o)
@@ -491,9 +491,9 @@ class DNN_label_container_2026(torch.nn.Module):
         flag_eq__before_mean___b_o = self.data___b_o.eq(output_posneg1___b_o)
         mean_acc___o = flag_eq__before_mean___b_o.to(inner_calc_dtype).mean(dim=0)
         #<  perfect_threshold
-        flag_perfect___o = mean_acc___o.gt(perfect_threshold)
+        flag_perfect___o = mean_acc___o.ge(perfect_threshold)
         #<  good_threshold
-        flag_good_enough___o = mean_acc___o.gt(good_threshold)
+        flag_good_enough___o = mean_acc___o.ge(good_threshold)
         flag_good_enough___o = flag_good_enough___o.logical_and(flag_perfect___o.logical_not())
 
         return flag_perfect___o, flag_good_enough___o
@@ -661,7 +661,7 @@ if "basic test" and __DEBUG_ME__() and False:
     ____test____DNN_label_container_2026()
     pass
 
-if "detect perfect output         only the by position version" and __DEBUG_ME__() and True:
+if "detect perfect output         only the by position version" and __DEBUG_ME__() and False:
     def ____detect_perfect_output___by_position____():
 
         if "detect good output        by position       also test" and False:
@@ -836,47 +836,39 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 
             pass#/ test
 
-
-
-
-
-
-
-
-
-
-        if "no scan         what if the perfect/good output slots are removed?          measured by the acc(is 0 or not 0)" and True:
+        '''the data used in these 2 (above and below) tests are different.'''
+        if "no scan         what if the perfect/good output slots are removed?" and False:
 
             #<  data
             the_out_container = DNN_label_container_2026(data=torch.tensor([ 
-                    [1,1,1,1,1,1],
-                    [1,1,1,1,1,1],
-                    [1,1,1,1,1,1],
-                    [1,1,1,1,1,1],
-                    [1,1,1,1,1,1.],
-                            ]), data_is_already_posneg1 = True)
-            output_posneg1___b_o = torch.tensor([   
+
                     [1,-1,-1,-1,-1,-1],
                     [1, 1,-1,-1,-1,-1],
                     [1, 1, 1,-1,-1,-1],
                     [1, 1, 1, 1,-1,-1],
                     [1, 1, 1, 1, 1,-1.],
-                            ])
-            assert _either_1_or_neg1(output_posneg1___b_o)
-            assert output_posneg1___b_o.shape == the_out_container.data___b_o.shape
+                            ]), data_is_already_posneg1 = True)
             #<  calc
+            _temp___output_posneg1___b_o = torch.ones_like(the_out_container.get_useful())
+            assert _either_1_or_neg1(_temp___output_posneg1___b_o)
+            assert _temp___output_posneg1___b_o.shape == the_out_container.data___b_o.shape
+
             flag_perfect___o, flag_good_enough___o = \
                     the_out_container.detect_good_output___by_position( \
-                            output_posneg1___b_o = output_posneg1___b_o,output_is_already_posneg1=True,
+                            output_posneg1___b_o = _temp___output_posneg1___b_o, output_is_already_posneg1=True,
                             good_threshold = 0.55)
             #<  assert
             assert flag_perfect___o.    eq(torch.tensor([1,0,0,0,0,0], dtype=torch.bool)).all()
             assert flag_good_enough___o.eq(torch.tensor([0,1,1,0,0,0], dtype=torch.bool)).all()
             #<  remove perfect
             the_out_container.remove_output_slot(flag_perfect___o)
+
+            _temp___output_posneg1___b_o = torch.ones_like(the_out_container.get_useful())
+            assert _either_1_or_neg1(_temp___output_posneg1___b_o)
+            assert _temp___output_posneg1___b_o.shape == the_out_container.data___b_o.shape
             no_perfect___flag_perfect___o, no_perfect___flag_good_enough___o = \
                     the_out_container.detect_good_output___by_position( \
-                            output_posneg1___b_o = output_posneg1___b_o,output_is_already_posneg1=True,
+                            output_posneg1___b_o = _temp___output_posneg1___b_o, output_is_already_posneg1=True,
                             good_threshold = 0.55)
             assert no_perfect___flag_perfect___o.any() == False# no perfect
             assert no_perfect___flag_perfect___o.    eq(torch.tensor([0,0,0,0,0], dtype=torch.bool)).all()
@@ -884,9 +876,13 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 
             #<  remove good
             the_out_container.remove_output_slot(no_perfect___flag_good_enough___o)
+
+            _temp___output_posneg1___b_o = torch.ones_like(the_out_container.get_useful())
+            assert _either_1_or_neg1(_temp___output_posneg1___b_o)
+            assert _temp___output_posneg1___b_o.shape == the_out_container.data___b_o.shape
             no_perfect_no_good___flag_perfect___o, no_perfect_no_good___flag_good_enough___o = \
                     the_out_container.detect_good_output___by_position( \
-                            output_posneg1___b_o = output_posneg1___b_o,output_is_already_posneg1=True,
+                            output_posneg1___b_o = _temp___output_posneg1___b_o, output_is_already_posneg1=True,
                             good_threshold = 0.55)
             assert no_perfect_no_good___flag_perfect___o.any() == False# no perfect
             assert no_perfect_no_good___flag_good_enough___o.any() == False# no perfect
@@ -897,48 +893,299 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 
             #<  data
             the_out_container = DNN_label_container_2026(data=torch.tensor([ 
-                    [1,1,1,1,1,1],
-                    [1,1,1,1,1,1],
-                    [1,1,1,1,1,1],
-                    [1,1,1,1,1,1],
-                    [1,1,1,1,1,1.],
-                            ]), data_is_already_posneg1 = True)
-            output_posneg1___b_o = torch.tensor([   
+
                     [1,-1,-1,-1,-1,-1],
                     [1, 1,-1,-1,-1,-1],
                     [1, 1, 1,-1,-1,-1],
                     [1, 1, 1, 1,-1,-1],
                     [1, 1, 1, 1, 1,-1.],
-                            ])
-            assert _either_1_or_neg1(output_posneg1___b_o)
-            assert output_posneg1___b_o.shape == the_out_container.data___b_o.shape
+                            ]), data_is_already_posneg1 = True)
             #<  calc
+            _temp___output_posneg1___b_o = torch.ones_like(the_out_container.get_useful())
+            assert _either_1_or_neg1(_temp___output_posneg1___b_o)
+            assert _temp___output_posneg1___b_o.shape == the_out_container.data___b_o.shape
+
             flag_perfect___o, flag_good_enough___o = \
                     the_out_container.detect_good_output___by_position( \
-                            output_posneg1___b_o = output_posneg1___b_o,output_is_already_posneg1=True,
+                            output_posneg1___b_o = _temp___output_posneg1___b_o, output_is_already_posneg1=True,
                             good_threshold = 0.55)
             #<  assert
             assert flag_perfect___o.    eq(torch.tensor([1,0,0,0,0,0], dtype=torch.bool)).all()
             assert flag_good_enough___o.eq(torch.tensor([0,1,1,0,0,0], dtype=torch.bool)).all()
-            #<  remove perfect
+            #<  remove good
             the_out_container.remove_output_slot(flag_good_enough___o)
+
+            _temp___output_posneg1___b_o = torch.ones_like(the_out_container.get_useful())
+            assert _either_1_or_neg1(_temp___output_posneg1___b_o)
+            assert _temp___output_posneg1___b_o.shape == the_out_container.data___b_o.shape
             no_good___flag_perfect___o, no_good___flag_good_enough___o = \
                     the_out_container.detect_good_output___by_position( \
-                            output_posneg1___b_o = output_posneg1___b_o,output_is_already_posneg1=True,
+                            output_posneg1___b_o = _temp___output_posneg1___b_o, output_is_already_posneg1=True,
                             good_threshold = 0.55)
-            assert no_perfect___flag_perfect___o.    eq(torch.tensor([1,0,0,0], dtype=torch.bool)).all()
-            assert no_perfect___flag_good_enough___o.any() == False# no perfect
-            assert no_perfect___flag_good_enough___o.eq(torch.tensor([0,0,0,0], dtype=torch.bool)).all()
+            assert no_good___flag_perfect___o.    eq(torch.tensor([1,0,0,0], dtype=torch.bool)).all()
+            assert no_good___flag_good_enough___o.any() == False# no good
+            assert no_good___flag_good_enough___o.eq(torch.tensor([0,0,0,0], dtype=torch.bool)).all()
+
+            pass#/ test
+        if "scan         what if the perfect/good output slots are removed?" and False:
+
+            # dim = 8
+            # good_threshold = 6./8.
+
+            for dim in [5,11,35]:
+                for good_threshold in [0.501, 0.55, 0.6, 0.75, 0.88, 0.95, 0.999]:
+                    '''part 1'''
+                    '''part 1'''
+                    '''part 1'''
+                    #<  data
+                    _temp___ones = torch.ones(size=[dim,dim], dtype=torch.float32)
+                    _temp___triu = torch.ones(size=[dim,dim], dtype=torch.float32).triu(diagonal=1)*-2
+                    _temp___out_data = _temp___ones+_temp___triu
+                    assert _temp___out_data.diag().eq(1.).all()
+                    assert _temp___out_data[0, 1:].eq(-1.).all()
+                    assert _temp___out_data[1:, 0].eq(1.).all()
+
+                    the_out_container = DNN_label_container_2026(data=_temp___out_data, data_is_already_posneg1 = True)
+                    del _temp___out_data
+
+
+                    #<  calc original
+                    _temp___output_posneg1___b_o = torch.ones_like(the_out_container.get_useful())#是不是expand_as要快一些？总共6处
+                    assert _either_1_or_neg1(_temp___output_posneg1___b_o)
+                    assert _temp___output_posneg1___b_o.shape == the_out_container.data___b_o.shape
+
+                    flag_perfect___o, flag_good_enough___o = \
+                            the_out_container.detect_good_output___by_position( \
+                                    output_posneg1___b_o = _temp___output_posneg1___b_o, output_is_already_posneg1=True,
+                                    good_threshold = good_threshold)
+                    #<  assert
+                    _temp___until_this_index = int(dim*(1.-good_threshold))
+                    # flag_perfect___o is        1 0000000000000000000
+                    assert flag_perfect___o[0] == True
+                    assert flag_perfect___o[1:].any() == False
+                    # flag_good_enough___o is    0 1111111 000000000000
+                    assert flag_good_enough___o[0] == False
+                    assert flag_good_enough___o[1:_temp___until_this_index+1].all()
+                    assert flag_good_enough___o[ _temp___until_this_index+1:].any() == False
+
+                    assert flag_perfect___o.nelement() == \
+                            flag_good_enough___o.nelement()
+                    
+                    del _temp___until_this_index
+
+
+                    #<  remove perfect
+                    the_out_container.remove_output_slot(flag_perfect___o)
+                    del flag_perfect___o, flag_good_enough___o
+
+                    _temp___output_posneg1___b_o = torch.ones_like(the_out_container.get_useful())
+                    assert _either_1_or_neg1(_temp___output_posneg1___b_o)
+                    assert _temp___output_posneg1___b_o.shape == the_out_container.data___b_o.shape
+                    no_perfect___flag_perfect___o, no_perfect___flag_good_enough___o = \
+                            the_out_container.detect_good_output___by_position( \
+                                    output_posneg1___b_o = _temp___output_posneg1___b_o, output_is_already_posneg1=True,
+                                    good_threshold = good_threshold)
+                    #<  assert
+                    _temp___until_this_index = int(dim*(1.-good_threshold))
+                    # flag_perfect___o is        0000000000000000000
+                    assert no_perfect___flag_perfect___o.nelement() == dim-1
+                    assert no_perfect___flag_perfect___o.any() == False
+                    # flag_good_enough___o is    1111111 000000000000
+                    assert no_perfect___flag_good_enough___o[:_temp___until_this_index].all()
+                    assert no_perfect___flag_good_enough___o[_temp___until_this_index:].any() == False
+                    assert no_perfect___flag_good_enough___o.nelement() == dim-1
+
+                    assert no_perfect___flag_perfect___o.nelement() == \
+                            no_perfect___flag_good_enough___o.nelement()
+                    
+                    del _temp___until_this_index
+
+
+                    #<  remove good         after removing perfect
+                    the_out_container.remove_output_slot(no_perfect___flag_good_enough___o)
+                    del no_perfect___flag_perfect___o, no_perfect___flag_good_enough___o
+
+                    _temp___output_posneg1___b_o = torch.ones_like(the_out_container.get_useful())
+                    assert _either_1_or_neg1(_temp___output_posneg1___b_o)
+                    assert _temp___output_posneg1___b_o.shape == the_out_container.data___b_o.shape
+                    no_perfect_no_good___flag_perfect___o, no_perfect_no_good___flag_good_enough___o = \
+                            the_out_container.detect_good_output___by_position( \
+                                    output_posneg1___b_o = _temp___output_posneg1___b_o, output_is_already_posneg1=True,
+                                    good_threshold = good_threshold)
+                    #<  assert
+                    _temp___until_this_index = int(dim*(1.-good_threshold))
+                    # no_perfect_no_good___flag_perfect___o is               000000000000
+                    assert no_perfect_no_good___flag_perfect___o.any() == False
+                    assert no_perfect_no_good___flag_perfect___o.nelement() == dim-_temp___until_this_index-1
+                    # no_perfect_no_good___flag_good_enough___o is           000000000000
+                    assert no_perfect_no_good___flag_good_enough___o.any() == False
+                    assert no_perfect_no_good___flag_good_enough___o.nelement() == dim-_temp___until_this_index-1
+
+                    assert no_perfect_no_good___flag_perfect___o.eq(no_perfect_no_good___flag_good_enough___o).all()
+
+                    assert no_perfect_no_good___flag_perfect___o.nelement() == \
+                            no_perfect_no_good___flag_good_enough___o.nelement()
+
+                    del _temp___until_this_index
+                    del no_perfect_no_good___flag_perfect___o, no_perfect_no_good___flag_good_enough___o
+
+
+
+                    '''part 2'''
+                    '''part 2'''
+                    '''part 2'''
+                    #<  data
+                    _temp___ones = torch.ones(size=[dim,dim], dtype=torch.float32)
+                    _temp___triu = torch.ones(size=[dim,dim], dtype=torch.float32).triu(diagonal=1)*-2
+                    _temp___out_data = _temp___ones+_temp___triu
+                    assert _temp___out_data.diag().eq(1.).all()
+                    assert _temp___out_data[0, 1:].eq(-1.).all()
+                    assert _temp___out_data[1:, 0].eq(1.).all()
+
+                    the_out_container = DNN_label_container_2026(data=_temp___out_data, data_is_already_posneg1 = True)
+                    del _temp___out_data
+
+
+                    #<  calc original
+                    _temp___output_posneg1___b_o = torch.ones_like(the_out_container.get_useful())
+                    assert _either_1_or_neg1(_temp___output_posneg1___b_o)
+                    assert _temp___output_posneg1___b_o.shape == the_out_container.data___b_o.shape
+
+                    flag_perfect___o, flag_good_enough___o = \
+                            the_out_container.detect_good_output___by_position( \
+                                    output_posneg1___b_o = _temp___output_posneg1___b_o, output_is_already_posneg1=True,
+                                    good_threshold = good_threshold)
+                    #<  assert   和上面的一样
+                    _temp___until_this_index = int(dim*(1.-good_threshold))
+                    # flag_perfect___o is        1 0000000000000000000
+                    assert flag_perfect___o[0] == True
+                    assert flag_perfect___o[1:].any() == False
+                    # flag_good_enough___o is    0 1111111 000000000000
+                    assert flag_good_enough___o[0] == False
+                    assert flag_good_enough___o[1:_temp___until_this_index+1].all()
+                    assert flag_good_enough___o[ _temp___until_this_index+1:].any() == False
+
+                    assert flag_perfect___o.nelement() == \
+                            flag_good_enough___o.nelement()
+                    
+                    del _temp___until_this_index
+
+
+                    #<  remove good
+                    the_out_container.remove_output_slot(flag_good_enough___o)
+                    del flag_perfect___o, flag_good_enough___o
+
+                    _temp___output_posneg1___b_o = torch.ones_like(the_out_container.get_useful())
+                    assert _either_1_or_neg1(_temp___output_posneg1___b_o)
+                    assert _temp___output_posneg1___b_o.shape == the_out_container.data___b_o.shape
+                    no_good___flag_perfect___o, no_good___flag_good_enough___o = \
+                            the_out_container.detect_good_output___by_position( \
+                                    output_posneg1___b_o = _temp___output_posneg1___b_o, output_is_already_posneg1=True,
+                                    good_threshold = good_threshold)
+                    #<  assert
+                    # flag_perfect___o is        1 0000000000000000000
+                    _temp___until_this_index = int(dim*(1.-good_threshold))
+                    assert no_good___flag_perfect___o.nelement() == dim-_temp___until_this_index
+                    assert no_good___flag_perfect___o[0] == True
+                    assert no_good___flag_perfect___o[1:].any() == False
+                    # flag_good_enough___o is    00000000000000000000
+                    assert no_good___flag_good_enough___o.nelement() == dim-_temp___until_this_index
+                    assert no_good___flag_good_enough___o.any() == False
+
+                    assert no_good___flag_perfect___o.nelement() == \
+                            no_good___flag_good_enough___o.nelement()
+                    
+                    del _temp___until_this_index
+
+
+                    #<  remove perfect         after removing good
+                    the_out_container.remove_output_slot(no_good___flag_perfect___o)
+                    del no_good___flag_perfect___o, no_good___flag_good_enough___o
+
+                    _temp___output_posneg1___b_o = torch.ones_like(the_out_container.get_useful())
+                    assert _either_1_or_neg1(_temp___output_posneg1___b_o)
+                    assert _temp___output_posneg1___b_o.shape == the_out_container.data___b_o.shape
+                    no_perfect_no_good___flag_perfect___o, no_perfect_no_good___flag_good_enough___o = \
+                            the_out_container.detect_good_output___by_position( \
+                                    output_posneg1___b_o = _temp___output_posneg1___b_o, output_is_already_posneg1=True,
+                                    good_threshold = good_threshold)
+                    #<  assert   和上面的又一样了。
+                    _temp___until_this_index = int(dim*(1.-good_threshold))
+                    # no_perfect_no_good___flag_perfect___o is               000000000000
+                    assert no_perfect_no_good___flag_perfect___o.any() == False
+                    assert no_perfect_no_good___flag_perfect___o.nelement() == dim-_temp___until_this_index-1
+                    # no_perfect_no_good___flag_good_enough___o is           000000000000
+                    assert no_perfect_no_good___flag_good_enough___o.any() == False
+                    assert no_perfect_no_good___flag_good_enough___o.nelement() == dim-_temp___until_this_index-1
+
+                    assert no_perfect_no_good___flag_perfect___o.eq(no_perfect_no_good___flag_good_enough___o).all()
+
+                    assert no_perfect_no_good___flag_perfect___o.nelement() == \
+                            no_perfect_no_good___flag_good_enough___o.nelement()
+
+                    del _temp___until_this_index
+                    del no_perfect_no_good___flag_perfect___o, no_perfect_no_good___flag_good_enough___o
+
+                    pass#for good_threshold
+                pass#for dim
 
             pass#/ test
 
+        import random
+        if "shuffle before or after?" and True:
+            '''注意一下，两个路径的维度有一点区别。函数的输入是b o，输出是o。'''
+            for batch in [5,11,35]:
+                for out_dim in [9,16,24,36]:
+                    for good_threshold in [0.51, 0.6, 0.77, 0.92 ]:
+
+                        #<  data
+                        label_posneg1___b_o = rand_sign(size=[batch, out_dim])
+                        assert _either_1_or_neg1(label_posneg1___b_o)
+                        output_posneg1___b_o = rand_sign(size=[batch, out_dim])
+
+                        iota_of_out___py_list = iota(out_dim).tolist()
+                        random.shuffle(iota_of_out___py_list)
+                        random.shuffle(iota_of_out___py_list)
+                        random.shuffle(iota_of_out___py_list)
+                        answer__shuffled_index___o = torch.tensor(iota_of_out___py_list)
+
+                        #<  shuffle before
+                        label_posneg1___shuffle_before___b_o = label_posneg1___b_o[:, answer__shuffled_index___o]
+                        assert _tensor_shape_check(label_posneg1___shuffle_before___b_o, batch, out_dim)
+                        assert _either_1_or_neg1(label_posneg1___shuffle_before___b_o)
+                        the_out_container___shuffle_before = DNN_label_container_2026( \
+                                data=label_posneg1___shuffle_before___b_o, data_is_already_posneg1 = True)
+
+                        output_posneg1___shuffle_before___b_o = output_posneg1___b_o[:, answer__shuffled_index___o]
+                        assert _tensor_shape_check(output_posneg1___shuffle_before___b_o, batch, out_dim)
+                        assert _either_1_or_neg1(output_posneg1___shuffle_before___b_o)
+
+                        flag_perfect___shuffle_before___o, flag_good_enough___shuffle_before___o = \
+                                the_out_container___shuffle_before.detect_good_output___by_position( \
+                                        output_posneg1___b_o = output_posneg1___shuffle_before___b_o, output_is_already_posneg1=True,
+                                        good_threshold = good_threshold)
 
 
+                        #<  shuffle after
+                        the_out_container___shuffle_after = DNN_label_container_2026( \
+                                            data=label_posneg1___b_o, data_is_already_posneg1 = True)
+                        flag_perfect___o, flag_good_enough___o = \
+                                the_out_container___shuffle_after.detect_good_output___by_position( \
+                                        output_posneg1___b_o = output_posneg1___b_o, output_is_already_posneg1=True,
+                                        good_threshold = good_threshold)
 
+                        flag_perfect___shuffle_after___o = flag_perfect___o[answer__shuffled_index___o]
+                        flag_good_enough___shuffle_after___o = flag_good_enough___o[answer__shuffled_index___o]
 
+                        #<  assert
+                        assert flag_perfect___shuffle_before___o.eq(flag_perfect___shuffle_after___o).all()
+                        assert flag_good_enough___shuffle_before___o.eq(flag_good_enough___shuffle_after___o).all()
 
+                        pass#for good_threshold
+                    pass#for out_dim
+                pass#for batch
 
-
+            pass#/ test
 
         return 
     ____detect_perfect_output___by_position____()
@@ -951,10 +1198,13 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 
 
 
-1w
-1w
-1w
-1w测试里面还有没跑通的   878行
+
+
+
+
+
+
+
 
 
 

@@ -219,7 +219,7 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
 if "test" and __DEBUG_ME__() and False:
     def ____basic_behavior____dry_stack_test__DNN_model__2026():
 
-        if "shape scan" and True:
+        if "shape scan" and False:
             for in_dim in [3,11,18]:
                 for out_dim in [5,17,31]:
                     if in_dim<= out_dim:
@@ -227,13 +227,16 @@ if "test" and __DEBUG_ME__() and False:
 
                     for batch in [2,9,17]:
                         for layer_count in [4,14,29]:
+                            for _ in range(14):
 
-                            the_model = dry_stack_test__DNN_model__2026(in_features = in_dim, 
-                                        out_features = out_dim, layer_count = layer_count)
-                            assert the_model._layers.__len__() == layer_count
-                            input___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)
-                            output___b_o = the_model(input___b_i)
-                            assert _tensor_shape_check(output___b_o, batch, out_dim)
+
+                                the_model = dry_stack_test__DNN_model__2026(in_features = in_dim, 
+                                            out_features = out_dim, layer_count = layer_count)
+                                assert the_model._layers.__len__() == layer_count
+                                input___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)
+                                output___b_o = the_model(input___b_i)
+                                assert _tensor_shape_check(output___b_o, batch, out_dim)
+                                pass#for _
                             pass#for layer_count
                         pass#for batch
                     pass#for out_dim
@@ -249,25 +252,28 @@ if "test" and __DEBUG_ME__() and False:
                     for batch in [2,9,17]:
                         for layer_count in [4,14,29]:
                             for extra__input_dim in [7,33,41]:
-                                #<  ori model
-                                the_model = dry_stack_test__DNN_model__2026(in_features = ori___in_dim, 
-                                            out_features = out_dim, layer_count = layer_count)
-                                assert the_model._layers.__len__() == layer_count
-                                ori___input___b_i = rand_sign(size=[batch, ori___in_dim], dtype=torch.float32)
-                                output___b_o = the_model(ori___input___b_i)
-                                assert _tensor_shape_check(output___b_o, batch, out_dim)
-                                #<  modify the shape
-                                the_model.add_input_slot(how_many_new_input=extra__input_dim)
-                                new___input___b_i = rand_sign(size=[batch, ori___in_dim+extra__input_dim], dtype=torch.float32)
-                                output___b_o = the_model(new___input___b_i)
-                                assert _tensor_shape_check(output___b_o, batch, out_dim)
+                                for _ in range(14):
+                                    
+                                    #<  ori model
+                                    the_model = dry_stack_test__DNN_model__2026(in_features = ori___in_dim, 
+                                                out_features = out_dim, layer_count = layer_count)
+                                    assert the_model._layers.__len__() == layer_count
+                                    ori___input___b_i = rand_sign(size=[batch, ori___in_dim], dtype=torch.float32)
+                                    output___b_o = the_model(ori___input___b_i)
+                                    assert _tensor_shape_check(output___b_o, batch, out_dim)
+                                    #<  modify the shape
+                                    the_model.add_input_slot(how_many_new_input=extra__input_dim)
+                                    new___input___b_i = rand_sign(size=[batch, ori___in_dim+extra__input_dim], dtype=torch.float32)
+                                    output___b_o = the_model(new___input___b_i)
+                                    assert _tensor_shape_check(output___b_o, batch, out_dim)
+                                pass#for _
                             pass#for layer_count
                         pass#for batch
                     pass#for out_dim
                 pass#for in_dim
             pass#/ test
 
-        if "keep/remove output_slot" and True:
+        if "keep/remove output_slot" and False:
             for in_dim in [3,11,18]:
                 for ori___out_dim in [5,17,31]:
                     if in_dim<= ori___out_dim:
@@ -275,21 +281,24 @@ if "test" and __DEBUG_ME__() and False:
 
                     for batch in [2,9,17]:
                         for layer_count in [4,14,29]:
-                            #<  answer
-                            flag__keep_these = torch.rand(size=[ori___out_dim]).gt(0.5)
-                            assert flag__keep_these.dtype == torch.bool
-                            new___out_dim = int(flag__keep_these.to(torch.int32).sum().item())
-                            #<  ori model
-                            the_model = dry_stack_test__DNN_model__2026(in_features = in_dim, 
-                                        out_features = ori___out_dim, layer_count = layer_count)
-                            assert the_model._layers.__len__() == layer_count
-                            input___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)
-                            ori___output___b_o = the_model(input___b_i.detach().clone())
-                            assert _tensor_shape_check(ori___output___b_o, batch, ori___out_dim)
-                            #<  modify the shape
-                            the_model.keep_output_slot(flag__keep_these)
-                            new___output___b_o = the_model(input___b_i.detach().clone())
-                            assert _tensor_shape_check(new___output___b_o, batch, new___out_dim)
+                            for _ in range(14):
+                                
+                                #<  answer
+                                flag__keep_these = torch.rand(size=[ori___out_dim]).gt(0.5)
+                                assert flag__keep_these.dtype == torch.bool
+                                new___out_dim = int(flag__keep_these.to(torch.int32).sum().item())
+                                #<  ori model
+                                the_model = dry_stack_test__DNN_model__2026(in_features = in_dim, 
+                                            out_features = ori___out_dim, layer_count = layer_count)
+                                assert the_model._layers.__len__() == layer_count
+                                input___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)
+                                ori___output___b_o = the_model(input___b_i.detach().clone())
+                                assert _tensor_shape_check(ori___output___b_o, batch, ori___out_dim)
+                                #<  modify the shape
+                                the_model.keep_output_slot(flag__keep_these)
+                                new___output___b_o = the_model(input___b_i.detach().clone())
+                                assert _tensor_shape_check(new___output___b_o, batch, new___out_dim)
+                                pass#for _
                             pass#for layer_count
                         pass#for batch
                     pass#for out_dim
@@ -303,7 +312,7 @@ if "test" and __DEBUG_ME__() and False:
 if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
     def ____basic_behavior_of_dry_stack_test____():
 
-        if "layer and 1 layer model equivalence               no in_cont    no out_cont" and True:
+        if "layer and 1 layer model equivalence               no in_cont    no out_cont" and False:
             for batch in [2,11,25]:
                 for in_dim in [3,15,31,66]:
                     for out_dim in [5, 19, 37]:
@@ -311,73 +320,74 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                             continue
 
                         for learning_rate___s in [0.01, 0.123, 0.321]:
+                            for _ in range(14):
 
-                            #<  dataset
-                            _model_param = torch.empty([])#a temp store. To make two model params the same.
-                            input___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)#or fp16
-                            assert _either_1_or_neg1(input___b_i)
-                            label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = out_dim,
-                                    random_ratio = 0., input_is_already_posneg1 = True)
-                            assert _either_1_or_neg1(label___b_o)
-                            #<  layer      infra
-                            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
-                            _model_param = the_layer.get_useful_part_of_raw_weight().detach().clone()
-                            optim_for_layer = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], 
-                                                                                learning_rate___s = learning_rate___s)
-                            optim_for_layer.zero_grad()
-                            #<  layer before
-                            layer__before__output___b_o:torch.Tensor = the_layer(input___b_i)
-                            #<  layer backward
-                            the_parameters_list = []
-                            the_parameters_list.extend(the_layer.parameters())
-                            layer__before__output___b_o.backward(gradient=label___b_o.detach().clone(), inputs=the_parameters_list)
-                            del the_parameters_list
-                            optim_for_layer.step()
-                            #<  layer after
-                            layer__after__output___b_o:torch.Tensor = the_layer(input___b_i)
+                                #<  dataset
+                                _model_param = torch.empty([])#a temp store. To make two model params the same.
+                                input___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)#or fp16
+                                assert _either_1_or_neg1(input___b_i)
+                                label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = out_dim,
+                                        random_ratio = 0., input_is_already_posneg1 = True)
+                                assert _either_1_or_neg1(label___b_o)
+                                #<  layer      infra
+                                the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+                                _model_param = the_layer.get_useful_part_of_raw_weight().detach().clone()
+                                optim_for_layer = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], 
+                                                                                    learning_rate___s = learning_rate___s)
+                                optim_for_layer.zero_grad()
+                                #<  layer before
+                                layer__before__output___b_o:torch.Tensor = the_layer(input___b_i)
+                                #<  layer backward
+                                the_parameters_list = []
+                                the_parameters_list.extend(the_layer.parameters())
+                                layer__before__output___b_o.backward(gradient=label___b_o.detach().clone(), inputs=the_parameters_list)
+                                del the_parameters_list
+                                optim_for_layer.step()
+                                #<  layer after
+                                layer__after__output___b_o:torch.Tensor = the_layer(input___b_i)
 
 
-                            #<  model      infra
-                            the_model = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=1)
-                            #to make the inner model param the same as the previous test.
-                            the_only_layer_in_model = the_model._layers[0]
-                            assert isinstance(the_only_layer_in_model, DigitalMapping_layer__2026)
-                            with torch.no_grad():
-                                the_only_layer_in_model._raw_weight___oCAP_iCAP[:out_dim, :in_dim] = _model_param
-                                pass
-                            del _model_param
+                                #<  model      infra
+                                the_model = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=1)
+                                #to make the inner model param the same as the previous test.
+                                the_only_layer_in_model = the_model._layers[0]
+                                assert isinstance(the_only_layer_in_model, DigitalMapping_layer__2026)
+                                with torch.no_grad():
+                                    the_only_layer_in_model._raw_weight___oCAP_iCAP[:out_dim, :in_dim] = _model_param
+                                    pass
+                                del _model_param
 
-                            assert the_model._layers.__len__() == 1
-                            the_model._layers[0]
+                                assert the_model._layers.__len__() == 1
+                                the_model._layers[0]
 
-                            #optim
-                            optim_for_model = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=the_model.parameters(for_optim=True), 
-                                                                                learning_rate___s = learning_rate___s)
-                            optim_for_model.zero_grad()
-                            #<  model before
-                            model__before__output___b_o:torch.Tensor = the_model(input___b_i)
-                            #<  model backward
-                            the_parameters_list = []
-                            the_parameters_list.extend(the_model.parameters(for_backward=True))
-                            model__before__output___b_o.backward(gradient=label___b_o.detach().clone(), inputs=the_parameters_list)
-                            del the_parameters_list
-                            optim_for_model.step()
-                            #<  model after
-                            model__after__output___b_o:torch.Tensor = the_model(input___b_i)
-                            
-                            #<  assert
-                            
-                            assert _tensor_equal(the_layer.get_useful_part_of_raw_weight(), the_only_layer_in_model.get_useful_part_of_raw_weight())
-                            assert _tensor_equal(layer__before__output___b_o, model__before__output___b_o)
-                            assert _tensor_equal(layer__after__output___b_o,  model__after__output___b_o)
-
+                                #optim
+                                optim_for_model = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=the_model.parameters(for_optim=True), 
+                                                                                    learning_rate___s = learning_rate___s)
+                                optim_for_model.zero_grad()
+                                #<  model before
+                                model__before__output___b_o:torch.Tensor = the_model(input___b_i)
+                                #<  model backward
+                                the_parameters_list = []
+                                the_parameters_list.extend(the_model.parameters(for_backward=True))
+                                model__before__output___b_o.backward(gradient=label___b_o.detach().clone(), inputs=the_parameters_list)
+                                del the_parameters_list
+                                optim_for_model.step()
+                                #<  model after
+                                model__after__output___b_o:torch.Tensor = the_model(input___b_i)
+                                
+                                #<  assert
+                                
+                                assert _tensor_equal(the_layer.get_useful_part_of_raw_weight(), the_only_layer_in_model.get_useful_part_of_raw_weight())
+                                assert _tensor_equal(layer__before__output___b_o, model__before__output___b_o)
+                                assert _tensor_equal(layer__after__output___b_o,  model__after__output___b_o)
+                                pass#for _
                             pass#for learning_rate___s
                         pass#for out_dim7
                     pass#for in_dim
                 pass#for batch
             pass#/ test
 
-        if "layer and 1 layer model equivalence               with in_cont    with out_cont" and True:
+        if "layer and 1 layer model equivalence               with in_cont    with out_cont" and False:
             for batch in [2,11,25]:
                 for in_dim in [3,15,31,66]:
                     for out_dim in [5, 19, 37]:
@@ -385,80 +395,230 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                             continue
 
                         for learning_rate___s in [0.01, 0.123, 0.321]:
+                            for _ in range(14):
+                                #<  dataset
+                                _model_param = torch.empty([])#a temp store. To make two model params the same.
+                                input___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)#or fp16
+                                assert _either_1_or_neg1(input___b_i)
+                                label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = out_dim,
+                                        random_ratio = 0., input_is_already_posneg1 = True)
+                                assert _either_1_or_neg1(label___b_o)
+                                #<  layer      infra
+                                the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+                                _model_param = the_layer.get_useful_part_of_raw_weight().detach().clone()
+                                optim_for_layer = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], 
+                                                                                    learning_rate___s = learning_rate___s)
+                                optim_for_layer.zero_grad()
+                                #<  layer before
+                                layer__before__output___b_o:torch.Tensor = the_layer(input___b_i)
+                                #<  layer backward
+                                the_parameters_list = []
+                                the_parameters_list.extend(the_layer.parameters())
+                                layer__before__output___b_o.backward(gradient=label___b_o.detach().clone(), inputs=the_parameters_list)
+                                del the_parameters_list
+                                optim_for_layer.step()
+                                #<  layer after
+                                layer__after__output___b_o:torch.Tensor = the_layer(input___b_i)
 
-                            #<  dataset
-                            _model_param = torch.empty([])#a temp store. To make two model params the same.
-                            input___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)#or fp16
-                            assert _either_1_or_neg1(input___b_i)
-                            label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = out_dim,
-                                    random_ratio = 0., input_is_already_posneg1 = True)
-                            assert _either_1_or_neg1(label___b_o)
-                            #<  layer      infra
-                            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
-                            _model_param = the_layer.get_useful_part_of_raw_weight().detach().clone()
-                            optim_for_layer = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], 
-                                                                                learning_rate___s = learning_rate___s)
-                            optim_for_layer.zero_grad()
-                            #<  layer before
-                            layer__before__output___b_o:torch.Tensor = the_layer(input___b_i)
-                            #<  layer backward
-                            the_parameters_list = []
-                            the_parameters_list.extend(the_layer.parameters())
-                            layer__before__output___b_o.backward(gradient=label___b_o.detach().clone(), inputs=the_parameters_list)
-                            del the_parameters_list
-                            optim_for_layer.step()
-                            #<  layer after
-                            layer__after__output___b_o:torch.Tensor = the_layer(input___b_i)
 
+                                #<  data but in containers
+                                in_cont = DNN_input_container_2026(batch=batch)
+                                in_cont.extend(input___b_i.detach().clone())
+                                label_cont = DNN_label_container_2026(data=label___b_o, data_is_already_posneg1=True)
+                                #<  model      infra
+                                the_model = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=1)
+                                #to make the inner model param the same as the previous test.
+                                the_only_layer_in_model = the_model._layers[0]
+                                assert isinstance(the_only_layer_in_model, DigitalMapping_layer__2026)
+                                with torch.no_grad():
+                                    the_only_layer_in_model._raw_weight___oCAP_iCAP[:out_dim, :in_dim] = _model_param
+                                    pass
+                                del _model_param
 
-                            #<  data but in containers
-                            in_cont = DNN_input_container_2026(batch=batch)
-                            in_cont.extend(input___b_i.detach().clone())
-                            label_cont = DNN_label_container_2026(data=label___b_o, data_is_already_posneg1=True)
-                            #<  model      infra
-                            the_model = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=1)
-                            #to make the inner model param the same as the previous test.
-                            the_only_layer_in_model = the_model._layers[0]
-                            assert isinstance(the_only_layer_in_model, DigitalMapping_layer__2026)
-                            with torch.no_grad():
-                                the_only_layer_in_model._raw_weight___oCAP_iCAP[:out_dim, :in_dim] = _model_param
-                                pass
-                            del _model_param
+                                assert the_model._layers.__len__() == 1
+                                the_model._layers[0]
 
-                            assert the_model._layers.__len__() == 1
-                            the_model._layers[0]
+                                #optim
+                                optim_for_model = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=the_model.parameters(for_optim=True), 
+                                                                                    learning_rate___s = learning_rate___s)
+                                optim_for_model.zero_grad()
+                                #<  model before
+                                model__before__output___b_o:torch.Tensor = the_model(in_cont.get_useful())
+                                #<  model backward
+                                the_parameters_list = []
+                                the_parameters_list.extend(the_model.parameters(for_backward=True))
+                                model__before__output___b_o.backward(gradient=label_cont.get_useful(), inputs=the_parameters_list)
+                                del the_parameters_list
+                                optim_for_model.step()
+                                #<  model after
+                                model__after__output___b_o:torch.Tensor = the_model(input___b_i)
+                                
+                                #<  assert
+                                
+                                assert _tensor_equal(the_layer.get_useful_part_of_raw_weight(), the_only_layer_in_model.get_useful_part_of_raw_weight())
+                                assert _tensor_equal(layer__before__output___b_o, model__before__output___b_o)
+                                assert _tensor_equal(layer__after__output___b_o,  model__after__output___b_o)
 
-                            #optim
-                            optim_for_model = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=the_model.parameters(for_optim=True), 
-                                                                                learning_rate___s = learning_rate___s)
-                            optim_for_model.zero_grad()
-                            #<  model before
-                            model__before__output___b_o:torch.Tensor = the_model(in_cont.get_useful())
-                            #<  model backward
-                            the_parameters_list = []
-                            the_parameters_list.extend(the_model.parameters(for_backward=True))
-                            model__before__output___b_o.backward(gradient=label_cont.get_useful(), inputs=the_parameters_list)
-                            del the_parameters_list
-                            optim_for_model.step()
-                            #<  model after
-                            model__after__output___b_o:torch.Tensor = the_model(input___b_i)
-                            
-                            #<  assert
-                            
-                            assert _tensor_equal(the_layer.get_useful_part_of_raw_weight(), the_only_layer_in_model.get_useful_part_of_raw_weight())
-                            assert _tensor_equal(layer__before__output___b_o, model__before__output___b_o)
-                            assert _tensor_equal(layer__after__output___b_o,  model__after__output___b_o)
-
+                                pass#for _
                             pass#for learning_rate___s
                         pass#for out_dim7
                     pass#for in_dim
+                pass#for batch
+            pass#/ test
+
+        if "layer and 2 layer model equivalence               with in_cont    with out_cont" and False:
+            for batch in [2,11,25]:
+                for dim_0 in [11,33,64,97,135,167]:
+                    for dim_2 in [3,15,31,66,88]:
+                        if dim_0<=dim_2:
+                            continue
+                        for learning_rate___s in [0.01, 0.123, 0.321]:
+                            for _ in range(16):
+
+                                #<  dataset
+                                _model_param_0 = torch.empty([])#a temp store. To make two model params the same.
+                                _model_param_1 = torch.empty([])#a temp store. To make two model params the same.
+                                input___b_i = rand_sign(size=[batch, dim_0], dtype=torch.float32)#or fp16
+                                assert _either_1_or_neg1(input___b_i)
+                                label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = dim_2,
+                                        random_ratio = 0., input_is_already_posneg1 = True)
+                                assert _either_1_or_neg1(label___b_o)
+
+                                #<  data but in containers
+                                in_cont = DNN_input_container_2026(batch=batch)
+                                in_cont.extend(input___b_i.detach().clone())
+                                label_cont = DNN_label_container_2026(data=label___b_o, data_is_already_posneg1=True)
+                                #<  model      infra
+                                the_model = dry_stack_test__DNN_model__2026(in_features=dim_0, out_features=dim_2, layer_count=2)
+
+                                #to make the inner model param the same as the previous test.
+                                _temp___layer_in_model_0 = the_model._layers[0]
+                                assert isinstance(_temp___layer_in_model_0, DigitalMapping_layer__2026)
+                                _model_param_0 = _temp___layer_in_model_0.get_useful_part_of_raw_weight().detach().clone()
+                                dim_1 = _model_param_0.shape[0]
+                                assert dim_0>=dim_1 
+                                assert dim_1>=dim_2
+                                _temp___layer_in_model_1 = the_model._layers[1]
+                                assert isinstance(_temp___layer_in_model_1, DigitalMapping_layer__2026)
+                                _model_param_1 = _temp___layer_in_model_1.get_useful_part_of_raw_weight().detach().clone()
+
+
+                                #optim
+                                optim_for_model = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=the_model.parameters(for_optim=True), 
+                                                                                    learning_rate___s = learning_rate___s)
+                                optim_for_model.zero_grad()
+                                #<  model before
+                                model__before__output___b_o:torch.Tensor = the_model(in_cont.get_useful())
+                                #<  model backward
+                                the_parameters_list = []
+                                the_parameters_list.extend(the_model.parameters(for_backward=True))
+                                model__before__output___b_o.backward(gradient=label_cont.get_useful(), inputs=the_parameters_list)
+                                del the_parameters_list
+                                optim_for_model.step()
+                                #<  model after
+                                model__after__output___b_o:torch.Tensor = the_model(input___b_i)
+                                
+
+
+                                #<  layer      infra
+                                the_layer_0 = DigitalMapping_layer__2026(in_features=dim_0, out_features=dim_1)
+                                the_layer_1 = DigitalMapping_layer__2026(in_features=dim_1, out_features=dim_2)
+                                the_layer_0.set_useful_part_of_raw_weight(input=_model_param_0.detach().clone())
+                                the_layer_1.set_useful_part_of_raw_weight(input=_model_param_1.detach().clone())
+
+                                optim_for_layer = optim_for___DigitalMapping_layer__2026(
+                                        DigitalMapping_layers=[the_layer_0, the_layer_1], learning_rate___s = learning_rate___s)
+                                optim_for_layer.zero_grad()
+                                #<  layer before
+                                x:torch.Tensor = the_layer_0(input___b_i)
+                                layer__before__output___b_o:torch.Tensor = the_layer_1(x)
+                                #<  layer backward
+                                the_parameters_list = []
+                                the_parameters_list.extend(the_layer_0.parameters())
+                                the_parameters_list.extend(the_layer_1.parameters())
+                                layer__before__output___b_o.backward(gradient=label___b_o.detach().clone(), inputs=the_parameters_list)
+                                del the_parameters_list
+                                optim_for_layer.step()
+                                #<  layer after
+                                x = the_layer_0(input___b_i)
+                                layer__after__output___b_o:torch.Tensor = the_layer_1(x)
+
+
+                                #<  assert
+                                assert _tensor_equal(the_layer_0.get_useful_part_of_raw_weight(), _temp___layer_in_model_0.get_useful_part_of_raw_weight())
+                                assert _tensor_equal(the_layer_1.get_useful_part_of_raw_weight(), _temp___layer_in_model_1.get_useful_part_of_raw_weight())
+                                assert _tensor_equal(layer__before__output___b_o, model__before__output___b_o)
+                                assert _tensor_equal(layer__after__output___b_o,  model__after__output___b_o)
+
+                                pass#for _
+                            pass#for learning_rate___s
+                        pass#for dim_2
+                    pass#for dim_0
+                pass#for batch
+            pass#/ test
+
+
+
+
+
+
+
+        1w 总之就是让某些输出槽位比较完美或者比较好，剔除，然后看看剩下的是不是都很烂。
+        if "remove some output slot" and True:
+            for batch in [2,11,25]:
+                for dim_0 in [11,33,64,97,135,167]:
+                    for dim_2 in [3,15,31,66,88]:
+                        if dim_0<=dim_2:
+                            continue
+                        for learning_rate___s in [0.01, 0.123, 0.321]:
+                            for _ in range(16):
+
+                                #<  dataset
+                                input___b_i = rand_sign(size=[batch, dim_0], dtype=torch.float32)#or fp16
+                                assert _either_1_or_neg1(input___b_i)
+                                label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = dim_2,
+                                        random_ratio = 0., input_is_already_posneg1 = True)
+                                assert _either_1_or_neg1(label___b_o)
+
+                                #<  data but in containers
+                                in_cont = DNN_input_container_2026(batch=batch)
+                                in_cont.extend(input___b_i.detach().clone())
+                                label_cont = DNN_label_container_2026(data=label___b_o, data_is_already_posneg1=True)
+                                #<  model      infra
+                                the_model = dry_stack_test__DNN_model__2026(in_features=dim_0, out_features=dim_2, layer_count=2)
+
+                                #optim
+                                optim_for_model = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=the_model.parameters(for_optim=True), 
+                                                                                    learning_rate___s = learning_rate___s)
+                                optim_for_model.zero_grad()
+                                #<  model before
+                                model__before__output___b_o:torch.Tensor = the_model(in_cont.get_useful())
+                                #<  model backward
+                                the_parameters_list = []
+                                the_parameters_list.extend(the_model.parameters(for_backward=True))
+                                model__before__output___b_o.backward(gradient=label_cont.get_useful(), inputs=the_parameters_list)
+                                del the_parameters_list
+                                optim_for_model.step()
+                                #<  model after
+                                model__after__output___b_o:torch.Tensor = the_model(input___b_i)
+                                
+
+                                pass#for _
+                            pass#for learning_rate___s
+                        pass#for dim_2
+                    pass#for dim_0
                 pass#for batch
             pass#/ test
 
         
 
 
-        两层的。注意维度只能变小。
+
+
+
+
+        #加上输出的缩减
+        #device adaption.
 
         return
     ____basic_behavior_of_dry_stack_test____()
