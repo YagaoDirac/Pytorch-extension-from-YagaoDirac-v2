@@ -7,8 +7,7 @@ from pytorch_yagaodirac_v2.Util import _tensor_equal, _bool_equal___0_as_false, 
 from pytorch_yagaodirac_v2.Random import rand_sign
 from DNN2026.DNN_util import Index_container, partly_reasonable_label_from_input, \
         _test___binary_accuracy___full_safety
-from DNN2026.digitalmapping_layer___prototype_test import \
-        DigitalMapping_layer__2026, optim_for___DigitalMapping_layer__2026
+from DNN2026.digitalmapping_layer___prototype_test import DigitalMapping_layer__2026#, optim_for___Digital
 from DNN2026.data_container_for_DNN_2026___prototype_test import DNN_input_container_2026, DNN_label_container_2026
 
 import torch
@@ -27,18 +26,18 @@ def _line_():
 
 '''some customized function to help you calc the shape of the entire model.'''
 def _only_for_dry_stack_test__DNN_model__2026_to_use____calc_shape( \
-        in_feature:int, out_feature:int, layer_count:int)->torch.Tensor:
+        in_feature:int, out_feature:int, layer_count:int)->list[int]:#torch.Tensor:
     assert in_feature>out_feature, "暂时是这么设计的."
     assert layer_count>1, "1层的另外研究。"
 
     result = torch.linspace(start = in_feature, end = out_feature, steps = layer_count, dtype=torch.float16)
-    result[1:-2] = result[1:-2]+ 0.5
+    result[1:-2] = result[1:-2] + 0.5#or 0.499?
     result = result.to(torch.int32)
+    result[ 0] =  in_feature
+    result[-1] = out_feature
     #<  safety
-    assert result[0]  ==  in_feature
-    assert result[-1] == out_feature
     assert result.__len__() == layer_count
-    return result
+    return result.tolist()#py list.
 if "test" and __DEBUG_ME__() and False:
     from matplotlib import pyplot as plt
     def ____test_____only_for_dry_stack_test__DNN_model__2026_to_use____calc_shape():
@@ -64,7 +63,7 @@ if "test" and __DEBUG_ME__() and False:
                                 in_feature=in_dim, out_feature=out_dim,layer_count=layer_count)
                         x_axis = torch.linspace(0,layer_count-1,layer_count,dtype=torch.int32)
                         _, ax = plt.subplots()
-                        ax.plot(x_axis, the_list.tolist())
+                        ax.plot(x_axis, the_list)
                         plt.title(f"in {10}   out {5}   layer{3}")
                         plt.show()
                         pass#for layer_count
@@ -77,9 +76,12 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
+
+'''dry stack             model'''
+'''dry stack             model'''
 class dry_stack_test__DNN_model__2026(torch.nn.Module):
-    _in_dim:int
-    _out_dim:int
+    #in_dim:int
+    _original__out_dim:int
     _layer_count:int
     _layers:torch.nn.ParameterList
     #customized function
@@ -89,8 +91,8 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
                 _dtype_for_raw_weight = torch.float32, _always_check_input_is_posneg1__in_forward: bool = True, 
                 device = None):
         super().__init__()
-        self. _in_dim =  in_features
-        self._out_dim = out_features
+        #self. in_dim =  in_features
+        self._original__out_dim = out_features
         self._layer_count = layer_count
 
         self._calc_shape_function = _only_for_dry_stack_test__DNN_model__2026_to_use____calc_shape
@@ -112,6 +114,8 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
         else:# layer_count >= 2
             _temp__shape:list[int] = self._calc_shape_function(
                     in_feature = in_features, out_feature = out_features, layer_count = layer_count)
+            assert type(_temp__shape) == list
+            assert type(_temp__shape[0]) == int
 
             _temp_layer_list:list[DigitalMapping_layer__2026] = []
             for ii in range(_temp__shape.__len__()-1):
@@ -150,6 +154,114 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
             pass
         output___b_o = x
         return output___b_o
+    @staticmethod
+    def backward(the_model:dry_stack_test__DNN_model__2026, output___b_o:torch.Tensor, gradient:torch.Tensor)->None:
+        '''This function helps you handle the "inputs=" inside the backward function call.'''
+        backward_to_this_list = []
+        backward_to_this_list.extend(the_model.parameters(for_backward=True))
+                                    
+        output___b_o.backward(gradient=gradient, inputs=backward_to_this_list)
+        assert False
+        return
+
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        for layer in self._layers:
+            assert isinstance(layer, DigitalMapping_layer__2026)
+            layer._raw_weight___oCAP_iCAP.grad = None
+            assert False, "untested"
+            pass
+
+    @torch.no_grad() # Important: disable gradient tracking within the optimizer step
+    def step(self, learning_rate___s=0.01, epsilon___s = 0.01, safety_check = False)->None:
+        #https://apxml.com/courses/advanced-pytorch/chapter-6-custom-extensions-interoperability/custom-optimizers
+        '''Bc I don't use this closure style, and I have no idea how it works.
+        Just in case, let me turn it off. 
+        Fyi, https://apxml.com/courses/advanced-pytorch/chapter-6-custom-extensions-interoperability/custom-optimizers'''
+
+        #<  safety
+        assert epsilon___s > 0., "Bad param"
+        assert learning_rate___s> 0., "Bad param"
+
+        #<  real payload
+        for layer in self._layers:
+            assert isinstance(layer, DigitalMapping_layer__2026)
+
+            if layer._raw_weight___oCAP_iCAP.grad is None:
+                assert False, "according to the design, this must NOT be None."
+                continue # or maybe skip it? Skip parameters without gradients
+
+            grad_like_for_raw_weight___o_i = layer._get_useful_part_of_raw_weight_grad()
+            if grad_like_for_raw_weight___o_i is None:
+                continue
+            
+            # old code      new_data_for_parameter = only_for_DigitalMapping_layer__2026_to_use___optim_step( \
+            #                     raw_weight___o_i = digitalmapping_layer.get_useful_part_of_raw_weight(),  
+            #                     grad_like_for_raw_weight___o_i = grad_like, 
+            #                     learning_rate___s = self.learning_rate___s, 
+            #                     epsilon=self.epsilon)#展开
+            #<  展开
+            raw_weight___o_i:torch.Tensor = layer.get_useful_part_of_raw_weight()
+
+            #<  real payload
+            _temp___max___o:torch.Tensor = grad_like_for_raw_weight___o_i.max(dim=1).values
+            _temp___max___o_EXPANDi = _temp___max___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+            inner___grad_like_for_raw_weight___o_i:torch.Tensor = grad_like_for_raw_weight___o_i-_temp___max___o_EXPANDi
+            del _temp___max___o, _temp___max___o_EXPANDi
+            if safety_check:
+                assert inner___grad_like_for_raw_weight___o_i.le(0.).all()#################
+                pass
+
+            _temp___mean_of_abs___o = inner___grad_like_for_raw_weight___o_i.mean(dim=1).abs()# notice.  
+            _temp___mean_of_abs___o = _temp___mean_of_abs___o.max(epsilon___s)
+            #In some of the previous test, there was a *0.5 in the tail of the line above. But maybe it's ok without it.
+            if safety_check:
+                assert _temp___mean_of_abs___o.ge(epsilon___s).all()
+                pass
+
+            _temp___temp___mean_of_abs___o_EXPANDi = _temp___mean_of_abs___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+            inner___grad_like_for_raw_weight___o_i /= _temp___temp___mean_of_abs___o_EXPANDi
+            del _temp___mean_of_abs___o, _temp___temp___mean_of_abs___o_EXPANDi
+
+            new___raw_weight___before_tanh___o_i = raw_weight___o_i + inner___grad_like_for_raw_weight___o_i * learning_rate___s
+            if safety_check:
+                assert new___raw_weight___before_tanh___o_i.le(0.).all()
+                pass
+            new___raw_weight___o_i = new___raw_weight___before_tanh___o_i.tanh()
+            #</  展开
+
+
+            layer.set_useful_part_of_raw_weight(new___raw_weight___o_i)
+            pass#for for layer 
+        assert False, "untested"
+        return #end of function
+
+    def parameters(self, recurse = True, for_optim = False, for_backward = False):
+        if for_optim:
+            return self._layers
+            pass
+        elif for_backward:
+            #return super().parameters(recurse) the original code of pytorch.
+            parameter_list:list[torch.nn.Parameter] = []
+            for digitalmapping_layer in self._layers:
+                assert isinstance(digitalmapping_layer, DigitalMapping_layer__2026)
+                parameter_list.append(digitalmapping_layer._raw_weight___oCAP_iCAP)#1 11w1w1 这个原版的尺寸不对。。要给最终用的尺寸
+                pass
+            return parameter_list
+        else:
+            assert False, "unreachable. One of the for_??? param must be True."
+        #end of function.
+    '''all the shape and reshape'''
+    '''all the shape and reshape'''
+    def in_dim(self)->int:
+        '''get'''
+        the_first_layer = self._layers[0]
+        assert isinstance(the_first_layer, DigitalMapping_layer__2026)
+        return the_first_layer.in_dim
+    def out_dim(self)->int:
+        '''get'''
+        the_last_layer = self._layers[-1]
+        assert isinstance(the_last_layer, DigitalMapping_layer__2026)
+        return the_last_layer.out_dim
 
     def add_input_slot(self, how_many_new_input:int)->None:
         '''The out_dim of the last layer is untouched in this function.
@@ -158,7 +270,7 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
         assert self._layers.__len__() > 1, "this is only a dry stack test."
         #<  real payload
         new__shape_list:list[int] = self._calc_shape_function(
-                in_feature = self._in_dim, out_feature = self._out_dim, layer_count = self._layer_count)
+                in_feature = self.in_dim()+how_many_new_input, out_feature = self._original__out_dim, layer_count = self._layer_count)
 
         for ii in range(new__shape_list.__len__()-1):
             new__in_dim = new__shape_list[ii]
@@ -189,29 +301,26 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
         the_last_layer.keep_output_slot(keep_which = keep_which)
         return 
 
-
     def remove_output_slot(self, remove_which: torch.Tensor)->None:
         '''only the out_dim of the last layer is touched in this function
         '''
         assert remove_which.dtype == torch.bool#duplicated???
         self.keep_output_slot(remove_which.logical_not())
         return 
-
-    def parameters(self, recurse = True, for_optim = False, for_backward = False):
-        if for_optim:
-            return self._layers
+    def _report_shape(self)->list[list[int]]:
+        '''return a list of [in_dim, out_dim, in_capacity, out_capacity]'''
+        result:list[list[int]] = []
+        for layer in self._layers:
+            assert isinstance(layer, DigitalMapping_layer__2026)
+            result.append([layer.in_dim, layer.out_dim, layer._raw_weight___oCAP_iCAP.shape[1], layer._raw_weight___oCAP_iCAP.shape[0]])
+            assert type(layer.in_dim) == int
+            assert type(layer.out_dim) == int
+            assert type(layer._raw_weight___oCAP_iCAP.shape[1]) == int
+            assert type(layer._raw_weight___oCAP_iCAP.shape[0]) == int
             pass
-        elif for_backward:
-            #return super().parameters(recurse) the original code of pytorch.
-            parameter_list:list[torch.nn.Parameter] = []
-            for digitalmapping_layer in self._layers:
-                assert isinstance(digitalmapping_layer, DigitalMapping_layer__2026)
-                parameter_list.append(digitalmapping_layer._raw_weight___oCAP_iCAP)
-                pass
-            return parameter_list
-        else:
-            assert False, "unreachable. One of the for_??? param must be True."
-        #end of function.
+        return result
+
+
 
     # extra_repr, str, repr
     pass#end of class.
@@ -219,7 +328,58 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
 if "test" and __DEBUG_ME__() and False:
     def ____basic_behavior____dry_stack_test__DNN_model__2026():
 
-        if "shape scan" and False:
+        if "report shape       while changing the shapes       , but read only" and True:
+            ori_out_dim = 1000
+            the_model = dry_stack_test__DNN_model__2026(3333,ori_out_dim,6)
+            result_0 = the_model._report_shape()
+            assert result_0[0][0] == 3333
+            assert result_0[-1][1] == ori_out_dim
+            assert result_0[-2][1] == ori_out_dim
+            assert result_0[-1][2] == ori_out_dim
+
+            _keep_which = torch.zeros(size=[ori_out_dim], dtype=torch.bool)
+            _keep_which[:ori_out_dim//2] = True
+            the_model.keep_output_slot(keep_which = _keep_which)
+            result_1 = the_model._report_shape()
+            assert result_1[0][0] == 3333
+            assert result_1[-1][1] == ori_out_dim//2
+            assert result_1[-2][1] == ori_out_dim
+            assert result_1[-1][2] == ori_out_dim
+            
+            the_model.add_input_slot(1111)
+            result_2 = the_model._report_shape()
+            assert result_2[0][0] == 4444
+            assert result_2[-1][1] == ori_out_dim//2
+            assert result_2[-2][1] == ori_out_dim
+            assert result_2[-1][2] == ori_out_dim
+
+            _keep_which = torch.zeros(size=[ori_out_dim//2], dtype=torch.bool)
+            _keep_which[:ori_out_dim//4] = True
+            the_model.keep_output_slot(keep_which = _keep_which)
+            result_3 = the_model._report_shape()
+            assert result_3[0][0] == 4444
+            assert result_3[-1][1] == ori_out_dim//4
+            assert result_3[-2][1] == ori_out_dim
+            assert result_3[-1][2] == ori_out_dim
+
+            the_model.add_input_slot(1111)
+            result_4 = the_model._report_shape()
+            assert result_4[0][0] == 5555
+            assert result_4[-1][1] == ori_out_dim//4
+            assert result_4[-2][1] == ori_out_dim
+            assert result_4[-1][2] == ori_out_dim
+
+            _keep_which = torch.zeros(size=[ori_out_dim//4], dtype=torch.bool)
+            _keep_which[:ori_out_dim//10] = True
+            the_model.keep_output_slot(keep_which = _keep_which)
+            result_5 = the_model._report_shape()
+            assert result_5[0][0] == 5555
+            assert result_5[-1][1] == ori_out_dim//10
+            assert result_5[-2][1] == ori_out_dim
+            assert result_5[-1][2] == ori_out_dim
+            pass#/ test
+
+        if "shape scan" and True:
             for in_dim in [3,11,18]:
                 for out_dim in [5,17,31]:
                     if in_dim<= out_dim:
@@ -243,7 +403,7 @@ if "test" and __DEBUG_ME__() and False:
                 pass#for in_dim
             pass#/ test
 
-        if "add input_slot" and False:
+        if "add input_slot" and True:
             for ori___in_dim in [3,11,18]:
                 for out_dim in [5,17,31]:
                     if ori___in_dim<= out_dim:
@@ -263,6 +423,7 @@ if "test" and __DEBUG_ME__() and False:
                                     assert _tensor_shape_check(output___b_o, batch, out_dim)
                                     #<  modify the shape
                                     the_model.add_input_slot(how_many_new_input=extra__input_dim)
+                                    assert the_model.in_dim() == ori___in_dim + extra__input_dim
                                     new___input___b_i = rand_sign(size=[batch, ori___in_dim+extra__input_dim], dtype=torch.float32)
                                     output___b_o = the_model(new___input___b_i)
                                     assert _tensor_shape_check(output___b_o, batch, out_dim)
@@ -273,7 +434,7 @@ if "test" and __DEBUG_ME__() and False:
                 pass#for in_dim
             pass#/ test
 
-        if "keep/remove output_slot" and False:
+        if "keep/remove output_slot" and True:
             for in_dim in [3,11,18]:
                 for ori___out_dim in [5,17,31]:
                     if in_dim<= ori___out_dim:
@@ -297,6 +458,7 @@ if "test" and __DEBUG_ME__() and False:
                                 #<  modify the shape
                                 the_model.keep_output_slot(flag__keep_these)
                                 new___output___b_o = the_model(input___b_i.detach().clone())
+                                assert the_model.out_dim() == new___out_dim
                                 assert _tensor_shape_check(new___output___b_o, batch, new___out_dim)
                                 pass#for _
                             pass#for layer_count
@@ -308,6 +470,346 @@ if "test" and __DEBUG_ME__() and False:
         return
     ____basic_behavior____dry_stack_test__DNN_model__2026()
     pass
+
+if "the optim part" and __DEBUG_ME__() and True:
+    def 
+    就是zero_grad和step，两个。
+    1w
+
+    def ____test____optim_for___DigitalMapping_layer__2026 改名字()->None:
+        if "zero grad function.      scan" and False:
+            for batch in [2,5,10]:
+                for out_dim in [3,7,11]:
+                    for in_dim in [6,9,13]:
+                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+                        assert the_layer._raw_weight___oCAP_iCAP.requires_grad == True
+                        assert the_layer._raw_weight___oCAP_iCAP.grad is None
+                        assert the_layer.some_hyper_param.requires_grad == False
+                        assert the_layer.some_hyper_param.grad is None
+                        
+                        the_optim = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], learning_rate___s=0.1)
+                        #the_optim = optim_for___DigitalMapping_layer__2026(params=the_layer.parameters(), learning_rate___s=0.1)
+                        the_optim.zero_grad()
+                        assert the_layer._raw_weight___oCAP_iCAP.grad is None
+
+
+                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+                        assert the_layer._raw_weight___oCAP_iCAP.requires_grad == True
+                        assert the_layer._raw_weight___oCAP_iCAP.grad is None
+                        assert the_layer.some_hyper_param.requires_grad == False
+                        assert the_layer.some_hyper_param.grad is None
+
+                        the_optim = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], learning_rate___s=10.)
+
+                        input___b_i = rand_sign(size=[batch, in_dim])
+                        input___b_i.requires_grad_()
+                        output___b_o:torch.Tensor = the_layer(input___b_i)
+                        _temp_inputs = [input___b_i]
+                        _temp_inputs.append(the_layer._raw_weight___oCAP_iCAP)
+                        output___b_o.backward(gradient=torch.randn_like(output___b_o), inputs = _temp_inputs)
+                        del _temp_inputs
+                        assert input___b_i.grad is not None
+
+                        assert the_layer._raw_weight___oCAP_iCAP.grad is not None
+                        assert the_layer.some_hyper_param.grad is None
+
+                        the_optim.zero_grad()
+                        assert the_layer._raw_weight___oCAP_iCAP.grad is None
+                        pass#for in_dim
+                    pass#for out_dim
+                pass#for batch
+            pass#/ test
+
+        if "class equivalence         no scan" and False:
+            out_dim = 2
+            in_dim = 3
+
+            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+            learning_rate___s = 1.1
+            the_optim = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], 
+                                                        learning_rate___s=learning_rate___s)
+
+
+            #<  data
+            the_layer._raw_weight___oCAP_iCAP.grad = torch.empty_like(the_layer._raw_weight___oCAP_iCAP)
+            the_layer._raw_weight___oCAP_iCAP.grad.fill_(torch.nan)
+            raw_weight___o_i = torch.tensor([   [-10., -11, 0], 
+                                                [-100., -11, 0]]) 
+            #raw_weight___o_i = torch.rand(size=(out_dim, in_dim))*-1.
+            assert raw_weight___o_i.le(0.).all()#bc of the design. No other reason.
+            assert _tensor_shape_check(raw_weight___o_i, out_dim, in_dim)
+            the_layer.set_useful_part_of_raw_weight(raw_weight___o_i.detach().clone())
+            grad_like_for_raw_weight___o_i = torch.tensor([ [1231.,  1232, 1233], 
+                                                            [3211.,  3213, 3215], ])
+            assert _tensor_shape_check(grad_like_for_raw_weight___o_i, out_dim, in_dim)
+            the_layer._raw_weight___oCAP_iCAP.grad[:out_dim, :in_dim] = grad_like_for_raw_weight___o_i.detach().clone()
+
+            #<  real payload
+            _temp___max___o:torch.Tensor  = grad_like_for_raw_weight___o_i.max(dim=1).values
+            assert _tensor_shape_check(_temp___max___o, out_dim)
+            assert _tensor_equal(_temp___max___o, torch.tensor([1233, 3215]))
+            _temp___max___o_EXPANDi = _temp___max___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+            assert _tensor_shape_check(_temp___max___o_EXPANDi, out_dim, in_dim)
+            inner___grad_like_for_raw_weight___o_i:torch.Tensor = grad_like_for_raw_weight___o_i-_temp___max___o_EXPANDi
+            del _temp___max___o, _temp___max___o_EXPANDi
+            assert _tensor_equal(inner___grad_like_for_raw_weight___o_i, [  [-2., -1, 0], 
+                                                                            [-4., -2, 0], ])
+
+            _temp___mean_of_abs___o = inner___grad_like_for_raw_weight___o_i.mean(dim=1).abs()# notice.  
+            #In some of the previous test, there was a *0.5 in the tail of the line above. But maybe it's ok without it.
+            assert _tensor_shape_check(_temp___mean_of_abs___o, out_dim)
+            assert _tensor_equal(_temp___mean_of_abs___o, [1., 2])
+
+            _temp___temp___mean_of_abs___o_EXPANDi = _temp___mean_of_abs___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+            assert _tensor_shape_check(_temp___temp___mean_of_abs___o_EXPANDi, out_dim, in_dim)
+            inner___grad_like_for_raw_weight___o_i /= _temp___temp___mean_of_abs___o_EXPANDi
+            del _temp___mean_of_abs___o, _temp___temp___mean_of_abs___o_EXPANDi
+            assert _tensor_equal(inner___grad_like_for_raw_weight___o_i, torch.tensor([ [-2., -1, 0], 
+                                                                                        [-2., -1, 0], ]))
+
+            new___raw_weight___before_tanh___o_i = raw_weight___o_i + inner___grad_like_for_raw_weight___o_i * learning_rate___s
+
+            assert _tensor_equal(new___raw_weight___before_tanh___o_i, torch.tensor([   [-12.2,  -12.1, 0], 
+                                                                                        [-102.2, -12.1, 0]]))
+            assert new___raw_weight___before_tanh___o_i.le(-0.).all()##############
+            new___raw_weight___o_i = new___raw_weight___before_tanh___o_i.tanh()
+            assert new___raw_weight___o_i.ge(-1.).all()##############
+            assert new___raw_weight___o_i.le(-0.).all()##############
+
+            #<  step the layer???
+            the_optim.step()
+            assert the_layer.get_useful_part_of_raw_weight().eq(new___raw_weight___o_i).all()
+
+            pass#/ test
+
+        if "class equivalence         scan" and True:
+            for out_dim in [3,7,11]:
+                for in_dim in [6,9,13]:
+                    for _ in range(11):
+                        #<  neural net infra
+                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+                        learning_rate___s = 1.1
+                        the_optim = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], 
+                                                                    learning_rate___s=learning_rate___s)
+
+                        #<  data
+                        the_layer._raw_weight___oCAP_iCAP.grad = torch.empty_like(the_layer._raw_weight___oCAP_iCAP)
+                        the_layer._raw_weight___oCAP_iCAP.grad.fill_(torch.nan)
+                        raw_weight___o_i = torch.rand(size=[out_dim, in_dim ])*-1.
+                        assert raw_weight___o_i.le(0.).all()#bc of the design. No other reason.
+                        assert _tensor_shape_check(raw_weight___o_i, out_dim, in_dim)
+                        the_layer.set_useful_part_of_raw_weight(raw_weight___o_i.detach().clone())
+                        grad_like_for_raw_weight___o_i = torch.randn(size=[out_dim, in_dim ])
+                        assert _tensor_shape_check(grad_like_for_raw_weight___o_i, out_dim, in_dim)
+                        the_layer._raw_weight___oCAP_iCAP.grad[:out_dim, :in_dim] = grad_like_for_raw_weight___o_i.detach().clone()
+
+                        #<  real payload     function version.
+                        _temp___max___o:torch.Tensor  = grad_like_for_raw_weight___o_i.max(dim=1).values
+                        assert _tensor_shape_check(_temp___max___o, out_dim)
+                        _temp___max___o_EXPANDi = _temp___max___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+                        assert _tensor_shape_check(_temp___max___o_EXPANDi, out_dim, in_dim)
+                        inner___grad_like_for_raw_weight___o_i:torch.Tensor = grad_like_for_raw_weight___o_i-_temp___max___o_EXPANDi
+                        del _temp___max___o, _temp___max___o_EXPANDi
+
+                        _temp___mean_of_abs___o = inner___grad_like_for_raw_weight___o_i.mean(dim=1).abs()# notice.  
+                        #In some of the previous test, there was a *0.5 in the tail of the line above. But maybe it's ok without it.
+                        assert _tensor_shape_check(_temp___mean_of_abs___o, out_dim)
+
+                        _temp___temp___mean_of_abs___o_EXPANDi = _temp___mean_of_abs___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+                        assert _tensor_shape_check(_temp___temp___mean_of_abs___o_EXPANDi, out_dim, in_dim)
+                        inner___grad_like_for_raw_weight___o_i /= _temp___temp___mean_of_abs___o_EXPANDi
+                        del _temp___mean_of_abs___o, _temp___temp___mean_of_abs___o_EXPANDi
+
+                        new___raw_weight___before_tanh___o_i = raw_weight___o_i + inner___grad_like_for_raw_weight___o_i * learning_rate___s
+
+                        assert new___raw_weight___before_tanh___o_i.le(-0.).all()##############
+                        new___raw_weight___o_i = new___raw_weight___before_tanh___o_i.tanh()
+                        assert new___raw_weight___o_i.ge(-1.).all()##############
+                        assert new___raw_weight___o_i.le(-0.).all()##############
+
+                        #<  layer version.
+                        the_optim.step()
+                        assert the_layer.get_useful_part_of_raw_weight().eq(new___raw_weight___o_i).all()
+                        pass#for _ 
+                    pass#for out_dim
+                pass#for batch
+            pass#/ test
+
+        return
+    ____test____optim_for___DigitalMapping_layer__2026()
+    pass
+
+
+
+if "integrated test" and __DEBUG_ME__() and False:
+    def ____test____integrated_test()->None:
+        '''modified from the backward algo test.'''
+
+        if "prototype.    scan" and True:
+            if "result" and False:
+                # random rate 0.0
+                # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
+                # acc              = [ 0.502,  0.504,  0.508,  0.519,  0.556,  0.654,  0.979,  1.000]
+                # acc gain         = [ 0.001,  0.004,  0.007,  0.018,  0.055,  0.153,  0.479,  0.499]
+                # random rate 0.1
+                # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
+                # acc              = [ 0.503,  0.503,  0.509,  0.520,  0.551,  0.641,  0.932,  0.950]
+                # acc gain         = [ 0.001,  0.002,  0.008,  0.018,  0.050,  0.140,  0.431,  0.450]
+                # random rate 0.2
+                # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
+                # acc              = [ 0.502,  0.502,  0.507,  0.518,  0.558,  0.639,  0.880,  0.900]
+                # acc gain         = [ 0.001,  0.002,  0.006,  0.018,  0.057,  0.139,  0.379,  0.399]
+                # random rate 0.3
+                # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
+                # acc              = [ 0.501,  0.503,  0.507,  0.519,  0.547,  0.621,  0.827,  0.850]
+                # acc gain         = [ 0.001,  0.003,  0.005,  0.018,  0.047,  0.120,  0.326,  0.349]
+                # random rate 0.5
+                # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
+                # acc              = [ 0.501,  0.503,  0.507,  0.519,  0.540,  0.590,  0.727,  0.750]
+                # acc gain         = [ 0.001,  0.002,  0.006,  0.018,  0.040,  0.089,  0.227,  0.249]
+                # random rate 0.7
+                # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
+                # acc              = [ 0.501,  0.503,  0.508,  0.518,  0.533,  0.561,  0.628,  0.650]
+                # acc gain         = [ 0.001,  0.002,  0.008,  0.017,  0.033,  0.061,  0.128,  0.150]
+                pass
+
+            #------------------#------------------#------------------
+            number_of_tests = 20
+            random_ratio_list = [0., 0.1, 0.2, 0.3, 0.5, 0.7]
+            for ii_random_ratio in range(random_ratio_list.__len__()):
+                random_ratio = random_ratio_list[ii_random_ratio]
+                #print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+            #------------------#------------------#------------------
+                result_acc     :list = []#don't modify this.
+                result_acc_gain:list = []#don't modify this.
+                learning_rate_list = [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1., 3.]################################################
+                #_when_start = time.perf_counter()
+                
+                for learning_rate in learning_rate_list:
+                    _raw_result__accuracy = torch.empty(size=[number_of_tests])
+                    _raw_result__accuracy_gain = torch.empty(size=[number_of_tests])
+                    for ii__test in range(number_of_tests):
+
+                        batch = 1000
+                        in_dim = 500
+                        out_dim = 100
+                        #<  dataset
+                        input_posneg1___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)
+                        assert _either_1_or_neg1(input_posneg1___b_i)
+
+                        target_posneg1___b_o = partly_reasonable_label_from_input(input___b_i=input_posneg1___b_i, out_dim = out_dim,
+                                    random_ratio=random_ratio, input_is_already_posneg1 = True)
+                        assert _either_1_or_neg1(target_posneg1___b_o)#debug purpose
+                        #<  model param       neural net infra
+                        the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+                        the_optim = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=[the_layer], learning_rate___s=learning_rate)
+                        backward_to_them = []
+                        backward_to_them.extend(the_layer.parameters())
+                        #backward_to_them.pop()#####
+
+                        #     ori__raw_weight___o_i = torch.rand(size=[out_dim, in_dim])*-1.
+                        #<  calc          forward
+                        ori__raw_weight___o_i:torch.Tensor = the_layer(input_posneg1___b_i)
+                        assert _tensor_shape_check(ori__raw_weight___o_i, batch, out_dim)
+                        ori__raw_weight___o_i.backward(gradient=target_posneg1___b_o, inputs=backward_to_them)
+
+                        # _, grad_like_for___raw_weight___o_i = _algo_test__backward_function( \
+                        #     input_posneg1___b_i=input_posneg1___b_i, target___b_o=target_posneg1___b_o,raw_weight___o_i=ori__raw_weight___o_i)
+                        # assert isinstance(grad_like_for___raw_weight___o_i, torch.Tensor)
+                        # assert _tensor_shape_check(grad_like_for___raw_weight___o_i, out_dim, in_dim)
+
+                        #<  ori   accuracy
+                        ori__accuracy___s, recommended_result_value_name = \
+                                _test___binary_accuracy___full_safety(target___b_o = target_posneg1___b_o, 
+                                        output_posneg1___b_o = ori__raw_weight___o_i, mean_per =  'for_all', target_is_already_posneg1=True)
+                        assert recommended_result_value_name == "accuracy___s"
+
+                        # ori__output_posneg1___b_o, _ = _test___DNN_forward___full_safety(input___b_i=input_posneg1___b_i, 
+                        #                                 raw_weight___o_i=ori__raw_weight___o_i, input_is_already_posneg1=True)
+                        # ori__accuracy___s, recommended_result_value_name = \
+                        #         _test___binary_accuracy___full_safety(target___b_o=target_posneg1___b_o, 
+                        #                 output_posneg1___b_o=ori__output_posneg1___b_o, mean_per="for_all", target_is_already_posneg1=True)
+                        # assert recommended_result_value_name == "accuracy___s"
+
+                        #<  step
+                        the_optim.step()
+                        # new__raw_weight___o_i = _test___optimizer_algo___full_safety(ori__raw_weight___o_i = ori__raw_weight___o_i,
+                        #         grad_like_for___raw_weight___o_i = grad_like_for___raw_weight___o_i, learning_rate = learning_rate)
+
+                        #<  new   accuracy
+                        new__raw_weight___o_i:torch.Tensor = the_layer(input_posneg1___b_i)
+                        new__accuracy___s, recommended_result_value_name = \
+                                _test___binary_accuracy___full_safety(target___b_o = target_posneg1___b_o, 
+                                        output_posneg1___b_o = new__raw_weight___o_i, mean_per =  'for_all', target_is_already_posneg1=True)
+                        assert recommended_result_value_name == "accuracy___s"
+
+
+                        # new__output_posneg1___b_o, _ = _test___DNN_forward___full_safety(input___b_i=input_posneg1___b_i, 
+                        #                         raw_weight___o_i=new__raw_weight___o_i, input_is_already_posneg1=True)
+                        # new__accuracy___s, recommended_result_value_name = \
+                        #         _test___binary_accuracy___full_safety(target___b_o=target_posneg1___b_o, 
+                        #                 output_posneg1___b_o=new__output_posneg1___b_o, mean_per="for_all", target_is_already_posneg1=True)
+                        # assert recommended_result_value_name == "accuracy___s"
+
+                        #assert new__accuracy___s>ori__accuracy___s
+
+                        _raw_result__accuracy[ii__test] = new__accuracy___s
+                        _raw_result__accuracy_gain[ii__test] = new__accuracy___s - ori__accuracy___s
+
+                        pass#for ii__test
+                                            
+                    result_acc     .append(_raw_result__accuracy.     mean().item())
+                    result_acc_gain.append(_raw_result__accuracy_gain.mean().item())
+                    
+                    pass#for scanned_param
+                #_when_end = time.perf_counter()
+                #print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+                
+
+                print(f"random rate {random_ratio}")
+                print(f"learning_rate_list = {str_the_list(learning_rate_list, 3)}")#########################
+                print(f"acc              = {str_the_list(result_acc, 3)}")#########################
+                print(f"acc gain         = {str_the_list(result_acc_gain, 3)}")#########################
+                ################################
+                pass#for ii_outter_param_set
+            pass#/ test
+
+        return
+
+    ____test____integrated_test()
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
     def ____basic_behavior_of_dry_stack_test____():
@@ -563,46 +1065,268 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
 
 
 
-        1w 总之就是让某些输出槽位比较完美或者比较好，剔除，然后看看剩下的是不是都很烂。
+
+        '''???????????????????????'''
+        if "remove some output slot" and False:
+            for batch in [2]:
+                for dim_0 in [11,]:
+                    for dim_2 in [3,]:
+                        if dim_0<=dim_2:
+                            continue
+                        for learning_rate___s in [0.6]:#lr 0.3, the acc goes from 0.5 to 0.65 in 1 epoch, according to previous tests.
+                            for _ in range(1):
+
+                                #<  dataset
+                                input___b_i = rand_sign(size=[batch, dim_0], dtype=torch.float32)#or fp16
+                                assert _either_1_or_neg1(input___b_i)
+                                _label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = dim_2,
+                                        random_ratio = 0., input_is_already_posneg1 = True)
+                                assert _either_1_or_neg1(_label___b_o)
+
+                                #<  data but in containers
+                                in_cont = DNN_input_container_2026(batch=batch)
+                                in_cont.extend(input___b_i.detach().clone())
+                                #<  model      infra
+                                the_model = dry_stack_test__DNN_model__2026(in_features=dim_0, out_features=dim_2, layer_count=2)
+                                optim_for_model = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=the_model.parameters(for_optim=True), 
+                                                                                    learning_rate___s = learning_rate___s)
+
+
+
+
+                                _temp__layer = the_model._layers[0]
+                                assert isinstance(_temp__layer, DigitalMapping_layer__2026)
+                                aaaaaaaa0 = _temp__layer._raw_weight___oCAP_iCAP.shape
+                                assert _temp__layer.in_dim == 11
+                                assert _temp__layer.out_dim == 3
+
+                                _temp__layer = the_model._layers[1]
+                                assert isinstance(_temp__layer, DigitalMapping_layer__2026)
+                                aaaaaaaa1 = _temp__layer._raw_weight___oCAP_iCAP.shape
+                                assert _temp__layer.in_dim == 3
+                                assert _temp__layer.out_dim == 3
+
+                                #epoch 0
+                                optim_for_model.zero_grad()
+                                output___b_o:torch.Tensor = the_model(in_cont.get_useful())
+                                assert _either_1_or_neg1(output___b_o)
+                                #
+
+                                #assert label_cont.out_dim() == the_model.out_dim()
+                                #_temp___grad_input = label_cont.get_useful()
+                                assert _tensor_shape_check(output___b_o, 2, 3)
+                                #assert _tensor_shape_check(_temp___grad_input, 2, 3)
+                                #assert output___b_o.shape == _temp___grad_input.shape
+                                backward_to_this_list = []
+                                backward_to_this_list.extend(the_model.parameters(for_backward=True))
+                                output___b_o.backward(gradient=_label___b_o, inputs=backward_to_this_list)
+                                optim_for_model.step()
+
+
+                                test__remove_this = torch.tensor([True, True, False])
+                                the_model.remove_output_slot(test__remove_this)
+                                #label_cont.remove_output_slot(test__remove_this)
+                                del test__remove_this
+
+
+
+                                _temp__layer = the_model._layers[0]
+                                aaaaaaaa0_after = _temp__layer._raw_weight___oCAP_iCAP.shape
+                                assert isinstance(_temp__layer, DigitalMapping_layer__2026)
+                                assert _temp__layer.in_dim == 11
+                                assert _temp__layer.out_dim == 3
+                                _temp__layer = the_model._layers[1]
+                                assert isinstance(_temp__layer, DigitalMapping_layer__2026)
+                                aaaaaaaa1_after = _temp__layer._raw_weight___oCAP_iCAP.shape
+                                assert _temp__layer.in_dim == 3
+                                assert _temp__layer.out_dim == 1
+                                #epoch 1
+                                optim_for_model.zero_grad()
+                                output___b_o:torch.Tensor = the_model(in_cont.get_useful())
+                                assert _either_1_or_neg1(output___b_o)
+                                #flag_perfect___o, _ = label_cont.detect_good_output___by_position(output___b_o,output_is_already_posneg1=True)
+
+                                #assert label_cont.out_dim() == the_model.out_dim()
+                                #_temp___grad_input = label_cont.get_useful()
+                                assert _tensor_shape_check(output___b_o, 2, 1)
+                                #assert _tensor_shape_check(_temp___grad_input, 2, 1)
+                                #assert output___b_o.shape == _temp___grad_input.shape
+                                backward_to_this_list
+                                backward_to_this_list___after = []
+                                backward_to_this_list___after.extend(the_model.parameters(for_backward=True))
+                                assert backward_to_this_list[0] is backward_to_this_list___after[0]
+                                assert backward_to_this_list[1] is backward_to_this_list___after[1]
+                                #_temp___grad_input = _label___b_o[:, 2]
+                                _temp___grad_input = rand_sign(size=[2,1])
+                                output___b_o.backward(gradient=_temp___grad_input, inputs=backward_to_this_list___after)
+                                optim_for_model.step()
+
+                                pass#for _
+                            pass#for learning_rate___s
+                        pass#for dim_2
+                    pass#for dim_0
+                pass#for batch
+            pass#/ test
+
+
+
+        '''???????????????????????'''
+        if "remove some output slot" and False:
+            for batch in [2]:
+                for dim_0 in [11,]:
+                    for dim_2 in [3,]:
+                        if dim_0<=dim_2:
+                            continue
+                        for learning_rate___s in [0.6]:#lr 0.3, the acc goes from 0.5 to 0.65 in 1 epoch, according to previous tests.
+                            for _ in range(1):
+
+                                #<  dataset
+                                input___b_i = rand_sign(size=[batch, dim_0], dtype=torch.float32)#or fp16
+                                assert _either_1_or_neg1(input___b_i)
+                                _label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = dim_2,
+                                        random_ratio = 0., input_is_already_posneg1 = True)
+                                assert _either_1_or_neg1(_label___b_o)
+
+                                #<  data but in containers
+                                in_cont = DNN_input_container_2026(batch=batch)
+                                in_cont.extend(input___b_i.detach().clone())
+                                label_cont = DNN_label_container_2026(data=_label___b_o, data_is_already_posneg1=True)
+                                del _label___b_o
+                                #<  model      infra
+                                the_model = dry_stack_test__DNN_model__2026(in_features=dim_0, out_features=dim_2, layer_count=2)
+                                optim_for_model = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=the_model.parameters(for_optim=True), 
+                                                                                    learning_rate___s = learning_rate___s)
+
+
+
+
+                                _temp__layer = the_model._layers[0]
+                                assert isinstance(_temp__layer, DigitalMapping_layer__2026)
+                                assert _temp__layer.in_dim == 11
+                                assert _temp__layer.out_dim == 3
+                                _temp__layer = the_model._layers[1]
+                                assert isinstance(_temp__layer, DigitalMapping_layer__2026)
+                                aaaaaaaa1 = _temp__layer._raw_weight___oCAP_iCAP.shape
+                                assert _temp__layer.in_dim == 3
+                                assert _temp__layer.out_dim == 3
+
+                                #epoch 0
+                                optim_for_model.zero_grad()
+                                output___b_o:torch.Tensor = the_model(in_cont.get_useful())
+                                assert _either_1_or_neg1(output___b_o)
+                                flag_perfect___o, _ = label_cont.detect_good_output___by_position(output___b_o,output_is_already_posneg1=True)
+
+                                assert label_cont.out_dim() == the_model.out_dim()
+                                _temp___grad_input = label_cont.get_useful()
+                                assert _tensor_shape_check(output___b_o, 2, 3)
+                                assert _tensor_shape_check(_temp___grad_input, 2, 3)
+                                assert output___b_o.shape == _temp___grad_input.shape
+                                backward_to_this_list = []
+                                backward_to_this_list.extend(the_model.parameters(for_backward=True))
+                                output___b_o.backward(gradient=_temp___grad_input, inputs=backward_to_this_list)
+                                optim_for_model.step()
+
+
+                                test__remove_this = torch.tensor([True, True, False])
+                                the_model.remove_output_slot(test__remove_this)
+                                label_cont.remove_output_slot(test__remove_this)
+                                del test__remove_this
+
+
+
+                                _temp__layer = the_model._layers[0]
+                                assert isinstance(_temp__layer, DigitalMapping_layer__2026)
+                                assert _temp__layer.in_dim == 11
+                                assert _temp__layer.out_dim == 3
+                                _temp__layer = the_model._layers[1]
+                                assert isinstance(_temp__layer, DigitalMapping_layer__2026)
+                                aaaaaaaa1 = _temp__layer._raw_weight___oCAP_iCAP.shape
+                                assert _temp__layer.in_dim == 3
+                                assert _temp__layer.out_dim == 1
+                                #epoch 1
+                                optim_for_model.zero_grad()
+                                output___b_o:torch.Tensor = the_model(in_cont.get_useful())
+                                assert _either_1_or_neg1(output___b_o)
+                                flag_perfect___o, _ = label_cont.detect_good_output___by_position(output___b_o,output_is_already_posneg1=True)
+
+                                assert label_cont.out_dim() == the_model.out_dim()
+                                _temp___grad_input = label_cont.get_useful()
+                                assert _tensor_shape_check(output___b_o, 2, 1)
+                                assert _tensor_shape_check(_temp___grad_input, 2, 1)
+                                assert output___b_o.shape == _temp___grad_input.shape
+                                backward_to_this_list = []
+                                backward_to_this_list.extend(the_model.parameters(for_backward=True))
+                                output___b_o.backward(gradient=_temp___grad_input, inputs=backward_to_this_list)
+                                optim_for_model.step()
+
+                                pass#for _
+                            pass#for learning_rate___s
+                        pass#for dim_2
+                    pass#for dim_0
+                pass#for batch
+            pass#/ test
+
+
+
+
+
+
+
         if "remove some output slot" and True:
             for batch in [2,11,25]:
                 for dim_0 in [11,33,64,97,135,167]:
                     for dim_2 in [3,15,31,66,88]:
                         if dim_0<=dim_2:
                             continue
-                        for learning_rate___s in [0.01, 0.123, 0.321]:
+                        for learning_rate___s in [0.3]:#lr 0.3, the acc goes from 0.5 to 0.65 in 1 epoch, according to previous tests.
                             for _ in range(16):
 
                                 #<  dataset
                                 input___b_i = rand_sign(size=[batch, dim_0], dtype=torch.float32)#or fp16
                                 assert _either_1_or_neg1(input___b_i)
-                                label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = dim_2,
+                                _label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = dim_2,
                                         random_ratio = 0., input_is_already_posneg1 = True)
-                                assert _either_1_or_neg1(label___b_o)
+                                assert _either_1_or_neg1(_label___b_o)
 
                                 #<  data but in containers
                                 in_cont = DNN_input_container_2026(batch=batch)
                                 in_cont.extend(input___b_i.detach().clone())
-                                label_cont = DNN_label_container_2026(data=label___b_o, data_is_already_posneg1=True)
+                                label_cont = DNN_label_container_2026(data=_label___b_o, data_is_already_posneg1=True)
+                                del _label___b_o
                                 #<  model      infra
                                 the_model = dry_stack_test__DNN_model__2026(in_features=dim_0, out_features=dim_2, layer_count=2)
-
-                                #optim
                                 optim_for_model = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=the_model.parameters(for_optim=True), 
                                                                                     learning_rate___s = learning_rate___s)
-                                optim_for_model.zero_grad()
-                                #<  model before
-                                model__before__output___b_o:torch.Tensor = the_model(in_cont.get_useful())
-                                #<  model backward
-                                the_parameters_list = []
-                                the_parameters_list.extend(the_model.parameters(for_backward=True))
-                                model__before__output___b_o.backward(gradient=label_cont.get_useful(), inputs=the_parameters_list)
-                                del the_parameters_list
-                                optim_for_model.step()
-                                #<  model after
-                                model__after__output___b_o:torch.Tensor = the_model(input___b_i)
                                 
+                                perfect_slots_counts___along_epoch:list[float] = []
+                                
+                                for epoch in range(5):
+                                    optim_for_model.zero_grad() 优化器也要是新的。。。每一次要用新的。。
+                                    output___b_o:torch.Tensor = the_model(in_cont.get_useful())
+                                    assert _either_1_or_neg1(output___b_o)
+                                    flag_perfect___o, _ = label_cont.detect_good_output___by_position(output___b_o,output_is_already_posneg1=True)
 
+                                    assert label_cont.out_dim() == the_model.out_dim()
+                                    _temp___grad_input = label_cont.get_useful()
+                                    #assert _tensor_shape_check(output___b_o, batch, dim_2)
+                                    #assert _tensor_shape_check(_temp___grad_input, batch, dim_2)
+                                    assert output___b_o.shape == _temp___grad_input.shape
+                                    print(the_model._report_shape())
+                                    ########################
+                                    backward_to_this_list = []
+                                    backward_to_this_list.extend(the_model.parameters(for_backward=True))
+                                    
+                                    output___b_o.backward(gradient=_temp___grad_input, inputs=backward_to_this_list)
+                                    optim_for_model.step()
+
+                                    perfect_slots_counts___along_epoch.append(flag_perfect___o.sum().item())
+                                    the_model.remove_output_slot(flag_perfect___o)
+                                    label_cont.remove_output_slot(flag_perfect___o)
+                                    if label_cont.out_dim() == 0:
+                                        break
+                                    pass
+                                #<  model after
+                                print(perfect_slots_counts___along_epoch)
                                 pass#for _
                             pass#for learning_rate___s
                         pass#for dim_2
@@ -617,7 +1341,7 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
 
 
 
-        #加上输出的缩减
+        #反向查index
         #device adaption.
 
         return

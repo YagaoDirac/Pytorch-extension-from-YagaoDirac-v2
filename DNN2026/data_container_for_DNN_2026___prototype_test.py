@@ -213,7 +213,7 @@ class DNN_input_container_2026(torch.nn.Module):
 
     pass
 
-if "basic test" and __DEBUG_ME__() and False:
+if "basic test" and __DEBUG_ME__() and True:
     def ____test____DNN_input_container_2026():
         if "basic idea" and True:
             batch = 2
@@ -433,7 +433,7 @@ class DNN_label_container_2026(torch.nn.Module):
         super().__init__()
         #<  safety
         assert data.dtype in [torch.float, torch.float32, torch.float16, torch.float64, torch.bfloat16]
-        assert data_is_already_posneg1, "还没想好。"
+        assert data_is_already_posneg1, "暂时只接受正负1。如果不是正负1，还没想好。"
         #<  real payload
         if detach_clone_the_data:
             self.data___b_o = torch.nn.Parameter(data.detach().clone(), requires_grad=False)
@@ -441,8 +441,8 @@ class DNN_label_container_2026(torch.nn.Module):
         else:
             self.data___b_o = torch.nn.Parameter(data, requires_grad=False)
             pass
-        assert self.data___b_o.dtype in [torch.float, torch.float32, torch.float16, torch.float64, torch.bfloat16]
         assert self.data___b_o.requires_grad == False
+        assert self.data___b_o.dtype in [torch.float, torch.float32, torch.float16, torch.float64, torch.bfloat16]
         return
 
     def get_useful(self)->torch.Tensor:
@@ -472,14 +472,17 @@ class DNN_label_container_2026(torch.nn.Module):
             return
     
     def detect_good_output___by_position(self, output_posneg1___b_o:torch.Tensor, output_is_already_posneg1:bool,
-            good_threshold:torch.Tensor|float, 
-            inner_calc_dtype = torch.float32, safety = False  )->tuple[torch.Tensor|torch.Tensor]:
-        '''return flag_perfect___o, flag_good_enough___o'''
+            good_threshold:torch.Tensor|float|None = None, 
+            inner_calc_dtype = torch.float32, safety = False  )->tuple[torch.Tensor, torch.Tensor|None]:
+        '''return flag_perfect___o, flag_good_enough___o/None
+        
+        if good_threshold is None(not specified), the flag_good_enough___o is None'''
         #<  safety
-        assert output_is_already_posneg1, "还没想好。"
+        assert output_is_already_posneg1, "还没想好如果不是的情况。"
+        if good_threshold is not None:
+            assert good_threshold > 0.5 and good_threshold < 1.
+            pass
         if safety:
-            assert perfect_threshold > 0.5  1w改，必须是彻底的perfect才行
-            assert good_threshold > 0.5
             # label_posneg1___b_o is self.data___b_o in class.
             assert _either_1_or_neg1(self.data___b_o)
             assert _either_1_or_neg1(output_posneg1___b_o)
@@ -487,16 +490,26 @@ class DNN_label_container_2026(torch.nn.Module):
             pass
         #<  data 
 
-        #<  calc
-        flag_eq__before_mean___b_o = self.data___b_o.eq(output_posneg1___b_o)
-        mean_acc___o = flag_eq__before_mean___b_o.to(inner_calc_dtype).mean(dim=0)
-        #<  perfect_threshold
-        flag_perfect___o = mean_acc___o.ge(perfect_threshold)
-        #<  good_threshold
-        flag_good_enough___o = mean_acc___o.ge(good_threshold)
-        flag_good_enough___o = flag_good_enough___o.logical_and(flag_perfect___o.logical_not())
+        with torch.no_grad():
 
-        return flag_perfect___o, flag_good_enough___o
+            #<  calc
+            flag_eq__before_mean___b_o = self.data___b_o.eq(output_posneg1___b_o)
+            #<  perfect
+            flag_perfect___o = flag_eq__before_mean___b_o.all(dim=0)
+            #<  good
+            if good_threshold is None:
+                flag_good_enough___o = None
+                pass
+            else:
+                mean_acc___o = flag_eq__before_mean___b_o.to(inner_calc_dtype).mean(dim=0)
+                flag_good_enough___o = mean_acc___o.ge(good_threshold)
+                flag_good_enough___o = flag_good_enough___o.logical_and(flag_perfect___o.logical_not())
+                pass
+            #assert flag_perfect___o.shape == torch.Size([flag_eq__before_mean___b_o.shape[1]])###################
+            #assert flag_perfect___o.shape == flag_good_enough___o.shape#########################################
+
+            return flag_perfect___o, flag_good_enough___o
+        #end of function
     
     if "no plan for now" and False:
         def detect_perfect_output___all_to_all(self, the_output:torch.Tensor)->tuple[torch.Tensor,torch.Tensor]:
@@ -573,14 +586,15 @@ class DNN_label_container_2026(torch.nn.Module):
 
     pass
 
-if "basic test" and __DEBUG_ME__() and False:
+if "basic test" and __DEBUG_ME__() and True:
     def ____test____DNN_label_container_2026():
         if "basic idea" and True:
             batch = 2
             #<  the container
             the_container = DNN_label_container_2026(data= \
                         torch.tensor([  [ 11.,  22,  33],
-                                        [111, 122, 133],]))
+                                        [111, 122, 133],]), 
+                                        data_is_already_posneg1=True)# debug purpose. To fool the container
             assert the_container.out_dim() == 3
             assert the_container.batch() == 2
             #assert the_container.capacity() == 6
@@ -603,7 +617,8 @@ if "basic test" and __DEBUG_ME__() and False:
             for batch in [2,8,23]:
                 for ori___out_dim in [3,11,29]:
                     #<  the container
-                    the_container = DNN_label_container_2026(data = torch.randn(size=[batch, ori___out_dim]))
+                    the_container = DNN_label_container_2026(data = torch.randn(size=[batch, ori___out_dim]),  
+                                        data_is_already_posneg1=True)# debug purpose. To fool the container
                     assert the_container.out_dim() == ori___out_dim
                     assert the_container.batch() == batch
                     #<  the answer
@@ -621,8 +636,10 @@ if "basic test" and __DEBUG_ME__() and False:
             for batch in [2,8,23]:
                 for ori___out_dim in [3,11,29]:
                     #<  the container
-                    the_container_keep = DNN_label_container_2026(data = torch.randn(size=[batch, ori___out_dim]))
-                    the_container_remove = DNN_label_container_2026(data = the_container_keep.data___b_o, detach_clone_the_data=True)
+                    the_container_keep = DNN_label_container_2026(data = torch.randn(size=[batch, ori___out_dim]), 
+                                        data_is_already_posneg1=True)# debug purpose. To fool the container
+                    the_container_remove = DNN_label_container_2026(data = the_container_keep.data___b_o, detach_clone_the_data=True, 
+                                        data_is_already_posneg1=True)# debug purpose. To fool the container
                     #<  the answer
                     the_answer___o = torch.rand(size=[ori___out_dim]).gt(0.5)
                     #<  calc
@@ -636,22 +653,26 @@ if "basic test" and __DEBUG_ME__() and False:
 
         if "dtype adaption" and True:
             for dtype in [torch.float, torch.float32, torch.float16, torch.float64, torch.bfloat16]:
-                the_container = DNN_label_container_2026(data = torch.randn(size=[2, 3], dtype=dtype))
+                the_container = DNN_label_container_2026(data = torch.randn(size=[2, 3], dtype=dtype),
+                                        data_is_already_posneg1=True)# debug purpose. To fool the container
                 assert the_container.data___b_o.dtype == dtype
                 pass#for dtype
 
-            the_container = DNN_label_container_2026(data = torch.randn(size=[2, 3], dtype=torch.float32))
+            the_container = DNN_label_container_2026(data = torch.randn(size=[2, 3], dtype=torch.float32),
+                                        data_is_already_posneg1=True)# debug purpose. To fool the container
             assert the_container.data___b_o.dtype == torch.float32
             the_container.to(torch.float16)
             assert the_container.data___b_o.dtype == torch.float16
             pass#/ test
 
         if "device adaption" and True:
-            the_container = DNN_label_container_2026(data = torch.randn(size=[2, 3], device="cpu"))
+            the_container = DNN_label_container_2026(data = torch.randn(size=[2, 3], device="cpu"),
+                                        data_is_already_posneg1=True)# debug purpose. To fool the container
             assert the_container.data___b_o.device.type == "cpu"
             the_container.cuda()
             assert the_container.data___b_o.device.type == "cuda"
-            the_container = DNN_label_container_2026(data = torch.randn(size=[2, 3], device="cuda"))
+            the_container = DNN_label_container_2026(data = torch.randn(size=[2, 3], device="cuda"),
+                                        data_is_already_posneg1=True)# debug purpose. To fool the container
             assert the_container.data___b_o.device.type == "cuda"
             the_container.cpu()
             assert the_container.data___b_o.device.type == "cpu"
@@ -661,15 +682,15 @@ if "basic test" and __DEBUG_ME__() and False:
     ____test____DNN_label_container_2026()
     pass
 
-if "detect perfect output         only the by position version" and __DEBUG_ME__() and False:
+if "detect perfect output         only the by position version" and __DEBUG_ME__() and True:
     def ____detect_perfect_output___by_position____():
 
-        if "detect good output        by position       also test" and False:
+        if "detect good output        by position       also test" and True:
 
             batch = 3
             out_dim = 5
-            perfect_threshold = 0.999
-            assert perfect_threshold > 0.5
+            #perfect_threshold = 0.999
+            #assert perfect_threshold > 0.5
             good_threshold = 0.65
             assert good_threshold > 0.5
             inner_calc_dtype = torch.float32
@@ -694,7 +715,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
             mean_acc___o = flag_eq__before_mean___b_o.to(inner_calc_dtype).mean(dim=0)
             assert _tensor_equal(mean_acc___o, [0.6, 0.3, 0.6, 1., 0.3], epsilon=0.1)
             #<  perfect_threshold
-            flag_perfect___o = mean_acc___o.gt(perfect_threshold)
+            flag_perfect___o = mean_acc___o.gt(0.999)#perfect_threshold)
             assert flag_perfect___o.shape == torch.Size([out_dim])
             assert flag_perfect___o.eq(torch.tensor([0, 0, 0, 1, 0], dtype=torch.bool)).all()
             #<  good_threshold
@@ -707,16 +728,16 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 
             pass#/ test
 
-        if "simplified version. before into a function. not a test" and False:
+        if "simplified version. before into a function. not a test" and True:
             #<  param
             output_posneg1___b_o
             # batch = 3
             # out_dim = 5
-            perfect_threshold = 0.999
+            #perfect_threshold = 0.999
             good_threshold = 0.65
             inner_calc_dtype = torch.float32
             #<  safety
-            assert perfect_threshold > 0.5
+            #assert perfect_threshold > 0.5
             assert good_threshold > 0.5
             # label_posneg1___b_o is self.data in class.
             assert _either_1_or_neg1(label_posneg1___b_o)
@@ -728,7 +749,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
             flag_eq__before_mean___b_o = label_posneg1___b_o.eq(output_posneg1___b_o)
             mean_acc___o = flag_eq__before_mean___b_o.to(inner_calc_dtype).mean(dim=0)
             #<  perfect_threshold
-            flag_perfect___o = mean_acc___o.gt(perfect_threshold)
+            flag_perfect___o = mean_acc___o.gt(0.999)#perfect_threshold)
             #<  good_threshold
             flag_good_enough___o = mean_acc___o.gt(good_threshold)
             flag_good_enough___o = flag_good_enough___o.logical_and(flag_perfect___o.logical_not())
@@ -736,9 +757,9 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
             #return flag_perfect___o, flag_good_enough___o
             pass#/ test
 
-        if "class function equivalence" and False:
-            perfect_threshold = 0.999
-            assert perfect_threshold > 0.5
+        if "class function equivalence" and True:
+            #perfect_threshold = 0.999
+            #assert perfect_threshold > 0.5
             good_threshold = 0.65
             assert good_threshold > 0.5
             inner_calc_dtype = torch.float32
@@ -747,7 +768,8 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
                 for out_dim in [5,18,51]:
                     #<  data 
                     the_out_container = DNN_label_container_2026(
-                            data=rand_sign(size=[batch, out_dim], dtype=torch.float32))
+                            data=rand_sign(size=[batch, out_dim], dtype=torch.float32),
+                                        data_is_already_posneg1=True)# debug purpose.
 
                     label_posneg1___b_o = the_out_container.data___b_o.detach().clone()
                     assert _either_1_or_neg1(label_posneg1___b_o)
@@ -761,7 +783,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
                     mean_acc___o = flag_eq__before_mean___b_o.to(inner_calc_dtype).mean(dim=0)
 
                     #<  perfect_threshold
-                    flag_perfect___o = mean_acc___o.gt(perfect_threshold)
+                    flag_perfect___o = mean_acc___o.gt(0.999)#perfect_threshold)
                     assert flag_perfect___o.shape == torch.Size([out_dim])
                     #<  good_threshold
                     flag_good_enough___o = mean_acc___o.gt(good_threshold)
@@ -772,7 +794,8 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
                     class_ver___flag_perfect___o, class_ver___flag_good_enough___o = \
                             the_out_container.detect_good_output___by_position( \
                                     output_posneg1___b_o = output_posneg1___b_o.detach().clone(),
-                                    good_threshold = good_threshold, perfect_threshold = perfect_threshold)
+                                    output_is_already_posneg1=True, 
+                                    good_threshold = good_threshold)
                     #<  assert
                     assert flag_perfect___o.eq(class_ver___flag_perfect___o).all()
                     assert flag_good_enough___o.eq(class_ver___flag_good_enough___o).all()
@@ -780,7 +803,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
                 pass#for batch
             pass#/ test
 
-        if "threshold" and False:
+        if "threshold" and True:
             #<  data
             the_out_container = DNN_label_container_2026(data=torch.tensor([ 
                     [1,1,1,1,1,1],
@@ -837,7 +860,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
             pass#/ test
 
         '''the data used in these 2 (above and below) tests are different.'''
-        if "no scan         what if the perfect/good output slots are removed?" and False:
+        if "no scan         what if the perfect/good output slots are removed?" and True:
 
             #<  data
             the_out_container = DNN_label_container_2026(data=torch.tensor([ 
@@ -927,7 +950,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
             assert no_good___flag_good_enough___o.eq(torch.tensor([0,0,0,0], dtype=torch.bool)).all()
 
             pass#/ test
-        if "scan         what if the perfect/good output slots are removed?" and False:
+        if "scan         what if the perfect/good output slots are removed?" and True:
 
             # dim = 8
             # good_threshold = 6./8.
@@ -944,6 +967,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
                     assert _temp___out_data.diag().eq(1.).all()
                     assert _temp___out_data[0, 1:].eq(-1.).all()
                     assert _temp___out_data[1:, 0].eq(1.).all()
+                    assert _either_1_or_neg1(_temp___out_data)
 
                     the_out_container = DNN_label_container_2026(data=_temp___out_data, data_is_already_posneg1 = True)
                     del _temp___out_data
@@ -1041,6 +1065,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
                     assert _temp___out_data.diag().eq(1.).all()
                     assert _temp___out_data[0, 1:].eq(-1.).all()
                     assert _temp___out_data[1:, 0].eq(1.).all()
+                    assert _either_1_or_neg1(_temp___out_data)
 
                     the_out_container = DNN_label_container_2026(data=_temp___out_data, data_is_already_posneg1 = True)
                     del _temp___out_data
@@ -1142,6 +1167,7 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
                         label_posneg1___b_o = rand_sign(size=[batch, out_dim])
                         assert _either_1_or_neg1(label_posneg1___b_o)
                         output_posneg1___b_o = rand_sign(size=[batch, out_dim])
+                        assert _either_1_or_neg1(output_posneg1___b_o)
 
                         iota_of_out___py_list = iota(out_dim).tolist()
                         random.shuffle(iota_of_out___py_list)

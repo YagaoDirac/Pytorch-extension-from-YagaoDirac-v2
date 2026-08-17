@@ -695,6 +695,7 @@ class autograd_function_class_for__DigitalMapping_layer__2026(torch.autograd.Fun
 
         #<  real payload
         #copied from the function _test___DNN_forward___full_safety section "real payload"
+        assert raw_weight___o_i.shape[1] == input_posneg1___b_i.shape[1]
         index_of_max_of_raw_weight___o = raw_weight___o_i.max(dim=1).indices
         output_posneg1___b_o = input_posneg1___b_i[:, index_of_max_of_raw_weight___o]
 
@@ -946,6 +947,111 @@ if "dtype adaption" and __DEBUG_ME__() and False:
 
 
 
+
+
+'''pytorch feature test          I found the bug. I add some assert. I believe it's solved now. So this section is not important any more'''
+if "trivial test" and __DEBUG_ME__() and True:
+    def ____pytorch_feature_test():
+        if "buffer_0" and True:
+            buffer_0 = torch.randn(size=[100,100], dtype=torch.float32, requires_grad=True)
+            buffer_0_clipped = buffer_0[:15, :20]
+            input = rand_sign(size=[2,20], dtype=torch.float32)
+            assert _either_1_or_neg1(input)
+            #<  forward
+            x:torch.Tensor
+            x = autograd_function_class_for__DigitalMapping_layer__2026.apply(input, buffer_0_clipped, torch.tensor(1.))
+            x.backward(gradient=rand_sign(size=[2, 15]), inputs=[buffer_0])# worked
+
+            assert buffer_0_clipped.grad is None
+
+            assert buffer_0.grad is not None
+            assert isinstance(buffer_0.grad, torch.Tensor)
+            pass#/ test
+
+        if "buffer_0_clipped" and True:
+            buffer_0 = torch.randn(size=[100,100], dtype=torch.float32, requires_grad=True)
+            buffer_0_clipped = buffer_0[:15, :20]
+            input = rand_sign(size=[2,20], dtype=torch.float32)
+            assert _either_1_or_neg1(input)
+            #<  forward
+            x:torch.Tensor
+            x = autograd_function_class_for__DigitalMapping_layer__2026.apply(input, buffer_0_clipped, torch.tensor(1.))
+            x.backward(gradient=rand_sign(size=[2, 15]), inputs=[buffer_0_clipped])# worked
+
+            assert buffer_0_clipped.grad is not None
+            assert isinstance(buffer_0_clipped.grad, torch.Tensor)
+
+            assert buffer_0.grad is None
+            pass#/ test
+
+        if "buffer_0, buffer_1" and True:
+            buffer_0 = torch.randn(size=[100,100], dtype=torch.float32, requires_grad=True)
+            buffer_0_clipped = buffer_0[:15, :20]
+            buffer_1 = torch.randn(size=[100,100], dtype=torch.float32, requires_grad=True)
+            buffer_1_clipped = buffer_1[:10, :15]
+            input = rand_sign(size=[2,20], dtype=torch.float32)
+            assert _either_1_or_neg1(input)
+            #<  forward
+            x     :torch.Tensor
+            output:torch.Tensor
+            x      = autograd_function_class_for__DigitalMapping_layer__2026.apply(input, buffer_0_clipped, torch.tensor(1.))
+            output = autograd_function_class_for__DigitalMapping_layer__2026.apply(x,     buffer_1_clipped, torch.tensor(1.))
+            #<  backward
+            output.backward(gradient=rand_sign(size=[2, 10]), inputs=[buffer_0, buffer_1])
+
+            assert buffer_0_clipped.grad is None
+
+            assert buffer_0.grad is not None
+            assert isinstance(buffer_0.grad, torch.Tensor)
+
+            assert buffer_1_clipped.grad is None
+
+            assert buffer_1.grad is not None
+            assert isinstance(buffer_1.grad, torch.Tensor)
+            pass#/ test
+
+        if "buffer_0_clipped, buffer_1_clipped" and True:
+            buffer_0 = torch.randn(size=[100,100], dtype=torch.float32, requires_grad=True)
+            buffer_0_clipped = buffer_0[:15, :20]
+            buffer_1 = torch.randn(size=[100,100], dtype=torch.float32, requires_grad=True)
+            buffer_1_clipped = buffer_1[:10, :15]
+            input = rand_sign(size=[2,20], dtype=torch.float32)
+            assert _either_1_or_neg1(input)
+            #<  forward
+            x     :torch.Tensor
+            output:torch.Tensor
+            x      = autograd_function_class_for__DigitalMapping_layer__2026.apply(input, buffer_0_clipped, torch.tensor(1.))
+            output = autograd_function_class_for__DigitalMapping_layer__2026.apply(x,     buffer_1_clipped, torch.tensor(1.))
+            #<  backward
+            output.backward(gradient=rand_sign(size=[2, 10]), inputs=[buffer_0_clipped, buffer_1_clipped])
+
+            assert buffer_0_clipped.grad is not None
+            assert isinstance(buffer_0_clipped.grad, torch.Tensor)
+
+            assert buffer_0.grad is None
+
+            assert buffer_1_clipped.grad is not None
+            assert isinstance(buffer_1_clipped.grad, torch.Tensor)
+
+            assert buffer_1.grad is None
+            pass#/ test
+        
+        return
+    ____pytorch_feature_test()
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
 '''2个申请内存的函数单独拿出来，方便以后调整。'''
 def _only_for_DigitalMapping_layer__2026_to_use____calc_bigger_capacity__for_in(
         extra_in_dim:int, 
@@ -1174,6 +1280,8 @@ if " test" and __DEBUG_ME__() and False:
 
 
 
+'''DigitalMapping_layer__2026                the layer'''
+'''DigitalMapping_layer__2026                the layer'''
 from collections.abc import Iterator
 class DigitalMapping_layer__2026(torch.nn.Module):
     in_dim         :int
@@ -1542,9 +1650,10 @@ class DigitalMapping_layer__2026(torch.nn.Module):
             _temp__useful_part = _temp__useful_part[keep_which,:]
             if squeeze_the_input_dim:
                 self._raw_weight___oCAP_iCAP.data = _temp__useful_part
-                pass
+                self.out_dim = self._raw_weight___oCAP_iCAP.shape[0]
+                return 
             else:# not to squeeze the input dim.
-                assert False, "unreachable" 
+                assert False, "unreachable, untested" 
                 # for non-last layer, if the later layer needs more input, then this layer needs more output dimention.
                 # but for last layer, in no case it needs any extra output dimention.
                 _temp___keep_which___in_int = keep_which.to(torch.int32)
@@ -1555,7 +1664,7 @@ class DigitalMapping_layer__2026(torch.nn.Module):
                     pass
                 self._raw_weight___oCAP_iCAP.data[:, :self.in_dim] = _temp__useful_part
                 pass
-            self.out_dim = self._raw_weight___oCAP_iCAP.shape[0]
+            self.out_dim = how_many_to_keep
             return 
         #end of function
     def remove_output_slot(self, remove_which:torch.Tensor, squeeze_the_input_dim = False)->None:
@@ -2894,7 +3003,7 @@ if "squeeze" and __DEBUG_ME__() and False:
 '''the optimizer'''
 '''the optimizer'''
 '''the optimizer'''
-def only_for_DigitalMapping_layer__2026_to_use___optim_step(raw_weight___o_i:torch.Tensor, grad_like_for_raw_weight___o_i:torch.Tensor, 
+def 并入model的class了____only_for_DigitalMapping_layer__2026_to_use___optim_step(raw_weight___o_i:torch.Tensor, grad_like_for_raw_weight___o_i:torch.Tensor, 
             learning_rate___s:torch.Tensor|float, safety_check = True, epsilon = torch.tensor(0.01))->torch.Tensor:
     
 # pseudo_raw_weight = torch.tanh(pseudo_raw_weight___before_protection)
