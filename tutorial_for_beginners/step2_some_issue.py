@@ -7,6 +7,8 @@ the best way is to know all the issues and not to run into it.
 '''
 import torch
 
+
+
 def Does_it_require_grad():
     tensor_a = torch.tensor([42.])#default is false
     assert tensor_a.requires_grad == False
@@ -129,6 +131,25 @@ def how_to__add_remove_modify__a_param_in_module_class():
 how_to__add_remove_modify__a_param_in_module_class()
 
 
+
+def set__require_grad__before_using_it():
+    #this works.
+    a = torch.randn(size=[1])
+    a.requires_grad_()  #notice the sequence
+    b = a*a             #notice the sequence
+    assert a.requires_grad
+    b.backward(gradient=torch.ones_like(b), inputs=[a])
+    
+    # but this doesn't.
+    a = torch.randn(size=[1])
+    b = a*a             #notice the sequence
+    a.requires_grad_()  #notice the sequence
+    assert a.requires_grad
+    #b.backward(gradient=torch.ones_like(b), inputs=[a]) this line raises.
+    
+    return 
+
+set__require_grad__before_using_it()
 
 
 '''
