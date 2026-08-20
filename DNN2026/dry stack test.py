@@ -157,10 +157,27 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
     @staticmethod
     def backward(the_model:dry_stack_test__DNN_model__2026, output___b_o:torch.Tensor, gradient:torch.Tensor)->None:
         '''This function helps you handle the "inputs=" inside the backward function call.'''
-        backward_to_this_list = []
-        backward_to_this_list.extend(the_model.parameters(for_backward=True))
-                                    
-        output___b_o.backward(gradient=gradient, inputs=backward_to_this_list)
+        #backward_to_this_list = []
+        #backward_to_this_list.extend(the_model.parameters(for_backward=True))
+
+        parameter_list:list[torch.nn.Parameter] = []
+        for digitalmapping_layer in the_model._layers:
+            assert isinstance(digitalmapping_layer, DigitalMapping_layer__2026)
+            parameter_list.append(digitalmapping_layer._raw_weight___oCAP_iCAP)#1 11w1w1 这个原版的尺寸不对。。要给最终用的尺寸
+            pass
+
+        for param in parameter_list:
+            assert isinstance(param, torch.Tensor)
+            if hasattr(param, "aaaaa"):
+                print(param)
+            else:
+                param.aaaaa = "debug aaaaa"
+                param.data.aaaaaaaaa = "debug aaaaaaaaa"
+                pass
+            pass#for 
+        
+        #output___b_o.backward(gradient=gradient, inputs=backward_to_this_list)
+        output___b_o.backward(gradient=gradient, inputs=parameter_list)
         return
 
     def zero_grad(self, set_to_none: bool = True) -> None:
@@ -246,6 +263,7 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
         return #end of function
 
     def parameters(self, recurse = True, for_optim = False, for_backward = False):
+        assert False, "emmmm 还没想好，但是肯定不用这个函数了。"
         if for_optim:
             return self._layers
             pass
@@ -945,22 +963,19 @@ if "integrated test" and __DEBUG_ME__() and False:
 
 
 
-1w 继续
-1w 继续
-1w 继续
-1w 继续
-1w 继续
-
-删一部分输出以后，训练过程里面有一些跑不通？
 
 
 
 
 
-if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
-    def ____basic_behavior_of_dry_stack_test____():
 
-        if "layer and 1 layer model equivalence               no in_cont    no out_cont" and True:
+
+
+'''with optim_for___DigitalMapping_layer__2026'''
+if "basic behavior of dry stack test" and __DEBUG_ME__() and False:
+    def ____basic_behavior_of_dry_stack_test________with_optim_for___DigitalMapping_layer__2026():
+
+        if "layer and 1 layer model equivalence               no in_cont    no out_cont" and False:
             from DNN2026.digitalmapping_layer___prototype_test import optim_for___DigitalMapping_layer__2026
             for batch in [2,11,25]:
                 for in_dim in [3,15,31,66]:
@@ -1034,9 +1049,10 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                         pass#for out_dim7
                     pass#for in_dim
                 pass#for batch
+                del optim_for___DigitalMapping_layer__2026
             pass#/ test
 
-        if "layer and 1 layer model equivalence               with in_cont    with out_cont" and True:
+        if "layer and 1 layer model equivalence               with in_cont    with out_cont" and False:
             from DNN2026.digitalmapping_layer___prototype_test import optim_for___DigitalMapping_layer__2026
             for batch in [2,11,25]:
                 for in_dim in [3,15,31,66]:
@@ -1114,9 +1130,10 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                         pass#for out_dim7
                     pass#for in_dim
                 pass#for batch
+            del optim_for___DigitalMapping_layer__2026
             pass#/ test
 
-        if "layer and 2 layer model equivalence               with in_cont    with out_cont" and True:
+        if "layer and 2 layer model equivalence               with in_cont    with out_cont" and False:
             from DNN2026.digitalmapping_layer___prototype_test import optim_for___DigitalMapping_layer__2026
             for batch in [2,11,25]:
                 for dim_0 in [11,33,64,97,135,167]:
@@ -1206,17 +1223,19 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                         pass#for dim_2
                     pass#for dim_0
                 pass#for batch
+            del optim_for___DigitalMapping_layer__2026
             pass#/ test
+        return
+    ____basic_behavior_of_dry_stack_test________with_optim_for___DigitalMapping_layer__2026()
+    pass
 
 
 
+'''with the optim part inside model'''
+if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
+    def ____basic_behavior_of_dry_stack_test____():
 
-
-
-
-
-        '''???????????????????????'''
-        if "remove some output slot" and False:
+        if "remove some output slot" and True:
             for batch in [2]:
                 for dim_0 in [11,]:
                     for dim_2 in [3,]:
@@ -1228,17 +1247,17 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                                 #<  dataset
                                 input___b_i = rand_sign(size=[batch, dim_0], dtype=torch.float32)#or fp16
                                 assert _either_1_or_neg1(input___b_i)
+                                assert input___b_i.is_floating_point()
+
                                 _label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = dim_2,
                                         random_ratio = 0., input_is_already_posneg1 = True)
                                 assert _either_1_or_neg1(_label___b_o)
-
+                                assert _label___b_o.is_floating_point()
                                 #<  data but in containers
                                 in_cont = DNN_input_container_2026(batch=batch)
                                 in_cont.extend(input___b_i.detach().clone())
                                 #<  model      infra
                                 the_model = dry_stack_test__DNN_model__2026(in_features=dim_0, out_features=dim_2, layer_count=2)
-                                optim_for_model = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=the_model.parameters(for_optim=True), 
-                                                                                    learning_rate___s = learning_rate___s)
 
 
 
@@ -1256,7 +1275,7 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                                 assert _temp__layer.out_dim == 3
 
                                 #epoch 0
-                                optim_for_model.zero_grad()
+                                the_model.zero_grad()
                                 output___b_o:torch.Tensor = the_model(in_cont.get_useful())
                                 assert _either_1_or_neg1(output___b_o)
                                 #
@@ -1266,12 +1285,11 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                                 assert _tensor_shape_check(output___b_o, 2, 3)
                                 #assert _tensor_shape_check(_temp___grad_input, 2, 3)
                                 #assert output___b_o.shape == _temp___grad_input.shape
-                                backward_to_this_list = []
-                                backward_to_this_list.extend(the_model.parameters(for_backward=True))
-                                output___b_o.backward(gradient=_label___b_o, inputs=backward_to_this_list)
-                                optim_for_model.step()
+                                dry_stack_test__DNN_model__2026.backward(the_model = the_model, output___b_o = output___b_o,
+                                                                                                gradient=_label___b_o)
+                                the_model.step(learning_rate___s=learning_rate___s)
 
-
+                                #<    manually remove some.        doesn't have to be any special slots. Only  debug purpose.
                                 test__remove_this = torch.tensor([True, True, False])
                                 the_model.remove_output_slot(test__remove_this)
                                 #label_cont.remove_output_slot(test__remove_this)
@@ -1290,9 +1308,10 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                                 assert _temp__layer.in_dim == 3
                                 assert _temp__layer.out_dim == 1
                                 #epoch 1
-                                optim_for_model.zero_grad()
+                                the_model.zero_grad()
                                 output___b_o:torch.Tensor = the_model(in_cont.get_useful())
                                 assert _either_1_or_neg1(output___b_o)
+                                assert _tensor_shape_check(output___b_o, batch, 1)
                                 #flag_perfect___o, _ = label_cont.detect_good_output___by_position(output___b_o,output_is_already_posneg1=True)
 
                                 #assert label_cont.out_dim() == the_model.out_dim()
@@ -1300,15 +1319,11 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                                 assert _tensor_shape_check(output___b_o, 2, 1)
                                 #assert _tensor_shape_check(_temp___grad_input, 2, 1)
                                 #assert output___b_o.shape == _temp___grad_input.shape
-                                backward_to_this_list
-                                backward_to_this_list___after = []
-                                backward_to_this_list___after.extend(the_model.parameters(for_backward=True))
-                                assert backward_to_this_list[0] is backward_to_this_list___after[0]
-                                assert backward_to_this_list[1] is backward_to_this_list___after[1]
                                 #_temp___grad_input = _label___b_o[:, 2]
                                 _temp___grad_input = rand_sign(size=[2,1])
-                                output___b_o.backward(gradient=_temp___grad_input, inputs=backward_to_this_list___after)
-                                optim_for_model.step()
+                                dry_stack_test__DNN_model__2026.backward(the_model = the_model, output___b_o = output___b_o, 
+                                                                                        gradient=_temp___grad_input)
+                                the_model.step(learning_rate___s=learning_rate___s)
 
                                 pass#for _
                             pass#for learning_rate___s
@@ -1316,8 +1331,6 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                     pass#for dim_0
                 pass#for batch
             pass#/ test
-
-
 
         '''???????????????????????'''
         if "remove some output slot" and False:
