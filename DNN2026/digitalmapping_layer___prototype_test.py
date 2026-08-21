@@ -1326,7 +1326,7 @@ class DigitalMapping_layer__2026(torch.nn.Module):
         _temp__param = torch.nn.Parameter(torch.empty(size=[init_capacity__for_out, init_capacity__for_in], 
                 dtype=_dtype_for_raw_weight, device=device))
 
-        self._raw_weight___oCAP_iCAP = torch.nn.ParameterList([_temp__param])
+        self._raw_weight___oCAP_iCAP = torch.nn.ParameterList([_temp__param])#no [0]
         assert self._raw_weight___oCAP_iCAP[0].dtype in [torch.float, torch.float16, torch.float32, torch.float64, torch.bfloat16]
         if self._init_to_nan:
             with torch.no_grad():
@@ -1511,7 +1511,7 @@ class DigitalMapping_layer__2026(torch.nn.Module):
         #end of function.    
     def get_useful_part_of_raw_weight___and_squeeze(self, squeeze_in = False, squeeze_out = False)->torch.Tensor:
         self._squeeze(squeeze_in = squeeze_in, squeeze_out = squeeze_out)
-        #result = self._raw_weight___oCAP_iCAP[:self.out_dim,:self.in_dim]
+        #result = self._raw_weight___oCAP_iCAP[0][:self.out_dim,:self.in_dim]
         return self.get_useful_part_of_raw_weight()
     
     def _squeeze(self, squeeze_in = False, squeeze_out = False):
@@ -1519,7 +1519,11 @@ class DigitalMapping_layer__2026(torch.nn.Module):
 
         If you need to control the timing and you know what you are doing, feel free to do anything.'''
         #<  safety
-        assert squeeze_in or squeeze_out, "No real payload is asked. Why do you call this function? Or if you know what you are doing, comment this line out."
+        assert squeeze_in or squeeze_out, "No real payload is asked. Why do you call this function? Or if you want to make no-op in this case, comment this line out, the code is ready for you."
+        # # the no-op style.
+        # if not(squeeze_in or squeeze_out):
+        #     assert False, "untested"
+        #     return
 
         #<  real payload
         # calc new capacity.
@@ -1537,7 +1541,7 @@ class DigitalMapping_layer__2026(torch.nn.Module):
         if self._init_to_nan:
             _temp_new_memory.fill_(torch.nan)
             pass
-        _temp_new_memory[:self.out_dim, :self.in_dim] = self._raw_weight___oCAP_iCAP.data[:self.out_dim, :self.in_dim]
+        _temp_new_memory[:self.out_dim, :self.in_dim] = self._raw_weight___oCAP_iCAP[0].data[:self.out_dim, :self.in_dim]
         with torch.no_grad():
             self._raw_weight___oCAP_iCAP[0] = torch.nn.Parameter(_temp_new_memory)
             #torch.nn.Parameter.requires_grad
@@ -1617,7 +1621,7 @@ class DigitalMapping_layer__2026(torch.nn.Module):
             #assert how_many>0#duplicated. 
             assert new_raw_weight_part.nelement() == 0, "Bad param combination. Both are provided. Remove one of them."
 
-            new_raw_weight_part = self._random_init_algo(how_many, self.in_dim, device=self._raw_weight___oCAP_iCAP.device, dtype=self._raw_weight___oCAP_iCAP.dtype)
+            new_raw_weight_part = self._random_init_algo(how_many, self.in_dim, device=self._raw_weight___oCAP_iCAP[0].device, dtype=self._raw_weight___oCAP_iCAP[0].dtype)
             pass# else of if how_many == 0:
         assert new_raw_weight_part.shape[1] == self.in_dim
         
@@ -1637,7 +1641,7 @@ class DigitalMapping_layer__2026(torch.nn.Module):
                     pass
                 _temp___new_container[:self.out_dim, :self.in_dim] = self.get_useful_part_of_raw_weight()
 
-                self._raw_weight___oCAP_iCAP[0] = torch.nn.parameter(_temp___new_container)
+                self._raw_weight___oCAP_iCAP[0] = torch.nn.Parameter(_temp___new_container)
                 #torch.nn.Parameter.requires_grad
                 assert self._raw_weight___oCAP_iCAP[0].requires_grad == True
                 pass
@@ -1657,7 +1661,7 @@ class DigitalMapping_layer__2026(torch.nn.Module):
             _temp__useful_part = self.get_useful_part_of_raw_weight()
             _temp__useful_part = _temp__useful_part[keep_which,:]
             if squeeze_the_input_dim:
-                self._raw_weight___oCAP_iCAP[0] = torch.nn.parameter(_temp__useful_part)
+                self._raw_weight___oCAP_iCAP[0] = torch.nn.Parameter(_temp__useful_part)
                 #torch.nn.Parameter.requires_grad
                 assert self._raw_weight___oCAP_iCAP[0].requires_grad == True
 
@@ -1675,14 +1679,14 @@ class DigitalMapping_layer__2026(torch.nn.Module):
                 assert self._raw_weight___oCAP_iCAP[0].requires_grad == True
 
                 if self._init_to_nan:
-                    self._raw_weight___oCAP_iCAP.data.fill_(torch.nan)
+                    self._raw_weight___oCAP_iCAP[0].data.fill_(torch.nan)
                     pass
-                self._raw_weight___oCAP_iCAP.data[:, :self.in_dim] = _temp__useful_part
+                self._raw_weight___oCAP_iCAP[0].data[:, :self.in_dim] = _temp__useful_part
                 pass
             self.out_dim = how_many_to_keep
             return 
         #end of function
-    def remove_output_slot(self, remove_which:torch.Tensor, squeeze_the_input_dim = False)->None:
+    def remove_output_slot(self, remove_which:torch.Tensor, squeeze_the_input_dim = True)->None:
             self.keep_output_slot(remove_which.logical_not(), 
                     squeeze_the_input_dim = squeeze_the_input_dim)
             return
@@ -1702,89 +1706,6 @@ class DigitalMapping_layer__2026(torch.nn.Module):
     pass# end of class.
 
 
-
-
-
-
-
-
-
-if "any reshape with a new memory chunk, and then backward":
-    def ____test____reshape_and_then_backward():
-        if "a working reference,       not the test" and True:
-            for batch in [2,5,10]:
-                for in_dim in [6,9,13]:
-                    for out_dim in [3,7,11]:
-                        if in_dim<=out_dim:
-                            continue
-                        for _ in range(6):
-                            #<  dataset
-                            input___b_i = rand_sign(size=[batch, in_dim])
-                            label___b_o = rand_sign(size=[batch, out_dim])
-                            #<  infra
-                            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
-
-                            output___b_o:torch.Tensor = the_layer(input___b_i)
-                            output___b_o.backward(gradient=label___b_o, inputs=the_layer._raw_weight___oCAP_iCAP)
-                            pass
-                            pass#for _
-                        pass#for out_dim
-                    pass#for in_dim
-                pass#for batch
-            pass#/ test
-
-        # a = []
-        # b = a
-        # assert a is b
-
-
-        batch = 2
-        in_dim = 6
-        extra___in_dim = 20
-        out_dim = 3
-        #<  dataset
-        label___b_o = rand_sign(size=[batch, out_dim])
-        #<  infra
-        the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
-        #the_list = the_layer._raw_weight___oCAP_iCAP
-        ori_CAP_shape = the_layer._raw_weight___oCAP_iCAP[0].shape
-        assert ori_CAP_shape == torch.Size([16, 16])
-
-        input___b_i = rand_sign(size=[batch, in_dim])
-        output___b_o:torch.Tensor = the_layer(input___b_i)
-        assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
-        output___b_o.backward(gradient=label___b_o, inputs=the_layer._raw_weight___oCAP_iCAP)
-        assert the_layer._raw_weight___oCAP_iCAP[0].grad is not None
-        del output___b_o    
-        the_layer.zero_grad()
-        assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
-        #assert the_layer._raw_weight___oCAP_iCAP[0] is the_list
-        assert the_layer._raw_weight___oCAP_iCAP[0].shape == ori_CAP_shape
-
-
-
-        #assert the_layer._raw_weight___oCAP_iCAP[0] is buffer
-        the_layer.add_input_slot__to_the_tail(how_many=extra___in_dim)
-
-        #assert the_layer._raw_weight___oCAP_iCAP[0] is not buffer
-        assert the_layer._raw_weight___oCAP_iCAP[0].shape == torch.Size([16, 68])
-        assert the_layer._raw_weight___oCAP_iCAP[0].shape != torch.Size([16, 16])
-        
-        input___b_i = rand_sign(size=[batch, in_dim + extra___in_dim])
-        output___b_o:torch.Tensor = the_layer(input___b_i)
-        assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
-        output___b_o.backward(gradient=label___b_o, inputs=[the_layer._raw_weight___oCAP_iCAP[0]])
-        assert the_layer._raw_weight___oCAP_iCAP[0].grad is not None
-        del output___b_o    
-        the_layer.zero_grad()
-        assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
-        #assert the_layer._raw_weight___oCAP_iCAP[0] is not buffer
-        assert the_layer._raw_weight___oCAP_iCAP[0].shape != ori_CAP_shape
-
-1w 好像可以继续了。还是稍微读一下。还有就是把所有的测试都打开，重新跑一遍。
-        return
-    ____test____reshape_and_then_backward()
-    pass
 
 
 
@@ -1858,7 +1779,7 @@ if "get_max_index in module class      basic behavior test" and __DEBUG_ME__() a
 # all the backward related            backward
 if "backward equivalence" and __DEBUG_ME__() and True:
     def ____test____backward_in_module_class()->None:
-        if "allow non posneg1 input?" and False:
+        if "allow non posneg1 input?" and True:
             the_layer = DigitalMapping_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
             input = torch.tensor([[1., 1, 1], [1, -1, 1]], requires_grad=True)
             output:torch.Tensor = the_layer(input)
@@ -2390,13 +2311,17 @@ if "add output slot with specified new raw_weight" and __DEBUG_ME__() and True:
                 for _ in range(6):
                     the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                     the_layer.add_output_slot__to_the_tail(new_raw_weight_part = torch.ones(size=[1, in_dim]))
-                    the_layer._raw_weight___oCAP_iCAP[0][out_dim, in_dim-1] = 2.123
+                    with torch.no_grad():
+                        the_layer._raw_weight___oCAP_iCAP[0][out_dim, in_dim-1] = 2.123
+                        pass
                     the_max_index___o = the_layer.get_max_index()
                     assert the_max_index___o[out_dim-1+1] == in_dim-1
 
                     the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
                     the_layer.add_output_slot__to_the_tail(new_raw_weight_part = torch.ones(size=[1, in_dim]))
-                    the_layer._raw_weight___oCAP_iCAP[0][out_dim, 2] = 5.123
+                    with torch.no_grad():
+                        the_layer._raw_weight___oCAP_iCAP[0][out_dim, 2] = 5.123
+                        pass
                     the_max_index___o = the_layer.get_max_index()
                     assert the_max_index___o[out_dim-1+1] == 2
 
@@ -2410,7 +2335,7 @@ if "add output slot with specified new raw_weight" and __DEBUG_ME__() and True:
 
 if "delete output slot" and __DEBUG_ME__() and True:
     def ____delete_output____():
-        if "delete output.      without class" and False:
+        if "delete output.      without class" and True:
 
             batch = 2
             out_dim = 5
@@ -2450,7 +2375,7 @@ if "delete output slot" and __DEBUG_ME__() and True:
 
             pass#/ test
 
-        if "delete output,      without class         scan it" and False:
+        if "delete output,      without class         scan it" and True:
             for batch in [2,5,10]:
                 for out_dim in [3,7,11]:
                     for in_dim in [6,9,13]:
@@ -2488,7 +2413,7 @@ if "delete output slot" and __DEBUG_ME__() and True:
                 pass#for batch
             pass#/ test
         
-        if "delete output,       class equivalence" and False:
+        if "delete output,       class equivalence" and True:
             for batch in [2,5,10]:
                 for out_dim in [3,7,11]:
                     for in_dim in [6,9,13]:
@@ -2609,7 +2534,7 @@ if "delete output slot" and __DEBUG_ME__() and True:
                                 assert keep_ver_ori___output___b_o.eq(remove_ver_ori___output___b_o).all()
                                 #<  the new shape
                                 the_layer_keep.keep_output_slot(keep_these_output)
-                                the_layer_remove.remove_output_slot(keep_these_output.logical_not())
+                                the_layer_remove.remove_output_slot(remove_which = keep_these_output.logical_not(), squeeze_the_input_dim=True)
 
                                 assert _tensor_shape_check(the_layer_keep.get_useful_part_of_raw_weight(), new_out_dim, in_dim)
                                 assert _tensor_shape_check(the_layer_remove.get_useful_part_of_raw_weight(), new_out_dim, in_dim)
@@ -2846,7 +2771,10 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
                 pass#for in_dim
             pass#/ test
 
-        if "keep_output_slot      no squeeze on input" and True:
+        '''deprecated test.
+        According to the design, if a layer needs to remove some of the output slot, it's the last layer, 
+        then it doesn't needs to keep any capacity for input slots.'''
+        if "keep_output_slot      no squeeze on input" and False:
             '''to valid the result, this test calculates the max_index.'''
             '''
             before the function call, the data looks like
@@ -3067,7 +2995,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
 if "squeeze" and __DEBUG_ME__() and True:
     def ____test____squeeze():
         import random 
-        if "the squeeze funciont" and False:
+        if "the squeeze funciont" and True:
             for in_dim in [3,6,11, 33, ]:
                 for out_dim in [2,8,15, 57]:
                     for _ in range(6):
@@ -3104,11 +3032,271 @@ if "squeeze" and __DEBUG_ME__() and True:
     pass
 #</  all the shape related                 shape
 
+#<  backward after reshape
+if "any reshape with a new memory chunk, and then backward" and __DEBUG_ME__() and True:
+    def ____test____reshape_and_then_backward():
+        if "a working reference,       not the test" and True:
+            for batch in [2,5,10]:
+                for in_dim in [6,9,13]:
+                    for out_dim in [3,7,11]:
+                        if in_dim<=out_dim:
+                            continue
+                        for _ in range(6):
+                            #<  dataset
+                            input___b_i = rand_sign(size=[batch, in_dim])
+                            label___b_o = rand_sign(size=[batch, out_dim])
+                            #<  infra
+                            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+
+                            output___b_o:torch.Tensor = the_layer(input___b_i)
+                            output___b_o.backward(gradient=label___b_o, inputs=the_layer._raw_weight___oCAP_iCAP)
+                            pass
+                            pass#for _
+                        pass#for out_dim
+                    pass#for in_dim
+                pass#for batch
+            pass#/ test
+
+        # a = []   code test
+        # b = a
+        # assert a is b
+
+        if "add_input_slot__to_the_tail            and then backward" and False:
+            for batch in [2,5,10]:
+                for in_dim in [6,9,13]:
+                    for out_dim in [3,7,11]:
+                        if in_dim<=out_dim:
+                            continue
+                        for extra___in_dim in [5,15,33,166,333]:
+                            for _ in range(6):
+                        
+                                #<  dataset
+                                label___b_o = rand_sign(size=[batch, out_dim])
+                                #<  infra
+                                the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+                                #the_list = the_layer._raw_weight___oCAP_iCAP[0]
+                                #ori_CAP_shape = the_layer._raw_weight___oCAP_iCAP[0].shape
+                                #assert ori_CAP_shape == torch.Size([16, 16])
+
+                                input___b_i = rand_sign(size=[batch, in_dim])
+                                output___b_o:torch.Tensor = the_layer(input___b_i)
+                                assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                                output___b_o.backward(gradient=label___b_o, inputs=the_layer._raw_weight___oCAP_iCAP)
+                                assert the_layer._raw_weight___oCAP_iCAP[0].grad is not None
+                                del output___b_o    
+                                the_layer.zero_grad()
+                                assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                                #assert the_layer._raw_weight___oCAP_iCAP[0] is the_list
+                                #assert the_layer._raw_weight___oCAP_iCAP[0].shape == ori_CAP_shape
+
+
+
+                                #assert the_layer._raw_weight___oCAP_iCAP[0] is buffer
+                                the_layer.add_input_slot__to_the_tail(how_many=extra___in_dim)
+
+                                #assert the_layer._raw_weight___oCAP_iCAP[0] is not buffer
+                                #assert the_layer._raw_weight___oCAP_iCAP[0].shape == torch.Size([16, 68])
+                                #assert the_layer._raw_weight___oCAP_iCAP[0].shape != torch.Size([16, 16])
+                                
+                                input___b_i = rand_sign(size=[batch, in_dim + extra___in_dim])
+                                output___b_o:torch.Tensor = the_layer(input___b_i)
+                                assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                                output___b_o.backward(gradient=label___b_o, inputs=[the_layer._raw_weight___oCAP_iCAP[0]])
+                                assert the_layer._raw_weight___oCAP_iCAP[0].grad is not None
+                                del output___b_o    
+                                the_layer.zero_grad()
+                                assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                                #assert the_layer._raw_weight___oCAP_iCAP[0] is not buffer
+                                #assert the_layer._raw_weight___oCAP_iCAP[0].shape != ori_CAP_shape
+
+                                pass#for _
+                            pass#for extra___in_dim
+                        pass#for out_dim
+                    pass#for in_dim
+                pass#for batch
+            pass#/ test
+
+        if "add_output_slot__to_the_tail            and then backward" and False:
+            for batch in [2,5,10]:
+                for in_dim in [6,9,13]:
+                    for out_dim in [3,7,11]:
+                        if in_dim<=out_dim:
+                            continue
+                        for extra___out_dim in [5,15,33,166,333]:
+                            for _ in range(6):
+                        
+                                #<  dataset
+                                input___b_i = rand_sign(size=[batch, in_dim])
+                                #<  infra
+                                the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+
+                                output___b_o:torch.Tensor = the_layer(input___b_i)
+                                assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                                label___b_o = rand_sign(size=[batch, out_dim])
+                                output___b_o.backward(gradient=label___b_o, inputs=the_layer._raw_weight___oCAP_iCAP)
+                                assert the_layer._raw_weight___oCAP_iCAP[0].grad is not None
+                                del output___b_o    
+                                the_layer.zero_grad()
+                                assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+
+
+                                the_layer.add_output_slot__to_the_tail(how_many=extra___out_dim)
+
+                                the_layer.zero_grad()
+                                assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                                output___b_o:torch.Tensor = the_layer(input___b_i)
+                                assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                                label___b_o = rand_sign(size=[batch, out_dim + extra___out_dim])
+                                output___b_o.backward(gradient=label___b_o, inputs=[the_layer._raw_weight___oCAP_iCAP[0]])
+                                assert the_layer._raw_weight___oCAP_iCAP[0].grad is not None
+
+                                pass#for _
+                            pass#for extra___in_dim
+                        pass#for out_dim
+                    pass#for in_dim
+                pass#for batch
+            pass#/ test
+
+        if "keep_output_slot              and then backward" and False:
+            for batch in [2,5,10]:
+                for in_dim in [6,9,13]:
+                    for out_dim in [3,7,11]:
+                        if in_dim<=out_dim:
+                            continue
+                        for _ in range(6):
+                    
+                            #<  dataset
+                            input___b_i = rand_sign(size=[batch, in_dim])
+                            keep_which = torch.rand(size=[out_dim]).gt(0.5)
+                            assert keep_which.dtype == torch.bool
+                            new___out_dim = int(keep_which.to(torch.int32).sum().item())
+                            #<  infra
+                            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+
+                            output___b_o:torch.Tensor = the_layer(input___b_i)
+                            assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                            label___b_o = rand_sign(size=[batch, out_dim])
+                            output___b_o.backward(gradient=label___b_o, inputs=the_layer._raw_weight___oCAP_iCAP)
+                            assert the_layer._raw_weight___oCAP_iCAP[0].grad is not None
+                            del output___b_o    
+                            the_layer.zero_grad()
+                            assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+
+
+                            the_layer.keep_output_slot(keep_which=keep_which)
+
+                            the_layer.zero_grad()
+                            assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                            output___b_o:torch.Tensor = the_layer(input___b_i)
+                            assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                            label___b_o = rand_sign(size=[batch, new___out_dim])
+                            output___b_o.backward(gradient=label___b_o, inputs=[the_layer._raw_weight___oCAP_iCAP[0]])
+                            assert the_layer._raw_weight___oCAP_iCAP[0].grad is not None
+                            pass#for _
+                        pass#for out_dim
+                    pass#for in_dim
+                pass#for batch
+            pass#/ test
+
+        if "remove_output_slot            and then backward" and False:
+            for batch in [2,5,10]:
+                for in_dim in [6,9,13]:
+                    for out_dim in [3,7,11]:
+                        if in_dim<=out_dim:
+                            continue
+                        for _ in range(6):
+                    
+                            #<  dataset
+                            input___b_i = rand_sign(size=[batch, in_dim])
+                            remove_which = torch.rand(size=[out_dim]).gt(0.5)
+                            assert remove_which.dtype == torch.bool
+                            new___out_dim = out_dim - int(remove_which.to(torch.int32).sum().item())
+                            #<  infra
+                            the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim)
+
+                            output___b_o:torch.Tensor = the_layer(input___b_i)
+                            assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                            label___b_o = rand_sign(size=[batch, out_dim])
+                            output___b_o.backward(gradient=label___b_o, inputs=the_layer._raw_weight___oCAP_iCAP)
+                            assert the_layer._raw_weight___oCAP_iCAP[0].grad is not None
+                            del output___b_o    
+                            the_layer.zero_grad()
+                            assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+
+
+                            the_layer.remove_output_slot(remove_which=remove_which)
+
+                            the_layer.zero_grad()
+                            assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                            output___b_o:torch.Tensor = the_layer(input___b_i)
+                            assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                            label___b_o = rand_sign(size=[batch, new___out_dim])
+                            output___b_o.backward(gradient=label___b_o, inputs=[the_layer._raw_weight___oCAP_iCAP[0]])
+                            assert the_layer._raw_weight___oCAP_iCAP[0].grad is not None
+                            pass#for _
+                        pass#for out_dim
+                    pass#for in_dim
+                pass#for batch
+            pass#/ test
+
+        if "squeeze            and then backward" and False:
+            import random
+            for batch in [2,5,10]:
+                for in_dim in [6,9,13]:
+                    for out_dim in [3,7,11]:
+                        if in_dim<=out_dim:
+                            continue
+
+                        for squeeze_in in [True, False]:
+                            for squeeze_out in [True, False]:
+                                if (not squeeze_in) and (not squeeze_in):
+                                    continue
+
+                                for _ in range(6):
+                            
+                                    #<  dataset
+                                    input___b_i = rand_sign(size=[batch, in_dim])
+                                    #<  infra
+                                    the_layer = DigitalMapping_layer__2026(in_features=in_dim, out_features=out_dim, 
+                                                init_capacity__for_in  = random.randint(in_dim,  in_dim  + 100), 
+                                                init_capacity__for_out = random.randint(out_dim, out_dim + 100), )
+
+                                    output___b_o:torch.Tensor = the_layer(input___b_i)
+                                    assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                                    label___b_o = rand_sign(size=[batch, out_dim])
+                                    output___b_o.backward(gradient=label___b_o, inputs=the_layer._raw_weight___oCAP_iCAP)
+                                    assert the_layer._raw_weight___oCAP_iCAP[0].grad is not None
+                                    del output___b_o    
+                                    the_layer.zero_grad()
+                                    assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+
+                                    the_layer._squeeze(squeeze_in=squeeze_in, squeeze_out=squeeze_out)
+
+                                    the_layer.zero_grad()
+                                    assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                                    output___b_o:torch.Tensor = the_layer(input___b_i)
+                                    assert the_layer._raw_weight___oCAP_iCAP[0].grad is None
+                                    label___b_o = rand_sign(size=[batch, out_dim])
+                                    output___b_o.backward(gradient=label___b_o, inputs=[the_layer._raw_weight___oCAP_iCAP[0]])
+                                    assert the_layer._raw_weight___oCAP_iCAP[0].grad is not None
+                                    pass#for _
+                                pass#for squeeze_out
+                            pass#for squeeze_in
+                        pass#for out_dim
+                    pass#for in_dim
+                pass#for batch
+            pass#/ test
+
+        return
+    ____test____reshape_and_then_backward()
+    pass
 
 
 
 
-assert False, "下面不用测。"
+
+
+
 
 
 
