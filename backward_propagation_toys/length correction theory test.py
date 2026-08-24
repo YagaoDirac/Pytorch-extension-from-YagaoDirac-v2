@@ -233,7 +233,7 @@ if "measure the random gen algo" and False:
                     pass# for expansion_factor(y axis)
                 
                 print(f"dim = {dim}")
-                print(f"noise_strength_list         = {str_the_list(noise_strength_list, 1, segment=",    ")}")
+                print(f"noise_strength_list         = {str_the_list(noise_strength_list, 1, separator=",    ")}")
                 print(f"len_score__max            = {str_the_list(len_score__max                  , 4)}")
                 print(f"len_score__avg            = {str_the_list(len_score__avg                  , 4)}")
                 print(f"len_score__no_abs__min    = {str_the_list(len_score__no_abs__min          , 4)}")

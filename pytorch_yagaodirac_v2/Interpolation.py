@@ -1129,7 +1129,7 @@ if "performance test of gpu versions"  and __DEBUG_ME__() and False:
             
             pass
         
-        print(f" 1<<n =  {str_the_list(n_list, 0, segment=",     ")}")
+        print(f" 1<<n =  {str_the_list(n_list, 0, separator=",     ")}")
         
         # print(f"_20_10  {str_the_list(_20_10_time__list , 4)}")
         # print(f"_18_9_  {str_the_list(_18_9_time__list  , 4)}")
@@ -1618,7 +1618,7 @@ if "performance test of all 3          等一下。。。"  and __DEBUG_ME__() a
                 
                 pass
             
-            print(f"n_element       = {str_the_list(n_element_list, 0, segment=",     ")}")
+            print(f"n_element       = {str_the_list(n_element_list, 0, separator=",     ")}")
             
             print(f"null_time     = {str_the_list(null_time__list , 4)}")
             print(f"seq_time      = {str_the_list(seq_time__list     , 4)}")
@@ -1731,7 +1731,7 @@ if "performance test of all 3          等一下。。。"  and __DEBUG_ME__() a
                 pass
             
             print(f"decending")
-            print(f"n_element       = {str_the_list(n_element_list, 0, segment=",     ")}")
+            print(f"n_element       = {str_the_list(n_element_list, 0, separator=",     ")}")
             
             print(f"null_time     = {str_the_list(null_time__list , 4)}")
             print(f"seq_time      = {str_the_list(seq_time__list     , 4)}")

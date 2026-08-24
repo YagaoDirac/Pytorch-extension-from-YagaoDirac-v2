@@ -356,7 +356,7 @@ def ____test____new_formula_validation():
         print(f"log10_of_scaled_length__min= {str_the_list(log10_of_scaled_length__min, 5)}")    
         print(f"log10_of_scaled_length__max= {str_the_list(log10_of_scaled_length__max, 5)}")    
         print(f"log10_of_scaled_length__avg= {str_the_list(log10_of_scaled_length__avg, 5)}")    
-        print(f"dim_list                   = {str_the_list(dim_list, 0, segment=",     ")}")
+        print(f"dim_list                   = {str_the_list(dim_list, 0, separator=",     ")}")
         
         pass#/test
     
@@ -828,9 +828,9 @@ def ____test____correction_algo_test():
                 pass# for expansion_factor(y axis)
             
             print(f"dim = {dim}")
-            # print(f"expansion_factor_list   = {str_the_list(expansion_factor_list, 2, segment=",    ")}")
+            # print(f"expansion_factor_list   = {str_the_list(expansion_factor_list, 2, separator=",    ")}")
             # print(f"cap_to = {cap_to}")
-            print(f"random_vec_count_list       = {str_the_list(random_vec_count_list,0,segment="       ")}")
+            print(f"random_vec_count_list       = {str_the_list(random_vec_count_list,0,separator="       ")}")
             print(f"len_loss__opt_value     = {str_the_list(len_loss__opt_value, 5)}")
             print(f"len_loss__opt_prob      = {str_the_list__probability(len_loss__opt_prob, 3, flag__offset_by50=True, flag__mul_2_after_offset=True)}")
             print(f"angle_loss__opt_value   = {str_the_list(angle_loss__opt_value, 5)}")
@@ -971,9 +971,9 @@ def ____test____correction_algo_test():
                 pass# for expansion_factor(y axis)
             
             print(f"dim = {dim}")
-            # print(f"expansion_factor_list   = {str_the_list(expansion_factor_list, 2, segment=",    ")}")
+            # print(f"expansion_factor_list   = {str_the_list(expansion_factor_list, 2, separator=",    ")}")
             # print(f"cap_to = {cap_to}")
-            print(f"random_vec_count_list         = {str_the_list(random_vec_count_list,0,segment="       ")}")
+            print(f"random_vec_count_list         = {str_the_list(random_vec_count_list,0,separator="       ")}")
             print(f"len_loss__opt_value     = {str_the_list(len_loss__opt_value  , 5)}")
             print(f"angle_loss__opt_value   = {str_the_list(angle_loss__opt_value, 5)}")
             print(f"length_retention_loss__v= {str_the_list(length_retention_loss__opt_value, 5)}")
@@ -1730,9 +1730,9 @@ def ____test____correction_algo_test():
                     pass# for expansion_factor(y axis)
                 
                 print(f"dim = {dim}")
-                # print(f"expansion_factor_list   = {str_the_list(expansion_factor_list, 2, segment=",    ")}")
+                # print(f"expansion_factor_list   = {str_the_list(expansion_factor_list, 2, separator=",    ")}")
                 # print(f"cap_to = {cap_to}")
-                print(f"cap_to_list               = {str_the_list(cap_to_list, 2, segment=",    ")}")
+                print(f"cap_to_list               = {str_the_list(cap_to_list, 2, separator=",    ")}")
                 print(f"expansion_factor =   {expansion_factor}")
                 print(f"len_loss__opt_value     = {str_the_list(len_loss__opt_value, 5)}")
                 print(f"len_loss__opt_prob      = {str_the_list__probability(len_loss__opt_prob, 3, flag__offset_by50=True, flag__mul_2_after_offset=True)}")
@@ -2364,9 +2364,9 @@ def ____test____correction_algo_test():
                     pass# for expansion_factor(y axis)
                 
                 print(f"dim = {dim}")
-                # print(f"expansion_factor_list   = {str_the_list(expansion_factor_list, 2, segment=",    ")}")
+                # print(f"expansion_factor_list   = {str_the_list(expansion_factor_list, 2, separator=",    ")}")
                 # print(f"cap_to = {cap_to}")
-                print(f"cap_to_list               = {str_the_list(cap_to_list, 2, segment=",    ")}")
+                print(f"cap_to_list               = {str_the_list(cap_to_list, 2, separator=",    ")}")
                 print(f"expansion_factor =   {expansion_factor}")
                 #print(f"len_loss__opt_value     = {str_the_list(len_loss__opt_value, 5)}")
                 #print(f"len_loss__opt_prob      = {str_the_list__probability(len_loss__opt_prob, 3, flag__offset_by50=True, flag__mul_2_after_offset=True)}")
@@ -2776,9 +2776,9 @@ def ____test____correction_algo_test():
                     pass# for expansion_factor(y axis)
                 
                 print(f"dim = {dim}")
-                # print(f"expansion_factor_list   = {str_the_list(expansion_factor_list, 2, segment=",    ")}")
+                # print(f"expansion_factor_list   = {str_the_list(expansion_factor_list, 2, separator=",    ")}")
                 # print(f"cap_to = {cap_to}")
-                print(f"scan_factor_list           = {str_the_list(scan_factor_list, 2, segment=",    ")}")
+                print(f"scan_factor_list           = {str_the_list(scan_factor_list, 2, separator=",    ")}")
                 print(f"actual_cap_to           = {str_the_list(actual_cap_to, 5)}")
                 print(f"expansion_factor =   {expansion_factor}")
                 print(f"len_loss__opt_value     = {str_the_list(len_loss__opt_value, 5)}")

@@ -294,7 +294,17 @@ if "test" and __DEBUG_ME__() and False:
 
 "stringify the number list."
 
-def str_the_list(the_list:list, precision = 3, segment = ", ")->str:
+
+def print_table(data:list[list], separator = ", ")->None:
+
+
+    print()
+    return
+
+
+
+
+def str_the_list(the_list:list, precision = 3, separator = ", ")->str:
     command_str = "{:."+str(precision)+"f}"
     all_the_sub_strings = [command_str.format(the_number) for the_number in the_list]
     for ii in range(all_the_sub_strings.__len__()):
@@ -304,16 +314,16 @@ def str_the_list(the_list:list, precision = 3, segment = ", ")->str:
             pass
         pass
             
-    mid_str = segment.join(all_the_sub_strings)
+    mid_str = separator.join(all_the_sub_strings)
     result = f"[{mid_str}]"
     return result
 
-if "test" and __DEBUG_ME__() and False:
+if "test" and __DEBUG_ME__() and True:
     def ____test____str_the_list():
         the_str = str_the_list([1.23467,-2.23467], 3)
         assert the_str == "[ 1.235, -2.235]"
         
-        the_str = str_the_list([1.23467,-2.23467], 3, segment="...")
+        the_str = str_the_list([1.23467,-2.23467], 3, separator="...")
         assert the_str == "[ 1.235...-2.235]"
         
         return
@@ -321,7 +331,7 @@ if "test" and __DEBUG_ME__() and False:
     pass
 
 def str_the_list__probability(the_list:list, precision = 3,
-                good_prefix = "  ", bad_prefix  = "XX", segment = ", ", white_space_in_mid = 1,
+                good_prefix = "  ", bad_prefix  = "XX", separator = ", ", white_space_in_mid = 1,
                 flag__offset_by50 = False, flag__mul_2_after_offset = False, )->str:
     assert good_prefix.__len__() == bad_prefix.__len__()
     assert white_space_in_mid>=1
@@ -404,7 +414,7 @@ if "test" and __DEBUG_ME__() and False:
         the_str = str_the_list__probability([0.,0.1,0.9,1.], 2, flag__offset_by50 = True, flag__mul_2_after_offset=True)
         assert the_str == "[XX     , XX-0.80,    0.80,  v     ]"
         
-        the_str = str_the_list__probability([0.,0.1,0.9,1.], 2, segment="..")
+        the_str = str_the_list__probability([0.,0.1,0.9,1.], 2, separator="..")
         assert the_str == "[XX     ..XX 0.10..   0.90.. v     ]"
         
         return

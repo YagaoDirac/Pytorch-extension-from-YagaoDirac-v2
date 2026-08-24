@@ -3017,7 +3017,7 @@ if "test   random_dummy_mat__v2" and __DEBUG_ME__() and False:
                 print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
                 
                 print(f"dim {dim}    ")
-                print(f"target= {str_the_list(target_list, 2, segment=",   ")}")
+                print(f"target= {str_the_list(target_list, 2, separator=",   ")}")
                 print(f"neg   = {str_the_list(neg, 4)}")
                 print(f"pos   = {str_the_list(pos, 4)}")
                 print(f"diff  = {str_the_list(diff, 4)}")
@@ -3091,7 +3091,7 @@ if "test   random_dummy_mat__v2" and __DEBUG_ME__() and False:
                 print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
                     
                 print(f"# dim {dim}")
-                print(f"# noise_stre={str_the_list(noise_strength_list, 3, segment=",  ")}")
+                print(f"# noise_stre={str_the_list(noise_strength_list, 3, separator=",  ")}")
                 print(f"# length_loss {str_the_list(raw_length_loss__avg, 5)}")
                 
                 pass# for outter_iter_count
@@ -3187,7 +3187,7 @@ if "test   random_dummy_mat__v2" and __DEBUG_ME__() and False:
                 print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
                 
                 print(f"dim {dim}    ")
-                print(f"target= {str_the_list(target_list, 2, segment=",   ")}")
+                print(f"target= {str_the_list(target_list, 2, separator=",   ")}")
                 print(f"neg   = {str_the_list(neg, 4)}")
                 print(f"pos   = {str_the_list(pos, 4)}")
                 print(f"diff  = {str_the_list(diff, 4)}")

@@ -676,7 +676,7 @@ if "test   random_dummy_mat" and True:
                         pass# for noise_strength   #x axis
                     
                     print(f"dim {dim}    init__cap_to {init__cap_to}")
-                    print(f"noise_strength_={str_the_list(noise_strength_list, 2, segment=",   ")}")
+                    print(f"noise_strength_={str_the_list(noise_strength_list, 2, separator=",   ")}")
                     print(f"length_0_avg   = {str_the_list(length_0_avg, 4)}")
                     print(f"length_0_std   = {str_the_list(length_0_std, 4)}")
                     print(f"length_1_avg   = {str_the_list(length_1_avg, 4)}")
@@ -842,7 +842,7 @@ if "test   random_dummy_mat" and True:
                     pass# for _init__y_axis___dim
                 
                 print(f"# dim {dim}      (x axis is noise_strength, y axis is cap_to)")
-                print(f"# n s  ={str_the_list(noise_strength_list, 2, segment=",   ")}")
+                print(f"# n s  ={str_the_list(noise_strength_list, 2, separator=",   ")}")
                 for ii in range(y_axis___dim):
                     print(f"# {init__cap_to_list[ii].item():.2f} {str_the_list(angle_loss__avg[ii], 4)}")
                     pass
@@ -1403,13 +1403,13 @@ if "test scan the hyper param" and True:
                     pass#for param_set_count 
                 
                 print(f"# expansion_factor {expansion_factor}      dim {dim}      threshold_factor {threshold_factor}")
-                print(f"# cap_to_list                    = {str_the_list(cap_to_list         , 2, segment=",   ")}")
+                print(f"# cap_to_list                    = {str_the_list(cap_to_list         , 2, separator=",   ")}")
                 #print(f"# total__score_incr__min         = {str_the_list(total__score_incr__min         , 4)}")
                 #print(f"# total__score_incr__max         = {str_the_list(total__score_incr__max         , 4)}")
                 print(f"# total__score_incr__avg      = {str_the_list(total__score_incr__avg         , 4)}")
-                #print(f"# total__step__min               = {str_the_list(total__step__min               , 0, segment=",      ")}")
-                #print(f"# total__step__max               = {str_the_list(total__step__max               , 0, segment=",      ")}")
-                print(f"# total__step__avg              = {str_the_list(total__step__avg               , 2, segment=",   ")}")
+                #print(f"# total__step__min               = {str_the_list(total__step__min               , 0, separator=",      ")}")
+                #print(f"# total__step__max               = {str_the_list(total__step__max               , 0, separator=",      ")}")
+                print(f"# total__step__avg              = {str_the_list(total__step__avg               , 2, separator=",   ")}")
                 #print(f"# total__score_incr_per_step__min= {str_the_list(total__score_incr_per_step__min, 4)}")
                 #print(f"# total__score_incr_per_step__max= {str_the_list(total__score_incr_per_step__max, 4)}")
                 print(f"# total__score_incr_per_step__avg = {str_the_list(total__score_incr_per_step__avg, 4)}")
@@ -1681,7 +1681,7 @@ if "test scan the hyper param" and True:
                     pass#for cap_to  #x axis
                 
                 print(f"# safe_factor {safe_factor}        expansion_factor {expansion_factor}      dim {dim}")
-                print(f"# cap_to_list = {str_the_list(cap_to_list         , 2, segment=",   ")}")
+                print(f"# cap_to_list = {str_the_list(cap_to_list         , 2, separator=",   ")}")
                 print(f"# rc____score = {str_the_list(rc____score, 4)}")
                 print(f"# rcr___score = {str_the_list(rcr___score, 4)}")
                 print(f"# rcrc__score = {str_the_list(rcrc__score, 4)}")
@@ -1831,7 +1831,7 @@ if "test scan the hyper param" and True:
                 
                 print(f"#          dim {dim}")
                 
-                print(f"# step_1 = {str_the_list(cap_to__step_1_list.tolist()         , 2, segment=",   ")}")
+                print(f"# step_1 = {str_the_list(cap_to__step_1_list.tolist()         , 2, separator=",   ")}")
                 
                 print(f"# vvvv cap_to__step_2 ")
                 for ii in range(y_axis__dim):
@@ -2151,7 +2151,7 @@ if "test scan the hyper param" and True:
                     
                     print(f"# dim {dim}      cap_to__step_3 {cap_to__step_3.item():.2f}       max_score {score_tensor.max().item():.4f}"+" "*55)
                     
-                    print(f"# step_1   = {str_the_list(cap_to__step_1_list.tolist()         , 2, segment=",   ")}")
+                    print(f"# step_1   = {str_the_list(cap_to__step_1_list.tolist()         , 2, separator=",   ")}")
                     
                     print(f"# vvvv cap_to__step_2 "+" "*55)
                     for ii in range(y_axis__dim):
@@ -2494,7 +2494,7 @@ if "scan for the adaptive angle correct" and True:
                     
                     print(f"# dim {dim}      actual_init_angle_score {actual_init_angle_score.item():.3f}       max_score {score.max().item():.4f}"+" "*33)
                     #print(f"# dim {dim}      actual_init_angle_score {actual_init_angle_score.item():.3f}     (y axis is the step_2 cap_to)")
-                    print(f"# step_1   = {str_the_list(cap_to__step_1_list         , 2, segment=",   ")}")
+                    print(f"# step_1   = {str_the_list(cap_to__step_1_list         , 2, separator=",   ")}")
                     
                     print(f"# vvvv cap_to__step_2 "+" "*111)
                     for ii in range(y_axis__dim):
@@ -3188,7 +3188,7 @@ if "scan for the adaptive angle correct" and True:
                     
                     print(f"# dim {dim}      actual_init_angle_score {actual_init_angle_score.item():.3f}       best_score {score.min().item():.4f}"+" "*33)
                     #print(f"# dim {dim}      actual_init_angle_score {actual_init_angle_score.item():.3f}     (y axis is the step_2 cap_to)")
-                    print(f"# step_1     = {str_the_list(cap_to__step_1_list         , 3, segment=",  ")}")
+                    print(f"# step_1     = {str_the_list(cap_to__step_1_list         , 3, separator=",  ")}")
                     
                     print(f"# vvvv cap_to__step_2 "+" "*111)
                     for ii in range(y_axis__dim):
