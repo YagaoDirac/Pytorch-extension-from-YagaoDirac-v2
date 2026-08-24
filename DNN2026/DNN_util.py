@@ -446,9 +446,9 @@ if "basic test" and False:
                 the_avg.append(_raw_result__of_sum_of_target.mean().item())
                 pass#for ii_random_ratio_list
         
-            print(f"random_ratio {str_the_list(random_ratio_list, 1, segment=",      ")}")
-            print(f"the_max      {str_the_list(the_max, precision=0, segment=",    ")}")
-            print(f"the_min      {str_the_list(the_min, precision=0, segment=",    ")}")
+            print(f"random_ratio {str_the_list(random_ratio_list, 1, separator=",      ")}")
+            print(f"the_max      {str_the_list(the_max, precision=0, separator=",    ")}")
+            print(f"the_min      {str_the_list(the_min, precision=0, separator=",    ")}")
             print(f"the_avg      {str_the_list(the_avg, precision=2, )}")
             pass#/ test
 

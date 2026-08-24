@@ -295,24 +295,198 @@ if "test" and __DEBUG_ME__() and False:
 "stringify the number list."
 
 
-def print_table(data:list[list], separator = ", ")->None:
+def print_table(data:list[list], precision = 3, separator = ", ", transpose = False)->list[list[str]]:
+    '''This function help with printing a table with a more readable style.'''
+    if transpose: 
+        #<  safety 
+        # is this needed?
+        for ii in range(1, data.__len__()):
+            row = data[ii]
+            assert row.__len__() == data[0].__len__(), \
+                    f"not all rows in param:data have the same amount of elements. " + \
+                    f"data[{ii}] and data[0] have different amount of elements."
+            pass
+        
+        #<  init   empty
+        buffer:list[list[str]] = []
+        for row in data:
+            buffer.append([])
+            pass
+        #<  real payload
+        for data_item in data:
+            max_length:int = 0
+            _temp___to_print:list[str] = []
+            for what_to_stringify in data_item:
+                if type(what_to_stringify) == float:
+                    format_string = "{:."+str(precision)+"f}"
+                    _temp___str = format_string.format(what_to_stringify)
+                    del format_string
+                    pass
+                else:#not a float
+                    _temp___str = str(what_to_stringify)
+                    pass
+
+                _temp___to_print.append(_temp___str)
+                if _temp___str.__len__()> max_length:
+                    max_length = _temp___str.__len__()
+                    pass
+                pass#for ii_row
+            assert _temp___to_print.__len__() == data[0].__len__()
+            assert type(max_length) == int
+            #<  align the length
+
+            format_string = "{:>"+str(max_length)+"}"
+            for ii in range(_temp___to_print.__len__()):
+                item:str = _temp___to_print[ii]
+                buffer[ii].append(format_string.format(item))
+                pass
+            pass#for ii_colomn
+
+        for buffer_item in buffer:
+            print(separator.join(buffer_item))
+            pass
+
+        return buffer
+    
+    else:# not transpose
+        #<  safety 
+        # is this needed?
+        for ii in range(1, data.__len__()):
+            row = data[ii]
+            assert row.__len__() == data[0].__len__(), \
+                    f"not all rows in param:data have the same amount of elements. " + \
+                    f"data[{ii}] and data[0] have different amount of elements."
+            pass
+        
+        #<  init   empty
+        buffer:list[list[str]] = []
+        for row in data:
+            buffer.append([])
+            pass
+        #<  real payload
+        for ii_colomn in range(data[0].__len__()):
+            max_length:int = 0
+            _temp___to_print:list[str] = []
+            for ii_row in range(data.__len__()):
+                what_to_stringify = data[ii_row][ii_colomn]
+                if type(what_to_stringify) == float:
+                    format_string = "{:."+str(precision)+"f}"
+                    _temp___str = format_string.format(what_to_stringify)
+                    del format_string
+                    pass
+                else:#not a float
+                    _temp___str = str(what_to_stringify)
+                    pass
+
+                _temp___to_print.append(_temp___str)
+                if _temp___str.__len__()> max_length:
+                    max_length = _temp___str.__len__()
+                    pass
+                pass#for ii_row
+            assert _temp___to_print.__len__() == data.__len__()
+            assert type(max_length) == int
+            #<  align the length
+
+            format_string = "{:>"+str(max_length)+"}"
+            for ii in range(_temp___to_print.__len__()):
+                item:str = _temp___to_print[ii]
+                buffer[ii].append(format_string.format(item))
+                pass
+            pass#for ii_colomn
+
+        for buffer_item in buffer:
+            print(separator.join(buffer_item))
+            pass
+
+        return buffer
+    #end of function
+if "test" and __DEBUG_ME__() and True:
+    def ____test____print_table():
+        if "no transpose" and True:
+            buffer = print_table([[111.12, "aa", 443.3],
+                                    ["a", 1.1,      "bb"]])
+            assert buffer == [  ["111.120", "   aa", "443.300"],
+                                ["      a", "1.100", "     bb"]]
+
+            buffer = print_table([
+                    ["scan param", 0.01,  0.1,   1.,   1000.],
+                    ["mean",      1.111, 1.11, 1.100, 1.000],
+                    ["max",           1,   12,   123,  1234],])
+            
+            assert buffer == [  ["scan param", "0.010", "0.100", "1.000", "1000.000"],
+                                ["      mean", "1.111", "1.110", "1.100", "   1.000"],
+                                ["       max", "    1", "   12", "  123", "    1234"],]
+
+            # assert buffer.__len__() == buffer1.__len__()
+            # for ii in range(buffer.__len__()):
+            #     aaaaa = buffer[ii]
+            #     bbbbb = buffer1[ii]
+            #     for jj in range(aaaaa.__len__()):
+            #         assert aaaaa[jj] == bbbbb[jj]
+            #         pass
+            #     pass
+            pass#/ test
+
+1wf
+1wf
+1wf继续
+
+        if "with transpose" and True:
+            buffer = print_table([[111.12, "aa", 443.3],
+                                    ["a", 1.1,      "bb"]], transpose=True)
+            assert buffer == [  ["111.120", "    a"], 
+                                ["     aa", "1.100"],
+                                ["443.300", "   bb"],]
 
 
-    print()
-    return
+            buffer = print_table([
+                    ["scan param", 0.01,  0.1,   1.,   1000.],
+                    ["mean",      1.111, 1.11, 1.100, 1.000],
+                    ["max",           1,   12,   123,  1234],])
+            
+            assert buffer == [  ["scan param", "      mean", "       max"],        
+                                ["     0.010", "     1.111", "         1"],
+                                ["     0.100", "     1.110", "        12"],
+                                ["     1.000", "     1.100", "       123"],
+                                ["  1000.000", "     1.000", "      1234"],]
+
+        return
+    ____test____print_table()
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                #  1w可能要先一个前置验证了。。
+                #  考虑一下拆util，字符串的单独拆一个出来。二进制的最后的那些扔到dnn里面去？
+
+
 
 
 
 
 def str_the_list(the_list:list, precision = 3, separator = ", ")->str:
-    command_str = "{:."+str(precision)+"f}"
-    all_the_sub_strings = [command_str.format(the_number) for the_number in the_list]
-    for ii in range(all_the_sub_strings.__len__()):
-        sub_str = all_the_sub_strings[ii]
-        if sub_str[0]!='-':
-            all_the_sub_strings[ii] = " "+all_the_sub_strings[ii]
-            pass
+    format_string = "{: ."+str(precision)+"f}"
+    all_the_sub_strings = []
+    for the_number in the_list:
+        all_the_sub_strings.append(format_string.format(the_number))
         pass
+    # for ii in range(all_the_sub_strings.__len__()):
+    #     sub_str = all_the_sub_strings[ii]
+    #     if sub_str[0]!='-':
+    #         all_the_sub_strings[ii] = " "+all_the_sub_strings[ii]
+    #         pass
+    #     pass
             
     mid_str = separator.join(all_the_sub_strings)
     result = f"[{mid_str}]"

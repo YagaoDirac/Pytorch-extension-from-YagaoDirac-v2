@@ -950,7 +950,7 @@ if "dtype adaption" and __DEBUG_ME__() and False:
 
 
 '''pytorch feature test          I found the bug. I add some assert. I believe it's solved now. So this section is not important any more'''
-if "trivial test" and __DEBUG_ME__() and True:
+if "trivial test" and __DEBUG_ME__() and False:
     def ____pytorch_feature_test():
         if "buffer_0" and True:
             buffer_0 = torch.randn(size=[100,100], dtype=torch.float32, requires_grad=True)
@@ -962,7 +962,12 @@ if "trivial test" and __DEBUG_ME__() and True:
             x = autograd_function_class_for__DigitalMapping_layer__2026.apply(input, buffer_0_clipped, torch.tensor(1.))
             x.backward(gradient=rand_sign(size=[2, 15]), inputs=[buffer_0])# worked
 
-            assert buffer_0_clipped.grad is None
+            # assert buffer_0_clipped.grad is None              
+            # UserWarning: The .grad attribute of a Tensor that is not a leaf Tensor is being accessed. 
+            # Its .grad attribute won't be populated during autograd.backward(). 
+            # If you indeed want the .grad field to be populated for a non-leaf Tensor, use .retain_grad() on the non-leaf Tensor. 
+            # If you access the non-leaf Tensor by mistake, make sure you access the leaf Tensor instead. 
+            # See github.com/pytorch/pytorch/pull/30531 for more information. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\build\aten\src\ATen/core/TensorBody.h:499.)
 
             assert buffer_0.grad is not None
             assert isinstance(buffer_0.grad, torch.Tensor)
@@ -999,12 +1004,24 @@ if "trivial test" and __DEBUG_ME__() and True:
             #<  backward
             output.backward(gradient=rand_sign(size=[2, 10]), inputs=[buffer_0, buffer_1])
 
-            assert buffer_0_clipped.grad is None
+            # assert buffer_0_clipped.grad is None
+            # UserWarning: The .grad attribute of a Tensor that is not a leaf Tensor is being accessed. 
+            # Its .grad attribute won't be populated during autograd.backward(). 
+            # If you indeed want the .grad field to be populated for a non-leaf Tensor, use .retain_grad() on the non-leaf Tensor. 
+            # If you access the non-leaf Tensor by mistake, make sure you access the leaf Tensor instead. 
+            # See github.com/pytorch/pytorch/pull/30531 for more information. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\build\aten\src\ATen/core/TensorBody.h:499.)
+            
 
             assert buffer_0.grad is not None
             assert isinstance(buffer_0.grad, torch.Tensor)
 
-            assert buffer_1_clipped.grad is None
+            # assert buffer_1_clipped.grad is None
+            # UserWarning: The .grad attribute of a Tensor that is not a leaf Tensor is being accessed. 
+            # Its .grad attribute won't be populated during autograd.backward(). 
+            # If you indeed want the .grad field to be populated for a non-leaf Tensor, use .retain_grad() on the non-leaf Tensor. 
+            # If you access the non-leaf Tensor by mistake, make sure you access the leaf Tensor instead. 
+            # See github.com/pytorch/pytorch/pull/30531 for more information. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\build\aten\src\ATen/core/TensorBody.h:499.)
+            
 
             assert buffer_1.grad is not None
             assert isinstance(buffer_1.grad, torch.Tensor)
@@ -1485,7 +1502,6 @@ class DigitalMapping_layer__2026(torch.nn.Module):
     def backward_index_quiry(self, output_slot_list:torch.Tensor)->torch.Tensor:
         index_of_max_of_useful_part___o = self.get_max_index()
         result = index_of_max_of_useful_part___o[output_slot_list]
-        assert False, "untested      都必须比in dim小"
         return result
 
 
@@ -1696,7 +1712,7 @@ class DigitalMapping_layer__2026(torch.nn.Module):
         if self._always_check_input_is_posneg1__in_forward:
             return f'Output is pos/neg 1. In_features={self.in_features}, out_features={self.out_features}'
         return f'In_features={self.in_features}, out_features={self.out_features}'
-        
+
 
     # def __repr__(self):
     #     return f"{self.get_useful().__repr__()}, size:{self._size}, DNN input container 2026"
@@ -1716,8 +1732,12 @@ class DigitalMapping_layer__2026(torch.nn.Module):
 
 
 
+
+
+
+
 # all the forward related                 forward
-if "forward in module class      basic behavior test" and __DEBUG_ME__() and True:
+if "forward in module class      basic behavior test" and __DEBUG_ME__() and False:
     def ____test____forward_in_module_class():
         if "allow non posneg1 input?" and True:
             the_layer = DigitalMapping_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
@@ -1761,7 +1781,9 @@ if "forward in module class      basic behavior test" and __DEBUG_ME__() and Tru
         return
     ____test____forward_in_module_class()
     pass
-if "get_max_index in module class      basic behavior test" and __DEBUG_ME__() and True:
+
+# all the index related
+if "get_max_index in module class      basic behavior test" and __DEBUG_ME__() and False:
     def ____test____get_max_index_in_module_class():
         import random
         if "allow non posneg1 input?" and True:
@@ -1775,9 +1797,155 @@ if "get_max_index in module class      basic behavior test" and __DEBUG_ME__() a
         return
     ____test____get_max_index_in_module_class()
     pass
+if "backward_index_quiry" and False:
+    def ____test____backward_index_quiry():
+        if "basic behavior" and True:
+            in_dim = 5
+            out_dim = 3
+            the_layer = DigitalMapping_layer__2026(in_features=5, out_features=3, 
+                                            _always_check_input_is_posneg1__in_forward = False)#debug purpose
+            the_param = the_layer._raw_weight___oCAP_iCAP[0]
+            assert isinstance(the_param, torch.nn.Parameter)
+            the_param.data[:3, :5] = torch.tensor([
+                        [0.1,  0.2,  0.3,  0.4,  0.5,],
+                        [0.1,  0.2,  0.3,  1.4,  0.5,],
+                        [0.1,  1.2,  0.3,  0.4,  0.5,],
+                        ])
+            #<  forward quiry
+            the_max_index___o = the_layer.get_max_index()
+            assert the_max_index___o.ge(0)                .all()
+            assert the_max_index___o.lt(the_layer.in_dim).all()
+            assert _tensor_shape_check(the_max_index___o, out_dim)
+            assert the_max_index___o.eq(torch.tensor([4, 3, 1])).all()
+            #<  backward quiry
+            what_to_backward_quiry = torch.tensor([2,1,0,1,1,0,0])
+            the_backward_quire_result = the_layer.backward_index_quiry(what_to_backward_quiry)
+            assert the_backward_quire_result.eq(torch.tensor([1,3,4,3,3,4,4])).all()
+            assert what_to_backward_quiry.shape == the_backward_quire_result.shape
+
+            assert the_backward_quire_result.ge(0)                .all()
+            assert the_backward_quire_result.lt(the_layer.in_dim).all()
+            pass#/ test
+
+        if "basic behavior with iota" and True:
+            in_dim = 5
+            out_dim = 3
+            the_layer = DigitalMapping_layer__2026(in_features=5, out_features=3, 
+                                            _always_check_input_is_posneg1__in_forward = False)#debug purpose
+            the_param = the_layer._raw_weight___oCAP_iCAP[0]
+            assert isinstance(the_param, torch.nn.Parameter)
+            the_param.data[:3, :5] = torch.tensor([
+                        [0.1,  0.2,  0.3,  0.4,  0.5,],
+                        [0.1,  0.2,  0.3,  1.4,  0.5,],
+                        [0.1,  1.2,  0.3,  0.4,  0.5,],
+                        ])
+
+            #<  iota test         forward
+            iota_input___i = iota(in_dim).reshape([1, -1])
+            output_side___1_o = the_layer(iota_input___i)
+            output_side___o = output_side___1_o.reshape([-1])
+            assert _tensor_shape_check(output_side___o, out_dim)
+            
+            assert output_side___o.ge(0)                .all()
+            assert output_side___o.lt(the_layer.in_dim).all()
+
+            #<  iota test         backward
+            output_side_iota___o = iota(out_dim)
+            the_backward_quire_result___should_eq_to_max_index___o = the_layer.backward_index_quiry(output_side_iota___o)
+            assert _tensor_shape_check(the_backward_quire_result___should_eq_to_max_index___o, out_dim)
+
+            assert the_backward_quire_result___should_eq_to_max_index___o.ge(0)               .all()
+            assert the_backward_quire_result___should_eq_to_max_index___o.lt(the_layer.in_dim).all()
+
+            the_max_index___o = the_layer.get_max_index()
+            assert _tensor_shape_check(the_max_index___o, out_dim)
+            pass#/ test
+
+        if "real behavior         no scan" and False:
+            batch = 100
+            dim_0 = 15
+            dim_1 = 11
+            dim_2 = 6
+            assert dim_0 >= dim_1 >= dim_2
+            #<  dataset
+            input___b_i = rand_sign(size=[batch, dim_0])
+            #<  infra
+            the_layer_0 = DigitalMapping_layer__2026(in_features=dim_0, out_features=dim_1)
+            the_layer_1 = DigitalMapping_layer__2026(in_features=dim_1, out_features=dim_2)
+            #<  output by forward
+            output___b_o = the_layer_1(the_layer_0(input___b_i))
+            assert _tensor_shape_check(output___b_o, batch, dim_2)
+            #<  output by backward lookup index
+            output_side_iota___o = iota(dim_2)
+            assert _tensor_shape_check(output_side_iota___o, dim_2)
+
+            _temp_mid_result___the_index___o = the_layer_1.backward_index_quiry(output_slot_list=output_side_iota___o)
+            assert _tensor_shape_check(_temp_mid_result___the_index___o, dim_2)
+            assert _temp_mid_result___the_index___o.ge(0.).all()
+            assert _temp_mid_result___the_index___o.lt(dim_1).all()
+            index_to_lookup_in_input___o     = the_layer_0.backward_index_quiry(output_slot_list=_temp_mid_result___the_index___o)
+            assert _tensor_shape_check(index_to_lookup_in_input___o, dim_2)
+            assert index_to_lookup_in_input___o.ge(0.).all()
+            assert index_to_lookup_in_input___o.lt(dim_0).all()
+            del _temp_mid_result___the_index___o
+
+            _temp_result___but_from_backward_lookup_index___b_o = input___b_i[:, index_to_lookup_in_input___o]
+            assert _tensor_shape_check(_temp_result___but_from_backward_lookup_index___b_o, batch, dim_2)
+            #<  assert
+            assert output___b_o.eq(_temp_result___but_from_backward_lookup_index___b_o).all()
+            pass#/ test
+
+        if "real behavior        with scan" and True:
+            for batch in [155,266,443]:
+                for dim_0 in [66,83,126]:
+                    for dim_1 in [37,50,116]:
+                        if dim_0<=dim_1:
+                            continue
+                        for dim_2 in [18,31,68]:
+                            if dim_1<=dim_2:
+                                continue
+                            for _ in range(33):
+
+                                assert dim_0 >= dim_1 >= dim_2
+                                #<  dataset
+                                input___b_i = rand_sign(size=[batch, dim_0])
+                                #<  infra
+                                the_layer_0 = DigitalMapping_layer__2026(in_features=dim_0, out_features=dim_1)
+                                the_layer_1 = DigitalMapping_layer__2026(in_features=dim_1, out_features=dim_2)
+                                #<  output by forward
+                                output___b_o = the_layer_1(the_layer_0(input___b_i))
+                                assert _tensor_shape_check(output___b_o, batch, dim_2)
+                                #<  output by backward lookup index
+                                output_side_iota___o = iota(dim_2)
+                                assert _tensor_shape_check(output_side_iota___o, dim_2)
+
+                                _temp_mid_result___the_index___o = the_layer_1.backward_index_quiry(output_slot_list=output_side_iota___o)
+                                assert _tensor_shape_check(_temp_mid_result___the_index___o, dim_2)
+                                assert _temp_mid_result___the_index___o.ge(0.).all()
+                                assert _temp_mid_result___the_index___o.lt(dim_1).all()
+                                index_to_lookup_in_input___o     = the_layer_0.backward_index_quiry(output_slot_list=_temp_mid_result___the_index___o)
+                                assert _tensor_shape_check(index_to_lookup_in_input___o, dim_2)
+                                assert index_to_lookup_in_input___o.ge(0.).all()
+                                assert index_to_lookup_in_input___o.lt(dim_0).all()
+                                del _temp_mid_result___the_index___o
+
+                                _temp_result___but_from_backward_lookup_index___b_o = input___b_i[:, index_to_lookup_in_input___o]
+                                assert _tensor_shape_check(_temp_result___but_from_backward_lookup_index___b_o, batch, dim_2)
+                                #<  assert
+                                assert output___b_o.eq(_temp_result___but_from_backward_lookup_index___b_o).all()
+                                pass#for _
+                            pass#for dim_2
+                        pass#for dim_1
+                    pass#for dim_0
+                pass#for batch
+            pass#/ test
+
+        return
+    ____test____backward_index_quiry()
+    pass
 
 # all the backward related            backward
-if "backward equivalence" and __DEBUG_ME__() and True:
+if "backward equivalence" and __DEBUG_ME__() and False:
     def ____test____backward_in_module_class()->None:
         if "allow non posneg1 input?" and True:
             the_layer = DigitalMapping_layer__2026(in_features=3, out_features=2, _always_check_input_is_posneg1__in_forward= True)
@@ -1855,7 +2023,7 @@ if "backward equivalence" and __DEBUG_ME__() and True:
     pass
 
 #<  all the shape related                 shape
-if "add input slot     algo test      and class equivalence" and __DEBUG_ME__() and True:
+if "add input slot     algo test      and class equivalence" and __DEBUG_ME__() and False:
     def ____add_input____():
 
         if "add input.     full assert      no class     no shape scan" and True:
@@ -2092,7 +2260,7 @@ if "add input slot     algo test      and class equivalence" and __DEBUG_ME__() 
         return 
     ____add_input____()
     pass
-if "add input slot with specified new raw_weight" and __DEBUG_ME__() and True:
+if "add input slot with specified new raw_weight" and __DEBUG_ME__() and False:
     def ____add_input_with_specified_new_raw_weight____():
         for in_dim in [3,6,11]:
             for out_dim in [2,8,15]:
@@ -2109,7 +2277,7 @@ if "add input slot with specified new raw_weight" and __DEBUG_ME__() and True:
         return
     ____add_input_with_specified_new_raw_weight____()
     pass
-if "add output slot     algo test      and class equivalence" and __DEBUG_ME__() and True:
+if "add output slot     algo test      and class equivalence" and __DEBUG_ME__() and False:
     def ____add_output____():
 
         if "add output.     full assert      no class     no shape scan" and True:
@@ -2304,7 +2472,7 @@ if "add output slot     algo test      and class equivalence" and __DEBUG_ME__()
         return 
     ____add_output____()
     pass
-if "add output slot with specified new raw_weight" and __DEBUG_ME__() and True:
+if "add output slot with specified new raw_weight" and __DEBUG_ME__() and False:
     def ____add_output_with_specified_new_raw_weight____():
         for in_dim in [3,6,11]:
             for out_dim in [2,8,15]:
@@ -2333,7 +2501,7 @@ if "add output slot with specified new raw_weight" and __DEBUG_ME__() and True:
     ____add_output_with_specified_new_raw_weight____()
     pass
 
-if "delete output slot" and __DEBUG_ME__() and True:
+if "delete output slot" and __DEBUG_ME__() and False:
     def ____delete_output____():
         if "delete output.      without class" and True:
 
@@ -2558,7 +2726,7 @@ if "delete output slot" and __DEBUG_ME__() and True:
     ____delete_output____()
     pass
 
-if "basic reshape.     data member for the shape info, and padding with nan, test" and __DEBUG_ME__() and True:
+if "basic reshape.     data member for the shape info, and padding with nan, test" and __DEBUG_ME__() and False:
     def ____test____basic_reshape____():
 
         if "add_input_slot__to_the_tail" and True:
@@ -2992,7 +3160,7 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
     ____test____basic_reshape____()
     pass
 
-if "squeeze" and __DEBUG_ME__() and True:
+if "squeeze" and __DEBUG_ME__() and False:
     def ____test____squeeze():
         import random 
         if "the squeeze funciont" and True:
@@ -3033,7 +3201,7 @@ if "squeeze" and __DEBUG_ME__() and True:
 #</  all the shape related                 shape
 
 #<  backward after reshape
-if "any reshape with a new memory chunk, and then backward" and __DEBUG_ME__() and True:
+if "any reshape with a new memory chunk, and then backward" and __DEBUG_ME__() and False:
     def ____test____reshape_and_then_backward():
         if "a working reference,       not the test" and True:
             for batch in [2,5,10]:
@@ -3291,7 +3459,39 @@ if "any reshape with a new memory chunk, and then backward" and __DEBUG_ME__() a
     ____test____reshape_and_then_backward()
     pass
 
+#<  device adaption.       (dtype adaption is not yet. )
+if "device adaption" and __DEBUG_ME__() and False:
+    def ____test____device_adaption():
+        the_layer = DigitalMapping_layer__2026(2,3,device='cpu')
+        assert the_layer._raw_weight___oCAP_iCAP[0].device.type == 'cpu'
+        assert the_layer.some_hyper_param          .device.type == 'cpu'
+        the_layer.cuda()
+        assert the_layer._raw_weight___oCAP_iCAP[0].device.type == 'cuda'
+        assert the_layer.some_hyper_param          .device.type == 'cuda'
 
+        the_layer = DigitalMapping_layer__2026(2,3,device='cuda')
+        assert the_layer._raw_weight___oCAP_iCAP[0].device.type == 'cuda'
+        assert the_layer.some_hyper_param          .device.type == 'cuda'
+        the_layer.cpu()
+        assert the_layer._raw_weight___oCAP_iCAP[0].device.type == 'cpu'
+        assert the_layer.some_hyper_param          .device.type == 'cpu'
+
+
+        the_layer = DigitalMapping_layer__2026(2,3,device='cuda')
+        the_layer.add_input_slot__to_the_tail(111)
+        assert the_layer._raw_weight___oCAP_iCAP[0].device.type == 'cuda'
+        assert the_layer.some_hyper_param          .device.type == 'cuda'
+
+
+        the_layer = DigitalMapping_layer__2026(in_features=2, out_features=3, device='cuda')
+        input___b_i = rand_sign(size=[10,2], device='cuda')
+        output___b_o:torch.Tensor = the_layer(input___b_i)
+        assert output___b_o.device.type == 'cuda'
+        output___b_o.backward(gradient=rand_sign(size=[10,3], device='cuda'), inputs=the_layer._raw_weight___oCAP_iCAP)
+
+        return
+    ____test____device_adaption()
+    pass
 
 
 
@@ -3351,7 +3551,7 @@ def only_for_DigitalMapping_layer__2026_to_use___optim_step(raw_weight___o_i:tor
         return new___raw_weight___o_i
     #end of function.
 
-if "optim step algo test" and __DEBUG_ME__() and True:
+if "optim step algo test" and __DEBUG_ME__() and False:
     def ____test____only_for_DigitalMapping_layer__2026_to_use___optim_step()->None:
 
         if "basic algo test" and False:

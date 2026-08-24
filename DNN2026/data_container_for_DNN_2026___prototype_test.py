@@ -181,6 +181,7 @@ class DNN_input_container_2026(torch.nn.Module):
     def extend(self, other:torch.Tensor)->None:
         #<  safety
         assert other.shape.__len__() == 2
+        assert self._raw_data___b_CAPi.device.type == other.device.type
         #assert other.shape[0] == self._raw_data___b_CAPi.shape[0]#they must share the same batch. repeated.
         #<  real payload
         with torch.no_grad():
@@ -404,6 +405,33 @@ if "basic test" and __DEBUG_ME__() and True:
     ____test____DNN_input_container_2026()
     pass
 
+if "device adaption" and __DEBUG_ME__() and False:
+    def ____device_adaption____DNN_input_container_2026():
+        the_container = DNN_input_container_2026(batch=2,init_capacity=6, init_to_nan=True, device='cuda')
+        assert the_container._raw_data___b_CAPi.device.type == 'cuda'
+        the_container.extend(torch.randn(size=[2,3], device = 'cuda'))
+        assert the_container._raw_data___b_CAPi.device.type == 'cuda'
+        assert the_container.get_useful().device.type == 'cuda'
+
+        the_container.cpu()
+        assert the_container._raw_data___b_CAPi.device.type == 'cpu'
+        assert the_container.get_useful().device.type == 'cpu'
+
+
+        the_container = DNN_input_container_2026(batch=2,init_capacity=6, init_to_nan=True, device='cpu')
+        assert the_container._raw_data___b_CAPi.device.type == 'cpu'
+        the_container.extend(torch.randn(size=[2,3]))
+        assert the_container._raw_data___b_CAPi.device.type == 'cpu'
+        assert the_container.get_useful().device.type == 'cpu'
+
+        the_container.cuda()
+        assert the_container._raw_data___b_CAPi.device.type == 'cuda'
+        assert the_container.get_useful().device.type == 'cuda'
+
+
+        return
+    ____device_adaption____DNN_input_container_2026()
+    pass
 
 
 
@@ -1217,6 +1245,34 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
     ____detect_perfect_output___by_position____()
     pass
 
+
+if "device adaption" and __DEBUG_ME__() and True:
+    def ____device_adaption____DNN_label_container_2026():
+        the_container = DNN_label_container_2026(torch.randn(size=[2,3], device = 'cuda'), data_is_already_posneg1=True)
+        assert the_container._raw_data___b_CAPi.device.type == 'cuda'
+        the_container.extend()
+        assert the_container._raw_data___b_CAPi.device.type == 'cuda'
+        assert the_container.get_useful().device.type == 'cuda'
+
+        the_container.cpu()
+        assert the_container._raw_data___b_CAPi.device.type == 'cpu'
+        assert the_container.get_useful().device.type == 'cpu'
+
+
+        the_container = DNN_label_container_2026(torch.randn(size=[2,3], device = 'cpu'), data_is_already_posneg1=True)
+        assert the_container._raw_data___b_CAPi.device.type == 'cpu'
+        the_container.extend(torch.randn(size=[2,3]))
+        assert the_container._raw_data___b_CAPi.device.type == 'cpu'
+        assert the_container.get_useful().device.type == 'cpu'
+
+        the_container.cuda()
+        assert the_container._raw_data___b_CAPi.device.type == 'cuda'
+        assert the_container.get_useful().device.type == 'cuda'
+
+
+        return
+    ____device_adaption____DNN_label_container_2026()
+    pass
 
 
 
