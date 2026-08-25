@@ -5,8 +5,9 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from pytorch_yagaodirac_v2.Util import   log10_avg_safe, \
-                    _tensor_equal, str_the_list
+from pytorch_yagaodirac_v2.Util import _tensor_equal, str_the_list
+from pytorch_yagaodirac_v2.Util_log10_related import log10_avg_safe
+
 from pytorch_yagaodirac_v2.training_ended_sound import play_noise
 
 # 最后完事了来补个说明。

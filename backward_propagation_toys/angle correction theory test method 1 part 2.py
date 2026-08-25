@@ -8,9 +8,11 @@ sys.path.append(str(Path(__file__).parent.parent))
 from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, \
     iota, is_square_matrix, \
     vector_length_norm, get_vector_length, get_full_info_of_vector_length__2d, expand_vec_to_matrix,\
-    log10_avg_safe, log10_avg__how_similar, get_mask_of_top_element__rough,\
     str_the_list, str_the_list__probability
-        
+
+from pytorch_yagaodirac_v2.Util_log10_related import \
+    log10_avg_safe, log10_avg__how_similar, get_mask_of_top_element__rough
+
 from pytorch_yagaodirac_v2.Interpolation import \
     interpolation_of_list, interpolation_of_list_2d, reverse_interpolation_of_list__list_must_sorted
     

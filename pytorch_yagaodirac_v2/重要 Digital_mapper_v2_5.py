@@ -16,11 +16,12 @@ del upper_folder
 
 
 #from util import debug_Rank_1_parameter_to_List_float, int_into_floats, floats_into_int
+有一写移动到Util_bitwisel里面去了
 from pytorch_yagaodirac_v2.Util import bitwise_acc, data_gen_for_directly_stacking_test
 from pytorch_yagaodirac_v2.Util import data_gen_for_directly_stacking_test_same_dim_no_duplicated
 from pytorch_yagaodirac_v2.Util import debug_strong_grad_ratio, make_grad_noisy
 from pytorch_yagaodirac_v2.Util import Print_Timing
-from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_element_to_1
+from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_something_to_1
 from pytorch_yagaodirac_v2.training_ended_sound import play_noise
 #from Binarize import Binarize
 
@@ -422,8 +423,8 @@ class DigitalMapper_v2_5(torch.nn.Module):
         else:
             self.small_number = torch.nn.Parameter(torch.tensor([0.00003],**factory_kwargs), requires_grad=False)
             pass
-        self.gramo_for_raw_weight = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=False)
-        self.out_gramo = GradientModification__mean_len_of_element_to_1(protect_binary_accuracy=?)
+        self.gramo_for_raw_weight = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=False)
+        self.out_gramo = GradientModification__mean_len_of_something_to_1(protect_binary_accuracy=?)
         
         pass
 

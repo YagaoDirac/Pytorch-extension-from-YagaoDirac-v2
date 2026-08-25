@@ -8,8 +8,11 @@ sys.path.append(str(Path(__file__).parent.parent))
 from pytorch_yagaodirac_v2.Util import _float_equal, _tensor_equal, \
     iota, is_square_matrix, \
     vector_length_norm, get_vector_length,\
-    log10_avg_safe, get_mask_of_top_element__rough,\
     str_the_list
+
+from pytorch_yagaodirac_v2.Util_log10_related import \
+    log10_avg_safe, log10_avg__how_similar, get_mask_of_top_element__rough
+
 from pytorch_yagaodirac_v2.Random import random_standard_vector, randomly_permutate__matrix, randomly_rotate__matrix,\
     rand_sign, random_orthogonal_matrix
 from pytorch_yagaodirac_v2.Interpolation import interpolation_of_list, \
