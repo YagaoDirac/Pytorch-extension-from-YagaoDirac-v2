@@ -3,8 +3,9 @@ import sys
 sys.path.append(str(Path(__file__).parent.parent))
 from pytorch_yagaodirac_v2.Util import iota, \
         _tensor_equal, _bool_equal___0_as_false, _tensor_shape_check, _either_1_or_neg1, \
-        str_the_list
+        str_the_list, print_table
 from pytorch_yagaodirac_v2.Random import rand_sign
+from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_something_to_1
 from DNN2026.DNN_util import Index_container, partly_reasonable_label_from_input, \
         _test___binary_accuracy___full_safety
 from DNN2026.digitalmapping_layer___prototype_test import DigitalMapping_layer__2026#, optim_for___Digital
@@ -84,9 +85,11 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
     _original__out_dim:int
     _layer_count:int
     _layers:torch.nn.ParameterList
+    _gramo_every_n_layers:int
+    _gramos:torch.nn.ParameterList|None
     #customized function
     _calc_shape_function:function
-    def __init__(self, in_features:int, out_features:int, layer_count:int, \
+    def __init__(self, in_features:int, out_features:int, layer_count:int, gramo_every_n_layers:int, \
                 some_hyper_param: float = 1, init_to_nan: bool = True, 
                 _dtype_for_raw_weight = torch.float32, _always_check_input_is_posneg1__in_forward: bool = True, 
                 device = None):
@@ -97,6 +100,7 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
 
         self._calc_shape_function = _only_for_dry_stack_test__DNN_model__2026_to_use____calc_shape
 
+        assert type(layer_count) == int
         if layer_count == 1:
             _temp__the_only_layer = DigitalMapping_layer__2026(
                     in_features = in_features, 
@@ -143,6 +147,31 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
             pass#else:# layer_count >= 2
 
         assert self._layers.__len__() == self._layer_count
+
+        assert type(gramo_every_n_layers) == int
+        if gramo_every_n_layers<=0:
+            self._gramo_every_n_layers = -1
+            self._gramos = None
+            pass
+        elif gramo_every_n_layers>=layer_count:
+            assert False, "maybe a bad param."
+            self._gramo_every_n_layers = -1
+            pass
+        else gramo_every_n_layers<=0:
+            self._gramo_every_n_layers = gramo_every_n_layers
+            _temp__how_many_gramos = layer_count//gramo_every_n_layers
+            _temp__gramo__list = []
+            for _ in range(_temp__how_many_gramos):
+                _temp__gramo__list.append(GradientModification__mean_len_of_something_to_1(
+                        protect_binary_accuracy=True, 1w
+                ))
+            self._gramos = torch.nn.ParameterList([gramo(...) for ])
+
+            pass
+        elif 
+        if 
+
+
         return
 
     def forward(self, input___b_i:torch.Tensor)->torch.Tensor:
@@ -1298,7 +1327,7 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
         if "performance test,     gpu is faster?" and False:
             device = 'cuda'
             #device = 'cpu'
-            max_epoch_planned = 10
+            max_epoch_for_this_test = 10
             layer_count = 5
             for batch in [100, 1000]:
                 for dim_0 in [1000, 10000]:
@@ -1330,7 +1359,7 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                                 #                                                    learning_rate___s = learning_rate___s)
                                 
                                 
-                                for epoch in range(max_epoch_planned):
+                                for epoch in range(max_epoch_for_this_test):
                                     the_model.zero_grad()
                                     output___b_o:torch.Tensor = the_model(in_cont.get_useful())
                                     assert _either_1_or_neg1(output___b_o)
@@ -1366,51 +1395,347 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
 
 
 
+        # a = torch.tensor([1,2])
+        # b = a[False, False]
+        # c = b.eq(0)
+        # d = c.all()
+        # e = c.any()
 
 
+        '''some specialized function to help convert the result.'''
+        def raw_results__into__useful_results(out_dim:int, number_of_tests:int, max_epoch:int, 
+                _raw_result___finished:torch.Tensor, _raw_result___epoch:torch.Tensor, 
+                    _raw_result___wrong_slots_left:torch.Tensor, )->tuple[float,str,str,str]:
+            '''
+            finish_rate__list = ["finish rate"]
+
+            finished_at__list = ["finish at"]
+
+            acc_avg__list = ["acc avg"]
+
+            acc_avg_of_unfinished__list = ["acc avg--dns"]#dns == did not succeed.
+
+            DO THE TEST HERE TO FILL IN THE TORCH.TENSORS!!!!!!!!!!!!!
+
+            finish_rate, finished_at, acc_avg, acc_avg_of_unfinished = raw_results__into__useful_results( \
+                
+                    out_dim = out_dim, number_of_tests = number_of_tests, max_epoch = max_epoch, 
+
+                            _raw_result___finished = _raw_result___finished, 
+
+                            _raw_result___epoch = _raw_result___epoch, 
+
+                            _raw_result___wrong_slots_left = _raw_result___wrong_slots_left)
+
+            finish_rate__list.append(finish_rate)
+
+            finished_at__list.append(finished_at)
+
+            acc_avg__list.append(acc_avg)
+
+            acc_avg_of_unfinished__list.append(acc_avg_of_unfinished)
+            '''
+            finish_rate__float = _raw_result___finished.to(torch.int32).to(torch.float32).mean().item()
+            if finish_rate__float> 0.9999:
+                finish_rate = "v"
+                pass
+            elif finish_rate__float < 0.0001:
+                finish_rate = "---"
+                pass
+            else:
+                finish_rate = f"{finish_rate__float:.3f}"
+                pass
+
+            #finished_rate__list.append(_finish_rate)
+            #del _finish_rate
+            
+            _temp__finished_within_how_many_epochs = _raw_result___epoch[_raw_result___finished]
+            _assert__epochs_for_unfinished___must_be_max_epoch = _raw_result___epoch[_raw_result___finished.logical_not()]
+            if _assert__epochs_for_unfinished___must_be_max_epoch.nelement()>0:
+                _assert__epochs_for_unfinished___must_be_max_epoch.eq(max_epoch).all()
+                pass
+            #del _assert__epochs_for_unfinished___must_be_max_epoch
+            #del _raw_result___epoch
+            if _temp__finished_within_how_many_epochs.nelement()>0:
+                assert _temp__finished_within_how_many_epochs.eq(out_dim).any() == False
+                finished_at___float = _temp__finished_within_how_many_epochs.to(torch.float32).mean().item()
+                finished_at:str = f"{finished_at___float:.2f}"
+                #del finished_at___float
+                pass
+            else:
+                finished_at = "0"
+                pass
+            #del _temp__finished_within_how_many_epochs
+            #finished_at__list.append(finished_at)
+            #del finished_at
+
+            '''total avg of acc'''
+            acc_avg__float = (1. - (_raw_result___wrong_slots_left.to(torch.float32).mean()/float(out_dim)).item())
+            if acc_avg__float > 0.9999:
+                acc_avg = "v"
+                pass
+            else:
+                acc_avg = f"{acc_avg__float:.3f}"
+                pass
+            #acc_avg__list.append(acc_avg)
+            #del acc_avg
+
+                
+            _temp__wrong_slots_left = _raw_result___wrong_slots_left[_raw_result___finished.logical_not()]
+            _assert__wrong_slots_when_finished___must_be_0 = _raw_result___wrong_slots_left[_raw_result___finished]
+            if _assert__wrong_slots_when_finished___must_be_0.nelement()>0:
+                _assert__wrong_slots_when_finished___must_be_0.eq(0).all()
+                pass
+            # del _assert__wrong_slots_when_finished___must_be_0
+
+            #del _raw_result___wrong_slots_left
+            if _temp__wrong_slots_left.nelement()>0:
+                assert _temp__wrong_slots_left.gt(0).all()
+
+                acc_avg_of_unfinished___float = (1. - (_temp__wrong_slots_left.to(torch.float32).mean()/float(out_dim)).item())
+                assert acc_avg_of_unfinished___float <= acc_avg__float
+                acc_avg_of_unfinished:str = f"{acc_avg_of_unfinished___float:.3f}"
+                #del acc_avg_of_unfinished___float
+                pass
+            else:
+                acc_avg_of_unfinished = "---"
+                pass
+            #del _temp__wrong_slots_left
+            #acc_avg_of_unfinished__list.append(acc_avg_of_unfinished)
+            return finish_rate, finished_at, acc_avg, acc_avg_of_unfinished
+
+        if "basic test" and False:
+
+            if "test 1":
+                out_dim = 10
+                number_of_tests = 5
+                max_epoch = 100
+
+                finish_rate__list = ["finish rate"]
+                finished_at__list = ["finish at"]
+                acc_avg__list = ["acc avg"]
+                acc_avg_of_unfinished__list = ["acc avg--dns"]#dns == did not succeed.
+
+                '''no test, manually write in the data. '''
+                '''no test, manually write in the data. '''
+                _raw_result___finished  = torch.tensor([       False, False, True, True, False])
+                _raw_result___epoch     = torch.tensor([ max_epoch, max_epoch, 22, 44, max_epoch])
+                _raw_result___wrong_slots_left = torch.tensor([  5,     8,      0, 0,    2  ])
 
 
+                finish_rate, finished_at, acc_avg, acc_avg_of_unfinished = \
+                        raw_results__into__useful_results(out_dim = out_dim, number_of_tests = number_of_tests, max_epoch = max_epoch,
+                                _raw_result___finished = _raw_result___finished,
+                                _raw_result___epoch = _raw_result___epoch,
+                                _raw_result___wrong_slots_left = _raw_result___wrong_slots_left)
+
+                finish_rate__list.append(finish_rate)
+                finished_at__list.append(finished_at)
+                acc_avg__list.append(acc_avg)
+                acc_avg_of_unfinished__list.append(acc_avg_of_unfinished)
+
+                #del acc_avg_of_unfinished
+                assert                  finish_rate__list[1] == "0.400"
+                assert                  finished_at__list[1] == "33.00"
+                assert                  acc_avg__list    [1] == "0.700"
+                assert        acc_avg_of_unfinished__list[1] == "0.500"
+                pass#/ test
+
+            if "test 2":
+                out_dim = 10
+                number_of_tests = 5
+                max_epoch = 100
+
+                finished_rate__list = ["finish rate"]
+                finished_at__list = ["finish at"]
+                acc_avg__list = ["acc avg"]
+                acc_avg_of_unfinished__list = ["acc avg--dns"]#dns == did not succeed.
+
+                '''no test, manually write in the data. '''
+                '''no test, manually write in the data. '''
+                _raw_result___finished  = torch.tensor([       True, True,  False,  True,  False])
+                _raw_result___epoch     = torch.tensor([        66,   22, max_epoch, 44, max_epoch])
+                _raw_result___wrong_slots_left = torch.tensor([  0,    0,     4,     0,      2  ])
 
 
+                finished_rate, finished_at, acc_avg, acc_avg_of_unfinished = \
+                        raw_results__into__useful_results(out_dim = out_dim, number_of_tests = number_of_tests, max_epoch = max_epoch,
+                                _raw_result___finished = _raw_result___finished,
+                                _raw_result___epoch = _raw_result___epoch,
+                                _raw_result___wrong_slots_left = _raw_result___wrong_slots_left)
+
+                finished_rate__list.append(finished_rate)
+                finished_at__list.append(finished_at)
+                acc_avg__list.append(acc_avg)
+                acc_avg_of_unfinished__list.append(acc_avg_of_unfinished)
+
+                #del acc_avg_of_unfinished
+                assert                  finish_rate__list[1] == "0.600"
+                assert                  finished_at__list[1] == "44.00"
+                assert                  acc_avg__list    [1] == "0.880"
+                assert        acc_avg_of_unfinished__list[1] == "0.700"
+                pass#/ test
+
+            if "test all dns":
+                out_dim = 10
+                number_of_tests = 5
+                max_epoch = 100
+
+                finished_rate__list = ["finish rate"]
+                finished_at__list = ["finish at"]
+                acc_avg__list = ["acc avg"]
+                acc_avg_of_unfinished__list = ["acc avg--dns"]#dns == did not succeed.
+
+                '''no test, manually write in the data. '''
+                '''no test, manually write in the data. '''
+                _raw_result___finished  = torch.tensor([False, False,  False,  False,  False])
+                _raw_result___epoch     = torch.tensor([max_epoch,   max_epoch, max_epoch, max_epoch, max_epoch])
+                _raw_result___wrong_slots_left = torch.tensor([  1,2,3,4,5  ])
 
 
+                finished_rate, finished_at, acc_avg, acc_avg_of_unfinished = \
+                        raw_results__into__useful_results(out_dim = out_dim, number_of_tests = number_of_tests, max_epoch = max_epoch,
+                                _raw_result___finished = _raw_result___finished,
+                                _raw_result___epoch = _raw_result___epoch,
+                                _raw_result___wrong_slots_left = _raw_result___wrong_slots_left)
 
+                finished_rate__list.append(finished_rate)
+                finished_at__list.append(finished_at)
+                acc_avg__list.append(acc_avg)
+                acc_avg_of_unfinished__list.append(acc_avg_of_unfinished)
+
+                #del acc_avg_of_unfinished
+                assert                  finish_rate__list[1] == "0"
+                assert                  finished_at__list[1] == "---"
+                assert                  acc_avg__list    [1] == "0.700"
+                assert        acc_avg_of_unfinished__list[1] == "0.700"
+                pass#/ test
+
+            if "test all finished":
+                out_dim = 10
+                number_of_tests = 5
+                max_epoch = 100
+
+                finished_rate__list = ["finish rate"]
+                finished_at__list = ["finish at"]
+                acc_avg__list = ["acc avg"]
+                acc_avg_of_unfinished__list = ["acc avg--dns"]#dns == did not succeed.
+
+                '''no test, manually write in the data. '''
+                '''no test, manually write in the data. '''
+                _raw_result___finished  = torch.tensor([True, True, True, True, True])
+                _raw_result___epoch     = torch.tensor([  11,   22,   33,   44,   55])
+                _raw_result___wrong_slots_left = torch.tensor([0, 0, 0, 0, 0])
+
+
+                finished_rate, finished_at, acc_avg, acc_avg_of_unfinished = \
+                        raw_results__into__useful_results(out_dim = out_dim, number_of_tests = number_of_tests, max_epoch = max_epoch,
+                                _raw_result___finished = _raw_result___finished,
+                                _raw_result___epoch = _raw_result___epoch,
+                                _raw_result___wrong_slots_left = _raw_result___wrong_slots_left)
+
+                finished_rate__list.append(finished_rate)
+                finished_at__list.append(finished_at)
+                acc_avg__list.append(acc_avg)
+                acc_avg_of_unfinished__list.append(acc_avg_of_unfinished)
+
+                #del acc_avg_of_unfinished
+                assert                  finish_rate__list[1] == "v"
+                assert                  finished_at__list[1] == "33.00"
+                assert                  acc_avg__list    [1] == "v"
+                assert        acc_avg_of_unfinished__list[1] == "---"
+                pass#/ test
+
+            pass#/ test
 
 
 
         if "remove some output slot when it's trained to perfect" and True:
+            if "results" and False:
+                # batch   100    in/out/layer  100/  20/ 3        3.687602, or 0.737520 per test
+                #         lr ,  0.001 ,  0.010 ,  0.100
+                #  finish rate ,      0 ,      v ,      v
+                #    finish at ,    --- ,  33.20 ,   9.60
+                #      acc avg ,  0.420 ,      v ,      v
+                # acc avg--dns ,  0.420 ,    --- ,    ---
+
+                # batch   100    in/out/layer  100/  20/ 5        5.691955, or 1.138391 per test
+                #           lr ,  0.001 ,  0.010 ,  0.100
+                #  finish rate ,      0 ,      v ,      v
+                #    finish at ,    --- ,  33.20 ,  12.80
+                #      acc avg ,  0.700 ,      v ,      v
+                # acc avg--dns ,  0.700 ,    --- ,    ---
+
+                # lr ,  0.001 ,  0.010 ,  0.100
+                #  finish rate ,  0.200 ,      v ,  0.800
+                #    finish at ,  91.00 ,  35.60 ,  30.50
+                #      acc avg ,  0.660 ,      v ,  0.880
+                # acc avg--dns ,  0.575 ,    --- ,  0.400
+
+                # batch   100    in/out/layer  100/  20/15        21.058052, or 4.211610 per test
+                #         lr ,  0.001 ,  0.010 ,  0.100
+                #  finish rate ,      0 ,      v ,      v
+                #    finish at ,    --- ,  47.00 ,  36.00
+                #      acc avg ,  0.770 ,      v ,      v
+                # acc avg--dns ,  0.770 ,    --- ,    ---
+
+                # batch   100    in/out/layer  100/  20/20        27.185182, or 5.437036 per test
+                #           lr ,  0.001 ,  0.010 ,  0.100
+                #  finish rate ,      0 ,      v ,      v
+                #    finish at ,    --- ,  47.60 ,  37.00
+                #      acc avg ,  0.730 ,      v ,      v
+                # acc avg--dns ,  0.730 ,    --- ,    ---
+
+                pass
+1w读一下加gramo没有。
+
             device = 'cuda'
-            device = 'cpu'
+            #device = 'cpu'
 
-            test_count = 5
+            number_of_tests = 5
 
-            layer_count = 2
+            layer_count = 20
+            max_epoch = 100#0
+
             for batch in [100]:#, 1000]:
-                for dim_0 in [10, 100, 1000, 10000]:
-                    for dim_2 in [5, 50, 500]:
-                        if dim_0<=dim_2:
+                #for dim_0 in [10, 100, 1000, 10000]:
+                for in_dim in [100]:
+                    #for dim_2 in [5, 50, 500, 5000]:
+                    for out_dim in [20]:
+                        if in_dim<=out_dim:
                             continue
                         #print(f"{batch}   {dim_0}   {dim_2}")
+
+                        finished_rate__list = ["finish rate"]
+                        finished_at__list = ["finish at"]
+                        acc_avg__list = ["acc avg"]
+                        acc_avg_of_unfinished__list = ["acc avg--dns"]#dns == did not succeed.
 
                         _when_start = time.perf_counter()
 
                         #for learning_rate___s in [0.01, 0.03, 0.1, 0.3, 1.]:#lr 0.3, the acc goes from 0.5 to 0.65 in 1 epoch, according to previous tests.
-                        for learning_rate___s in [0.001, 0.01, 0.1,]:
-                            max_epoch_planned = (batch+dim_0+dim_2)*1000. / learning_rate___s
-                            max_epoch_planned = int(max_epoch_planned)
-                            if max_epoch_planned > 1000:
-                                max_epoch_planned = 1000
+                        learning_rate__list = [0.001, 0.01, 0.1,]
+                        for learning_rate___s in learning_rate__list:
+                            max_epoch_for_this_test = (batch+in_dim+out_dim)*1000. / learning_rate___s
+                            max_epoch_for_this_test = int(max_epoch_for_this_test)
+                            if max_epoch_for_this_test > max_epoch:
+                                max_epoch_for_this_test = max_epoch
                                 pass
 
-                            _raw_result___finished = torch.empty(size=[test_count], dtype=torch.bool)
-                            _raw_result___epoch = torch.empty(size=[test_count], dtype=torch.int32)
-                            _raw_result___wrong_slots_left = torch.empty(size=[test_count], dtype=torch.int32)
+                            _raw_result___finished = torch.empty(size=[number_of_tests], dtype=torch.bool)
+                            _raw_result___epoch = torch.empty(size=[number_of_tests], dtype=torch.int32)
+                            _raw_result___epoch.fill_(-1)
+                            _raw_result___wrong_slots_left = torch.empty(size=[number_of_tests], dtype=torch.int32)
+                            _raw_result___wrong_slots_left.fill_(-1)
 
-                            for ii_test in range(test_count):
+                            ''' TEST !!! '''
+                            ''' TEST !!! '''
+                            ''' TEST !!! '''
+                            for ii_test in range(number_of_tests):
                                 #<  dataset
-                                input___b_i = rand_sign(size=[batch, dim_0], dtype=torch.float32, device=device)#or fp16
+                                input___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32, device=device)#or fp16
                                 assert _either_1_or_neg1(input___b_i)
-                                _label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = dim_2,
+                                _label___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = out_dim,
                                                     random_ratio = 0., input_is_already_posneg1 = True)
                                 assert _either_1_or_neg1(_label___b_o)
 
@@ -1420,13 +1745,13 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                                 label_cont = DNN_label_container_2026(data=_label___b_o, data_is_already_posneg1=True)
                                 del _label___b_o
                                 #<  model      infra
-                                the_model = dry_stack_test__DNN_model__2026(in_features=dim_0, out_features=dim_2, layer_count=layer_count, device=device)
+                                the_model = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=layer_count, device=device)
                                 #optim_for_model = optim_for___DigitalMapping_layer__2026(DigitalMapping_layers=the_model.parameters(for_optim=True), 
                                 #                                                    learning_rate___s = learning_rate___s)
                                 
                                 perfect_slots_counts___along_epoch:list[float] = []
                                 
-                                for epoch in range(max_epoch_planned):
+                                for epoch in range(max_epoch_for_this_test):
                                     #optim_for_model.zero_grad() #优化器也要是新的。。。每一次要用新的。。
                                     the_model.zero_grad() #优化器也要是新的。。。每一次要用新的。。
                                     output___b_o:torch.Tensor = the_model(in_cont.get_useful())
@@ -1448,73 +1773,48 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
                                     label_cont.remove_output_slot(flag_perfect___o)
                                     if label_cont.out_dim() == 0:
                                         break
-                                    pass
-                                #<  model after
+                                    pass#for epoch 
+                                #<  after epochs
                                 _temp___perfect_slots_counts___along_epoch___in_tensor = torch.tensor(perfect_slots_counts___along_epoch)
                                 count_of_perfect_slots = _temp___perfect_slots_counts___along_epoch___in_tensor.sum()
                                 count_of_imperfect_slots = label_cont.out_dim()
-                                assert count_of_perfect_slots+count_of_imperfect_slots == dim_2# perfect plus imperfect, should eq to all.
-                                if count_of_imperfect_slots!=0:
-                                    print(f"batch {batch:5}    in/out/layer {dim_0:4}/{dim_2:4}/{layer_count:2}    total epochs {epoch+1}     lr {learning_rate___s}     good/bad {int(count_of_perfect_slots.item())}    {count_of_imperfect_slots}")
-                                    pass
-                                pass#for _
+                                assert count_of_perfect_slots+count_of_imperfect_slots == out_dim# perfect plus imperfect, should eq to all.
+                                # if count_of_imperfect_slots!=0:
+                                #     print(f"batch {batch:5}    in/out/layer {in_dim:4}/{out_dim:4}/{layer_count:2}    total epochs {epoch+1}     lr {learning_rate___s}     good/bad {int(count_of_perfect_slots.item())}    {count_of_imperfect_slots}")
+                                #     pass
 
-                            _temp__finished_within_how_many_epochs = _raw_result___epoch[_raw_result___finished]
-                            del _raw_result___epoch
-                            if _temp__finished_within_how_many_epochs.nelement()>0:
-                                finished_at___float = _temp__finished_within_how_many_epochs.mean().item()
-                                finished_at:str = f"{finished_at___float:.2f}"
-                                del finished_at___float
-                                pass
-                            else:
-                                finished_at = "---"
-                                pass
-                            del _temp__finished_within_how_many_epochs
-                            finished_at = " "*(1w - finished_at.__len__())+finished_at
-                            1w1w1w1w.append(finished_at)
+                                #<  results
+                                _raw_result___finished[ii_test] = count_of_imperfect_slots == 0
+                                _raw_result___epoch[ii_test] = epoch+1
+                                _raw_result___wrong_slots_left[ii_test] = count_of_imperfect_slots
+                                pass#for ii_test
+                            finished_rate, finished_at, acc_avg, acc_avg_of_unfinished = raw_results__into__useful_results(
+                                    out_dim = out_dim, number_of_tests = number_of_tests, max_epoch = max_epoch,
+                                    _raw_result___finished = _raw_result___finished,
+                                    _raw_result___epoch = _raw_result___epoch,
+                                    _raw_result___wrong_slots_left = _raw_result___wrong_slots_left)
 
-                            acc_avg = (1. - _raw_result___wrong_slots_left.mean().item())
-
-                            _temp__wrong_slots_left = _raw_result___wrong_slots_left[_raw_result___finished]
-                            del _raw_result___wrong_slots_left
-                            if _temp__wrong_slots_left.nelement()>0:
-                                acc_avg_of_unfinished___float = (1. - _temp__wrong_slots_left.mean().item())
-                                acc_avg_of_unfinished:str = f"{acc_avg_of_unfinished___float:.3f}"
-                                del acc_avg_of_unfinished___float
-                                pass
-                            else:
-                                acc_avg_of_unfinished = "---"
-                                pass
-                            del _temp__wrong_slots_left
-
-                            
-
+                            finished_rate__list.append(finished_rate)
+                            finished_at__list.append(finished_at)
+                            acc_avg__list.append(acc_avg)
+                            acc_avg_of_unfinished__list.append(acc_avg_of_unfinished)
                             pass#for learning_rate___s
 
-
-
-
-
-
                         _when_end = time.perf_counter()
-                        print(f"batch {batch:5}    in/out/layer {dim_0:4}/{dim_2:4}/{layer_count:2}        {_when_end - _when_start:.6f}")# , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
-                        
+                        print(f"batch {batch:5}    in/out/layer {in_dim:4}/{out_dim:4}/{layer_count:2}        { \
+                                _when_end - _when_start:.6f}, or {(_when_end - _when_start)/number_of_tests:.6f} per test")
 
-                        pass#for dim_2
-                    pass#for dim_0
+                        learning_rate__list.insert(0, "lr")
+                        print_table([learning_rate__list, 
+                                finished_rate__list, finished_at__list, acc_avg__list, acc_avg_of_unfinished__list], 
+                                separator=" ,  ")
+
+                        pass#for out_dim
+                    pass#for in_dim
                 pass#for batch
             pass#/ test
-            assert False, "gpu版本，测时间。"
-            assert False, "想一下指标。准确率，完美率。"
+            assert False, "看看最多能到多少层."
 
-        
-
-
-
-
-
-
-        #device adaption.
 
         return
     ____basic_behavior_of_dry_stack_test____()
