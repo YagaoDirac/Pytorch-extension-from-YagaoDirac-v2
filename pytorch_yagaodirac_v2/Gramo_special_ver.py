@@ -13,7 +13,8 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from pytorch_yagaodirac_v2.Util import _tensor_equal, _tensor_shape_check, _float_equal, \
-        vector_length_norm, get_vector_length
+        vector_length_norm, get_vector_length, \
+        iota
 
 
 def __DEBUG_ME__()->bool:
@@ -46,12 +47,6 @@ def dtype_upgrade(input:torch.dtype)->torch.dtype:
 
 
 
-
-
-
-
-
-
 # def get_vector_length(input:torch.Tensor, result_dtype = torch.float64)->torch.Tensor:
 #     _temp = input*input
 #     _temp = _temp.sum(dim=-1, dtype=result_dtype)
@@ -63,82 +58,93 @@ def dtype_upgrade(input:torch.dtype)->torch.dtype:
 
 
 
-if "algo prototype test" and __DEBUG_ME__() and True:
+
+
+
+
+
+
+
+
+if "algo prototype test before the function ver." and __DEBUG_ME__() and False:
     def ____algo_prototype____gramo():
 
-
-
-        if "xxxxxxxxxxxxxxxxx" and True:
-            batch = 4
+        if "prototype" and False:
+            batch = 5
             out_dim = 3
 
             epsilon = torch.tensor(0.001)
             scaling_factor = torch.tensor(3.)
-            mul_me__when_g_too_small___s = torch.tensor(50.)
+            mul_me__when_g_too_small___s = torch.tensor(64.)
             protect_accuracy = True
 
             g_in___b_o = torch.tensor([ 
-                                    [1., 1, 2], 
+                                    [0., 0, 0], 
                                     [3., 4, 0], 
                                     [100, 100, 100], 
                                     [0.01, 0.01, 0.01], 
+                                    [0.0001, 0.0001, 0.0001], 
                                     ])
             assert _tensor_shape_check(g_in___b_o, batch, out_dim)
-            
+
+            #<  length?
             _g_in__sqr___b_o = g_in___b_o*g_in___b_o
             assert _tensor_shape_check(_g_in__sqr___b_o, batch, out_dim)
             assert _tensor_equal(_g_in__sqr___b_o, [ 
-                                    [1, 1,  4], 
-                                    [9, 16, 0]
+                                    [0, 0,  0], 
+                                    [9, 16, 0],
                                     [10000, 10000, 10000],
                                     [0.0001, 0.0001, 0.0001],
+                                    [0.00000001, 0.00000001, 0.00000001], 
                                                     ])
             #del g_in___b_o
 
             _length_sqr___b_1 = _g_in__sqr___b_o.sum(dim=1, keepdim=True)
             assert _tensor_shape_check(_length_sqr___b_1, batch, 1)
-            assert _tensor_equal(_length_sqr___b_1, [   [6      ], 
+            assert _tensor_equal(_length_sqr___b_1, [   [0      ], 
                                                         [25     ], 
                                                         [30000  ], 
                                                         [0.0003 ], 
+                                                        [0.00000003 ], 
                                                         ])
             del _g_in__sqr___b_o
             
             length___b_1 = _length_sqr___b_1.sqrt_()
             assert _tensor_shape_check(length___b_1, batch, 1)
-            assert _tensor_equal(length___b_1, [[2.4495   ], 
-                                                [5        ],
-                                                [173.2051 ],
-                                                [0.01732  ],
-                                                ])
+            assert _tensor_equal(length___b_1[:4], [[0    ], 
+                                                    [5    ],
+                                                    [173.2051 ],
+                                                    [0.01732  ],])
+            assert _tensor_equal(length___b_1[4],   [0.0001732  ], epsilon=0.0000001)
             del _length_sqr___b_1
+            #</ length
+            #<  flag
+            flag__length_too_small___b_1 = length___b_1.lt(epsilon)#*dim__s)
+            assert flag__length_too_small___b_1.eq(torch.tensor([[True], [False], [False], [False], [True]])).all()
 
             #<  mul_me>
             mul_me___when_g_is_ok__raw___b_1 = scaling_factor/length___b_1
             assert _tensor_shape_check(mul_me___when_g_is_ok__raw___b_1, batch, 1)
-            assert _tensor_equal(mul_me___when_g_is_ok__raw___b_1, [[1.2247], # sqrt of 1.5
-                                                                    [0.6   ],
-                                                                    [0.01732  ],
-                                                                    [173.2051 ],
-                                                                    ])
+            assert mul_me___when_g_is_ok__raw___b_1[0].isinf() == True
+            assert _tensor_equal(mul_me___when_g_is_ok__raw___b_1[1:4], [#[inf     ], # sqrt of 1.5
+                                                                        [0.6   ],
+                                                                        [0.0173  ],
+                                                                        [173.2051 ],])
+            assert _tensor_equal(mul_me___when_g_is_ok__raw___b_1[4],   [17320.51  ], epsilon=0.01)
 
-            mul_me___when_g_is_ok__raw___b_1.nan_to_num_(posinf = 0., neginf = 0.)
+            mul_me___when_g_is_ok__raw___b_1.nan_to_num_(posinf = 1., neginf = 1.)
             assert mul_me___when_g_is_ok__raw___b_1.eq(0.).any() == False
 
 
-            flag__length_too_small___b_1 = length___b_1.lt(epsilon)#*dim__s)
-            assert flag__length_too_small___b_1.eq(torch.tensor([False, False, False, False])).all()
-
-            
-            
             # mul_me__b_1=flag__length_too_small__b_1.logical_not() * mul_me___when_g_is_ok__raw__b_1 + \
             #             flag__length_too_small__b_1               * mul_me__when_g_too_small__s#this is input, 1e-3 by default
             mul_me___b_1 = torch.where(flag__length_too_small___b_1, mul_me__when_g_too_small___s, mul_me___when_g_is_ok__raw___b_1)
             assert _tensor_shape_check(mul_me___b_1, batch, 1)
-            assert _tensor_equal(mul_me___b_1, [[1.2247], # sqrt of 1.5
+            assert _tensor_equal(mul_me___b_1, [[64 ],
                                                 [0.6   ],
                                                 [0.01732  ],
                                                 [173.2051 ],
+                                                [64 ],
                                                 ])
             assert mul_me___b_1.dtype == g_in___b_o.dtype
             
@@ -147,25 +153,353 @@ if "algo prototype test" and __DEBUG_ME__() and True:
                 mul_me___b_1.log2_().add_(0.5).floor_()# nearest power of 2. This floor func returns fp. It works. No need to convert it to integer.
                 assert _tensor_equal(mul_me___b_1, mul_me___b_1.floor())
                 mul_me___b_1.exp2_()
-                assert _tensor_equal(mul_me___b_1, [[1.], # sqrt of 1.5
+                assert _tensor_equal(mul_me___b_1, [[64.], # sqrt of 1.5
                                                     [0.5],
-                                                    [0.0078],
+                                                    [0.0156],
                                                     [128],
+                                                    [64 ],
                                                     ])
                 pass
 
             mul_me___b_o = mul_me___b_1.expand(size=[-1, g_in___b_o.shape[1]])
             assert _tensor_shape_check(mul_me___b_o, batch, out_dim)
             del mul_me___b_1
-
             grad_for_x__b_o = g_in___b_o*mul_me___b_o
             assert _tensor_shape_check(grad_for_x__b_o, batch, out_dim)
-            assert _tensor_equal(grad_for_x__b_o, [ [1.,  1, 2], 
+            assert _tensor_equal(grad_for_x__b_o, [ [0., 0,  0], 
                                                     [1.5, 2, 0],
-                                                    [0.7813, 0.7813, 0.7813],
+                                                    [1.5625, 1.5625, 1.5625],
                                                     [1.28, 1.28, 1.28],
+                                                    [0.0064, 0.0064, 0.0064],
                                                     ])
-            assert _tensor_equal(get_vector_length(grad_for_x__b_o), [2.4495, 2.5])
+            _assert_only___length_of_result = get_vector_length(grad_for_x__b_o)
+            assert _tensor_equal(_assert_only___length_of_result[:4], [ 0, 
+                                                                    2.5, 
+                                                                    2.706, 
+                                                                    2.217, ], epsilon=0.01)
+            assert _tensor_equal(_assert_only___length_of_result[4], [ 0.01108  ], epsilon=0.00001)
+
+            _assert_only___length_of_g_in = get_vector_length(g_in___b_o)
+            assert _tensor_equal(_assert_only___length_of_g_in[:4], [0,  5,  173.2051, 0.01732], epsilon=0.01)
+            assert _tensor_equal(_assert_only___length_of_g_in[4], [ 0.0001732  ], epsilon=0.0000001)
+
+            pass#/ test
+
+        if "Simplified.     Not test purpose." and False:
+            #<  param
+            batch = 5
+            out_dim = 3
+
+            epsilon = torch.tensor(0.001)
+            scaling_factor = torch.tensor(3.)
+            mul_me__when_g_too_small___s = torch.tensor(64.)
+            protect_accuracy = True
+
+            g_in___b_o = torch.tensor([ 
+                                    [0., 0, 0], 
+                                    [3., 4, 0], 
+                                    [100, 100, 100], 
+                                    [0.01, 0.01, 0.01], 
+                                    [0.0001, 0.0001, 0.0001], 
+                                    ])
+            #</ param
+
+            #<  length
+            _g_in__sqr___b_o = g_in___b_o*g_in___b_o
+            #del g_in___b_o
+            _length_sqr___b_1 = _g_in__sqr___b_o.sum(dim=1, keepdim=True)
+            del _g_in__sqr___b_o
+            length___b_1 = _length_sqr___b_1.sqrt_()
+            del _length_sqr___b_1
+            #</ length
+            #<  flag
+            flag__length_too_small___b_1 = length___b_1.lt(epsilon)#*dim__s)
+
+            #<  mul_me>
+            mul_me___when_g_is_ok__raw___b_1 = scaling_factor/length___b_1
+            mul_me___when_g_is_ok__raw___b_1.nan_to_num_(posinf = 1., neginf = 1.)#protection. The 1. is not important. It can be any number.
+            assert mul_me___when_g_is_ok__raw___b_1.eq(0.).any() == False
+
+            #<  torch where
+            mul_me___b_1 = torch.where(flag__length_too_small___b_1, mul_me__when_g_too_small___s, mul_me___when_g_is_ok__raw___b_1)
+            
+            #<  value accuracy.       not the result acc.
+            if protect_accuracy:
+                mul_me___b_1.log2_().add_(0.5).floor_()# nearest power of 2. This floor func returns fp. It works. No need to convert it to integer.
+                mul_me___b_1.exp2_()
+                pass
+
+            mul_me___b_o = mul_me___b_1.expand(size=[-1, g_in___b_o.shape[1]])
+            assert _tensor_shape_check(mul_me___b_o, batch, out_dim)
+            del mul_me___b_1
+            grad_for_x__b_o = g_in___b_o*mul_me___b_o
+            # pass#if input_needs_grad
+            # return grad_for_x__b_o
+
+            pass#/ test
+
+        return 
+    ____algo_prototype____gramo()
+    pass
+
+def _gramo_algo_test(g_in___b_o:torch.Tensor, scaling_factor = torch.tensor(3.), epsilon = torch.tensor(0.001), 
+            mul_me__when_g_too_small___s = torch.tensor(64.), protect_accuracy = True)->torch.Tensor:
+
+    #<  length
+    _g_in__sqr___b_o = g_in___b_o*g_in___b_o
+    #del g_in___b_o
+    _length_sqr___b_1 = _g_in__sqr___b_o.sum(dim=1, keepdim=True)
+    del _g_in__sqr___b_o
+    length___b_1 = _length_sqr___b_1.sqrt_()
+    del _length_sqr___b_1
+    #</ length
+    #<  flag
+    flag__length_too_small___b_1 = length___b_1.lt(epsilon)#*dim__s)
+
+    #<  mul_me>
+    mul_me___when_g_is_ok__raw___b_1 = scaling_factor/length___b_1
+    mul_me___when_g_is_ok__raw___b_1.nan_to_num_(posinf = 1., neginf = 1.)#protection. The 1. is not important. It can be any number.
+    assert mul_me___when_g_is_ok__raw___b_1.eq(0.).any() == False
+
+    #<  torch where
+    mul_me___b_1 = torch.where(flag__length_too_small___b_1, mul_me__when_g_too_small___s, mul_me___when_g_is_ok__raw___b_1)
+    
+    #<  value accuracy.       not the result acc.
+    if protect_accuracy:
+        mul_me___b_1.log2_().add_(0.5).floor_()# nearest power of 2. This floor func returns fp. It works. No need to convert it to integer.
+        mul_me___b_1.exp2_()
+        pass
+
+    mul_me___b_o = mul_me___b_1.expand(size=[-1, g_in___b_o.shape[1]])
+    del mul_me___b_1
+    grad_for_x__b_o = g_in___b_o*mul_me___b_o
+    # pass#if input_needs_grad
+    return grad_for_x__b_o
+
+
+
+
+
+if "algo prototype test           with function." and __DEBUG_ME__() and True:
+    def ____test____the_function_____gramo_algo_test():
+
+        if "equivalence" and False:
+            batch = 5
+            out_dim = 3
+
+            epsilon = torch.tensor(0.001)
+            scaling_factor = torch.tensor(3.)
+            mul_me__when_g_too_small___s = torch.tensor(64.)
+            protect_accuracy = True
+
+            g_in___b_o = torch.tensor([ 
+                                    [0., 0, 0], 
+                                    [3., 4, 0], 
+                                    [100, 100, 100], 
+                                    [0.01, 0.01, 0.01], 
+                                    [0.0001, 0.0001, 0.0001], 
+                                    ])
+            assert _tensor_shape_check(g_in___b_o, batch, out_dim)
+
+            #<  length?
+            _g_in__sqr___b_o = g_in___b_o*g_in___b_o
+            assert _tensor_shape_check(_g_in__sqr___b_o, batch, out_dim)
+            assert _tensor_equal(_g_in__sqr___b_o, [ 
+                                    [0, 0,  0], 
+                                    [9, 16, 0],
+                                    [10000, 10000, 10000],
+                                    [0.0001, 0.0001, 0.0001],
+                                    [0.00000001, 0.00000001, 0.00000001], 
+                                                    ])
+            #del g_in___b_o
+
+            _length_sqr___b_1 = _g_in__sqr___b_o.sum(dim=1, keepdim=True)
+            assert _tensor_shape_check(_length_sqr___b_1, batch, 1)
+            assert _tensor_equal(_length_sqr___b_1, [   [0      ], 
+                                                        [25     ], 
+                                                        [30000  ], 
+                                                        [0.0003 ], 
+                                                        [0.00000003 ], 
+                                                        ])
+            del _g_in__sqr___b_o
+            
+            length___b_1 = _length_sqr___b_1.sqrt_()
+            assert _tensor_shape_check(length___b_1, batch, 1)
+            assert _tensor_equal(length___b_1[:4], [[0    ], 
+                                                    [5    ],
+                                                    [173.2051 ],
+                                                    [0.01732  ],])
+            assert _tensor_equal(length___b_1[4],   [0.0001732  ], epsilon=0.0000001)
+            del _length_sqr___b_1
+            #</ length
+            #<  flag
+            flag__length_too_small___b_1 = length___b_1.lt(epsilon)#*dim__s)
+            assert flag__length_too_small___b_1.eq(torch.tensor([[True], [False], [False], [False], [True]])).all()
+
+            #<  mul_me>
+            mul_me___when_g_is_ok__raw___b_1 = scaling_factor/length___b_1
+            assert _tensor_shape_check(mul_me___when_g_is_ok__raw___b_1, batch, 1)
+            assert mul_me___when_g_is_ok__raw___b_1[0].isinf() == True
+            assert _tensor_equal(mul_me___when_g_is_ok__raw___b_1[1:4], [#[inf     ], # sqrt of 1.5
+                                                                        [0.6   ],
+                                                                        [0.0173  ],
+                                                                        [173.2051 ],])
+            assert _tensor_equal(mul_me___when_g_is_ok__raw___b_1[4],   [17320.51  ], epsilon=0.01)
+
+            mul_me___when_g_is_ok__raw___b_1.nan_to_num_(posinf = 1., neginf = 1.)
+            assert mul_me___when_g_is_ok__raw___b_1.eq(0.).any() == False
+
+
+            # mul_me__b_1=flag__length_too_small__b_1.logical_not() * mul_me___when_g_is_ok__raw__b_1 + \
+            #             flag__length_too_small__b_1               * mul_me__when_g_too_small__s#this is input, 1e-3 by default
+            mul_me___b_1 = torch.where(flag__length_too_small___b_1, mul_me__when_g_too_small___s, mul_me___when_g_is_ok__raw___b_1)
+            assert _tensor_shape_check(mul_me___b_1, batch, 1)
+            assert _tensor_equal(mul_me___b_1, [[64 ],
+                                                [0.6   ],
+                                                [0.01732  ],
+                                                [173.2051 ],
+                                                [64 ],
+                                                ])
+            assert mul_me___b_1.dtype == g_in___b_o.dtype
+            
+            
+            if protect_accuracy:
+                mul_me___b_1.log2_().add_(0.5).floor_()# nearest power of 2. This floor func returns fp. It works. No need to convert it to integer.
+                assert _tensor_equal(mul_me___b_1, mul_me___b_1.floor())
+                mul_me___b_1.exp2_()
+                assert _tensor_equal(mul_me___b_1, [[64.], # sqrt of 1.5
+                                                    [0.5],
+                                                    [0.0156],
+                                                    [128],
+                                                    [64 ],
+                                                    ])
+                pass
+
+            mul_me___b_o = mul_me___b_1.expand(size=[-1, g_in___b_o.shape[1]])
+            assert _tensor_shape_check(mul_me___b_o, batch, out_dim)
+            del mul_me___b_1
+            grad_for_x__b_o = g_in___b_o*mul_me___b_o
+            assert _tensor_shape_check(grad_for_x__b_o, batch, out_dim)
+            assert _tensor_equal(grad_for_x__b_o, [ [0., 0,  0], 
+                                                    [1.5, 2, 0],
+                                                    [1.5625, 1.5625, 1.5625],
+                                                    [1.28, 1.28, 1.28],
+                                                    [0.0064, 0.0064, 0.0064],
+                                                    ])
+
+
+
+            #<  function equilavence
+            function_result = _gramo_algo_test(g_in___b_o = torch.tensor([ 
+                                                [0., 0, 0], 
+                                                [3., 4, 0], 
+                                                [100, 100, 100], 
+                                                [0.01, 0.01, 0.01], 
+                                                [0.0001, 0.0001, 0.0001], 
+                                                ]),
+                        scaling_factor = torch.tensor(3.), epsilon = torch.tensor(0.001), 
+                        mul_me__when_g_too_small___s = torch.tensor(64.), protect_accuracy = True)
+            assert _tensor_equal(grad_for_x__b_o, function_result)
+            pass#/ test
+
+        import random
+
+        if "shuffle before or after function call" and False:
+            for batch in [2,6,13,27]:
+                for out_dim in [3,9,18,31]:
+                    for protect_accuracy in [True, False]:
+                        for _ in range(66):
+
+                            iota_of_batch = iota(batch)
+                            random.shuffle(iota_of_batch)
+                            index_to_shuffle = iota_of_batch
+                            del iota_of_batch
+
+                            g_in___b_o = torch.randn(size=[batch, out_dim])
+
+                            scaling_factor = torch.rand(size=[])*3. + 0.5
+                            assert scaling_factor.nelement() == 1
+                            assert scaling_factor>=0.5
+
+                            epsilon = torch.pow(0.1, torch.rand(size=[])*2. + 2.)
+                            assert epsilon.nelement() == 1
+                            assert epsilon >= 0.0001
+                            assert epsilon <= 0.01
+
+                            mul_me__when_g_too_small___s = torch.pow(10, torch.rand(size=[])*1. + 2.)
+                            assert mul_me__when_g_too_small___s.nelement() == 1
+                            assert mul_me__when_g_too_small___s >= 100
+                            assert mul_me__when_g_too_small___s <= 1000
+
+                            #<  func_then_shuffle
+                            _temp_normal_result___b_o = _gramo_algo_test(g_in___b_o = g_in___b_o, 
+                                        scaling_factor = scaling_factor, epsilon = epsilon, 
+                                        mul_me__when_g_too_small___s = mul_me__when_g_too_small___s, protect_accuracy = protect_accuracy)
+                            assert _tensor_shape_check(_temp_normal_result___b_o, batch, out_dim)
+                            result___func_then_shuffle___b_o = _temp_normal_result___b_o[index_to_shuffle]
+                            assert _tensor_shape_check(result___func_then_shuffle___b_o, batch, out_dim)
+                            #<  shuffle_then_func
+                            g_in___shuffle_then_func___b_o = g_in___b_o[index_to_shuffle]
+                            assert _tensor_shape_check(g_in___shuffle_then_func___b_o, batch, out_dim)
+                            result___shuffle_then_func___b_o  = _gramo_algo_test(g_in___b_o = g_in___shuffle_then_func___b_o, 
+                                        scaling_factor = scaling_factor, epsilon = epsilon, 
+                                        mul_me__when_g_too_small___s = mul_me__when_g_too_small___s, protect_accuracy = protect_accuracy)
+                            assert _tensor_shape_check(result___shuffle_then_func___b_o, batch, out_dim)
+
+                            #<  assert 
+                            assert _tensor_equal(result___func_then_shuffle___b_o, result___shuffle_then_func___b_o)
+
+                            pass#for _
+                        pass#for protect_accuracy
+                    pass#for out_dim
+                pass#for batch
+
+            pass#/ test
+
+        if "batch independence" and True:
+            for batch in [2,6,13,27]:
+                for out_dim in [3,9,18,31]:
+                    for protect_accuracy in [True, False]:
+                        for _ in range(66):
+
+                            g_in___b_o = torch.randn(size=[batch, out_dim])
+
+                            scaling_factor = torch.rand(size=[])*3. + 0.5
+                            assert scaling_factor.nelement() == 1
+                            assert scaling_factor>=0.5
+
+                            epsilon = torch.pow(0.1, torch.rand(size=[])*2. + 2.)
+                            assert epsilon.nelement() == 1
+                            assert epsilon >= 0.0001
+                            assert epsilon <= 0.01
+
+                            mul_me__when_g_too_small___s = torch.pow(10, torch.rand(size=[])*1. + 2.)
+                            assert mul_me__when_g_too_small___s.nelement() == 1
+                            assert mul_me__when_g_too_small___s >= 100
+                            assert mul_me__when_g_too_small___s <= 1000
+
+                            #<  func_then_shuffle
+                            result_with_batch___b_o = _gramo_algo_test(g_in___b_o = g_in___b_o, 
+                                        scaling_factor = scaling_factor, epsilon = epsilon, 
+                                        mul_me__when_g_too_small___s = mul_me__when_g_too_small___s, protect_accuracy = protect_accuracy)
+                            assert _tensor_shape_check(result_with_batch___b_o, batch, out_dim)
+
+                            for ii_batch in range(batch):
+                                the_row_of_input___1_o = g_in___b_o[ii_batch].reshape(shape=[1, -1])
+                                assert _tensor_shape_check(the_row_of_input___1_o, 1, out_dim)
+
+                                result_of_the_row___1_o  = _gramo_algo_test(g_in___b_o = the_row_of_input___1_o, 
+                                            scaling_factor = scaling_factor, epsilon = epsilon, 
+                                            mul_me__when_g_too_small___s = mul_me__when_g_too_small___s, protect_accuracy = protect_accuracy)
+                                assert _tensor_shape_check(result_of_the_row___1_o, 1, out_dim)
+                                #<  assert 
+                                assert _tensor_equal(result_with_batch___b_o[ii_batch].reshape(shape=[1, -1]), result_of_the_row___1_o)
+                                pass#for ii_batch
+
+                            pass#for _
+                        pass#for protect_accuracy
+                    pass#for out_dim
+                pass#for batch
 
             pass#/ test
 
@@ -174,9 +508,63 @@ if "algo prototype test" and __DEBUG_ME__() and True:
 
 
 
-        return 
-    ____algo_prototype____gramo()
+
+
+
+
+
+1w
+1w
+1w
+        if "scaling_factor" and True:
+
+            g_in___b_o = torch.tensor(size=[batch, out_dim])
+
+            scaling_factor = torch.rand(size=[])*3. + 0.5
+            assert scaling_factor.nelement() == 1
+            assert scaling_factor>=0.5
+
+            epsilon = torch.pow(0.1, torch.rand(size=[])*2. + 2.)
+            assert epsilon.nelement() == 1
+            assert epsilon >= 0.0001
+            assert epsilon <= 0.01
+
+            mul_me__when_g_too_small___s = torch.pow(10, torch.rand(size=[])*1. + 2.)
+            assert mul_me__when_g_too_small___s.nelement() == 1
+            assert mul_me__when_g_too_small___s >= 100
+            assert mul_me__when_g_too_small___s <= 1000
+
+            #<  func_then_shuffle
+            result_with_batch___b_o = _gramo_algo_test(g_in___b_o = g_in___b_o, 
+                        scaling_factor = scaling_factor, epsilon = epsilon, 
+                        mul_me__when_g_too_small___s = mul_me__when_g_too_small___s, protect_accuracy = protect_accuracy)
+            assert _tensor_shape_check(result_with_batch___b_o, batch, out_dim)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    ____test____the_function_____gramo_algo_test()
     pass
+
+
+
+
+
+
+
+
+
+
 
 
 
