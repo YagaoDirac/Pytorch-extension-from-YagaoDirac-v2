@@ -14,7 +14,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from pytorch_yagaodirac_v2.Util import _tensor_equal, _tensor_shape_check, _float_equal, \
         vector_length_norm, get_vector_length, \
-        iota
+        iota, \
+        print_table
 
 
 def __DEBUG_ME__()->bool:
@@ -280,7 +281,7 @@ def _gramo_algo_test(g_in___b_o:torch.Tensor, scaling_factor = torch.tensor(3.),
 
 
 
-if "algo prototype test           with function." and __DEBUG_ME__() and True:
+if "algo prototype test           with function." and __DEBUG_ME__() and False:
     def ____test____the_function_____gramo_algo_test():
 
         if "equivalence" and False:
@@ -456,7 +457,7 @@ if "algo prototype test           with function." and __DEBUG_ME__() and True:
 
             pass#/ test
 
-        if "batch independence" and True:
+        if "batch independence" and False:
             for batch in [2,6,13,27]:
                 for out_dim in [3,9,18,31]:
                     for protect_accuracy in [True, False]:
@@ -503,56 +504,277 @@ if "algo prototype test           with function." and __DEBUG_ME__() and True:
 
             pass#/ test
 
+        '''the avg of abs of elements of the output (with protect_accuracy = False) is roughly  0.82 * sqrt( 1 / out_dim)'''
+        if "avg of elements      by shape" and False:
+            if "results" and True:
+
+                # batch 10     test_time 100    
+                # out_dim__list,    10,   100,  1000
+                # avg_of_elements, 0.259, 0.080, 0.025
+
+                # batch 100     test_time 100  
+                # out_dim__list,    10,   100,  1000
+                # avg_of_elements, 0.259, 0.080, 0.025
+
+                # batch 1000     test_time 100   
+                # out_dim__list,    10,   100,  1000
+                # avg_of_elements, 0.259, 0.080, 0.025
+
+                pass
 
 
 
+            print(f"__LINE__ {_line_()}      avg of elements      by shape")
+                        
+            #------------------#------------------#------------------
+            dim_list =                          [ 10,100, 1000]
+            number_of_tests_list = torch.tensor([100,100, 100])
+            number_of_tests_list = number_of_tests_list.mul(1.).to(torch.int32)
+            for ii_outter_param_set in range(dim_list.__len__()):
+                batch = dim_list[ii_outter_param_set]
+                # iota_of_dim = iota(dim)
+                number_of_tests = int(number_of_tests_list[ii_outter_param_set].item())
+                device = 'cpu'
+                # if dim>100:
+                #     device = 'cuda'
+                #     pass
+                print(f"batch {batch}     test_time {number_of_tests}    device {device}")
+            #------------------#------------------#------------------
+                avg_of_elements = ["avg_of_elements"]#don't modify this.
+                
+                out_dim__list = [10, 100, 1000]      ################################
+                #_when_start = time.perf_counter()
+                
+                for out_dim in out_dim__list:
+                    _raw_result___avg_of_elements = torch.empty(size=[number_of_tests])
+                    for ii__test in range(number_of_tests):
+                        
+                        #------------------#------------------#------------------
+                        #<  init           
+                        g_in___b_o = torch.randn(size=[batch, out_dim])
+
+                        scaling_factor = torch.tensor(1.)
+                        epsilon = torch.tensor(0.001)
+                        mul_me__when_g_too_small___s = torch.tensor(100.)
+
+                        #<  func_then_shuffle
+                        result___b_o = _gramo_algo_test(g_in___b_o = g_in___b_o, 
+                                    scaling_factor = scaling_factor, epsilon = epsilon, 
+                                    mul_me__when_g_too_small___s = mul_me__when_g_too_small___s, 
+                                    protect_accuracy = False) #######################    only for this test
+                        assert _tensor_shape_check(result___b_o, batch, out_dim)
+                        avg_of_elements___s = result___b_o.abs().mean()
+                        assert _tensor_shape_check(avg_of_elements___s)
+                        
+                        #<  measure
+                        _this_result = 123
+                        #------------------#------------------#------------------
+                        
+                        _raw_result___avg_of_elements[ii__test] = avg_of_elements___s
+                        pass#for ii__test
+
+                    avg_of_elements.append(_raw_result___avg_of_elements.mean().item())
+                    
+                    pass#for scanned_param
+                #_when_end = time.perf_counter()
+                #print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+
+                print(f"batch {batch}")
+                out_dim__list.insert(0, "out_dim__list")
+                print_table([out_dim__list, avg_of_elements])
+                pass#for ii_outter_param_set
 
 
+            pass#/ test
 
+        if "scaling_factor" and False:
+            for batch in [2,6,13,27]:
+                for out_dim in [3,9,18,31]:
+                    for _ in range(66):
+                        
+                        g_in___b_o = torch.randn(size=[batch, out_dim])
 
+                        scaling_factor_1 = torch.rand(size=[])*3. + 0.5
+                        assert scaling_factor_1.nelement() == 1
+                        assert scaling_factor_1>=0.5
+                        scaling_factor_2 = torch.rand(size=[])*3. + 0.5
+                        scaling_factor_2_div_1 = scaling_factor_2 / scaling_factor_1
 
+                        epsilon = torch.pow(0.1, torch.rand(size=[])*2. + 2.)
+                        assert epsilon.nelement() == 1
+                        assert epsilon >= 0.0001
+                        assert epsilon <= 0.01
 
+                        mul_me__when_g_too_small___s = torch.pow(10, torch.rand(size=[])*1. + 2.)
+                        assert mul_me__when_g_too_small___s.nelement() == 1
+                        assert mul_me__when_g_too_small___s >= 100
+                        assert mul_me__when_g_too_small___s <= 1000
 
-1w
-1w
-1w
-        if "scaling_factor" and True:
+                        #<  func_then_shuffle
+                        result_1___b_o = _gramo_algo_test(g_in___b_o = g_in___b_o, 
+                                    scaling_factor = scaling_factor_1, epsilon = epsilon, 
+                                    mul_me__when_g_too_small___s = mul_me__when_g_too_small___s, 
+                                    protect_accuracy = False) #######################    only for this test
+                        assert _tensor_shape_check(result_1___b_o, batch, out_dim)
+                        result_2___b_o = _gramo_algo_test(g_in___b_o = g_in___b_o, 
+                                    scaling_factor = scaling_factor_2, epsilon = epsilon, 
+                                    mul_me__when_g_too_small___s = mul_me__when_g_too_small___s, 
+                                    protect_accuracy = False) #######################    only for this test
+                        assert _tensor_shape_check(result_2___b_o, batch, out_dim)
 
-            g_in___b_o = torch.tensor(size=[batch, out_dim])
+                        maybe_same_as_2___b_o = result_1___b_o * scaling_factor_2_div_1
+                        assert _tensor_shape_check(maybe_same_as_2___b_o, batch, out_dim)
 
-            scaling_factor = torch.rand(size=[])*3. + 0.5
-            assert scaling_factor.nelement() == 1
-            assert scaling_factor>=0.5
+                        assert _tensor_equal(result_2___b_o, maybe_same_as_2___b_o)
+                        pass#for _
+                    pass#for out_dim
+                pass#for batch
+            pass#/ test
 
-            epsilon = torch.pow(0.1, torch.rand(size=[])*2. + 2.)
-            assert epsilon.nelement() == 1
-            assert epsilon >= 0.0001
-            assert epsilon <= 0.01
+        if "VISUAL       all the 3 trivial params" and False:
+            from matplotlib import pyplot as plt
 
-            mul_me__when_g_too_small___s = torch.pow(10, torch.rand(size=[])*1. + 2.)
-            assert mul_me__when_g_too_small___s.nelement() == 1
-            assert mul_me__when_g_too_small___s >= 100
-            assert mul_me__when_g_too_small___s <= 1000
+            batch = 1000
+            out_dim = 1
 
-            #<  func_then_shuffle
-            result_with_batch___b_o = _gramo_algo_test(g_in___b_o = g_in___b_o, 
-                        scaling_factor = scaling_factor, epsilon = epsilon, 
-                        mul_me__when_g_too_small___s = mul_me__when_g_too_small___s, protect_accuracy = protect_accuracy)
-            assert _tensor_shape_check(result_with_batch___b_o, batch, out_dim)
+            for scaling_factor__float in [1, 3, 10]:
+                scaling_factor = torch.tensor(scaling_factor__float)
+                    
+                for epsilon__float in [0.03, 0.1, 0.25]:
+                    epsilon = torch.tensor(epsilon__float)
+    
+                    for mul_me__when_g_too_small___s__float in [10, 20, 30]:
+                        mul_me__when_g_too_small___s = torch.tensor(mul_me__when_g_too_small___s__float)
 
+                        log_of_g_in___b_o = torch.linspace(start=-2., end=1., steps = batch).reshape(shape=[batch, 1])
+                        g_in___b_o = torch.pow(10., log_of_g_in___b_o)
 
+                        # plt.plot(g_in___b_o, g_in___b_o)
+                        # plt.xscale('log')
+                        # plt.show()
+                        
+                        result___b_o = _gramo_algo_test(g_in___b_o = g_in___b_o, 
+                                    scaling_factor = scaling_factor, epsilon = epsilon, 
+                                    mul_me__when_g_too_small___s = mul_me__when_g_too_small___s, protect_accuracy = False)
+                        assert _tensor_shape_check(result___b_o, batch, out_dim)
 
+                        plt.plot(g_in___b_o, result___b_o, label = "result")
+                        plt.plot(g_in___b_o, result___b_o/g_in___b_o, label = "change")
+                        plt.plot(g_in___b_o, g_in___b_o, ":", lw = 1, label = "ori", color="#aaaaaa")
+                        plt.plot([0.3, 3],    [scaling_factor__float, scaling_factor__float], ":", lw = 6, color="#ff0000")
+                        plt.plot([epsilon__float, epsilon__float], [0.1, 10],":", lw = 3, color="#aaaaaa")
+                        plt.plot([0.01, 0.1], [mul_me__when_g_too_small___s__float, mul_me__when_g_too_small___s__float],":", lw = 3, color="#aaaaaa")
+                        plt.xscale('log')
+                        plt.yscale('log')
+                        plt.legend()
+                        plt.title(f"sf {scaling_factor__float}    ep {epsilon__float}    mul me {mul_me__when_g_too_small___s__float}")
+                        plt.show()
+                        
+                        pass#for mul_me__when_g_too_small___s__float
+                    pass#for epsilon__float
+                pass#for scaling_factor__float
+            pass#/ test
 
+        '''to get a smooth curve, the scaling_factor == epsilon * mul_me__when_g_too_small___s'''
+        if "VISUAL       smooth ???" and False:
+            from matplotlib import pyplot as plt
 
+            batch = 1000
+            out_dim = 1
 
+            for _ in range(1011):
 
+                scaling_factor = torch.pow(10, torch.rand([])*1.5)
+                assert _tensor_shape_check(scaling_factor)
+                epsilon = torch.pow(10, torch.rand([])*1.5-3)
+                assert _tensor_shape_check(epsilon)
+                mul_me__when_g_too_small___s = scaling_factor/epsilon
+    
+                log_of_g_in___b_o = torch.linspace(start=-3., end=1., steps = batch).reshape(shape=[batch, 1])
+                g_in___b_o = torch.pow(10., log_of_g_in___b_o)
 
+                
+                result___b_o = _gramo_algo_test(g_in___b_o = g_in___b_o, 
+                            scaling_factor = scaling_factor, epsilon = epsilon, 
+                            mul_me__when_g_too_small___s = mul_me__when_g_too_small___s, protect_accuracy = False)
+                assert _tensor_shape_check(result___b_o, batch, out_dim)
 
+                plt.plot(g_in___b_o, result___b_o, label = "result")
+                plt.plot(g_in___b_o, result___b_o/g_in___b_o, label = "change")
+                plt.plot(g_in___b_o, g_in___b_o, ":", lw = 1, label = "ori", color="#aaaaaa")
+                plt.plot([0.3, 3],    [scaling_factor.item(), scaling_factor.item()], ":", lw = 6, color="#ff0000")
+                plt.plot([epsilon.item(), epsilon.item()], [0.1, 10],":", lw = 3, color="#aaaaaa")
+                plt.plot([0.01, 0.1], [mul_me__when_g_too_small___s.item(), mul_me__when_g_too_small___s.item()],":", lw = 3, color="#aaaaaa")
+                plt.xscale('log')
+                plt.yscale('log')
+                plt.legend()
+                plt.title(f"sf {scaling_factor.item():.3f}    ep {epsilon.item():.3f}    mul me {mul_me__when_g_too_small___s.item():.3f}")
+                plt.show()
+                pass#for _
+            pass#/ test
 
+        if "protect_accuracy" and False:
+            for batch in [2,7,15,27]:
+                for out_dim in [5,11,27,42]:
 
+                    for _ in range(11):
 
+                        scaling_factor = torch.pow(10, torch.rand([])*4. - 2.)
+                        assert scaling_factor>0.
+                        assert _tensor_shape_check(scaling_factor)
+                        epsilon = torch.tensor(0.001)
+                        assert _tensor_shape_check(epsilon)
+                        mul_me__when_g_too_small___s = torch.tensor(100.)
 
+                        g_in___b_o = torch.randn(size=[batch, out_dim])
+                        assert _tensor_shape_check(g_in___b_o, batch, out_dim)
+                        g_in__but_bigger___b_o  = g_in___b_o.abs() * 1.1
+                        g_in__but_smaller___b_o = g_in___b_o.abs() * 0.9
 
+                        result___b_o = _gramo_algo_test(g_in___b_o = g_in___b_o, 
+                                    scaling_factor = scaling_factor, epsilon = epsilon, 
+                                    mul_me__when_g_too_small___s = mul_me__when_g_too_small___s, protect_accuracy = True)
+                        assert _tensor_shape_check(result___b_o, batch, out_dim)
+
+                        assert result___b_o.sign().eq(g_in___b_o.sign()).all()
+
+                        while True:
+                            break_flag_1 = False
+                            _flag___bigger___b_1 = result___b_o[:, 0].abs().gt(g_in__but_bigger___b_o[:, 0]).reshape(shape=[-1, 1])
+                            assert _tensor_shape_check(_flag___bigger___b_1, batch, 1)
+                            if _flag___bigger___b_1.any():
+                                _flag___bigger___b_o = _flag___bigger___b_1.expand(size=[-1, out_dim])
+                                result___b_o = torch.where(_flag___bigger___b_o, result___b_o*0.5, result___b_o)
+                                assert _tensor_shape_check(result___b_o, batch, out_dim)
+                                pass
+                            else:
+                                break_flag_1 = True
+                                pass
+
+                            break_flag_2 = False
+                            _flag___smaller___b_1 = result___b_o[:, 0].abs().lt(g_in__but_smaller___b_o[:, 0]).reshape(shape=[-1, 1])
+                            assert _tensor_shape_check(_flag___smaller___b_1, batch, 1)
+                            if _flag___smaller___b_1.any():
+                                _flag___smaller___b_o = _flag___smaller___b_1.expand(size=[-1, out_dim])
+                                result___b_o = torch.where(_flag___smaller___b_o, result___b_o*2., result___b_o)
+                                assert _tensor_shape_check(result___b_o, batch, out_dim)
+                                pass
+                            else:
+                                break_flag_2 = True
+                                pass
+
+                            if break_flag_1 and break_flag_2:
+                                break
+                            pass# while True:
+
+                        #<  assert
+                        assert _tensor_equal(g_in___b_o, result___b_o)
+                        pass#for _
+                    pass#for out_dim
+                pass#for batch
+            pass#/ test
+
+        return
     ____test____the_function_____gramo_algo_test()
     pass
 
@@ -581,9 +803,24 @@ if "algo prototype test           with function." and __DEBUG_ME__() and True:
 
 
 
-class GradientModificationFunction__mean_len_of_element_to_1(torch.autograd.Function):
-    r'''This autograd function scale grad to have a mean(abs(square)) to specified number(1 by default).
-    It's designed mainly to help analogy signal handling with error propagation.
+
+
+
+
+
+
+1w
+1w
+1w
+1w
+
+
+
+
+
+assert False, "继续"
+class _only_for___Gramo_vec_len_to_scaling_factor___to_use___Function_class(torch.autograd.Function):
+    r'''a special version in 2026. 
     
     input param:
     >>> x:torch.Tensor (must be set as require_grad = True)
@@ -591,7 +828,6 @@ class GradientModificationFunction__mean_len_of_element_to_1(torch.autograd.Func
     >>> epsilon = torch.tensor([1e-5])
     >>> mul_me__when_g_too_small__s = torch.tensor([1e-3])
     >>> protect_accuracy = torch.tensor(True)
-    >>> mode__mean_true_sum_false = torch.tensor(True)
 
     retur type: torch.Tensor
     '''
