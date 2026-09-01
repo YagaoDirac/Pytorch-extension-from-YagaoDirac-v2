@@ -5,7 +5,7 @@ from pytorch_yagaodirac_v2.Util import iota, \
         _tensor_equal, _bool_equal___0_as_false, _tensor_shape_check, _either_1_or_neg1, \
         str_the_list, print_table
 from pytorch_yagaodirac_v2.Random import rand_sign
-from pytorch_yagaodirac_v2.ParamMo import GradientModification__mean_len_of_something_to_1
+from pytorch_yagaodirac_v2.Gramo_special_ver import Gramo_vec_len_to_scaling_factor
 from DNN2026.DNN_util import Index_container, partly_reasonable_label_from_input, \
         _test___binary_accuracy___full_safety
 from DNN2026.digitalmapping_layer___prototype_test import DigitalMapping_layer__2026#, optim_for___Digital
@@ -162,9 +162,8 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
             _temp__how_many_gramos = layer_count//gramo_every_n_layers
             _temp__gramo__list = []
             for _ in range(_temp__how_many_gramos):
-                _temp__gramo__list.append(GradientModification__mean_len_of_something_to_1(
-                        protect_binary_accuracy=True, 1w
-                ))
+                _temp__gramo__list.append(Gramo_vec_len_to_scaling_factor())
+                pass
             self._gramos = torch.nn.ParameterList([gramo(...) for ])
 
             pass
