@@ -554,32 +554,79 @@ if "test" and __DEBUG_ME__() and True:
             pass#/ test
 
 
-        if "prototype.    scan" and True:
+        if "prototype.    scan" and False:
+            
+            '''this function is copied from somewhere else. When run this test, make sure this function is the same as its source.
+            search    def only_for_DigitalMapping_layer__2026_to_use___optim_step    to find the source.'''
+            def copied_from_below___only_for_DigitalMapping_layer__2026_to_use___optim_step(raw_weight___o_i:torch.Tensor, grad_like_for_raw_weight___o_i:torch.Tensor, 
+                        learning_rate___s:torch.Tensor|float, safety_check = True, epsilon = torch.tensor(0.01))->torch.Tensor:
+                '''Formula, grad is made into a -1 to 0 range, and called new_xxx_before_tanh. Then, tanh(weight+new_xxx_before_tanh)
+                '''
+                
+                if safety_check:#这两个搬到外面去
+                    assert raw_weight___o_i.le(0.).all()#bc of the design. No other reason.
+                    assert learning_rate___s > 0.
+                    assert epsilon > 0.
+                    pass
+                #<  real payload
+                with torch.no_grad():
+                    _temp___max___o:torch.Tensor = grad_like_for_raw_weight___o_i.max(dim=1).values
+                    _temp___max___o_EXPANDi = _temp___max___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+                    inner___grad_like_for_raw_weight___o_i:torch.Tensor = grad_like_for_raw_weight___o_i-_temp___max___o_EXPANDi
+                    del _temp___max___o, _temp___max___o_EXPANDi
+                    if safety_check:
+                        assert inner___grad_like_for_raw_weight___o_i.le(0.).all()#################
+                        pass
+
+                    _temp___mean_of_abs___o = inner___grad_like_for_raw_weight___o_i.mean(dim=1).abs()# notice.  
+                    _temp___mean_of_abs___o = _temp___mean_of_abs___o.max(epsilon)
+                    #In some of the previous test, there was a *0.5 in the tail of the line above. But maybe it's ok without it.
+                    if safety_check:
+                        assert _temp___mean_of_abs___o.ge(epsilon).all()
+                        pass
+
+                    _temp___temp___mean_of_abs___o_EXPANDi = _temp___mean_of_abs___o.reshape([-1, 1]).expand([-1, raw_weight___o_i.shape[1]])
+                    inner___grad_like_for_raw_weight___o_i /= _temp___temp___mean_of_abs___o_EXPANDi
+                    del _temp___mean_of_abs___o, _temp___temp___mean_of_abs___o_EXPANDi
+
+                    new___raw_weight___before_tanh___o_i = raw_weight___o_i + inner___grad_like_for_raw_weight___o_i * learning_rate___s
+                    if safety_check:
+                        assert new___raw_weight___before_tanh___o_i.le(0.).all()
+                        pass
+
+                    new___raw_weight___o_i = new___raw_weight___before_tanh___o_i.tanh()
+                    if safety_check:
+                        assert new___raw_weight___o_i.ge(-1.).all()##############
+                        assert new___raw_weight___o_i.le(-0.).all()##############
+                        pass
+                    return new___raw_weight___o_i
+                #end of function.
+
             if "result" and False:
                 # random rate 0.0
                 # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
-                # acc                = [ 0.500,  0.502,  0.507,  0.512,  0.532,  0.591,  0.753,  1.000]
-                # acc gain           = [ 0.000,  0.001,  0.006,  0.011,  0.031,  0.089,  0.251,  0.499]
+                # acc                = [ 0.502,  0.503,  0.508,  0.524,  0.565,  0.653,  0.981,  1.000]
+                # acc gain           = [ 0.000,  0.002,  0.007,  0.022,  0.064,  0.152,  0.480,  0.500]
                 # random rate 0.1
                 # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
-                # acc                = [ 0.501,  0.501,  0.504,  0.509,  0.530,  0.568,  0.724,  0.950]
-                # acc gain           = [ 0.000,  0.001,  0.003,  0.009,  0.029,  0.067,  0.222,  0.449]
+                # acc                = [ 0.502,  0.503,  0.508,  0.520,  0.560,  0.649,  0.930,  0.950]
+                # acc gain           = [ 0.000,  0.003,  0.007,  0.019,  0.060,  0.148,  0.429,  0.448]
                 # random rate 0.2
                 # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
-                # acc                = [ 0.502,  0.501,  0.504,  0.512,  0.526,  0.571,  0.699,  0.900]
-                # acc gain           = [ 0.000,  0.001,  0.003,  0.010,  0.026,  0.070,  0.198,  0.400]
+                # acc                = [ 0.501,  0.503,  0.508,  0.518,  0.555,  0.626,  0.876,  0.900]
+                # acc gain           = [ 0.001,  0.002,  0.007,  0.017,  0.054,  0.125,  0.376,  0.399]
                 # random rate 0.3
                 # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
-                # acc                = [ 0.501,  0.502,  0.504,  0.510,  0.527,  0.563,  0.666,  0.850]
-                # acc gain           = [ 0.001,  0.002,  0.003,  0.009,  0.027,  0.062,  0.165,  0.349]
+                # acc                = [ 0.502,  0.503,  0.508,  0.518,  0.548,  0.618,  0.828,  0.850]
+                # acc gain           = [ 0.001,  0.002,  0.007,  0.017,  0.048,  0.117,  0.326,  0.348]
                 # random rate 0.5
                 # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
-                # acc                = [ 0.500,  0.501,  0.505,  0.509,  0.524,  0.551,  0.619,  0.750]
-                # acc gain           = [ 0.000,  0.001,  0.004,  0.008,  0.023,  0.051,  0.119,  0.249]
+                # acc                = [ 0.501,  0.503,  0.508,  0.517,  0.539,  0.584,  0.729,  0.750]
+                # acc gain           = [ 0.001,  0.002,  0.007,  0.017,  0.039,  0.084,  0.229,  0.249]
                 # random rate 0.7
                 # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
-                # acc                = [ 0.501,  0.502,  0.504,  0.510,  0.522,  0.537,  0.572,  0.643]
-                # acc gain           = [ 0.000,  0.001,  0.004,  0.009,  0.021,  0.037,  0.071,  0.143]
+                # acc                = [ 0.501,  0.503,  0.507,  0.517,  0.534,  0.561,  0.630,  0.650]
+                # acc gain           = [ 0.001,  0.003,  0.008,  0.017,  0.034,  0.061,  0.130,  0.150]
                 pass
 
             #------------------#------------------#------------------
@@ -627,12 +674,9 @@ if "test" and __DEBUG_ME__() and True:
 
                         #<  step
                         #new__raw_weight___o_i = _test___optimizer_algo___full_safety(ori__raw_weight___o_i = ori__raw_weight___o_i,
-                        1w继续
-                        1w继续
-                        1w继续
-                        1w继续，，，，这个定义在后面，考虑一下做一个临时版本。
-                        new__raw_weight___o_i = only_for_DigitalMapping_layer__2026_to_use___optim_step(ori__raw_weight___o_i = ori__raw_weight___o_i,
-                                grad_like_for___raw_weight___o_i = grad_like_for___raw_weight___o_i, learning_rate = learning_rate)
+                        new__raw_weight___o_i = copied_from_below___only_for_DigitalMapping_layer__2026_to_use___optim_step( \
+                                    raw_weight___o_i = ori__raw_weight___o_i,
+                                    grad_like_for_raw_weight___o_i = grad_like_for___raw_weight___o_i, learning_rate___s = learning_rate)
 
                         #<  new   accuracy
                         new__output_posneg1___b_o, _ = _test___DNN_forward___full_safety(input___b_i=input_posneg1___b_i, 
@@ -1387,7 +1431,7 @@ class DigitalMapping_layer__2026(torch.nn.Module):
         r"""This only gives out the raw_weight___o_i.
 
         Copied from pytorch code."""
-        for param in self._raw_weight___oCAP_iCAP:
+        for param in [self._raw_weight___oCAP_iCAP]:
             yield param
 
 
@@ -2947,7 +2991,8 @@ if "basic reshape.     data member for the shape info, and padding with nan, tes
         '''deprecated test.
         According to the design, if a layer needs to remove some of the output slot, it's the last layer, 
         then it doesn't needs to keep any capacity for input slots.'''
-        if "keep_output_slot      no squeeze on input" and True:
+        #if "keep_output_slot      no squeeze on input" and True:
+        if False:
             '''to valid the result, this test calculates the max_index.'''
             '''
             before the function call, the data looks like
@@ -3504,9 +3549,8 @@ if "device adaption" and __DEBUG_ME__() and True:
 
 
 
-
-
-
+'''以下老代码。现在的情况是，优化器的功能要整合到model里面。不然有点麻烦。因为层的形状变了以后，优化器里面的parameter记录也要更新，但是很麻烦。
+所以要么每次重新新建一个优化器，要么干脆让model自己去优化。以后不排除把优化算法解耦合出来。'''
 
 '''the optimizer'''
 '''the optimizer'''
@@ -3514,6 +3558,8 @@ if "device adaption" and __DEBUG_ME__() and True:
 '''如果要用这个类，那么每一次都要新建一个optim object，用，用了丢弃。和torch的传统，一个optim一直用，会不一样。'''
 def only_for_DigitalMapping_layer__2026_to_use___optim_step(raw_weight___o_i:torch.Tensor, grad_like_for_raw_weight___o_i:torch.Tensor, 
             learning_rate___s:torch.Tensor|float, safety_check = True, epsilon = torch.tensor(0.01))->torch.Tensor:
+    '''Formula, grad is made into a -1 to 0 range, and called new_xxx_before_tanh. Then, tanh(weight+new_xxx_before_tanh)
+    '''
     
 # pseudo_raw_weight = torch.tanh(pseudo_raw_weight___before_protection)
 
@@ -3556,7 +3602,7 @@ def only_for_DigitalMapping_layer__2026_to_use___optim_step(raw_weight___o_i:tor
         return new___raw_weight___o_i
     #end of function.
 
-if "optim step algo test" and __DEBUG_ME__() and True:
+if "optim step algo test" and __DEBUG_ME__() and False and False:
     def ____test____only_for_DigitalMapping_layer__2026_to_use___optim_step()->None:
 
         if "basic algo test" and True:
@@ -3804,7 +3850,7 @@ class 并入model的class了____optim_for___DigitalMapping_layer__2026(torch.nn.
             digitalmapping_layer.set_useful_part_of_raw_weight(new___raw_weight___o_i)
         return
 
-if "basic behavior" and __DEBUG_ME__() and True:
+if "basic behavior" and __DEBUG_ME__() and False and False:
     def ____test____optim_for___DigitalMapping_layer__2026()->None:
         if "zero grad function.      scan" and True:
             for batch in [2,5,10]:
@@ -3970,7 +4016,7 @@ if "basic behavior" and __DEBUG_ME__() and True:
 
 
 
-if "integrated test" and __DEBUG_ME__() and True:
+if "integrated test" and __DEBUG_ME__() and False and False:
     def ____test____integrated_test()->None:
         '''modified from the backward algo test.'''
 

@@ -71,7 +71,8 @@ if "VISUAL     clampped_distorted_randn" and False:
     pass
 
 
-def clampped_distorted_rand___v1_1(size, exp_me:float|torch.Tensor = 2., 
+'''rand gen for test'''
+def rand_gen___clampped_distorted___v1_1(size, exp_me:float|torch.Tensor = 2., 
             device = None, dtype = None, requires_grad=False)->torch.Tensor:
     #assert exp_me>=1.5 and exp_me<=2.5
     _temp_1 = torch.rand(size=size)
@@ -80,44 +81,44 @@ def clampped_distorted_rand___v1_1(size, exp_me:float|torch.Tensor = 2.,
     result = _temp_3
     return result
 
-if "VISUAL     clampped_distorted_randn" and False:
-    def ____clampped_distorted_rand___v1_1():
+if "VISUAL     clampped_distorted_randn" and True:
+    def ____rand_gen___clampped_distorted___v1_1():
         from matplotlib import pyplot as plt
         
         for exp_me in [0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.2, 1.5, 1.7, 2., 2.2, 2.5, 2.7, 3.]:
-            display_me = clampped_distorted_rand___v1_1(size=[10000], exp_me=exp_me)
+            display_me = rand_gen___clampped_distorted___v1_1(size=[10000], exp_me=exp_me)
             plt.hist(display_me, bins = 50)
             plt.title(f"exp_me  {exp_me}")
             plt.show()
             pass
 
         for exp_me in [1., 1.2, 1.5, 2., 3., 4.]:
-            display_me = clampped_distorted_rand___v1_1(size=[10000], exp_me=exp_me)
+            display_me = rand_gen___clampped_distorted___v1_1(size=[10000], exp_me=exp_me)
             plt.hist(display_me, bins = 50)
             plt.title(f"clampped_distorted_randn___v1_1     exp_me  {exp_me}")
             plt.show()
             pass
         for exp_me in [1., 0.8, 0.6, 0.5, 0.3]:
-            display_me = clampped_distorted_rand___v1_1(size=[10000], exp_me=exp_me)
+            display_me = rand_gen___clampped_distorted___v1_1(size=[10000], exp_me=exp_me)
             plt.hist(display_me, bins = 50)
             plt.title(f"clampped_distorted_randn___v1_1     exp_me  {exp_me}")
             plt.show()
             pass
         for exp_me in [-1., -1.2, -1.5, -2., -3., -4.]:
-            display_me = clampped_distorted_rand___v1_1(size=[10000], exp_me=exp_me)
+            display_me = rand_gen___clampped_distorted___v1_1(size=[10000], exp_me=exp_me)
             plt.hist(display_me, bins = 50)
             plt.title(f"clampped_distorted_randn___v1_1     exp_me  {exp_me}")
             plt.show()
             pass
         for exp_me in [-1., -0.8, -0.6, -0.5, -0.3]:
-            display_me = clampped_distorted_rand___v1_1(size=[10000], exp_me=exp_me)
+            display_me = rand_gen___clampped_distorted___v1_1(size=[10000], exp_me=exp_me)
             plt.hist(display_me, bins = 50)
             plt.title(f"clampped_distorted_randn___v1_1     exp_me  {exp_me}")
             plt.show()
             pass
 
         return
-    ____clampped_distorted_rand___v1_1()
+    ____rand_gen___clampped_distorted___v1_1()
     pass
 
 
@@ -142,7 +143,7 @@ if "VISUAL     protect for a lot times." and True:
     plt.show()
 
     for ii in range(33):
-        accuracy = clampped_distorted_rand___v1_1(size=size)*0.5+0.5
+        accuracy = rand_gen___clampped_distorted___v1_1(size=size)*0.5+0.5
         assert accuracy.ge(0.).all()
         assert accuracy.le(1.).all()
         display_me = accuracy
