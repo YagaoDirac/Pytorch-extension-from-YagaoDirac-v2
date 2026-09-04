@@ -6,6 +6,7 @@ from pytorch_yagaodirac_v2.Util import iota, \
         str_the_list, print_table
 from pytorch_yagaodirac_v2.Random import rand_sign
 from pytorch_yagaodirac_v2.Gramo_special_ver import Gramo_vec_len_to_scaling_factor
+from pytorch_yagaodirac_v2.Util_log10_related import log10_avg_safe
 from DNN2026.DNN_util import Index_container, partly_reasonable_label_from_input, \
         _test___binary_accuracy___full_safety
 from DNN2026.digitalmapping_layer___prototype_test import DigitalMapping_layer__2026#, optim_for___Digital
@@ -28,7 +29,7 @@ def _line_():
 '''some customized function to help you calc the shape of the entire model.'''
 def _only_for_dry_stack_test__DNN_model__2026_to_use____calc_shape( \
         in_feature:int, out_feature:int, layer_count:int)->list[int]:#torch.Tensor:
-    assert in_feature>out_feature, "暂时是这么设计的."
+    assert in_feature>=out_feature, "暂时是这么设计的."
     assert layer_count>1, "1层的另外研究。"
 
     result = torch.linspace(start = in_feature, end = out_feature, steps = layer_count, dtype=torch.float16)
@@ -151,7 +152,7 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
         assert type(gramo_every_n_layers) == int
         if gramo_every_n_layers<=0:
             self._gramo_every_n_layers = -1
-            self._gramo_layers = torch.nn.ParameterList([], device = device)#empty list.
+            self._gramo_layers = torch.nn.ParameterList([])#empty list has no device.
             pass
         # elif gramo_every_n_layers>=layer_count:
         #     assert False, "maybe a bad param."
@@ -243,12 +244,19 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
             return output___b_o
         #end of function.
 
-    def backward(self, output___b_o:torch.Tensor, label___b_o:torch.Tensor)->None:
+    def backward(self, output___b_o:torch.Tensor, label___b_o:torch.Tensor, 
+                _debug__if_the_input_needs_grad___assign_it_here:torch.Tensor|None = None)->None:
         '''This function helps you handle the "inputs=" inside the backward function call.'''
         # old code    backward_to_this_list = []
         #backward_to_this_list.extend(the_model.parameters(for_backward=True))  不再用这个了。
 
-        parameter_list:list[torch.nn.Parameter] = []
+        if _debug__if_the_input_needs_grad___assign_it_here is None:
+            parameter_list:list[torch.nn.Parameter] = []
+            pass
+        else:
+            parameter_list:list[torch.nn.Parameter] = [_debug__if_the_input_needs_grad___assign_it_here]
+            pass
+
         for digitalmapping_layer in self.digital_mapping_layers:
             assert isinstance(digitalmapping_layer, DigitalMapping_layer__2026)
             parameter_list.extend(digitalmapping_layer.parameters())
@@ -529,7 +537,7 @@ if "test" and __DEBUG_ME__() and False:
             pass#/ test
 
 
-        if "shape scan         with gramo" and False:
+        if "shape scan         with gramo" and True:
             for in_dim in [3,11,18]:
                 for out_dim in [5,17,31]:
                     if in_dim<= out_dim:
@@ -719,7 +727,7 @@ if "device adaption" and __DEBUG_ME__() and False:
     ____test____device_adaption()
     pass
 
-if "the optim part" and __DEBUG_ME__() and True:
+if "the optim part" and __DEBUG_ME__() and False:
     def ____test____optim_part_of_DigitalMapping_layer__2026()->None:
         if "zero grad function.      scan" and True:
             for batch in [2,5,10]:
@@ -728,10 +736,6 @@ if "the optim part" and __DEBUG_ME__() and True:
                         if in_dim<=out_dim:
                             continue
                         for gramo_every_n_layers in [0, 1,2]:
-1w
-1w
-1w
-1w
                             the_model = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=2, 
                                                                         gramo_every_n_layers = gramo_every_n_layers)
                             for ii in range(the_model._layer_count):
@@ -762,21 +766,12 @@ if "the optim part" and __DEBUG_ME__() and True:
                                 assert the_layer.some_hyper_param.grad is None
                                 pass
 
-1w
-1w
-1w
-1w这个地方可能是旧代码，也不一定需要这个检查了。
                             input___b_i = rand_sign(size=[batch, in_dim])
                             input___b_i.requires_grad_()
                             output___b_o:torch.Tensor = the_model(input___b_i)
-                            _temp_inputs = [input___b_i]
-                            for ii in range(the_model._layer_count):
-                                the_layer = the_model.digital_mapping_layers[ii]
-                                assert isinstance(the_layer, DigitalMapping_layer__2026)
-                                _temp_inputs.append(the_layer._raw_weight___oCAP_iCAP)
-                                pass
-                            output___b_o.backward(gradient=torch.randn_like(output___b_o), inputs = _temp_inputs)
-                            del _temp_inputs
+
+                            the_model.backward(output___b_o=output___b_o, label___b_o=torch.randn_like(output___b_o), 
+                                                    _debug__if_the_input_needs_grad___assign_it_here = input___b_i)
                             assert input___b_i.grad is not None
 
                             for ii in range(the_model._layer_count):
@@ -787,8 +782,8 @@ if "the optim part" and __DEBUG_ME__() and True:
                                 pass
 
                             the_model.zero_grad()
-                            for ii in range(2):
-                                layer = the_model.digital_mapping_layers[ii]
+                            for ii in range(the_model._layer_count):
+                                the_layer = the_model.digital_mapping_layers[ii]
                                 assert isinstance(the_layer, DigitalMapping_layer__2026)
                                 assert the_layer._raw_weight___oCAP_iCAP.grad is None
                                 pass
@@ -799,7 +794,7 @@ if "the optim part" and __DEBUG_ME__() and True:
                 pass#for batch
             pass#/ test
 
-        if "class equivalence         no scan" and True:
+        if "class equivalence         no scan             1 layer   no gramo" and True:
             out_dim = 2
             in_dim = 3
 
@@ -861,7 +856,7 @@ if "the optim part" and __DEBUG_ME__() and True:
 
             pass#/ test
 
-        if "class equivalence         scan" and True:
+        if "class equivalence         scan                1 layer   no gramo" and True:
             for out_dim in [3,7,11]:
                 for in_dim in [6,9,13]:
                     for _ in range(11):
@@ -1046,35 +1041,33 @@ if "integrated test" and __DEBUG_ME__() and True:
                 pass#for ii_outter_param_set
             pass#/ test
 
-        if "prototype.    scan" and False:
+        if "prototype.    scan the learning rate             1 layer     no gramo" and False:
             if "result" and False:
-                '''the same as previous tests'''
                 # random rate 0.0
-                # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
-                # acc              = [ 0.502,  0.503,  0.509,  0.521,  0.561,  0.661,  0.981,  1.000]
-                # acc gain         = [ 0.001,  0.002,  0.009,  0.021,  0.060,  0.160,  0.481,  0.498]
+                #       lr, 0.001, 0.003, 0.010, 0.030, 0.100, 0.300, 1.000, 3.000
+                #      acc, 0.501, 0.503, 0.508, 0.520, 0.568, 0.660, 0.981, 1.000
+                # acc_gain, 0.001, 0.002, 0.008, 0.020, 0.066, 0.160, 0.479, 0.498
                 # random rate 0.1
-                # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
-                # acc              = [ 0.501,  0.503,  0.508,  0.522,  0.555,  0.639,  0.927,  0.950]
-                # acc gain         = [ 0.001,  0.002,  0.006,  0.021,  0.054,  0.138,  0.426,  0.450]
+                #       lr, 0.001, 0.003, 0.010, 0.030, 0.100, 0.300, 1.000, 3.000
+                #      acc, 0.501, 0.504, 0.508, 0.520, 0.559, 0.644, 0.933, 0.950
+                # acc_gain, 0.000, 0.003, 0.008, 0.019, 0.058, 0.142, 0.431, 0.450
                 # random rate 0.2
-                # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
-                # acc              = [ 0.502,  0.502,  0.508,  0.516,  0.553,  0.632,  0.878,  0.900]
-                # acc gain         = [ 0.001,  0.001,  0.007,  0.015,  0.052,  0.131,  0.377,  0.399]
+                #       lr, 0.001, 0.003, 0.010, 0.030, 0.100, 0.300, 1.000, 3.000
+                #      acc, 0.502, 0.502, 0.507, 0.518, 0.559, 0.624, 0.879, 0.900
+                # acc_gain, 0.000, 0.002, 0.007, 0.017, 0.058, 0.123, 0.378, 0.399
                 # random rate 0.3
-                # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
-                # acc              = [ 0.500,  0.502,  0.507,  0.518,  0.547,  0.616,  0.827,  0.850]
-                # acc gain         = [ 0.000,  0.002,  0.007,  0.017,  0.046,  0.115,  0.326,  0.348]
+                #       lr, 0.001, 0.003, 0.010, 0.030, 0.100, 0.300, 1.000, 3.000
+                #      acc, 0.501, 0.503, 0.507, 0.518, 0.548, 0.625, 0.829, 0.850
+                # acc_gain, 0.001, 0.002, 0.007, 0.017, 0.048, 0.125, 0.328, 0.348
                 # random rate 0.5
-                # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
-                # acc              = [ 0.502,  0.502,  0.508,  0.518,  0.541,  0.591,  0.729,  0.750]
-                # acc gain         = [ 0.001,  0.002,  0.007,  0.017,  0.041,  0.091,  0.228,  0.249]
+                #       lr, 0.001, 0.003, 0.010, 0.030, 0.100, 0.300, 1.000, 3.000
+                #      acc, 0.501, 0.503, 0.508, 0.519, 0.538, 0.587, 0.728, 0.750
+                # acc_gain, 0.001, 0.002, 0.007, 0.017, 0.037, 0.087, 0.228, 0.249
                 # random rate 0.7
-                # learning_rate_list = [ 0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000,  3.000]
-                # acc              = [ 0.502,  0.503,  0.508,  0.517,  0.533,  0.560,  0.629,  0.650]
-                # acc gain         = [ 0.001,  0.003,  0.008,  0.018,  0.032,  0.060,  0.129,  0.149]
+                #       lr, 0.001, 0.003, 0.010, 0.030, 0.100, 0.300, 1.000, 3.000
+                #      acc, 0.501, 0.503, 0.508, 0.518, 0.533, 0.560, 0.626, 0.649
+                # acc_gain, 0.001, 0.003, 0.007, 0.018, 0.033, 0.060, 0.126, 0.149
                 pass
-
 
 
             #------------------#------------------#------------------
@@ -1084,8 +1077,8 @@ if "integrated test" and __DEBUG_ME__() and True:
                 random_ratio = random_ratio_list[ii_random_ratio]
                 #print(f"dim {dim}   test_time {number_of_tests}    device {device}")
             #------------------#------------------#------------------
-                result_acc     :list = []#don't modify this.
-                result_acc_gain:list = []#don't modify this.
+                result_acc     :list = ["acc"]#don't modify this.
+                result_acc_gain:list = ["acc_gain"]#don't modify this.
                 learning_rate_list = [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1., 3.]################################################
                 #_when_start = time.perf_counter()
                 
@@ -1107,18 +1100,19 @@ if "integrated test" and __DEBUG_ME__() and True:
                         assert _either_1_or_neg1(target_posneg1___b_o)#debug purpose
                         assert target_posneg1___b_o.dtype == torch.float32
                         #<  infra
-                        the_model = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=1)
+                        the_model = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=1, 
+                                                                                            gramo_every_n_layers=-1)
                         the_layer = the_model.digital_mapping_layers[0]
                         assert isinstance(the_layer, DigitalMapping_layer__2026)
                         #<  calc          forward
-                        ori__raw_weight___o_i:torch.Tensor = the_layer(input_posneg1___b_i)
-                        assert _tensor_shape_check(ori__raw_weight___o_i, batch, out_dim)
+                        ori__output___o_i:torch.Tensor = the_model(input_posneg1___b_i)
+                        assert _tensor_shape_check(ori__output___o_i, batch, out_dim)
 
-                        the_model.backward(output___b_o=ori__raw_weight___o_i,label___b_o=target_posneg1___b_o)
+                        the_model.backward(output___b_o=ori__output___o_i, label___b_o=target_posneg1___b_o)
                         #<  ori   accuracy
                         ori__accuracy___s, recommended_result_value_name = \
                                 _test___binary_accuracy___full_safety(target___b_o = target_posneg1___b_o, 
-                                        output_posneg1___b_o = ori__raw_weight___o_i, mean_per =  'for_all', target_is_already_posneg1=True)
+                                        output_posneg1___b_o = ori__output___o_i, mean_per =  'for_all', target_is_already_posneg1=True)
                         assert recommended_result_value_name == "accuracy___s"
                         #<  step
                         the_model.step(learning_rate___s=learning_rate)
@@ -1142,12 +1136,418 @@ if "integrated test" and __DEBUG_ME__() and True:
                 #print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
                 
                 print(f"random rate {random_ratio}")
-                print(f"learning_rate_list = {str_the_list(learning_rate_list, 3)}")#########################
-                print(f"acc              = {str_the_list(result_acc, 3)}")#########################
-                print(f"acc gain         = {str_the_list(result_acc_gain, 3)}")#########################
+                learning_rate_list.insert(0, "lr")
+                print_table([learning_rate_list, result_acc, result_acc_gain])
+                # print(f"learning_rate_list = {str_the_list(learning_rate_list, 3)}")#########################
+                # print(f"acc              = {str_the_list(result_acc, 3)}")#########################
+                # print(f"acc gain         = {str_the_list(result_acc_gain, 3)}")#########################
                 ################################
                 pass#for ii_outter_param_set
             pass#/ test
+
+        if "prototype.         20 layers, measure the log10 of grad_like " and False:
+            if "results" and False:
+                # random_ratio,  0.000,  0.100,  0.200,  0.300,  0.500,  0.700
+                #          ref, -0.422, -0.422, -0.422, -0.422, -0.422, -0.422
+                #     layer  0, -0.371, -0.394, -0.403, -0.416, -0.447, -0.494
+                #     layer  5, -0.269, -0.279, -0.285, -0.306, -0.337, -0.393
+                #     layer 10, -0.116, -0.143, -0.142, -0.156, -0.195, -0.248
+                #     layer 15,  0.115,  0.052,  0.082,  0.058,  0.055, -0.031
+                #     layer 17,  0.343,  0.288,  0.305,  0.293,  0.293,  0.213
+                #     layer 19,  1.256,  1.245,  1.250,  1.248,  1.252,  1.255
+                pass
+
+
+            result__raw_weight__as_ref__log10    :list = ["ref"]#don't modify this.
+            result__layer__0_grad_like_log10     :list = ["layer  0"]#don't modify this.
+            result__layer__5_grad_like_log10     :list = ["layer  5"]#don't modify this.
+            result__layer_10_grad_like_log10     :list = ["layer 10"]#don't modify this.
+            result__layer_15_grad_like_log10     :list = ["layer 15"]#don't modify this.
+            result__layer_17_grad_like_log10     :list = ["layer 17"]#don't modify this.
+            result__layer_19_grad_like_log10     :list = ["layer 19"]#don't modify this.
+
+            #------------------#------------------#------------------
+            number_of_tests = 20
+            device = 'cuda'
+            random_ratio_list = [0., 0.1, 0.2, 0.3, 0.5, 0.7]
+            for ii_random_ratio in range(random_ratio_list.__len__()):
+                random_ratio = random_ratio_list[ii_random_ratio]
+
+                _raw_result__raw_weight__as_ref__log10 = torch.empty(size=[number_of_tests])
+                _raw_result__layer__0_grad_like_log10  = torch.empty(size=[number_of_tests])
+                _raw_result__layer__5_grad_like_log10  = torch.empty(size=[number_of_tests])
+                _raw_result__layer_10_grad_like_log10  = torch.empty(size=[number_of_tests])
+                _raw_result__layer_15_grad_like_log10  = torch.empty(size=[number_of_tests])
+                _raw_result__layer_17_grad_like_log10  = torch.empty(size=[number_of_tests])
+                _raw_result__layer_19_grad_like_log10  = torch.empty(size=[number_of_tests])
+
+                #print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+            #------------------#------------------#------------------
+                #learning_rate_list = [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1., 3.]################################################
+                #_when_start = time.perf_counter()
+                
+                #for learning_rate in learning_rate_list:
+                for ii__test in range(number_of_tests):
+
+                    batch = 1000
+                    in_dim = 500
+                    out_dim = 100
+                    #<  dataset
+                    input_posneg1___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32, device=device)
+                    assert _either_1_or_neg1(input_posneg1___b_i)
+                    assert input_posneg1___b_i.dtype == torch.float32
+
+                    target_posneg1___b_o = partly_reasonable_label_from_input(input___b_i=input_posneg1___b_i, out_dim = out_dim,
+                                random_ratio=random_ratio, input_is_already_posneg1 = True)
+                    assert _either_1_or_neg1(target_posneg1___b_o)#debug purpose
+                    assert target_posneg1___b_o.dtype == torch.float32
+                    #<  infra
+                    the_model = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=20,#20 layers. 
+                                                                                        gramo_every_n_layers=-1, device=device)
+                    the_layer = the_model.digital_mapping_layers[0]
+                    assert isinstance(the_layer, DigitalMapping_layer__2026)
+                    #<  calc          forward
+                    ori__output___o_i:torch.Tensor = the_model(input_posneg1___b_i)
+                    assert _tensor_shape_check(ori__output___o_i, batch, out_dim)
+
+                    the_model.backward(output___b_o=ori__output___o_i, label___b_o=target_posneg1___b_o)
+                    #<  measure
+                    the_layer = the_model.digital_mapping_layers[0]
+                    assert isinstance(the_layer, DigitalMapping_layer__2026)
+                    _raw_result__raw_weight__as_ref__log10[ii__test] = log10_avg_safe(the_layer.get_useful_part_of_raw_weight())
+                    
+                    _raw_result__layer__0_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    the_layer = the_model.digital_mapping_layers[5]
+                    _raw_result__layer__5_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    the_layer = the_model.digital_mapping_layers[10]
+                    _raw_result__layer_10_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    the_layer = the_model.digital_mapping_layers[15]
+                    _raw_result__layer_15_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    the_layer = the_model.digital_mapping_layers[17]
+                    _raw_result__layer_17_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    the_layer = the_model.digital_mapping_layers[19]
+                    _raw_result__layer_19_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    pass# for ii__test
+                result__raw_weight__as_ref__log10.append(_raw_result__raw_weight__as_ref__log10.mean().item())
+                result__layer__0_grad_like_log10 .append(_raw_result__layer__0_grad_like_log10 .mean().item())
+                result__layer__5_grad_like_log10 .append(_raw_result__layer__5_grad_like_log10 .mean().item())
+                result__layer_10_grad_like_log10 .append(_raw_result__layer_10_grad_like_log10 .mean().item())
+                result__layer_15_grad_like_log10 .append(_raw_result__layer_15_grad_like_log10 .mean().item())
+                result__layer_17_grad_like_log10 .append(_raw_result__layer_17_grad_like_log10 .mean().item())
+                result__layer_19_grad_like_log10 .append(_raw_result__layer_19_grad_like_log10 .mean().item())
+
+                pass# for ii_random_ratio
+            random_ratio_list.insert(0, "random_ratio")
+            print_table([
+                    random_ratio_list                ,
+                    result__raw_weight__as_ref__log10,
+                    result__layer__0_grad_like_log10 ,
+                    result__layer__5_grad_like_log10 ,
+                    result__layer_10_grad_like_log10 ,
+                    result__layer_15_grad_like_log10 ,
+                    result__layer_17_grad_like_log10 ,
+                    result__layer_19_grad_like_log10 ,
+                    ])
+            pass#/ test
+
+
+
+
+1ww
+1ww
+1ww
+1ww形状有影响。要慢慢测了。最后一层后面可能也要加gramo了。。。。
+        if "prototype.         7 layers, same dim in same dim out, measure the log10 of grad_like " and True:
+            if "results" and False:
+                # random_ratio,  0.000,  0.100,  0.200,  0.300,  0.500,  0.700
+                #          ref, -0.422, -0.421, -0.422, -0.422, -0.421, -0.423
+                #     layer  0,  0.770,  0.708,  0.672,  0.620,  0.500,  0.364
+                #     layer  1,  0.766,  0.714,  0.687,  0.619,  0.486,  0.368
+                #     layer  2,  0.780,  0.723,  0.683,  0.612,  0.457,  0.369
+                #     layer  3,  0.781,  0.721,  0.664,  0.612,  0.449,  0.374
+                #     layer  4,  0.779,  0.719,  0.639,  0.585,  0.453,  0.368
+                #     layer  5,  0.791,  0.709,  0.636,  0.592,  0.465,  0.331
+                #     layer  6,  0.773,  0.706,  0.622,  0.577,  0.461,  0.341
+                pass
+
+
+            result__raw_weight__as_ref__log10    :list = ["ref"]#don't modify this.
+            result__layer__0_grad_like_log10     :list = ["layer  0"]#don't modify this.
+            result__layer__1_grad_like_log10     :list = ["layer  1"]#don't modify this.
+            result__layer__2_grad_like_log10     :list = ["layer  2"]#don't modify this.
+            result__layer__3_grad_like_log10     :list = ["layer  3"]#don't modify this.
+            result__layer__4_grad_like_log10     :list = ["layer  4"]#don't modify this.
+            result__layer__5_grad_like_log10     :list = ["layer  5"]#don't modify this.
+            result__layer__6_grad_like_log10     :list = ["layer  6"]#don't modify this.
+
+            #------------------#------------------#------------------
+            number_of_tests = 20
+            device = 'cuda'
+            random_ratio_list = [0., 0.1, 0.2, 0.3, 0.5, 0.7]
+            for ii_random_ratio in range(random_ratio_list.__len__()):
+                random_ratio = random_ratio_list[ii_random_ratio]
+
+                _raw_result__raw_weight__as_ref__log10 = torch.empty(size=[number_of_tests])
+                _raw_result__layer__0_grad_like_log10  = torch.empty(size=[number_of_tests])
+                _raw_result__layer__1_grad_like_log10  = torch.empty(size=[number_of_tests])
+                _raw_result__layer__2_grad_like_log10  = torch.empty(size=[number_of_tests])
+                _raw_result__layer__3_grad_like_log10  = torch.empty(size=[number_of_tests])
+                _raw_result__layer__4_grad_like_log10  = torch.empty(size=[number_of_tests])
+                _raw_result__layer__5_grad_like_log10  = torch.empty(size=[number_of_tests])
+                _raw_result__layer__6_grad_like_log10  = torch.empty(size=[number_of_tests])
+
+                #print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+            #------------------#------------------#------------------
+                #_when_start = time.perf_counter()
+                
+                for ii__test in range(number_of_tests):
+
+                    batch = 1000
+                    in_dim  = 100
+                    out_dim = 100
+                    #<  dataset
+                    input_posneg1___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32, device=device)
+                    assert _either_1_or_neg1(input_posneg1___b_i)
+                    assert input_posneg1___b_i.dtype == torch.float32
+
+                    target_posneg1___b_o = partly_reasonable_label_from_input(input___b_i=input_posneg1___b_i, out_dim = out_dim,
+                                random_ratio=random_ratio, input_is_already_posneg1 = True)
+                    assert _either_1_or_neg1(target_posneg1___b_o)#debug purpose
+                    assert target_posneg1___b_o.dtype == torch.float32
+                    #<  infra
+                    the_model = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=20,#20 layers. 
+                                                                                        gramo_every_n_layers=-1, device=device)
+                    the_layer = the_model.digital_mapping_layers[0]
+                    assert isinstance(the_layer, DigitalMapping_layer__2026)
+                    #<  calc          forward
+                    ori__output___o_i:torch.Tensor = the_model(input_posneg1___b_i)
+                    assert _tensor_shape_check(ori__output___o_i, batch, out_dim)
+
+                    the_model.backward(output___b_o=ori__output___o_i, label___b_o=target_posneg1___b_o)
+                    #<  measure
+                    the_layer = the_model.digital_mapping_layers[0]
+                    assert isinstance(the_layer, DigitalMapping_layer__2026)
+                    _raw_result__raw_weight__as_ref__log10[ii__test] = log10_avg_safe(the_layer.get_useful_part_of_raw_weight())
+                    
+                    the_layer = the_model.digital_mapping_layers[0]
+                    _raw_result__layer__0_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    the_layer = the_model.digital_mapping_layers[1]
+                    _raw_result__layer__1_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    the_layer = the_model.digital_mapping_layers[2]
+                    _raw_result__layer__2_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    the_layer = the_model.digital_mapping_layers[3]
+                    _raw_result__layer__3_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    the_layer = the_model.digital_mapping_layers[4]
+                    _raw_result__layer__4_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    the_layer = the_model.digital_mapping_layers[5]
+                    _raw_result__layer__5_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    the_layer = the_model.digital_mapping_layers[6]
+                    _raw_result__layer__6_grad_like_log10[ii__test]  = log10_avg_safe(the_layer._get_useful_part_of_raw_weight_grad())
+                    pass# for ii__test
+                result__raw_weight__as_ref__log10.append(_raw_result__raw_weight__as_ref__log10.mean().item())
+                result__layer__0_grad_like_log10 .append(_raw_result__layer__0_grad_like_log10 .mean().item())
+                result__layer__1_grad_like_log10 .append(_raw_result__layer__1_grad_like_log10 .mean().item())
+                result__layer__2_grad_like_log10 .append(_raw_result__layer__2_grad_like_log10 .mean().item())
+                result__layer__3_grad_like_log10 .append(_raw_result__layer__3_grad_like_log10 .mean().item())
+                result__layer__4_grad_like_log10 .append(_raw_result__layer__4_grad_like_log10 .mean().item())
+                result__layer__5_grad_like_log10 .append(_raw_result__layer__5_grad_like_log10 .mean().item())
+                result__layer__6_grad_like_log10 .append(_raw_result__layer__6_grad_like_log10 .mean().item())
+
+                pass# for ii_random_ratio
+            random_ratio_list.insert(0, "random_ratio")
+            print_table([
+                    random_ratio_list                ,
+                    result__raw_weight__as_ref__log10,
+                    result__layer__0_grad_like_log10 ,
+                    result__layer__1_grad_like_log10 ,
+                    result__layer__2_grad_like_log10 ,
+                    result__layer__3_grad_like_log10 ,
+                    result__layer__4_grad_like_log10 ,
+                    result__layer__5_grad_like_log10 ,
+                    result__layer__6_grad_like_log10 ,
+                    ])
+            pass#/ test
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if "prototype.    scan the learning rate             2 layer    with and without gramo" and True:
+            assert False, "结论比较奇怪     plain_gain  有点太小了。"
+            if "result" and False:
+                # random rate 0.0
+                #          lr,  0.001,  0.003, 0.010,  0.030,  0.100,  0.300, 1.000, 3.000
+                #  plain_gain,  0.001,  0.004, 0.011,  0.017,  0.039,  0.039, 0.025, 0.017
+                # gramo_extra, -0.000, -0.000, 0.000, -0.000, -0.001, -0.000, 0.002, 0.000
+                # random rate 0.1
+                #          lr,  0.001,  0.003,  0.010,  0.030,  0.100,  0.300,  1.000, 3.000
+                #  plain_gain,  0.001,  0.006,  0.010,  0.020,  0.032,  0.033,  0.026, 0.013
+                # gramo_extra, -0.000, -0.000, -0.000, -0.000, -0.000, -0.000, -0.001, 0.002
+                # random rate 0.2
+                #          lr, 0.001, 0.003,  0.010, 0.030, 0.100,  0.300,  1.000,  3.000
+                #  plain_gain, 0.001, 0.004,  0.010, 0.019, 0.030,  0.030,  0.022,  0.011
+                # gramo_extra, 0.000, 0.000, -0.000, 0.000, 0.000, -0.001, -0.001, -0.000
+                # random rate 0.3
+                #          lr,  0.001, 0.003,  0.010,  0.030, 0.100, 0.300, 1.000,  3.000
+                #  plain_gain,  0.001, 0.003,  0.010,  0.015, 0.026, 0.030, 0.015,  0.009
+                # gramo_extra, -0.000, 0.000, -0.000, -0.000, 0.000, 0.000, 0.000, -0.000
+                # random rate 0.5
+                #          lr,  0.001,  0.003, 0.010, 0.030, 0.100, 0.300,  1.000,  3.000
+                #  plain_gain,  0.002,  0.004, 0.008, 0.014, 0.016, 0.023,  0.013,  0.010
+                # gramo_extra, -0.000, -0.000, 0.000, 0.000, 0.000, 0.000, -0.001, -0.000
+                # random rate 0.7
+                #          lr, 0.001,  0.003,  0.010,  0.030,  0.100,  0.300, 1.000,  3.000
+                #  plain_gain, 0.002,  0.004,  0.010,  0.014,  0.015,  0.013, 0.008,  0.006
+                # gramo_extra, 0.000, -0.000, -0.000, -0.000, -0.000, -0.000, 0.000, -0.000
+                pass
+
+
+
+            #------------------#------------------#------------------
+
+            layer_count = 2
+            gramo_every_n_layers = 1
+
+            number_of_tests = 10
+            random_ratio_list = [0., 0.1, 0.2, 0.3, 0.5, 0.7]
+            for ii_random_ratio in range(random_ratio_list.__len__()):
+                random_ratio = random_ratio_list[ii_random_ratio]
+                #print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+            #------------------#------------------#------------------
+                plain_gain__list      :list = ["plain_gain"]#don't modify this.
+                gramo_extra_gain__list:list = ["gramo_extra"]#don't modify this.
+                learning_rate_list = [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1., 3.]################################################
+                #_when_start = time.perf_counter()
+                
+                for learning_rate in learning_rate_list:
+                    _raw_result__plain_gain       = torch.empty(size=[number_of_tests])
+                    _raw_result__gramo_extra_gain = torch.empty(size=[number_of_tests])
+                    for ii__test in range(number_of_tests):
+
+                        batch = 1000
+                        in_dim = 500
+                        out_dim = 100
+                        #<  dataset
+                        input_posneg1___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32)
+                        assert _either_1_or_neg1(input_posneg1___b_i)
+                        assert input_posneg1___b_i.dtype == torch.float32
+
+                        target_posneg1___b_o = partly_reasonable_label_from_input(input___b_i=input_posneg1___b_i, out_dim = out_dim,
+                                    random_ratio=random_ratio, input_is_already_posneg1 = True)
+                        assert _either_1_or_neg1(target_posneg1___b_o)#debug purpose
+                        assert target_posneg1___b_o.dtype == torch.float32
+
+
+                        #<  infra
+                        the_model___without_gramo = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=layer_count, 
+                                                                                gramo_every_n_layers = -1)     
+                        the_model___with_gramo = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=layer_count, 
+                                                                                gramo_every_n_layers = gramo_every_n_layers)     
+                        for ii_layer in range(the_model___with_gramo.digital_mapping_layers.__len__()):
+                            the_layer___some      = the_model___with_gramo   .digital_mapping_layers[ii_layer]
+                            the_layer___the_other = the_model___without_gramo.digital_mapping_layers[ii_layer]
+                            assert isinstance(the_layer___some,      DigitalMapping_layer__2026)
+                            assert isinstance(the_layer___the_other, DigitalMapping_layer__2026)
+                            the_layer___some._raw_weight___oCAP_iCAP.data = the_layer___the_other._raw_weight___oCAP_iCAP.data.detach().clone()
+                            assert the_layer___some.in_dim  == the_layer___the_other.in_dim
+                            assert the_layer___some.out_dim == the_layer___the_other.out_dim
+
+                            del the_layer___some, the_layer___the_other
+                            pass
+                        
+                        #<  calc          forward
+                        ori__output___without_gramo___o_i:torch.Tensor = the_model___without_gramo(input_posneg1___b_i.detach().clone())
+                        ori__output___with_gramo___o_i   :torch.Tensor = the_model___with_gramo   (input_posneg1___b_i.detach().clone())
+                        assert _tensor_shape_check(ori__output___without_gramo___o_i, batch, out_dim)
+                        assert _tensor_shape_check(ori__output___with_gramo___o_i, batch, out_dim)
+                        assert ori__output___without_gramo___o_i.eq(ori__output___with_gramo___o_i).all()
+
+                        the_model___without_gramo.backward(output___b_o=ori__output___without_gramo___o_i,label___b_o=target_posneg1___b_o.detach().clone())
+                        the_model___with_gramo   .backward(output___b_o=ori__output___with_gramo___o_i   ,label___b_o=target_posneg1___b_o.detach().clone())
+                        #<  ori   accuracy
+                        ori__accuracy___without_gramo___s, recommended_result_value_name = \
+                                _test___binary_accuracy___full_safety(target___b_o = target_posneg1___b_o, 
+                                        output_posneg1___b_o = ori__output___without_gramo___o_i, mean_per =  'for_all', target_is_already_posneg1=True)
+                        assert recommended_result_value_name == "accuracy___s"
+                        # ori__output___with_gramo___o_i   , recommended_result_value_name = \
+                        #         _test___binary_accuracy___full_safety(target___b_o = target_posneg1___b_o, 
+                        #                 output_posneg1___b_o = ori__output___with_gramo___o_i   , mean_per =  'for_all', target_is_already_posneg1=True)
+                        # assert recommended_result_value_name == "accuracy___s"
+
+                        #<  step
+                        the_model___without_gramo.step(learning_rate___s=learning_rate)
+                        the_model___with_gramo   .step(learning_rate___s=learning_rate)
+
+                        the_layer___some      = the_model___without_gramo.digital_mapping_layers[-1]
+                        the_layer___the_other = the_model___with_gramo   .digital_mapping_layers[-1]
+                        assert isinstance(the_layer___some,      DigitalMapping_layer__2026)
+                        assert isinstance(the_layer___the_other, DigitalMapping_layer__2026)
+                        assert the_layer___some._raw_weight___oCAP_iCAP.eq(the_layer___the_other._raw_weight___oCAP_iCAP).all()#如果不对，就值要有用的部分 get useful
+                        del the_layer___some, the_layer___the_other
+
+                        #<  new   accuracy
+                        new__output___without_gramo___o_i:torch.Tensor = the_model___without_gramo(input_posneg1___b_i.detach().clone())
+                        new__output___with_gramo___o_i   :torch.Tensor = the_model___with_gramo   (input_posneg1___b_i.detach().clone())
+
+
+                        new__accuracy___without_gramo___s, recommended_result_value_name = \
+                                _test___binary_accuracy___full_safety(target___b_o = target_posneg1___b_o, 
+                                        output_posneg1___b_o = new__output___without_gramo___o_i, mean_per =  'for_all', target_is_already_posneg1=True)
+                        assert recommended_result_value_name == "accuracy___s"
+                        new__accuracy___with_gramo___s   , recommended_result_value_name = \
+                                _test___binary_accuracy___full_safety(target___b_o = target_posneg1___b_o, 
+                                        output_posneg1___b_o = new__output___with_gramo___o_i   , mean_per =  'for_all', target_is_already_posneg1=True)
+                        assert recommended_result_value_name == "accuracy___s"
+
+                        #<  store the result.
+
+                        #_raw_result__accuracy[ii__test] = new__accuracy___s
+                        _raw_result__plain_gain      [ii__test] = new__accuracy___without_gramo___s - ori__accuracy___without_gramo___s
+                        _raw_result__gramo_extra_gain[ii__test] = new__accuracy___with_gramo___s    - new__accuracy___without_gramo___s
+                        pass#for ii__test
+                                            
+                    plain_gain__list      .append(_raw_result__plain_gain.      mean().item())
+                    gramo_extra_gain__list.append(_raw_result__gramo_extra_gain.mean().item())
+                    
+                    pass#for scanned_param
+                #_when_end = time.perf_counter()
+                #print(f"{device}   {_when_end - _when_start:.6f} , or {(_when_end - _when_start)/number_of_tests:.6f} per test")
+                
+                print(f"random rate {random_ratio}")
+                learning_rate_list.insert(0, "lr")
+                print_table([learning_rate_list, plain_gain__list, gramo_extra_gain__list])
+                # print(f"learning_rate_list = {str_the_list(learning_rate_list, 3)}")#########################
+                # print(f"acc              = {str_the_list(result_acc, 3)}")#########################
+                # print(f"acc gain         = {str_the_list(result_acc_gain, 3)}")#########################
+                ################################
+                pass#for ii_outter_param_set
+            pass#/ test
+
+
+
+
+
+
+
+
+        assert False, "加一个log10的测量一下grad_like"
+
+
+
+
+
+
 
         return
 
@@ -1463,7 +1863,7 @@ if "basic behavior of dry stack test" and __DEBUG_ME__() and True:
         import time
 
         '''in a lot of cases gpu is indeed faster.      this test is not finished, but not really needed anymore.'''
-        if "performance test,     gpu is faster?" and False:
+        if "performance test,     gpu is faster?" and True:
             device = 'cuda'
             #device = 'cpu'
             max_epoch_for_this_test = 10

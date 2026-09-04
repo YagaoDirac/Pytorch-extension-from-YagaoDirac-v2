@@ -382,8 +382,11 @@ def partly_reasonable_label_from_input(input___b_i, out_dim:int, random_ratio:fl
     flag_to_random = torch.rand_like(target___b_o)
     flag_to_random = flag_to_random.lt(random_ratio)
 
-    target___b_o =  flag_to_random              * rand_sign(size=[input___b_i.shape[0], out_dim], \
-                                                            dtype=torch.float32) + \
+
+    _temp_random_part = rand_sign(size=[input___b_i.shape[0], out_dim], dtype=torch.float32)
+    _temp_random_part = _temp_random_part.to(input___b_i.device)
+
+    target___b_o =  flag_to_random              * _temp_random_part + \
                     flag_to_random.logical_not()* target___b_o
     if safety_check:
         assert _either_1_or_neg1(target___b_o)
@@ -454,6 +457,20 @@ if "basic test" and False:
 
         return
     ____test____partly_reasonable_label_from_input()
+    pass
+
+if "device adaption" and True:
+    def ____device_adaption____partly_reasonable_label_from_input():
+
+        input___b_i = torch.ones(size=(5, 3), device='cuda')
+
+        target___b_o = partly_reasonable_label_from_input(input___b_i = input___b_i, out_dim = 2, 
+                random_ratio = 0.8, input_is_already_posneg1 = True)
+        
+        assert target___b_o.device.type == 'cuda'
+        
+        return 
+    ____device_adaption____partly_reasonable_label_from_input()
     pass
 
 
