@@ -16,6 +16,7 @@ from pytorch_yagaodirac_v2.Util import _tensor_equal, _tensor_shape_check, _floa
         vector_length_norm, get_vector_length, \
         iota, \
         print_table
+from pytorch_yagaodirac_v2.Util_log10_related import log10_avg_safe
 
 
 def __DEBUG_ME__()->bool:
@@ -1711,16 +1712,18 @@ class Grad_inspector(torch.nn.Module):
             self.fake_data.grad = None
             pass
         return 
+
+
+    def abs_mean(self)->float:
+        return self.fake_data.grad.abs().mean().item()
+    
+    def log10_avg_safe(self)->float:
+        return log10_avg_safe(self.fake_data.grad).item()
+
     
     # def extra_repr(self) -> str:
     #     return f'scaling_factor={self.scaling_factor.item():.4e}, epsilon={self.epsilon.item():.4e}, mul_me_when_g_too_small={self.mul_me_when_g_too_small.item():.4e}'
     pass#end of class
-
-
-
-
-
-
 
 if "basic behavior" and False:
     def ____equivalence____Grad_inspector():
@@ -1810,19 +1813,40 @@ if "basic behavior" and False:
     ____equivalence____Grad_inspector()
     pass
 
+if "measure functions" and True:
+    def ____measure_functions____Grad_inspector():
 
+        if "abs mean" and True:
+            import random
+            for _ in range(16):
 
+                if random.random()< 0.3:
+                    size = [random.randint(2,100)]
+                    pass
+                if random.random()< 0.5:
+                    size = [random.randint(2,30), random.randint(2,30)]
+                    pass
+                else:
+                    size = [random.randint(2,20), random.randint(2,20), random.randint(2,20)]
+                    pass
 
+                input = torch.randn(size=size, requires_grad=True)
+                the_inspector = Grad_inspector()
+                the_inspector = the_inspector
 
+                output:torch.Tensor = the_inspector(input)
+                grad_in = torch.randn_like(output)
+                output.backward(gradient=grad_in, inputs=[input, the_inspector.fake_data])
 
+                assert grad_in.abs().mean() == the_inspector.abs_mean()
+                assert log10_avg_safe(grad_in) == the_inspector.log10_avg_safe()
 
+                pass#for _ 
+            pass#/ test
 
-
-
-
-
-
-
+        return
+    ____measure_functions____Grad_inspector()
+    pass
 
 
 
