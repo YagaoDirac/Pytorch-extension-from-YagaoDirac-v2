@@ -37,25 +37,23 @@ if "test" and False:
 
 
 
-
-def dtype_upgrade(input:torch.dtype)->torch.dtype:
-    '''this function is adapted to pytorch. When shift to other framework, recheck it.'''
-    if input == torch.float64:
-        return torch.float64
-    else:
-        return torch.float32
-
-
+if "to fold old code" and False:
+    # def dtype_upgrade(input:torch.dtype)->torch.dtype:
+    #     '''this function is adapted to pytorch. When shift to other framework, recheck it.'''
+    #     if input == torch.float64:
+    #         return torch.float64
+    #     else:
+    #         return torch.float32
 
 
-# def get_vector_length(input:torch.Tensor, result_dtype = torch.float64)->torch.Tensor:
-#     _temp = input*input
-#     _temp = _temp.sum(dim=-1, dtype=result_dtype)
-#     _temp.sqrt_()
-#     return _temp
-# #copied from the Util.py file. No validation here.
 
-
+    # def get_vector_length(input:torch.Tensor, result_dtype = torch.float64)->torch.Tensor:
+    #     _temp = input*input
+    #     _temp = _temp.sum(dim=-1, dtype=result_dtype)
+    #     _temp.sqrt_()
+    #     return _temp
+    # #copied from the Util.py file. No validation here.
+    pass
 
 
 
@@ -276,10 +274,6 @@ def _gramo_algo_test(g_in___b_o:torch.Tensor, scaling_factor = torch.tensor(3.),
     grad_for_x__b_o = g_in___b_o*mul_me___b_o
     # pass#if input_needs_grad
     return grad_for_x__b_o
-
-
-
-
 
 if "algo prototype test           with function." and __DEBUG_ME__() and False:
     def ____test____the_function_____gramo_algo_test():
@@ -777,27 +771,6 @@ if "algo prototype test           with function." and __DEBUG_ME__() and False:
         return
     ____test____the_function_____gramo_algo_test()
     pass
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1533,6 +1506,312 @@ if "all the setters" and False:
         return
     ____test____all_the_setters_of___Gramo_vec_len_to_scaling_factor()
     pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class _only_for___Grad_inspector___to_use___Function_class(torch.autograd.Function):
+    r'''a special version in 2026. 
+    
+    input param:
+    >>> x:torch.Tensor (must be set as require_grad = True)
+    >>> fake_data:torch.Tensor (must be set as require_grad = True, and the same shape as x)
+
+    retur type: torch.Tensor
+    '''
+    @staticmethod
+    #def forward(*args: Any, **kwargs: Any)->Any:
+    def forward(x:torch.Tensor, fake_data:torch.Tensor, *args: Any, **kwargs: Any)->Any:
+        if x.requires_grad:
+            assert fake_data.requires_grad == True
+            assert x.shape == fake_data.shape
+            assert x.dtype == fake_data.dtype
+            pass
+        return x
+
+    @staticmethod
+    def setup_context(ctx, inputs, output):
+        #x:torch.Tensor
+        x = inputs[0]
+        x_requires_grad = torch.tensor(x.requires_grad, device=x.device)
+
+        ctx.save_for_backward(x_requires_grad)
+        return
+
+    @staticmethod
+    def backward(ctx, grad):#->tuple[Optional[torch.Tensor], None, None, None]:
+
+
+        #g_in___b_o:torch.Tensor
+        # scaling_factor___s:torch.Tensor
+        # epsilon___s:torch.Tensor
+        # mul_me__when_g_too_small___s:torch.Tensor
+        # protect_accuracy___1_bool:torch.Tensor
+
+
+        (x_requires_grad,) = ctx.saved_tensors
+        assert isinstance(x_requires_grad, torch.Tensor)
+        if x_requires_grad:
+            return grad, grad
+        else:
+            return None, None
+        #end of function
+    pass  # class
+
+if "basic behavior" and False:
+    def ____test____basic_behavior_____only_for___Grad_inspector___to_use___Function_class():
+        if "basic behavior" and True:
+            import random
+            for _ in range(5):
+                size = [random.randint(2,100)]
+                input = torch.randn(size=size,      requires_grad=True)
+                fake_data = torch.randn_like(input, requires_grad=True)
+                grad_in = torch.randn_like(input)
+                output:torch.Tensor = _only_for___Grad_inspector___to_use___Function_class.apply(input, fake_data)
+                output.backward(gradient = grad_in, inputs=[input, fake_data])
+                assert input.grad is not None
+                assert input.grad.eq(grad_in).all()
+                assert fake_data.grad is not None
+                assert fake_data.grad.eq(grad_in).all()
+                pass#for _
+
+            for _ in range(5):
+                size = [random.randint(2,30), random.randint(2,30)]
+                input = torch.randn(size=size,      requires_grad=True)
+                fake_data = torch.randn_like(input, requires_grad=True)
+                grad_in = torch.randn_like(input)
+                output:torch.Tensor = _only_for___Grad_inspector___to_use___Function_class.apply(input, fake_data)
+                output.backward(gradient = grad_in, inputs=[input, fake_data])
+                assert input.grad is not None
+                assert input.grad.eq(grad_in).all()
+                assert fake_data.grad is not None
+                assert fake_data.grad.eq(grad_in).all()
+                pass#for _
+
+            for _ in range(5):
+                size = [random.randint(2,20), random.randint(2,20), random.randint(2,20)]
+                input = torch.randn(size=size,      requires_grad=True)
+                fake_data = torch.randn_like(input, requires_grad=True)
+                grad_in = torch.randn_like(input)
+                output:torch.Tensor = _only_for___Grad_inspector___to_use___Function_class.apply(input, fake_data)
+                output.backward(gradient = grad_in, inputs=[input, fake_data])
+                assert input.grad is not None
+                assert input.grad.eq(grad_in).all()
+                assert fake_data.grad is not None
+                assert fake_data.grad.eq(grad_in).all()
+                pass#for _
+
+            pass#/ test
+
+        if "device adaptive" and True:
+            device = 'cuda'
+            input = torch.randn(size=size,      requires_grad=True, device=device)
+            fake_data = torch.randn_like(input, requires_grad=True)
+            grad_in = torch.randn_like(input)
+            output:torch.Tensor = _only_for___Grad_inspector___to_use___Function_class.apply(input, fake_data)
+            output.backward(gradient = grad_in, inputs=[input, fake_data])
+            assert input.grad is not None
+            assert input.grad.eq(grad_in).all()
+            assert input.grad.device.type == device
+            assert fake_data.grad is not None
+            assert fake_data.grad.eq(grad_in).all()
+            assert fake_data.grad.device.type == device
+            pass#/ test
+
+        '''this tool doesn't provide dtype adaption.'''
+        '''this tool doesn't provide dtype adaption.'''
+        '''this tool doesn't provide dtype adaption.'''
+        #if "dtype adaptive" and False:
+
+        return
+    ____test____basic_behavior_____only_for___Grad_inspector___to_use___Function_class()
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Grad_inspector(torch.nn.Module):
+    r"""to help you check the grad.
+
+    """
+    fake_data:torch.nn.Parameter
+    clear_grad_in___step:bool
+
+    def __init__(self, clear_grad_in___step = True, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        #<  safety
+        self.fake_data = torch.nn.Parameter(torch.empty(size=[]))
+        self.clear_grad_in___step = clear_grad_in___step
+        return
+
+    def forward(self, x:torch.Tensor)->torch.Tensor:
+        if x.requires_grad == False:
+            return x
+
+        _flag___needs_a_new_param = False
+        if self.fake_data.nelement() != x.nelement():
+            _flag___needs_a_new_param = True
+            pass
+        elif self.fake_data.dtype != x.dtype:
+            _flag___needs_a_new_param = True
+            pass
+        elif self.fake_data.device != x.device:
+            _flag___needs_a_new_param = True
+            pass
+        else:
+            #nothing here. keep the flag as false
+            pass
+
+        if _flag___needs_a_new_param:
+            self.fake_data = torch.nn.Parameter(torch.empty_like(x))
+            pass
+        else:
+            self.fake_data.reshape_as(x)
+            self.fake_data.grad = None
+            pass
+
+        assert self.fake_data.shape == x.shape
+        assert self.fake_data.dtype == x.dtype
+        assert self.fake_data.device == x.device
+        assert self.fake_data.grad is None
+        
+        return _only_for___Grad_inspector___to_use___Function_class.apply(x, self.fake_data)
+
+    def get_grad(self)->torch.Tensor:
+        assert isinstance(self.fake_data.grad)
+        return self.fake_data.grad
+    
+    def step(self)->None:
+        '''If the flag:clear_grad_in___step is True, then the gradient is set to None in this function.'''
+        if self.clear_grad_in___step:
+            self.fake_data.grad = None
+            pass
+        return 
+    
+    # def extra_repr(self) -> str:
+    #     return f'scaling_factor={self.scaling_factor.item():.4e}, epsilon={self.epsilon.item():.4e}, mul_me_when_g_too_small={self.mul_me_when_g_too_small.item():.4e}'
+    pass#end of class
+
+
+
+
+
+
+
+if "basic behavior" and False:
+    def ____equivalence____Grad_inspector():
+
+        if "basic behavior" and True:
+            import random
+            for ori___dtype in [torch.float32, torch.float16, torch.float64, torch.bfloat16]:
+                for dtype in [torch.float32, torch.float16, torch.float64, torch.bfloat16]:
+                    for ori___device in ['cpu', 'cuda']:
+                        for device in ['cpu', 'cuda']:
+                            for _ in range(16):
+
+                                if random.random()< 0.3:
+                                    size = [random.randint(2,100)]
+                                    pass
+                                if random.random()< 0.5:
+                                    size = [random.randint(2,30), random.randint(2,30)]
+                                    pass
+                                else:
+                                    size = [random.randint(2,20), random.randint(2,20), random.randint(2,20)]
+                                    pass
+
+                                input = torch.randn(size=size, dtype=dtype, device=device, requires_grad=True)
+                                the_inspector = Grad_inspector()
+                                the_inspector = the_inspector.to(ori___device).to(ori___dtype)
+                                assert the_inspector.fake_data.device.type == ori___device
+                                assert the_inspector.fake_data.dtype == ori___dtype
+
+                                output:torch.Tensor = the_inspector(input)
+                                grad_in = torch.randn_like(output)
+                                output.backward(gradient=grad_in, inputs=[input, the_inspector.fake_data])
+
+                                assert isinstance(input.grad, torch.Tensor)
+                                assert            input.grad.eq(grad_in).all()
+                                assert isinstance(the_inspector.fake_data.grad, torch.Tensor)
+                                assert            the_inspector.fake_data.grad.eq(grad_in).all()
+
+                                pass#for _ 
+                            pass#for device 
+                        pass#for ori___device 
+                    pass#for dtype
+                pass#for ori___dtype
+            pass#/ test
+
+        if "clear_grad_in___step" and True:
+            #step
+            input = torch.randn(size=size, dtype=dtype, device=device, requires_grad=True)
+            the_inspector = Grad_inspector(clear_grad_in___step=True)#default
+
+            output:torch.Tensor = the_inspector(input)
+            grad_in = torch.randn_like(output)
+            output.backward(gradient=grad_in, inputs=[input, the_inspector.fake_data])
+            assert isinstance(the_inspector.fake_data.grad, torch.Tensor)
+
+            the_inspector.step()
+            assert the_inspector.fake_data.grad is None  # cleared
+
+
+            #step       but not to clear it.
+            input = torch.randn(size=size, dtype=dtype, device=device, requires_grad=True)
+            the_inspector = Grad_inspector(clear_grad_in___step=False)
+
+            output:torch.Tensor = the_inspector(input)
+            grad_in = torch.randn_like(output)
+            output.backward(gradient=grad_in, inputs=[input, the_inspector.fake_data])
+            assert isinstance(the_inspector.fake_data.grad, torch.Tensor)
+
+            the_inspector.step()
+            assert isinstance(the_inspector.fake_data.grad, torch.Tensor)  # NOT cleared
+
+
+            #forward
+            input = torch.randn(size=size, dtype=dtype, device=device, requires_grad=True)
+            the_inspector = Grad_inspector(clear_grad_in___step=True)#default
+
+            output = the_inspector(input)
+            grad_in = torch.randn_like(output)
+            output.backward(gradient=grad_in, inputs=[input, the_inspector.fake_data])
+            assert isinstance(the_inspector.fake_data.grad, torch.Tensor)
+
+            output = the_inspector(input)
+            assert the_inspector.fake_data.grad is None  # cleared
+
+            pass#/ test
+
+        return
+    ____equivalence____Grad_inspector()
+    pass
+
+
+
 
 
 
