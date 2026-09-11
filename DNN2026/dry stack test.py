@@ -5,7 +5,7 @@ from pytorch_yagaodirac_v2.Util import iota, \
         _tensor_equal, _bool_equal___0_as_false, _tensor_shape_check, _either_1_or_neg1, \
         str_the_list, print_table
 from pytorch_yagaodirac_v2.Random import rand_sign
-from pytorch_yagaodirac_v2.Gramo_special_ver import Gramo_vec_len_to_scaling_factor
+from pytorch_yagaodirac_v2.Gramo_special_ver import Gramo_vec_len_to_scaling_factor, Grad_inspector
 from pytorch_yagaodirac_v2.Util_log10_related import log10_avg_safe
 from DNN2026.DNN_util import Index_container, partly_reasonable_label_from_input, \
         _test___binary_accuracy___full_safety
@@ -79,18 +79,30 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
+
+
+
+
+
 '''dry stack             model'''
 '''dry stack             model'''
 class dry_stack_test__DNN_model__2026(torch.nn.Module):
-    #in_dim:int
+    #shape info
     _original__out_dim:int
+    #digital mapping layers
     _layer_count:int
     digital_mapping_layers:torch.nn.ParameterList
+    #gramos
     _gramo_every_n_layers:int
     _gramo_layers:torch.nn.ParameterList
+    #gard inspectors
+    _grad_inspector___entrance:Grad_inspector|None
+    _grad_inspector___following_digitalmapping:torch.nn.ParameterList
+    _grad_inspector___following_gramo:torch.nn.ParameterList
     #customized function
     _calc_shape_function:function
     def __init__(self, in_features:int, out_features:int, layer_count:int, gramo_every_n_layers:int, \
+                _debug__with_inspectors = False, 
                 some_hyper_param: float = 1, init_to_nan: bool = True, 
                 _dtype_for_raw_weight = torch.float32, _always_check_input_is_posneg1__in_forward: bool = True, 
                 device = None):
@@ -101,6 +113,7 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
 
         self._calc_shape_function = _only_for_dry_stack_test__DNN_model__2026_to_use____calc_shape
 
+        #     DigitalMapping_layers
         assert type(layer_count) == int
         if layer_count == 1:
             _temp__the_only_layer = DigitalMapping_layer__2026(
@@ -149,16 +162,12 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
 
         assert self.digital_mapping_layers.__len__() == self._layer_count
 
+        #     gramo
         assert type(gramo_every_n_layers) == int
         if gramo_every_n_layers<=0:
             self._gramo_every_n_layers = -1
             self._gramo_layers = torch.nn.ParameterList([])#empty list has no device.
             pass
-        # elif gramo_every_n_layers>=layer_count:
-        #     assert False, "maybe a bad param."
-        #     self._gramo_every_n_layers = -1
-        #     self._gramo_layers = None
-        #     pass
         else: # gramo_every_n_layers is [1, layer-1]
             self._gramo_every_n_layers = gramo_every_n_layers
             '''
@@ -186,16 +195,50 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
         assert type(self._gramo_every_n_layers) == int
         assert (self._gramo_layers is None) or (isinstance(self._gramo_layers, torch.nn.ParameterList))
 
+
+        #     inspectors
+        if _debug__with_inspectors:
+            self._grad_inspector___entrance = Grad_inspector(clear_grad_in___step=False)
+            _temp___param_list = []
+            for _ in range(self.digital_mapping_layers.__len__()):
+                _temp___param_list.append(Grad_inspector(clear_grad_in___step=False))
+                pass
+            self._grad_inspector___following_digitalmapping = torch.nn.ParameterList(_temp___param_list)#device and dtype are adaptive.
+            del _temp___param_list
+
+            _temp___param_list = []
+            for _ in range(self._gramo_layers.__len__()):
+                _temp___param_list.append(Grad_inspector(clear_grad_in___step=False))
+                pass
+            self._grad_inspector___following_gramo = torch.nn.ParameterList(_temp___param_list)#device and dtype are adaptive.
+            pass
+        else:
+            self._grad_inspector___entrance = None
+            self._grad_inspector___following_digitalmapping = torch.nn.ParameterList([])#empty list has no device.
+            self._grad_inspector___following_gramo          = torch.nn.ParameterList([])
+            pass
+
         return
 
     def forward(self, input___b_i:torch.Tensor)->torch.Tensor:
         '''return output___b_o'''
 
+        if (self._grad_inspector___entrance is not None) and (input___b_i.requires_grad == True):
+            input___b_i = self._grad_inspector___entrance(input___b_i)
+            pass
+
         if self._gramo_layers.__len__() == 0:
             x = input___b_i
-            for digitalmapping_layer in self.digital_mapping_layers:
-                assert isinstance(digitalmapping_layer, DigitalMapping_layer__2026)
+            for _ii_digital_mapping_layer in range(self.digital_mapping_layers.__len__()):
+                digitalmapping_layer = self.digital_mapping_layers[_ii_digital_mapping_layer]
+                #assert isinstance(digitalmapping_layer, DigitalMapping_layer__2026)
                 x = digitalmapping_layer(x)
+
+                if self._grad_inspector___following_digitalmapping.__len__()>0:
+                    grad_inspector_layer = self._grad_inspector___following_digitalmapping[_ii_digital_mapping_layer]
+                    x = grad_inspector_layer(x)
+                    pass
+                
                 pass
             output___b_o = x
             return output___b_o
@@ -211,12 +254,24 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
                 for _ii_inner in range(self._gramo_every_n_layers):
                     digitalmapping_layer = self.digital_mapping_layers[_ii_digital_mapping_layer]
                     x = digitalmapping_layer(x)
+
+                    if self._grad_inspector___following_digitalmapping.__len__()>0:
+                        grad_inspector_layer = self._grad_inspector___following_digitalmapping[_ii_digital_mapping_layer]
+                        x = grad_inspector_layer(x)
+                        pass
+
                     #print(f"D {_ii_digital_mapping_layer}")
                     #tail
                     _ii_digital_mapping_layer += 1
                     pass # for ii_inner
                 gramo_layer = self._gramo_layers[_ii_gramo_layer]
                 x = gramo_layer(x)
+
+                if self._grad_inspector___following_gramo.__len__()>0:
+                    grad_inspector_layer = self._grad_inspector___following_gramo[_ii_gramo_layer]
+                    x = grad_inspector_layer(x)
+                    pass
+                
                 #print(f"     g {_ii_gramo_layer}")
                 #tail
                 _ii_gramo_layer += 1
@@ -234,6 +289,12 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
             for _ii_inner in range(_param__range):
                 digitalmapping_layer = self.digital_mapping_layers[_ii_digital_mapping_layer]
                 x = digitalmapping_layer(x)
+
+                if self._grad_inspector___following_digitalmapping.__len__()>0:
+                    grad_inspector_layer = self._grad_inspector___following_digitalmapping[_ii_digital_mapping_layer]
+                    x = grad_inspector_layer(x)
+                    pass
+
                 #print(f"D {_ii_digital_mapping_layer}")
                 #tail
                 _ii_digital_mapping_layer += 1
@@ -249,17 +310,29 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
         '''This function helps you handle the "inputs=" inside the backward function call.'''
         # old code    backward_to_this_list = []
         #backward_to_this_list.extend(the_model.parameters(for_backward=True))  不再用这个了。
-
+        #     input????
         if _debug__if_the_input_needs_grad___assign_it_here is None:
             parameter_list:list[torch.nn.Parameter] = []
             pass
         else:
             parameter_list:list[torch.nn.Parameter] = [_debug__if_the_input_needs_grad___assign_it_here]
             pass
-
+        #     digital mapping layers
         for digitalmapping_layer in self.digital_mapping_layers:
             assert isinstance(digitalmapping_layer, DigitalMapping_layer__2026)
             parameter_list.extend(digitalmapping_layer.parameters())
+            pass
+        #     grad inspector
+        if self._grad_inspector___entrance is not None:
+            parameter_list.append(self._grad_inspector___entrance.fake_data)
+            pass
+        for grad_insp_layer in self._grad_inspector___following_digitalmapping:
+            assert isinstance(grad_insp_layer, Grad_inspector)
+            parameter_list.append(grad_insp_layer.fake_data)
+            pass
+        for grad_insp_layer in self._grad_inspector___following_gramo:
+            assert isinstance(grad_insp_layer, Grad_inspector)
+            parameter_list.append(grad_insp_layer.fake_data)
             pass
 
         output___b_o.backward(gradient=label___b_o, inputs=parameter_list)
@@ -438,6 +511,92 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
             assert type(layer._raw_weight___oCAP_iCAP.shape[0]) == int
             pass
         return result
+
+    def _report_grad_from_inspector(self)->tuple[list[torch.Tensor], list[torch.Tensor], list[torch.Tensor]]:
+        '''return all_grad, grad_after___digital_mapping, grad_after___gramo
+        
+        [0] is the entrance. [__len__() -1 ] is the exit.'''
+
+        all_grad                    :list[torch.Tensor] = []
+        grad_after___digital_mapping:list[torch.Tensor] = []
+        grad_after___gramo          :list[torch.Tensor] = []
+
+        #     2 easier lists. 
+        for ii_layer in range(self._grad_inspector___following_digitalmapping.__len__()):
+            the_layer = self._grad_inspector___following_digitalmapping[ii_layer]
+            assert isinstance(the_layer, Grad_inspector)
+            grad_after___digital_mapping.append(the_layer.fake_data.grad)
+            pass
+        for ii_layer in range(self._grad_inspector___following_gramo.__len__()):
+            the_layer = self._grad_inspector___following_gramo[ii_layer]
+            assert isinstance(the_layer, Grad_inspector)
+            grad_after___gramo.append(the_layer.fake_data.grad)
+            pass
+
+        #     the complex one.
+        all_grad.append(self._grad_inspector___entrance.fake_data.grad)
+        if self._gramo_layers.__len__() == 0:
+            #     no gramo. Only the digital mapping layers.
+            all_grad.extend(grad_after___digital_mapping)
+
+            return all_grad, grad_after___digital_mapping, grad_after___gramo
+        
+        else:
+            #    with both digital mapping layers and gramos.
+            '''copied from the forward function. '''
+            '''copied from the forward function. '''
+            '''copied from the forward function. '''
+            ''' (n mapping 1 gramo) * m '''
+            assert self._gramo_every_n_layers>0 # just in case.
+            _ii_digital_mapping_layer = 0
+            _ii_gramo_layer = 0
+            for _ii_outter in range(self._gramo_layers.__len__()):
+                for _ii_inner in range(self._gramo_every_n_layers):
+
+                    if self._grad_inspector___following_digitalmapping.__len__()>0:
+                        grad_inspector_layer = self._grad_inspector___following_digitalmapping[_ii_digital_mapping_layer]
+                        all_grad.append(grad_inspector_layer.fake_data.grad)
+                        pass
+
+                    #print(f"D {_ii_digital_mapping_layer}")
+                    #tail
+                    _ii_digital_mapping_layer += 1
+                    pass # for ii_inner
+
+                if self._grad_inspector___following_gramo.__len__()>0:
+                    grad_inspector_layer = self._grad_inspector___following_gramo[_ii_gramo_layer]
+                    all_grad.append(grad_inspector_layer.fake_data.grad)
+                    pass
+                
+                #print(f"     g {_ii_gramo_layer}")
+                #tail
+                _ii_gramo_layer += 1
+                pass # for ii_outter
+            assert _ii_digital_mapping_layer < self.digital_mapping_layers.__len__()
+            assert _ii_gramo_layer == self._gramo_layers.__len__()
+
+
+            ''' k mapping no gramo'''
+            assert self._gramo_every_n_layers>0 # just in case.
+            _param__range = self.digital_mapping_layers.__len__() - self._gramo_layers.__len__() * self._gramo_every_n_layers
+            assert _param__range>0
+            assert _param__range<= self._gramo_every_n_layers # just in case.
+
+            for _ii_inner in range(_param__range):
+                if self._grad_inspector___following_digitalmapping.__len__()>0:
+                    grad_inspector_layer = self._grad_inspector___following_digitalmapping[_ii_digital_mapping_layer]
+                    all_grad.append(grad_inspector_layer.fake_data.grad)
+                    pass
+
+                #print(f"D {_ii_digital_mapping_layer}")
+                #tail
+                _ii_digital_mapping_layer += 1
+                pass # for ii_inner
+            assert _ii_digital_mapping_layer == self.digital_mapping_layers.__len__()
+
+            assert False, "untested"
+            return all_grad, grad_after___digital_mapping, grad_after___gramo
+        #end of function.
 
     def backward_index_quiry(self, index_list:torch.Tensor)->torch.Tensor:
         # assert index_list.dtype in          必须是整数，但是可能不用检查
@@ -915,6 +1074,167 @@ if "the optim part" and __DEBUG_ME__() and False:
     ____test____optim_part_of_DigitalMapping_layer__2026()
     pass
 
+
+
+
+
+
+
+
+
+if "report grad" and __DEBUG_ME__() and True:
+    def ____test____report_grad():
+        if "basic" and True:
+            for batch in [2,7]:
+                for in_dim in [33,51]:
+                    for out_dim in [5,15]:
+                        assert in_dim > out_dim
+                        for layer_count in [3,6,11]:
+                            for gramo_every_n_layers in [0,1,2]:
+
+                                model = dry_stack_test__DNN_model__2026(in_features = in_dim, out_features = out_dim, layer_count = layer_count, 
+                                            gramo_every_n_layers = gramo_every_n_layers, _debug__with_inspectors = True)
+                                input___b_i = rand_sign(size=[batch, in_dim])
+                                input___b_i = input___b_i.requires_grad_()
+                                output___b_o = model(input___b_i)
+                                model.backward(output___b_o=output___b_o, label___b_o=rand_sign(size=[batch, out_dim]), 
+                                            _debug__if_the_input_needs_grad___assign_it_here = input___b_i)
+
+                                all_grad, grad_after___digital_mapping, grad_after___gramo = model._report_grad_from_inspector()
+                                assert all_grad                    .__len__() == model.digital_mapping_layers.__len__()+ model._gramo_layers.__len__()+1
+                                assert grad_after___digital_mapping.__len__() == model.digital_mapping_layers.__len__()
+                                assert grad_after___gramo          .__len__() == model._gramo_layers         .__len__()
+
+1w
+1w
+1w
+1w
+
+等隔壁。
+
+完事了看看梯度消失的情况。
+
+
+                                assert model._grad_inspector___entrance.fake_data.grad is not None
+                                for ii_digital in range(model.digital_mapping_layers.__len__()):
+                                    digital_mapping_layer = model.digital_mapping_layers[ii_digital]
+                                    assert isinstance(digital_mapping_layer, DigitalMapping_layer__2026)
+                                    assert digital_mapping_layer._raw_weight___oCAP_iCAP.grad is not None
+                                    assert model._grad_inspector___following_digitalmapping[ii_digital].fake_data.grad is not None
+                                    pass
+                                for ii_gramo in range(model._gramo_layers.__len__()):
+                                    assert model._grad_inspector___following_gramo[ii_gramo].fake_data.grad is not None
+                                    pass
+
+            pass#/ test
+
+
+
+
+
+assert False, "继续" 
+
+
+if "grad inspector" and __DEBUG_ME__() and True:
+    def ____test____grad_inspector():
+        if "basic" and True:
+            model = dry_stack_test__DNN_model__2026(in_features = 2, out_features = 2, layer_count = 5, 
+                            gramo_every_n_layers = -1, _debug__with_inspectors = True)
+            input___b_i = rand_sign(size=[3,2])
+            input___b_i = input___b_i.requires_grad_()
+            output___b_o = model(input___b_i)
+            model.backward(output___b_o=output___b_o, label___b_o=rand_sign(size=[3,2]), 
+                        _debug__if_the_input_needs_grad___assign_it_here = input___b_i)
+
+            assert model._grad_inspector___entrance.fake_data.grad is not None
+            for ii_digital in range(model.digital_mapping_layers.__len__()):
+                digital_mapping_layer = model.digital_mapping_layers[ii_digital]
+                assert isinstance(digital_mapping_layer, DigitalMapping_layer__2026)
+                assert digital_mapping_layer._raw_weight___oCAP_iCAP.grad is not None
+                assert model._grad_inspector___following_digitalmapping[ii_digital].fake_data.grad is not None
+                pass
+            for ii_gramo in range(model._gramo_layers.__len__()):
+                assert False, "unreachable"
+                assert model._grad_inspector___following_gramo[ii_gramo].fake_data.grad is not None
+                pass
+
+            all_grad, grad_after___digital_mapping, grad_after___gramo = model._report_grad_from_inspector()
+            assert grad_after___gramo.__len__() == 0
+            pass#/ test
+
+
+        if "eye as the mapping raw weight." and True:
+
+            for batch in [2,7]:
+                for dim in [3,11]:
+                    for _ in range(6):
+                        #<  init 
+                        model =     dry_stack_test__DNN_model__2026(in_features = dim, out_features = dim, layer_count = 5, 
+                                        gramo_every_n_layers = 2, _debug__with_inspectors = True)
+                        for ii_digital in range(model.digital_mapping_layers.__len__()):
+                            digital_mapping_layer = model.digital_mapping_layers[ii_digital]
+                            assert isinstance(digital_mapping_layer, DigitalMapping_layer__2026)
+                            digital_mapping_layer._squeeze(squeeze_in=True, squeeze_out=True)
+                            assert _tensor_shape_check(digital_mapping_layer._raw_weight___oCAP_iCAP, dim, dim)
+                            digital_mapping_layer._raw_weight___oCAP_iCAP.data = torch.eye(n=dim)
+                            assert _tensor_shape_check(digital_mapping_layer._raw_weight___oCAP_iCAP, dim, dim)
+                            pass
+                        #<  dataset 
+                        input___b_i = rand_sign(size=[batch, dim])
+                        input___b_i = input___b_i.requires_grad_()
+                        label___b_o = input___b_i.detach().clone()
+                        #<  forward   backward 
+                        output___b_o = model(input___b_i)
+                        assert output___b_o.eq(input___b_i).all()
+                        model.backward(output___b_o=output___b_o, label___b_o=label___b_o, 
+                                    _debug__if_the_input_needs_grad___assign_it_here = input___b_i)
+                        #<  assert
+                        assert model._grad_inspector___entrance.fake_data.grad is not None
+                        assert model._grad_inspector___entrance.fake_data.grad.eq(label___b_o).all()
+
+                        for ii_digital in range(model.digital_mapping_layers.__len__()):
+                            digital_mapping_layer = model.digital_mapping_layers[ii_digital]
+                            assert isinstance(digital_mapping_layer, DigitalMapping_layer__2026)
+                            assert digital_mapping_layer._raw_weight___oCAP_iCAP.grad is not None
+                            assert model._grad_inspector___following_digitalmapping[ii_digital].fake_data.grad is not None
+                            assert model._grad_inspector___following_digitalmapping[ii_digital].grad.eq(label___b_o).all()
+                            pass
+                        for ii_gramo in range(model._gramo_layers.__len__()):
+                            assert model._grad_inspector___following_gramo[ii_gramo].fake_data.grad is not None
+                            assert model._grad_inspector___following_gramo[ii_gramo].grad.eq(label___b_o).all()
+                            pass
+                        pass#for _
+                    pass#for dim
+                pass#for batch
+            pass#/ test
+    
+
+
+            
+            
+
+        return
+    ____test____grad_inspector()
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if "integrated test" and __DEBUG_ME__() and True:
     def ____test____integrated_test()->None:
         '''modified from the backward algo test.'''
@@ -1145,7 +1465,7 @@ if "integrated test" and __DEBUG_ME__() and True:
                 pass#for ii_outter_param_set
             pass#/ test
 
-        if "prototype.         20 layers, measure the log10 of grad_like " and False:
+        if "prototype.    log10     20 layers, measure the log10 of grad_like " and False:
             if "results" and False:
                 # random_ratio,  0.000,  0.100,  0.200,  0.300,  0.500,  0.700
                 #          ref, -0.422, -0.422, -0.422, -0.422, -0.422, -0.422
@@ -1253,11 +1573,7 @@ if "integrated test" and __DEBUG_ME__() and True:
 
 
 
-1ww
-1ww
-1ww
-1ww形状有影响。要慢慢测了。最后一层后面可能也要加gramo了。。。。
-        if "prototype.         7 layers, same dim in same dim out, measure the log10 of grad_like " and True:
+        if "grad log10          7 layers, same dim in same dim out" and False:
             if "results" and False:
                 # random_ratio,  0.000,  0.100,  0.200,  0.300,  0.500,  0.700
                 #          ref, -0.422, -0.421, -0.422, -0.422, -0.421, -0.423
@@ -1367,6 +1683,122 @@ if "integrated test" and __DEBUG_ME__() and True:
                     result__layer__6_grad_like_log10 ,
                     ])
             pass#/ test
+
+
+
+
+
+
+
+
+
+
+
+
+        if "grad abs mean         7 layers, same dim in same dim out" and True:
+            if "results" and False:
+                pass
+
+
+            result__raw_weight__as_ref__abs_mean    :list = ["ref"]#don't modify this.
+            result__layer___0_grad_like_abs_mean    :list = ["layer  0"]#don't modify this.
+            result__layer___1_grad_like_abs_mean    :list = ["layer  1"]#don't modify this.
+            result__layer___2_grad_like_abs_mean    :list = ["layer  2"]#don't modify this.
+            result__layer___3_grad_like_abs_mean    :list = ["layer  3"]#don't modify this.
+            result__layer___4_grad_like_abs_mean    :list = ["layer  4"]#don't modify this.
+            result__layer___5_grad_like_abs_mean    :list = ["layer  5"]#don't modify this.
+            result__layer___6_grad_like_abs_mean    :list = ["layer  6"]#don't modify this.
+
+            #------------------#------------------#------------------
+            number_of_tests = 20
+            device = 'cuda'
+            random_ratio_list = [0., 0.1, 0.2, 0.3, 0.5, 0.7]
+            for ii_random_ratio in range(random_ratio_list.__len__()):
+                random_ratio = random_ratio_list[ii_random_ratio]
+
+                _raw_result__raw_weight__as_ref__abs_mean = torch.empty(size=[number_of_tests])
+                _raw_result__layer___0_grad_like_abs_mean = torch.empty(size=[number_of_tests])
+                _raw_result__layer___1_grad_like_abs_mean = torch.empty(size=[number_of_tests])
+                _raw_result__layer___2_grad_like_abs_mean = torch.empty(size=[number_of_tests])
+                _raw_result__layer___3_grad_like_abs_mean = torch.empty(size=[number_of_tests])
+                _raw_result__layer___4_grad_like_abs_mean = torch.empty(size=[number_of_tests])
+                _raw_result__layer___5_grad_like_abs_mean = torch.empty(size=[number_of_tests])
+                _raw_result__layer___6_grad_like_abs_mean = torch.empty(size=[number_of_tests])
+
+                #print(f"dim {dim}   test_time {number_of_tests}    device {device}")
+            #------------------#------------------#------------------
+                #_when_start = time.perf_counter()
+                
+                for ii__test in range(number_of_tests):
+
+                    batch = 1000
+                    in_dim  = 100
+                    out_dim = 100
+                    #<  dataset
+                    input_posneg1___b_i = rand_sign(size=[batch, in_dim], dtype=torch.float32, device=device)
+                    assert _either_1_or_neg1(input_posneg1___b_i)
+                    assert input_posneg1___b_i.dtype == torch.float32
+
+                    target_posneg1___b_o = partly_reasonable_label_from_input(input___b_i=input_posneg1___b_i, out_dim = out_dim,
+                                random_ratio=random_ratio, input_is_already_posneg1 = True)
+                    assert _either_1_or_neg1(target_posneg1___b_o)#debug purpose
+                    assert target_posneg1___b_o.dtype == torch.float32
+                    #<  infra
+                    the_model = dry_stack_test__DNN_model__2026(in_features=in_dim, out_features=out_dim, layer_count=20,#20 layers. 
+                                                                                        gramo_every_n_layers=-1, device=device)
+                    the_layer = the_model.digital_mapping_layers[0]
+                    assert isinstance(the_layer, DigitalMapping_layer__2026)
+                    #<  calc          forward
+                    ori__output___o_i:torch.Tensor = the_model(input_posneg1___b_i)
+                    assert _tensor_shape_check(ori__output___o_i, batch, out_dim)
+
+                    the_model.backward(output___b_o=ori__output___o_i, label___b_o=target_posneg1___b_o)
+                    #<  measure
+                    the_layer = the_model.digital_mapping_layers[0]
+                    assert isinstance(the_layer, DigitalMapping_layer__2026)
+                    _raw_result__raw_weight__as_ref__abs_mean[ii__test] = the_layer.get_useful_part_of_raw_weight().abs().mean()
+                    
+                    the_layer = the_model.digital_mapping_layers[0]
+                    _raw_result__layer___0_grad_like_abs_mean[ii__test]  = the_layer._get_useful_part_of_raw_weight_grad().abs().mean()
+                    the_layer = the_model.digital_mapping_layers[1]
+                    _raw_result__layer___1_grad_like_abs_mean[ii__test]  = the_layer._get_useful_part_of_raw_weight_grad().abs().mean()
+                    the_layer = the_model.digital_mapping_layers[2]
+                    _raw_result__layer___2_grad_like_abs_mean[ii__test]  = the_layer._get_useful_part_of_raw_weight_grad().abs().mean()
+                    the_layer = the_model.digital_mapping_layers[3]
+                    _raw_result__layer___3_grad_like_abs_mean[ii__test]  = the_layer._get_useful_part_of_raw_weight_grad().abs().mean()
+                    the_layer = the_model.digital_mapping_layers[4]
+                    _raw_result__layer___4_grad_like_abs_mean[ii__test]  = the_layer._get_useful_part_of_raw_weight_grad().abs().mean()
+                    the_layer = the_model.digital_mapping_layers[5]
+                    _raw_result__layer___5_grad_like_abs_mean[ii__test]  = the_layer._get_useful_part_of_raw_weight_grad().abs().mean()
+                    the_layer = the_model.digital_mapping_layers[6]
+                    _raw_result__layer___6_grad_like_abs_mean[ii__test]  = the_layer._get_useful_part_of_raw_weight_grad().abs().mean()
+                    pass# for ii__test
+                result__raw_weight__as_ref__abs_mean  .append(  _raw_result__raw_weight__as_ref__abs_mean  .mean().item())
+                result__layer___0_grad_like_abs_mean  .append(  _raw_result__layer___0_grad_like_abs_mean  .mean().item())
+                result__layer___1_grad_like_abs_mean  .append(  _raw_result__layer___1_grad_like_abs_mean  .mean().item())
+                result__layer___2_grad_like_abs_mean  .append(  _raw_result__layer___2_grad_like_abs_mean  .mean().item())
+                result__layer___3_grad_like_abs_mean  .append(  _raw_result__layer___3_grad_like_abs_mean  .mean().item())
+                result__layer___4_grad_like_abs_mean  .append(  _raw_result__layer___4_grad_like_abs_mean  .mean().item())
+                result__layer___5_grad_like_abs_mean  .append(  _raw_result__layer___5_grad_like_abs_mean  .mean().item())
+                result__layer___6_grad_like_abs_mean  .append(  _raw_result__layer___6_grad_like_abs_mean  .mean().item())
+
+                pass# for ii_random_ratio
+            random_ratio_list.insert(0, "random_ratio")
+            print_table([
+                    random_ratio_list                ,
+                    result__raw_weight__as_ref__abs_mean,
+                    result__layer___0_grad_like_abs_mean,
+                    result__layer___1_grad_like_abs_mean,
+                    result__layer___2_grad_like_abs_mean,
+                    result__layer___3_grad_like_abs_mean,
+                    result__layer___4_grad_like_abs_mean,
+                    result__layer___5_grad_like_abs_mean,
+                    result__layer___6_grad_like_abs_mean,
+                    ])
+            pass#/ test
+
+
+
 
 
 

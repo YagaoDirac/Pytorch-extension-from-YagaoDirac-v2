@@ -405,7 +405,7 @@ if "basic test" and __DEBUG_ME__() and True:
     ____test____DNN_input_container_2026()
     pass
 
-if "device adaption" and __DEBUG_ME__() and False:
+if "device adaption" and __DEBUG_ME__() and True:
     def ____device_adaption____DNN_input_container_2026():
         the_container = DNN_input_container_2026(batch=2,init_capacity=6, init_to_nan=True, device='cuda')
         assert the_container._raw_data___b_CAPi.device.type == 'cuda'
@@ -471,6 +471,7 @@ class DNN_label_container_2026(torch.nn.Module):
             pass
         assert self.data___b_o.requires_grad == False
         assert self.data___b_o.dtype in [torch.float, torch.float32, torch.float16, torch.float64, torch.bfloat16]
+        assert self.data___b_o.is_floating_point() == True
         return
 
     def get_useful(self)->torch.Tensor:
@@ -1248,25 +1249,38 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
 
 if "device adaption" and __DEBUG_ME__() and True:
     def ____device_adaption____DNN_label_container_2026():
-        the_container = DNN_label_container_2026(torch.randn(size=[2,3], device = 'cuda'), data_is_already_posneg1=True)
-        assert the_container._raw_data___b_CAPi.device.type == 'cuda'
-        the_container.extend()
-        assert the_container._raw_data___b_CAPi.device.type == 'cuda'
+        the_container = DNN_label_container_2026(torch.randn(size=[222,3333], device = 'cuda'), data_is_already_posneg1=True)
+        assert the_container.data___b_o  .device.type == 'cuda'
+        assert the_container.get_useful().device.type == 'cuda'
+        keep_which = rand_sign(size=[3333], dtype=torch.bool, device='cuda')
+        assert keep_which.any()#    at least some false
+        assert keep_which.all() == False# and some true
+        the_container.keep_output_slot(keep_which=keep_which)
+        assert the_container.out_dim()<3333
+        assert the_container.out_dim()>0
+        assert the_container.data___b_o  .device.type == 'cuda'
         assert the_container.get_useful().device.type == 'cuda'
 
         the_container.cpu()
-        assert the_container._raw_data___b_CAPi.device.type == 'cpu'
+        assert the_container.data___b_o  .device.type == 'cpu'
         assert the_container.get_useful().device.type == 'cpu'
 
 
-        the_container = DNN_label_container_2026(torch.randn(size=[2,3], device = 'cpu'), data_is_already_posneg1=True)
-        assert the_container._raw_data___b_CAPi.device.type == 'cpu'
-        the_container.extend(torch.randn(size=[2,3]))
-        assert the_container._raw_data___b_CAPi.device.type == 'cpu'
+
+        the_container = DNN_label_container_2026(torch.randn(size=[222,3333], device = 'cpu'), data_is_already_posneg1=True)
+        assert the_container.data___b_o  .device.type == 'cpu'
+        assert the_container.get_useful().device.type == 'cpu'
+        keep_which = rand_sign(size=[3333], dtype=torch.bool, device='cpu')
+        assert keep_which.any()#    at least some false
+        assert keep_which.all() == False# and some true
+        the_container.keep_output_slot(keep_which=keep_which)
+        assert the_container.out_dim()<3333
+        assert the_container.out_dim()>0
+        assert the_container.data___b_o  .device.type == 'cpu'
         assert the_container.get_useful().device.type == 'cpu'
 
         the_container.cuda()
-        assert the_container._raw_data___b_CAPi.device.type == 'cuda'
+        assert the_container.data___b_o  .device.type == 'cuda'
         assert the_container.get_useful().device.type == 'cuda'
 
 
@@ -1293,49 +1307,161 @@ if "device adaption" and __DEBUG_ME__() and True:
 
 
 
-# if "detect perfect output         the all to all version, but let me leave it for now." and False:
-#     def ____no_plan_for_now():
-#         if "xxxxxxxxxxxxxxx 多半写错了，先不用。 only perfect detection        all to all      small ver with int" and True:
+if "detect perfect output         the all to all version, but let me leave it for now." and True:
+    def ____algo_prototype____all_to_all____the_reshape():
+        if "perfect detection        all to all      small ver with int" and True:
 
-#             batch = 2
-#             label_dim = 5
-#             output_dim = 7
-#             #<  data 
-#             label___b_label = torch.tensor([    
-#                     [1, 2, 3, 4, 5, ],
-#                     [0, 0, 0, 0, 0, ],])
-#             assert label___b_label.shape == torch.Size([batch, label_dim])
-#             output___b_o = torch.tensor([    
-#                     [2, 2, 5, 9, 5, 2, 7, ],
-#                     [0, 1, 0, 0, 1, 0, 0, ],])
-#             assert output___b_o.shape == torch.Size([batch, output_dim])
-#             #<  calc
+            batch = 2
+            label_dim = 3
+            output_dim = 5
+            #<  data 
+            label___b_label = torch.tensor([    
+                    [1, 2, 3,],
+                    [0, 0, 0,],])
+            assert label___b_label.shape == torch.Size([batch, label_dim])
+            output___b_o = torch.tensor([    
+                    [1, 2, 3, 4, 5,],
+                    [0, 0, 0, 0, 0,],])
+            assert output___b_o.shape == torch.Size([batch, output_dim])
+            #<  EXPAND!!!!!!!
 
-#             #host is 111222333, or 1122
-#             HOST__label___T___label_EXPANDo_b = label___b_label.T \
-#                     .reshape([label___b_label.shape[1], 1, label___b_label.shape[0]]) \
-#                     .expand([-1, output___b_o.shape[1], -1])
-#             assert HOST__label___T___label_EXPANDo_b.shape == torch.Size([label_dim, output_dim, batch])
-#             #guest is 123123123, or 1212
-#             GUEST__output___T___EXPANDlabel_o_b = output___b_o.T \
-#                     .reshape([1, output___b_o.shape[1],  output___b_o.shape[0]]) \
-#                     .expand([label___b_label.shape[1], -1, -1])
-#             assert GUEST__output___T___EXPANDlabel_o_b.shape == torch.Size([label_dim, output_dim, batch])
+            #host is 111222333, or 1122
+            HOST_is_label____b_label_EXPANDo = label___b_label \
+                    .reshape([label___b_label.shape[0], label___b_label.shape[1], 1]) \
+                    .expand([-1, -1, output___b_o.shape[1]])
+            assert _tensor_shape_check(HOST_is_label____b_label_EXPANDo, batch, label_dim, output_dim)
+            assert _tensor_equal(HOST_is_label____b_label_EXPANDo, [[   [1, 1, 1, 1, 1], 
+                                                                        [2, 2, 2, 2, 2], 
+                                                                        [3, 3, 3, 3, 3],],
 
-#             flag_eq__before_all___label_o_b = HOST__label___T___label_EXPANDo_b.eq(GUEST__output___T___EXPANDlabel_o_b)
+                                                                    [   [0, 0, 0, 0, 0], 
+                                                                        [0, 0, 0, 0, 0], 
+                                                                        [0, 0, 0, 0, 0],],])
 
-#             flag_eq___label_o = flag_eq__before_all___label_o_b.all(dim=2)
-#             assert flag_eq___label_o.shape == torch.Size([label_dim, output_dim])
-#             #<  assert 
-#             assert _bool_equal___0_as_false(flag_eq___label_o,[
-#                     [0, 0, 0, 0, 0, 0, 0],
-#                     [1, 0, 0, 0, 0, 1, 0],
-#                     [0, 0, 0, 0, 0, 0, 0],
-#                     [0, 0, 0, 0, 0, 0, 0],
-#                     [0, 0, 1, 0, 0, 0, 0],])
+            #guest is 123123123, or 1212
+            GUEST_is_output____b_EXPANDlabel_o = output___b_o \
+                    .reshape([output___b_o.shape[0], 1, output___b_o.shape[1]]) \
+                    .expand([-1, label___b_label.shape[1], -1])
+            assert _tensor_shape_check(GUEST_is_output____b_EXPANDlabel_o, batch, label_dim, output_dim)
+            assert _tensor_equal(GUEST_is_output____b_EXPANDlabel_o, [[ [1, 2, 3, 4, 5], 
+                                                                        [1, 2, 3, 4, 5], 
+                                                                        [1, 2, 3, 4, 5],],
 
-#             1w
-#             pass#/ test
+                                                                    [   [0, 0, 0, 0, 0], 
+                                                                        [0, 0, 0, 0, 0], 
+                                                                        [0, 0, 0, 0, 0],],])
+
+
+
+
+            flag_eq__before_all___b_label_o = HOST_is_label____b_label_EXPANDo.eq(GUEST_is_output____b_EXPANDlabel_o)
+            assert _tensor_shape_check(flag_eq__before_all___b_label_o, batch, label_dim, output_dim)
+
+            flag_eq___label_o = flag_eq__before_all___b_label_o.all(dim=0)
+            assert _tensor_shape_check(flag_eq___label_o, label_dim, output_dim)
+            #<  assert 
+            assert _bool_equal___0_as_false(flag_eq___label_o, [[1, 0, 0, 0, 0],
+                                                                [0, 1, 0, 0, 0],
+                                                                [0, 0, 1, 0, 0],])
+            pass#/ test
+
+
+
+
+
+
+
+
+        if "not a test.         simplify.        " and True:
+            # batch = 2
+            # label_dim = 3
+            # output_dim = 5
+            #<  input param 
+            label___b_label = torch.rand()
+            output___b_o = torch.rand()
+
+            #<  safety
+            assert label___b_label.shape.__len__() == 2
+            assert output___b_o.shape.__len__() == 2
+            assert label___b_label.shape == output___b_o.shape
+            assert label___b_label.dtype == output___b_o.dtype, "or maybe not so rigorous?"
+            #<  real payload
+            #<  EXPAND!!!!!!!
+            #host is 111222333, or 1122
+            HOST_is_label____b_label_EXPANDo = label___b_label \
+                    .reshape([label___b_label.shape[0], label___b_label.shape[1], 1]) \
+                    .expand([-1, -1, output___b_o.shape[1]])
+            # assert _tensor_shape_check(HOST_is_label____b_label_EXPANDo, batch, label_dim, output_dim)
+
+            #guest is 123123123, or 1212
+            GUEST_is_output____b_EXPANDlabel_o = output___b_o \
+                    .reshape([output___b_o.shape[0], 1, output___b_o.shape[1]]) \
+                    .expand([-1, label___b_label.shape[1], -1])
+            # assert _tensor_shape_check(GUEST_is_output____b_EXPANDlabel_o, batch, label_dim, output_dim)
+
+            #<  calc.
+            flag_eq__before_all___b_label_o = HOST_is_label____b_label_EXPANDo.eq(GUEST_is_output____b_EXPANDlabel_o)
+            # assert _tensor_shape_check(flag_eq__before_all___b_label_o, batch, label_dim, output_dim)
+            flag_eq___label_o = flag_eq__before_all___b_label_o.all(dim=0)
+            # assert _tensor_shape_check(flag_eq___label_o, label_dim, output_dim)
+            # return flag_eq___label_o
+
+            pass#/ test
+
+    ____algo_prototype____all_to_all____the_reshape()
+    pass
+
+def _all_to_all___part_1___2_data_into_2d_bool_tensor(label___b_label:torch.Tensor, output___b_o:torch.Tensor)->torch.Tensor:
+    '''
+    btw. The all-to-all only implemented detecting-the-perfect feature. 
+
+    this function is the first part of a all-to-all equal calc.<br> Call this function, and then
+    call the bool_tensor_to_index_list with the result from this function.
+    <br>
+    ### return flag_eq___label_o
+    #### code:
+    ##### from DNN_util import import bool_tensor_to_index_list  <br>
+    ##### the_2d_bool_tensor = _all_to_all___part_1___2_data_into_2d_bool_tensor(label___b_label, output___b_o)  <br>
+    ##### list_of_label, list_of_output = bool_tensor_to_index_list(the_2d_bool_tensor)
+    '''
+
+    #<  safety
+    assert label___b_label.shape.__len__() == 2
+    assert output___b_o.shape.__len__() == 2
+    assert label___b_label.shape == output___b_o.shape
+    assert label___b_label.dtype == output___b_o.dtype, "or maybe not so rigorous?"
+    #<  real payload
+    #<  EXPAND!!!!!!!
+    #host is 111222333, or 1122
+    HOST_is_label____b_label_EXPANDo = label___b_label \
+            .reshape([label___b_label.shape[0], label___b_label.shape[1], 1]) \
+            .expand([-1, -1, output___b_o.shape[1]])
+    # assert _tensor_shape_check(HOST_is_label____b_label_EXPANDo, batch, label_dim, output_dim)
+
+    #guest is 123123123, or 1212
+    GUEST_is_output____b_EXPANDlabel_o = output___b_o \
+            .reshape([output___b_o.shape[0], 1, output___b_o.shape[1]]) \
+            .expand([-1, label___b_label.shape[1], -1])
+    # assert _tensor_shape_check(GUEST_is_output____b_EXPANDlabel_o, batch, label_dim, output_dim)
+
+    #<  calc.
+    flag_eq__before_all___b_label_o = HOST_is_label____b_label_EXPANDo.eq(GUEST_is_output____b_EXPANDlabel_o)
+    # assert _tensor_shape_check(flag_eq__before_all___b_label_o, batch, label_dim, output_dim)
+    flag_eq___label_o = flag_eq__before_all___b_label_o.all(dim=0)
+    # assert _tensor_shape_check(flag_eq___label_o, label_dim, output_dim)
+    assert False, "untested"
+    return flag_eq___label_o
+
+1w
+1w
+1w
+1w这个检测了，才能继续。
+
+
+
+
+
+
 
 
 
@@ -1595,11 +1721,13 @@ if "device adaption" and __DEBUG_ME__() and True:
     #     return list_of_label.get_useful(), list_of_output.get_useful()
     #     #end of function.
 
-    # def __repr__(self):
-    #     return f"{self.data.__repr__()}, size:{self._size}, DNN output container 2026"
-    # def __str__(self):
-    #     return f"{self.data.__str__() }, size:{self._size}, DNN output container 2026"
-    # pass#end of class
+
+
+
+
+
+
+
 
 
 

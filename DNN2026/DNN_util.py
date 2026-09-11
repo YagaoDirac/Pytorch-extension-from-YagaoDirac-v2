@@ -734,3 +734,478 @@ if "how to add element." and __DEBUG_ME__() and False:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''2d bool tensor to index list'''
+'''2d bool tensor to index list'''
+'''2d bool tensor to index list'''
+if "2d bool tensor to index list              algo prototype " and __DEBUG_ME__() and False:
+    def ____algo_prototype____2d_bool_tensor_to_index_list()->None:
+
+        if "prototype" and False:
+            label_dim = 5
+            out_dim = 7
+            #<  from what 
+            flag__the_2d_bool_tensor___label_o = torch.tensor([
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [1, 0, 0, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1],
+                    [0, 0, 1, 0, 0, 0, 0],], dtype=torch.bool)
+            assert flag__the_2d_bool_tensor___label_o.dtype == torch.bool
+            assert flag__the_2d_bool_tensor___label_o.shape == torch.Size([label_dim, out_dim])
+            #<  calc
+            list_of_label  = Index_container()
+            list_of_output = Index_container()
+
+            iota_of_output_dim = iota(out_dim)
+
+            flag__if_this_row_has_something___label = flag__the_2d_bool_tensor___label_o.any(dim=1)
+            assert flag__if_this_row_has_something___label.shape == torch.Size([label_dim])
+            assert _bool_equal___0_as_false(flag__if_this_row_has_something___label, 
+                                                        [0, 1, 0, 1, 1])
+            while True:
+                if not flag__if_this_row_has_something___label.any():
+                    break
+                #loop body
+                flag_in_int___if_this_row_has_something___label = flag__if_this_row_has_something___label.to(torch.int8)
+                ii_row = flag_in_int___if_this_row_has_something___label.argmax()
+                this_row___o = flag__the_2d_bool_tensor___label_o[ii_row]
+                assert this_row___o.any()#debug code
+
+                _temp_what_to_extend = iota_of_output_dim[this_row___o]
+                list_of_output.extend(_temp_what_to_extend)
+                ii_row_repeated = torch.empty_like(_temp_what_to_extend)
+                ii_row_repeated.fill_(ii_row)
+                list_of_label.extend(ii_row_repeated)
+                
+                #tail 
+                flag__if_this_row_has_something___label[ii_row] = False
+                pass#while true
+            #<  assert
+
+            assert _tensor_equal(list_of_label .get_useful(), [1,1,3,4])
+            assert _tensor_equal(list_of_output.get_useful(), [0,5,6,2])
+            _temp_assert___set_index_to_false___lable_o = flag__the_2d_bool_tensor___label_o.detach().clone()
+            _temp_assert___set_index_to_false___lable_o[list_of_label.get_useful(), list_of_output.get_useful()] = False
+            assert _temp_assert___set_index_to_false___lable_o.any() == False
+
+            pass#/ test 
+
+        if "not a test.     " and False and False:
+
+            #<  param input
+            the_2d_bool_tensor___label_o:torch.Tensor = torch.tensor([[True, False, False],[True, False, False]])
+
+            #<  safety 
+            assert the_2d_bool_tensor___label_o.dtype == torch.bool
+            #<  shape
+            assert the_2d_bool_tensor___label_o.shape.__len__() == 2, "The shape must be [label_dim, out_dim]"
+
+            label_dim = the_2d_bool_tensor___label_o.shape[0]
+            out_dim   = the_2d_bool_tensor___label_o.shape[1]
+
+            #<  calc
+            list_of_label  = Index_container(device=the_2d_bool_tensor___label_o.device)
+            list_of_output = Index_container(device=the_2d_bool_tensor___label_o.device)
+
+            iota_of_output_dim = iota(out_dim)
+
+            flag__if_this_row_has_something___label = the_2d_bool_tensor___label_o.any(dim=1)
+            assert flag__if_this_row_has_something___label.shape == torch.Size([label_dim])#debug code    #debug code 
+            while True:
+                if not flag__if_this_row_has_something___label.any():
+                    break
+                #loop body
+                flag_in_int___if_this_row_has_something___label = flag__if_this_row_has_something___label.to(torch.int8)
+                ii_row = flag_in_int___if_this_row_has_something___label.argmax()
+                this_row___o = the_2d_bool_tensor___label_o[ii_row]
+                assert this_row___o.any()#debug code    #debug code    #debug code    #debug code    
+
+                _temp_what_to_extend = iota_of_output_dim[this_row___o]
+                list_of_output.extend(_temp_what_to_extend)
+                ii_row_repeated = torch.empty_like(_temp_what_to_extend)
+                ii_row_repeated.fill_(ii_row)
+                list_of_label.extend(ii_row_repeated)
+                
+                #tail 
+                flag__if_this_row_has_something___label[ii_row] = False
+                pass#while true
+            #<  assert
+
+            _temp_assert___set_index_to_false___lable_o = the_2d_bool_tensor___label_o.detach().clone()#debug code    #debug code    
+            _temp_assert___set_index_to_false___lable_o[list_of_label.get_useful(), list_of_output.get_useful()] = False#debug code    #debug code    
+            assert _temp_assert___set_index_to_false___lable_o.any() == False#debug code    #debug code    
+
+            pass#/ test 
+
+        return 
+    ____algo_prototype____2d_bool_tensor_to_index_list()
+    pass
+
+def bool_tensor_to_index_list(bool_tensor___label_o:torch.Tensor, return_raw = False) \
+        ->tuple[Index_container, Index_container] | tuple[torch.Tensor, torch.Tensor]:
+    '''return list_of_label, list_of_output '''
+    #<  safety 
+    assert bool_tensor___label_o.dtype == torch.bool
+    #<  shape
+    assert bool_tensor___label_o.shape.__len__() == 2, "The shape must be [label_dim, out_dim]"
+
+    label_dim = bool_tensor___label_o.shape[0]
+    out_dim   = bool_tensor___label_o.shape[1]
+
+    #<  calc
+    list_of_label  = Index_container(device=bool_tensor___label_o.device)
+    list_of_output = Index_container(device=bool_tensor___label_o.device)
+
+    iota_of_output_dim = iota(out_dim)
+
+    flag__if_this_row_has_something___label = bool_tensor___label_o.any(dim=1)
+    # assert flag__if_this_row_has_something___label.shape == torch.Size([label_dim])#debug code    #debug code 
+    while True:
+        if not flag__if_this_row_has_something___label.any():
+            break
+        #loop body
+        flag_in_int___if_this_row_has_something___label = flag__if_this_row_has_something___label.to(torch.int8)
+        ii_row = flag_in_int___if_this_row_has_something___label.argmax()
+        this_row___o = bool_tensor___label_o[ii_row]
+        # assert this_row___o.any()#debug code    #debug code    #debug code    #debug code    
+
+        _temp_what_to_extend = iota_of_output_dim[this_row___o]
+        list_of_output.extend(_temp_what_to_extend)
+        ii_row_repeated = torch.empty_like(_temp_what_to_extend)
+        ii_row_repeated.fill_(ii_row)
+        list_of_label.extend(ii_row_repeated)
+        
+        #tail 
+        flag__if_this_row_has_something___label[ii_row] = False
+        pass#while true
+
+    # #<  assert                                        #debug code    #debug code   #debug code    #debug code   
+    # _temp_assert___set_index_to_false___lable_o = bool_tensor___label_o.detach().clone()#debug code    #debug code    
+    # _temp_assert___set_index_to_false___lable_o[list_of_label.get_useful(), list_of_output.get_useful()] = False#debug code    #debug code    
+    # assert _temp_assert___set_index_to_false___lable_o.any() == False#debug code    #debug code    
+    if return_raw:
+        return list_of_label, list_of_output 
+    else:# return only useful
+        return list_of_label.get_useful(), list_of_output.get_useful()
+    #end of function
+
+if "test" and __DEBUG_ME__() and False:
+    def ____test____bool_tensor_to_index_list():
+
+        if "equivalence" and True:
+
+            #   the prototype version first
+            #   the prototype version first
+            #   the prototype version first
+
+            label_dim = 5
+            out_dim = 7
+            #<  from what 
+            flag__the_2d_bool_tensor___label_o = torch.tensor([
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [1, 0, 0, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1],
+                    [0, 0, 1, 0, 0, 0, 0],], dtype=torch.bool)
+            assert flag__the_2d_bool_tensor___label_o.dtype == torch.bool
+            assert flag__the_2d_bool_tensor___label_o.shape == torch.Size([label_dim, out_dim])
+            #<  calc
+            list_of_label  = Index_container()
+            list_of_output = Index_container()
+
+            iota_of_output_dim = iota(out_dim)
+
+            flag__if_this_row_has_something___label = flag__the_2d_bool_tensor___label_o.any(dim=1)
+            assert flag__if_this_row_has_something___label.shape == torch.Size([label_dim])
+            assert _bool_equal___0_as_false(flag__if_this_row_has_something___label, 
+                                                        [0, 1, 0, 1, 1])
+            while True:
+                if not flag__if_this_row_has_something___label.any():
+                    break
+                #loop body
+                flag_in_int___if_this_row_has_something___label = flag__if_this_row_has_something___label.to(torch.int8)
+                ii_row = flag_in_int___if_this_row_has_something___label.argmax()
+                this_row___o = flag__the_2d_bool_tensor___label_o[ii_row]
+                assert this_row___o.any()#debug code
+
+                _temp_what_to_extend = iota_of_output_dim[this_row___o]
+                list_of_output.extend(_temp_what_to_extend)
+                ii_row_repeated = torch.empty_like(_temp_what_to_extend)
+                ii_row_repeated.fill_(ii_row)
+                list_of_label.extend(ii_row_repeated)
+                
+                #tail 
+                flag__if_this_row_has_something___label[ii_row] = False
+                pass#while true
+            #<  assert      the prototype ver
+            assert _tensor_equal(list_of_label .get_useful(), [1,1,3,4])
+            assert _tensor_equal(list_of_output.get_useful(), [0,5,6,2])
+            _temp_assert___set_index_to_false___lable_o = flag__the_2d_bool_tensor___label_o.detach().clone()
+            _temp_assert___set_index_to_false___lable_o[list_of_label.get_useful(), list_of_output.get_useful()] = False
+            assert _temp_assert___set_index_to_false___lable_o.any() == False
+
+            #<  function version
+            func___list_of_label, func___list_of_output = bool_tensor_to_index_list(bool_tensor___label_o=flag__the_2d_bool_tensor___label_o)
+            #<  assert      between 2 ver
+            assert func___list_of_label .eq(list_of_label .get_useful()).all()
+            assert func___list_of_output.eq(list_of_output.get_useful()).all()
+
+            pass#/ test 
+
+        if "equivalence              scan" and True:
+            #   the prototype version first
+            #   the prototype version first
+            #   the prototype version first
+
+            for label_dim in [5,15,22]:
+                for out_dim in [7,18,35]:
+                    for _ in range(16):
+                        #<  from what 
+                        flag__the_2d_bool_tensor___label_o = rand_sign(size=[label_dim, out_dim], dtype=torch.bool)
+                        assert flag__the_2d_bool_tensor___label_o.dtype == torch.bool
+                        assert flag__the_2d_bool_tensor___label_o.shape == torch.Size([label_dim, out_dim])
+                        #<  calc
+                        list_of_label  = Index_container()
+                        list_of_output = Index_container()
+
+                        iota_of_output_dim = iota(out_dim)
+
+                        flag__if_this_row_has_something___label = flag__the_2d_bool_tensor___label_o.any(dim=1)
+                        assert flag__if_this_row_has_something___label.shape == torch.Size([label_dim])
+                        while True:
+                            if not flag__if_this_row_has_something___label.any():
+                                break
+                            #loop body
+                            flag_in_int___if_this_row_has_something___label = flag__if_this_row_has_something___label.to(torch.int8)
+                            ii_row = flag_in_int___if_this_row_has_something___label.argmax()
+                            this_row___o = flag__the_2d_bool_tensor___label_o[ii_row]
+                            assert this_row___o.any()#debug code
+
+                            _temp_what_to_extend = iota_of_output_dim[this_row___o]
+                            list_of_output.extend(_temp_what_to_extend)
+                            ii_row_repeated = torch.empty_like(_temp_what_to_extend)
+                            ii_row_repeated.fill_(ii_row)
+                            list_of_label.extend(ii_row_repeated)
+                            
+                            #tail 
+                            flag__if_this_row_has_something___label[ii_row] = False
+                            pass#while true
+                        #<  assert      the prototype ver
+                        _temp_assert___set_index_to_false___lable_o = flag__the_2d_bool_tensor___label_o.detach().clone()
+                        _temp_assert___set_index_to_false___lable_o[list_of_label.get_useful(), list_of_output.get_useful()] = False
+                        assert _temp_assert___set_index_to_false___lable_o.any() == False
+
+                        #<  function version
+                        func___list_of_label, func___list_of_output = bool_tensor_to_index_list(bool_tensor___label_o=flag__the_2d_bool_tensor___label_o)
+                        #<  assert      between 2 ver
+                        assert func___list_of_label .eq(list_of_label .get_useful()).all()
+                        assert func___list_of_output.eq(list_of_output.get_useful()).all()
+
+                        pass#for _
+                    pass#for out_dim
+                pass#for label_dim
+
+            pass#/ test 
+
+        if "manually written cases" and True:
+            flag__the_2d_bool_tensor___label_o = torch.tensor([
+                                [1, 1, 1],
+                                [0, 0, 0],
+                                [1, 1, 1],
+                                [0, 0, 0],], dtype=torch.bool)
+            list_of_label, list_of_output = bool_tensor_to_index_list(flag__the_2d_bool_tensor___label_o)
+            #<  assert      the prototype ver
+            assert _tensor_equal(list_of_label , [0,0,0, 2,2,2])
+            assert _tensor_equal(list_of_output, [0,1,2, 0,1,2])
+            _temp_assert___set_index_to_false___lable_o = flag__the_2d_bool_tensor___label_o.detach().clone()
+            _temp_assert___set_index_to_false___lable_o[list_of_label, list_of_output] = False
+            assert _temp_assert___set_index_to_false___lable_o.any() == False
+
+
+            flag__the_2d_bool_tensor___label_o = torch.tensor([
+                                [0, 1, 0, 1, 0],
+                                [0, 1, 0, 1, 0],
+                                [0, 1, 0, 1, 0],], dtype=torch.bool)
+            list_of_label, list_of_output = bool_tensor_to_index_list(flag__the_2d_bool_tensor___label_o)
+            #<  assert      the prototype ver
+            assert _tensor_equal(list_of_label , [0,0, 1,1, 2,2])
+            assert _tensor_equal(list_of_output, [1,3, 1,3, 1,3])
+            _temp_assert___set_index_to_false___lable_o = flag__the_2d_bool_tensor___label_o.detach().clone()
+            _temp_assert___set_index_to_false___lable_o[list_of_label, list_of_output] = False
+            assert _temp_assert___set_index_to_false___lable_o.any() == False
+
+
+            flag__the_2d_bool_tensor___label_o = torch.tensor([
+                                [0, 0, 0],
+                                [0, 0, 0],], dtype=torch.bool)
+            list_of_label, list_of_output = bool_tensor_to_index_list(flag__the_2d_bool_tensor___label_o)
+            #<  assert      the prototype ver
+            assert _tensor_equal(list_of_label , [])
+            assert _tensor_equal(list_of_output, [])
+            assert _temp_assert___set_index_to_false___lable_o.any() == False
+
+
+            flag__the_2d_bool_tensor___label_o = torch.tensor([
+                                [1, 1, 1],
+                                [1, 1, 1],], dtype=torch.bool)
+            list_of_label, list_of_output = bool_tensor_to_index_list(flag__the_2d_bool_tensor___label_o)
+            #<  assert      the prototype ver
+            assert _tensor_equal(list_of_label , [0,0,0,1,1,1])
+            assert _tensor_equal(list_of_output, [0,1,2,0,1,2])
+            pass#/ test
+
+        return
+    ____test____bool_tensor_to_index_list()
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 从另外一个地方直接拿过来的，      暂时保留
+# def detect_perfect_output___by_position(self, the_output:torch.Tensor)->torch.Tensor:
+#     '''return is the suggestion of which to remove.'''
+#     self_data = self.get_useful()
+#     assert self_data.shape == the_output.shape
+#     #<  calc
+#     flag_eq__before_all___b_o = self_data.eq(the_output)
+#     flag_eq___o = flag_eq__before_all___b_o.all(dim=0)
+#     del flag_eq__before_all___b_o
+#     assert flag_eq___o.shape == torch.Size([the_output.shape[1]])#debug code
+#     assert False, "untested"
+#     return flag_eq___o
+# def detect_perfect_output___all_to_all(self, the_output:torch.Tensor)->tuple[torch.Tensor,torch.Tensor]:
+#     '''return list_of_label, list_of_output
+    
+#     return is the suggestion of which to remove.'''
+
+#     batch = self.batch()
+#     label_dim = self.get_size()
+#     out_dim = the_output.shape[1]
+#     #<  data 
+#     label___b_label = self.data
+#     assert label___b_label.shape == torch.Size([batch, label_dim])#debug code.
+#     output___b_o = the_output
+#     assert output___b_o.shape == torch.Size([batch, out_dim])#debug code.
+#     #<  calc step 1,     2 datasets to bool matrix.
+
+#     #host is 111222333, or 1122
+#     HOST__label___T___label_EXPANDo_b = label___b_label.T \
+#             .reshape([label___b_label.shape[1], 1, label___b_label.shape[0]]) \
+#             .expand([-1, output___b_o.shape[1], -1])
+#     assert HOST__label___T___label_EXPANDo_b.shape == torch.Size([label_dim, out_dim, batch])#debug code.
+#     #guest is 123123123, or 1212
+#     GUEST__output___T___EXPANDlabel_o_b = output___b_o.T \
+#             .reshape([1, output___b_o.shape[1],  output___b_o.shape[0]]) \
+#             .expand([label___b_label.shape[1], -1, -1])
+#     assert GUEST__output___T___EXPANDlabel_o_b.shape == torch.Size([label_dim, out_dim, batch])#debug code.
+
+#     flag_eq__before_all___label_o_b = HOST__label___T___label_EXPANDo_b.eq(GUEST__output___T___EXPANDlabel_o_b)
+
+#     flag_eq___label_o = flag_eq__before_all___label_o_b.all(dim=2)
+#     assert flag_eq___label_o.shape == torch.Size([label_dim, out_dim])#debug code.
+#     assert flag_eq___label_o.dtype == torch.bool#debug code.
+#     #<  calc step 2,     2d bool to index list.
+#     list_of_label  = _only_for_output_container_to_use____DNN_container_2026()
+#     list_of_output = _only_for_output_container_to_use____DNN_container_2026()
+    
+#     iota_of_output_dim = iota(out_dim)
+    
+#     flag__if_this_row_has_something___label = flag_eq___label_o.any(dim=1)
+#     assert flag__if_this_row_has_something___label.shape == torch.Size([label_dim])
+#     while True:
+#         if not flag__if_this_row_has_something___label.any():
+#             break
+#         #loop body
+#         flag_in_int___if_this_row_has_something___label = flag__if_this_row_has_something___label.to(torch.int8)
+#         ii_row = flag_in_int___if_this_row_has_something___label.argmax()
+#         this_row___o = flag_eq___label_o[ii_row]
+#         assert this_row___o.any()#debug code
+    
+#         _temp_what_to_extend = iota_of_output_dim[this_row___o]
+#         list_of_output.extend(_temp_what_to_extend)
+#         ii_row_repeated = torch.empty_like(_temp_what_to_extend)
+#         ii_row_repeated.fill_(ii_row)
+#         list_of_label.extend(ii_row_repeated)
+    
+#         #tail 
+#         flag__if_this_row_has_something___label[ii_row] = False
+#         pass#while true
+#     return list_of_label.get_useful(), list_of_output.get_useful()
+#     #end of function.
+
+# def __repr__(self):
+#     return f"{self.data.__repr__()}, size:{self._size}, DNN output container 2026"
+# def __str__(self):
+#     return f"{self.data.__str__() }, size:{self._size}, DNN output container 2026"
+# pass#end of class
+
+
+
+
