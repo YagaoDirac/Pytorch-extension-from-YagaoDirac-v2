@@ -475,12 +475,14 @@ if "device adaption" and True:
 
 
 
+
+
+
+
+
 '''general GPU container'''
-
-
-
-
-
+'''general GPU container'''
+'''general GPU container'''
 
 '''申请内存的函数单独拿出来，方便以后调整。'''
 def _only_for_Index_container_to_use____calc_bigger_capacity__for_in(
@@ -564,8 +566,6 @@ if " test" and __DEBUG_ME__() and False:
     pass
 
 
-
-
 class Index_container(torch.nn.Module):
     '''The only difference from DNN_input_container_2026 is, this class doesn't have batch, and dtype is always int(not uint).'''
     _data___CAPlen:torch.nn.parameter.Parameter
@@ -600,7 +600,8 @@ class Index_container(torch.nn.Module):
         '''get'''
         return self._len
     def squeeze(self):
-        self._data___CAPlen.data = self.get_useful()
+        #self._data___CAPlen.data = self.get_useful()
+        self._data___CAPlen = torch.nn.Parameter(self.get_useful(), requires_grad=False)
         return
 
     def append(self, new_element:torch.Tensor|int)->None:
@@ -628,11 +629,93 @@ class Index_container(torch.nn.Module):
                     _temp___new_container.fill_(-1)
                     pass
                 _temp___new_container[0:self._len] = self.get_useful()
-                self._data___CAPlen.data = _temp___new_container
+                #self._data___CAPlen.data = _temp___new_container
+                self._data___CAPlen = torch.nn.Parameter(_temp___new_container, requires_grad=False)
                 pass
 
             self._data___CAPlen[self._len:self._len + _temp__how_many_to_add] = other
             self._len = _len_after
+            return
+        pass#end of function
+
+    def add_repeating(self, what:torch.Tensor|int, times:torch.Tensor|int)->None:
+        #<  safety and dtype
+        if isinstance(what, torch.Tensor):
+            assert what.nelement() == 1
+            pass
+        elif type(what) == int:
+            what = torch.tensor(what, device=self._data___CAPlen.device, dtype=self._data___CAPlen.dtype)
+            pass
+        else:
+            assert False, "unreachable"
+            pass
+
+        if isinstance(times, torch.Tensor):
+            assert times.is_quantized == True#????
+            assert times.dtype in [torch.int,   torch.int8,  torch.int16,  torch.int32,  torch.int64, 
+                                                torch.uint8, torch.uint16, torch.uint32, torch.uint64, ]
+            _temp___times = times.item()
+            times = int(times.item())
+            assert _temp___times == times
+            del _temp___times
+            pass
+        elif type(times) == int:
+            #do nothing
+            pass
+        else:
+            assert False, "unreachable"
+            pass
+        assert times>=0 
+        #assert type(times) == int #  redundent
+
+        with torch.no_grad():
+                
+            _temp__how_many_to_add = times
+            _len_after = self._len + _temp__how_many_to_add
+            if _len_after > self._capacity():# get a bigger new capacity first.
+                _temp___new_capacity = self._calc_bigger_capacity(extra_len = _temp__how_many_to_add, len_now = self._len)
+
+                _temp___new_container = torch.empty(size=[_temp___new_capacity], 
+                        dtype=self._data___CAPlen.dtype, device=self._data___CAPlen.device)
+                if self.init_to_neg1:
+                    _temp___new_container.fill_(-1)
+                    pass
+                _temp___new_container[0:self._len] = self.get_useful()
+                #self._data___CAPlen.data = _temp___new_container
+                self._data___CAPlen = torch.nn.Parameter(_temp___new_container, requires_grad=False)
+                pass
+
+            self._data___CAPlen[self._len:self._len + _temp__how_many_to_add] = what
+            self._len = _len_after
+            return
+        pass#end of function
+
+    def add_repeating___no_safety(self, what:torch.Tensor, times:int)->None:
+        #<  safety     these 2 checks should be on cpu.
+        assert what.nelement() == 1
+        assert times>= 0
+
+        with torch.no_grad():
+                
+            _temp__how_many_to_add = times
+            _len_after = self._len + _temp__how_many_to_add
+            if _len_after > self._capacity():# get a bigger new capacity first.
+                _temp___new_capacity = self._calc_bigger_capacity(extra_len = _temp__how_many_to_add, len_now = self._len)
+
+                _temp___new_container = torch.empty(size=[_temp___new_capacity], 
+                        dtype=self._data___CAPlen.dtype, device=self._data___CAPlen.device)
+                if self.init_to_neg1:
+                    _temp___new_container.fill_(-1)
+                    pass
+                _temp___new_container[0:self._len] = self.get_useful()
+                #self._data___CAPlen.data = _temp___new_container
+                self._data___CAPlen = torch.nn.Parameter(_temp___new_container, requires_grad=False)
+                assert False, "untested"
+                pass
+
+            self._data___CAPlen[self._len:self._len + _temp__how_many_to_add] = what
+            self._len = _len_after
+            assert False, "untested"
             return
         pass#end of function
 
@@ -715,6 +798,32 @@ if "how to add element." and __DEBUG_ME__() and False:
             assert the_container._capacity() == 1
             pass#/ test
 
+        if "add_repeating" and True:
+            import random
+
+            cont = Index_container(init_to_neg1 = True)
+            #  loop tail before loop.
+            old_useful = cont.get_useful()
+            old_useful___len = old_useful.nelement()
+            for _ in range(33):
+
+                #assert cont.get_useful.eq(old_useful).all()
+                assert cont._data___CAPlen[:old_useful___len].eq(-1).any() == False
+
+                what = random.randint(0,111)
+                times = random.randint(1,cont.__len__()+13)
+                cont.add_repeating(what=what, times=times)
+                #<  assert 
+                assert cont._data___CAPlen[:old_useful___len].eq(old_useful).all()
+                assert cont._data___CAPlen[ old_useful___len:cont.__len__()].sum() == what*times
+                assert cont._data___CAPlen[                  cont.__len__():].eq(-1).all()
+                # tail
+                old_useful = cont.get_useful()
+                old_useful___len = old_useful.nelement()
+                pass
+            assert cont._capacity()>100#should be stable.
+            pass#/ test
+
         if "device adaption" and True:
             the_container = Index_container()
             assert the_container._data___CAPlen.device.type == "cpu"
@@ -754,23 +863,291 @@ if "how to add element." and __DEBUG_ME__() and False:
 
 
 
+'''the all to all version'''
+'''the all to all version'''
+'''the all to all version'''
+'''总共2个函数，故意从中间截断的，方便其他用途。最终这个要放到输出容器里面去。'''
+'''但是这个现在只能检测完美相同的情况。反正暂时也不用。'''
+
+if "prototype        detect perfect output         the all to all version           part 1          2_data_into_2d_bool_tensor" and False:
+    def ____algo_prototype____all_to_all____part1():
+
+        if "perfect detection        all to all      small ver with int" and True:
+
+            batch = 2
+            label_dim = 3
+            output_dim = 5
+            #<  data 
+            label___b_label = torch.tensor([    
+                    [1, 2, 3,],
+                    [0, 0, 0,],])
+            assert label___b_label.shape == torch.Size([batch, label_dim])
+            output___b_o = torch.tensor([    
+                    [1, 2, 3, 4, 5,],
+                    [0, 0, 0, 0, 0,],])
+            assert output___b_o.shape == torch.Size([batch, output_dim])
+            #<  EXPAND!!!!!!!
+
+            #host is 111222333, or 1122
+            HOST_is_label____b_label_EXPANDo = label___b_label \
+                    .reshape([label___b_label.shape[0], label___b_label.shape[1], 1]) \
+                    .expand([-1, -1, output___b_o.shape[1]])
+            assert _tensor_shape_check(HOST_is_label____b_label_EXPANDo, batch, label_dim, output_dim)
+            assert _tensor_equal(HOST_is_label____b_label_EXPANDo, [[   [1, 1, 1, 1, 1], 
+                                                                        [2, 2, 2, 2, 2], 
+                                                                        [3, 3, 3, 3, 3],],
+
+                                                                    [   [0, 0, 0, 0, 0], 
+                                                                        [0, 0, 0, 0, 0], 
+                                                                        [0, 0, 0, 0, 0],],])
+
+            #guest is 123123123, or 1212
+            GUEST_is_output____b_EXPANDlabel_o = output___b_o \
+                    .reshape([output___b_o.shape[0], 1, output___b_o.shape[1]]) \
+                    .expand([-1, label___b_label.shape[1], -1])
+            assert _tensor_shape_check(GUEST_is_output____b_EXPANDlabel_o, batch, label_dim, output_dim)
+            assert _tensor_equal(GUEST_is_output____b_EXPANDlabel_o, [[ [1, 2, 3, 4, 5], 
+                                                                        [1, 2, 3, 4, 5], 
+                                                                        [1, 2, 3, 4, 5],],
+
+                                                                    [   [0, 0, 0, 0, 0], 
+                                                                        [0, 0, 0, 0, 0], 
+                                                                        [0, 0, 0, 0, 0],],])
 
 
 
 
+            flag_eq__before_all___b_label_o = HOST_is_label____b_label_EXPANDo.eq(GUEST_is_output____b_EXPANDlabel_o)
+            assert _tensor_shape_check(flag_eq__before_all___b_label_o, batch, label_dim, output_dim)
+
+            flag_eq___label_o = flag_eq__before_all___b_label_o.all(dim=0)
+            assert _tensor_shape_check(flag_eq___label_o, label_dim, output_dim)
+            #<  assert 
+            assert _bool_equal___0_as_false(flag_eq___label_o, [[1, 0, 0, 0, 0],
+                                                                [0, 1, 0, 0, 0],
+                                                                [0, 0, 1, 0, 0],])
+            pass#/ test
+
+        if "not a test.         simplify.        " and True:
+            # batch = 2
+            # label_dim = 3
+            # output_dim = 5
+            #<  input param 
+            label___b_label = torch.rand()
+            output___b_o = torch.rand()
+
+            #<  safety
+            assert label___b_label.shape.__len__() == 2
+            assert output___b_o.shape.__len__() == 2
+            assert label___b_label.shape == output___b_o.shape
+            assert label___b_label.dtype == output___b_o.dtype, "or maybe not so rigorous?"
+            #<  real payload
+            #<  EXPAND!!!!!!!
+            #host is 111222333, or 1122
+            HOST_is_label____b_label_EXPANDo = label___b_label \
+                    .reshape([label___b_label.shape[0], label___b_label.shape[1], 1]) \
+                    .expand([-1, -1, output___b_o.shape[1]])
+            # assert _tensor_shape_check(HOST_is_label____b_label_EXPANDo, batch, label_dim, output_dim)
+
+            #guest is 123123123, or 1212
+            GUEST_is_output____b_EXPANDlabel_o = output___b_o \
+                    .reshape([output___b_o.shape[0], 1, output___b_o.shape[1]]) \
+                    .expand([-1, label___b_label.shape[1], -1])
+            # assert _tensor_shape_check(GUEST_is_output____b_EXPANDlabel_o, batch, label_dim, output_dim)
+
+            #<  calc.
+            flag_eq__before_all___b_label_o = HOST_is_label____b_label_EXPANDo.eq(GUEST_is_output____b_EXPANDlabel_o)
+            # assert _tensor_shape_check(flag_eq__before_all___b_label_o, batch, label_dim, output_dim)
+            flag_eq___label_o = flag_eq__before_all___b_label_o.all(dim=0)
+            # assert _tensor_shape_check(flag_eq___label_o, label_dim, output_dim)
+            # return flag_eq___label_o
+
+            pass#/ test
+
+    ____algo_prototype____all_to_all____part1()
+    pass
+
+def _all_to_all___part_1___2_data_into_2d_bool_tensor(label___b_label:torch.Tensor, output___b_o:torch.Tensor)->torch.Tensor:
+    '''
+    btw. The all-to-all only implemented detecting-the-perfect feature. 
+
+    this function is the first part of a all-to-all equal calc.<br> Call this function, and then
+    call the bool_tensor_to_index_list with the result from this function.
+    <br>
+    ### return flag_eq___label_o
+    #### code:
+    ##### from DNN_util import import bool_tensor_to_index_list  <br>
+    ##### the_2d_bool_tensor = _all_to_all___part_1___2_data_into_2d_bool_tensor(label___b_label, output___b_o)  <br>
+    ##### list_of_label, list_of_output = bool_tensor_to_index_list(the_2d_bool_tensor)
+    '''
+
+    #<  safety
+    assert label___b_label.shape.__len__() == 2
+    assert output___b_o.shape.__len__() == 2
+    assert label___b_label.shape[0] == output___b_o.shape[0]#although this is duplicated, but let's keep it, bc this line provides better error info.
+    assert label___b_label.dtype == output___b_o.dtype, "or maybe not so rigorous?"
+    #<  real payload
+    #<  EXPAND!!!!!!!
+    #host is 111222333, or 1122
+    HOST_is_label____b_label_EXPANDo = label___b_label \
+            .reshape([label___b_label.shape[0], label___b_label.shape[1], 1]) \
+            .expand([-1, -1, output___b_o.shape[1]])
+    # assert _tensor_shape_check(HOST_is_label____b_label_EXPANDo, batch, label_dim, output_dim)
+
+    #guest is 123123123, or 1212
+    GUEST_is_output____b_EXPANDlabel_o = output___b_o \
+            .reshape([output___b_o.shape[0], 1, output___b_o.shape[1]]) \
+            .expand([-1, label___b_label.shape[1], -1])
+    # assert _tensor_shape_check(GUEST_is_output____b_EXPANDlabel_o, batch, label_dim, output_dim)
+
+    #<  calc.
+    flag_eq__before_all___b_label_o = HOST_is_label____b_label_EXPANDo.eq(GUEST_is_output____b_EXPANDlabel_o)
+    # assert _tensor_shape_check(flag_eq__before_all___b_label_o, batch, label_dim, output_dim)
+    flag_eq___label_o = flag_eq__before_all___b_label_o.all(dim=0)
+    # assert _tensor_shape_check(flag_eq___label_o, label_dim, output_dim)
+    return flag_eq___label_o
+
+if "basic behavior" and False:
+    def ____test_____all_to_all___part_1___2_data_into_2d_bool_tensor():
+        if "manual cases" and True:  
+            label___b_label = torch.tensor([[1, 2, 3,],
+                                            [0, 0, 0,],])
+            output___b_o = torch.tensor([   [1, 2, 3, 4, 5,],
+                                            [0, 0, 0, 0, 0,],])
+            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                    label___b_label = label___b_label, output___b_o = output___b_o)
+            assert _bool_equal___0_as_false(flag_eq___label_o, [[1, 0, 0, 0, 0],
+                                                                [0, 1, 0, 0, 0],
+                                                                [0, 0, 1, 0, 0],])
+            a =  flag_eq___label_o.to(torch.int32).sum()
+            assert flag_eq___label_o.to(torch.int32).sum() == 3
+            
+
+            label___b_label = torch.tensor([[1, 2, 3,],
+                                            [1, 1, 1,],])
+            output___b_o = torch.tensor([   [1, 2, 3, 4, 5,],
+                                            [0, 0, 0, 0, 0,],])
+            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                    label___b_label = label___b_label, output___b_o = output___b_o)
+            assert flag_eq___label_o.any() == False
+            assert flag_eq___label_o.to(torch.int32).sum() == 0
+
+            
+            label___b_label = torch.tensor([[1, 2, 3,],
+                                            [0, 0, 0,],])
+            output___b_o = torch.tensor([   [1, 1, 1, 1, 1,],
+                                            [0, 0, 0, 0, 0,],])  
+            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                    label___b_label = label___b_label, output___b_o = output___b_o)
+            assert _bool_equal___0_as_false(flag_eq___label_o, [[1, 1, 1, 1, 1],
+                                                                [0, 0, 0, 0, 0],
+                                                                [0, 0, 0, 0, 0],])
+            assert flag_eq___label_o.to(torch.int32).sum() == 5
 
 
+            label___b_label = torch.tensor([[1, 1, 1,],
+                                            [0, 0, 0,],])
+            output___b_o = torch.tensor([   [1, 2, 3, 4, 5,],
+                                            [0, 0, 0, 0, 0,],])
+            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                    label___b_label = label___b_label, output___b_o = output___b_o)
+            assert _bool_equal___0_as_false(flag_eq___label_o, [[1, 0, 0, 0, 0],
+                                                                [1, 0, 0, 0, 0],
+                                                                [1, 0, 0, 0, 0],])
+            assert flag_eq___label_o.to(torch.int32).sum() == 3
+
+            pass#/ test
 
 
+        if "maybe wrong test" and True:
+            
+            for batch in [2,6,16]:
+                for label_dim in [3,5,13]:
+                    for output_dim in [7,16,25]:
+                        for _ in range(7):
+                            #<  data 
+                            label___b_label = torch.randn(size=[batch, label_dim])
+                            output___b_o    = torch.randn(size=[batch, output_dim])
+                            #<  calc
+                            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                                    label___b_label = label___b_label, output___b_o = output___b_o)
+                            #<  assert
+                            assert flag_eq___label_o.to(torch.int32).sum() == 0   #may not stalbe.
+                            pass#for _
+                        pass#for output_dim
+                    pass#for label_dim
+                pass#for batch
+
+            import random
+            for batch in [2,6,16]:
+                for label_dim in [3,5,13]:
+                    for output_dim in [7,16,25]:
+                        for _ in range(7):
+                            #<  data 
+                            label___b_label = torch.randn(size=[batch, label_dim])
+                            output___b_o    = torch.randn(size=[batch, output_dim])
+                            #<  manually add some same element
+                            output___b_o[:, random.randint(0, output_dim-1)] = label___b_label[:, random.randint(0, label_dim-1)]
+                            #<  calc
+                            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                                    label___b_label = label___b_label, output___b_o = output___b_o)
+                            #<  assert
+                            assert flag_eq___label_o.to(torch.int32).sum() == 1   #may not stalbe.
+                            pass#for _
+                        pass#for output_dim
+                    pass#for label_dim
+                pass#for batch
+
+            for batch in [2,6,16]:
+                for label_dim in [13,15,23]:
+                    for output_dim in [17,26,35]:
+                        for _ in range(7):
+                            #<  data 
+                            label___b_label = torch.randn(size=[batch, label_dim])
+                            output___b_o    = torch.randn(size=[batch, output_dim])
+                            #<  manually add some same element
+                            _temp_rand_of___label_dim  = random.randint(0, label_dim -1)
+                            _temp_rand_of___output_dim = random.randint(0, output_dim-2)
+                            output___b_o[:, _temp_rand_of___output_dim  ] = label___b_label[:, _temp_rand_of___label_dim]
+                            output___b_o[:, _temp_rand_of___output_dim+1] = label___b_label[:, _temp_rand_of___label_dim]
+                            #<  calc
+                            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                                    label___b_label = label___b_label, output___b_o = output___b_o)
+                            #<  assert
+                            assert flag_eq___label_o.to(torch.int32).sum() == 2   #may not stalbe.
+                            pass#for _
+                        pass#for output_dim
+                    pass#for label_dim
+                pass#for batch
+            
+            for batch in [2,6,16]:
+                for label_dim in [13,15,23]:
+                    for output_dim in [17,26,35]:
+                        for _ in range(7):
+                            #<  data 
+                            label___b_label = torch.randn(size=[batch, label_dim])
+                            output___b_o    = torch.randn(size=[batch, output_dim])
+                            #<  manually add some same element
+                            _temp_rand_of___label_dim  = random.randint(0, label_dim -2)
+                            _temp_rand_of___output_dim = random.randint(0, output_dim-2)
+                            output___b_o[:, _temp_rand_of___output_dim  ] = label___b_label[:, _temp_rand_of___label_dim  ]
+                            output___b_o[:, _temp_rand_of___output_dim+1] = label___b_label[:, _temp_rand_of___label_dim  ]
+                            label___b_label[:, _temp_rand_of___label_dim+1] = output___b_o[:, _temp_rand_of___output_dim  ]
+                            #<  calc
+                            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                                    label___b_label = label___b_label, output___b_o = output___b_o)
+                            #<  assert
+                            assert flag_eq___label_o.to(torch.int32).sum() == 4   #may not stalbe.
+                            pass#for _
+                        pass#for output_dim
+                    pass#for label_dim
+                pass#for batch
+            pass#/ test
 
 
-
-
-
-
-
-
-
+        return
+    ____test_____all_to_all___part_1___2_data_into_2d_bool_tensor()
+    pass
 
 
 
@@ -780,10 +1157,10 @@ if "how to add element." and __DEBUG_ME__() and False:
 '''2d bool tensor to index list'''
 '''2d bool tensor to index list'''
 '''2d bool tensor to index list'''
-if "2d bool tensor to index list              algo prototype " and __DEBUG_ME__() and False:
+if "2d bool tensor to index list              algo prototype " and __DEBUG_ME__() and True:
     def ____algo_prototype____2d_bool_tensor_to_index_list()->None:
 
-        if "prototype" and False:
+        if "prototype" and True:
             label_dim = 5
             out_dim = 7
             #<  from what 
@@ -816,9 +1193,15 @@ if "2d bool tensor to index list              algo prototype " and __DEBUG_ME__(
 
                 _temp_what_to_extend = iota_of_output_dim[this_row___o]
                 list_of_output.extend(_temp_what_to_extend)
+                #optimizable.
+                #optimizable.
+                #optimizable.
+                # old code:
                 ii_row_repeated = torch.empty_like(_temp_what_to_extend)
                 ii_row_repeated.fill_(ii_row)
                 list_of_label.extend(ii_row_repeated)
+                # new code:      
+                # untested   new code   list_of_label.add_repeating___no_safety(what = ii_row, times = _temp_what_to_extend.nelement())
                 
                 #tail 
                 flag__if_this_row_has_something___label[ii_row] = False
@@ -1121,90 +1504,6 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
-
-
-
-
-
-
-
-# 从另外一个地方直接拿过来的，      暂时保留
-# def detect_perfect_output___by_position(self, the_output:torch.Tensor)->torch.Tensor:
-#     '''return is the suggestion of which to remove.'''
-#     self_data = self.get_useful()
-#     assert self_data.shape == the_output.shape
-#     #<  calc
-#     flag_eq__before_all___b_o = self_data.eq(the_output)
-#     flag_eq___o = flag_eq__before_all___b_o.all(dim=0)
-#     del flag_eq__before_all___b_o
-#     assert flag_eq___o.shape == torch.Size([the_output.shape[1]])#debug code
-#     assert False, "untested"
-#     return flag_eq___o
-# def detect_perfect_output___all_to_all(self, the_output:torch.Tensor)->tuple[torch.Tensor,torch.Tensor]:
-#     '''return list_of_label, list_of_output
-    
-#     return is the suggestion of which to remove.'''
-
-#     batch = self.batch()
-#     label_dim = self.get_size()
-#     out_dim = the_output.shape[1]
-#     #<  data 
-#     label___b_label = self.data
-#     assert label___b_label.shape == torch.Size([batch, label_dim])#debug code.
-#     output___b_o = the_output
-#     assert output___b_o.shape == torch.Size([batch, out_dim])#debug code.
-#     #<  calc step 1,     2 datasets to bool matrix.
-
-#     #host is 111222333, or 1122
-#     HOST__label___T___label_EXPANDo_b = label___b_label.T \
-#             .reshape([label___b_label.shape[1], 1, label___b_label.shape[0]]) \
-#             .expand([-1, output___b_o.shape[1], -1])
-#     assert HOST__label___T___label_EXPANDo_b.shape == torch.Size([label_dim, out_dim, batch])#debug code.
-#     #guest is 123123123, or 1212
-#     GUEST__output___T___EXPANDlabel_o_b = output___b_o.T \
-#             .reshape([1, output___b_o.shape[1],  output___b_o.shape[0]]) \
-#             .expand([label___b_label.shape[1], -1, -1])
-#     assert GUEST__output___T___EXPANDlabel_o_b.shape == torch.Size([label_dim, out_dim, batch])#debug code.
-
-#     flag_eq__before_all___label_o_b = HOST__label___T___label_EXPANDo_b.eq(GUEST__output___T___EXPANDlabel_o_b)
-
-#     flag_eq___label_o = flag_eq__before_all___label_o_b.all(dim=2)
-#     assert flag_eq___label_o.shape == torch.Size([label_dim, out_dim])#debug code.
-#     assert flag_eq___label_o.dtype == torch.bool#debug code.
-#     #<  calc step 2,     2d bool to index list.
-#     list_of_label  = _only_for_output_container_to_use____DNN_container_2026()
-#     list_of_output = _only_for_output_container_to_use____DNN_container_2026()
-    
-#     iota_of_output_dim = iota(out_dim)
-    
-#     flag__if_this_row_has_something___label = flag_eq___label_o.any(dim=1)
-#     assert flag__if_this_row_has_something___label.shape == torch.Size([label_dim])
-#     while True:
-#         if not flag__if_this_row_has_something___label.any():
-#             break
-#         #loop body
-#         flag_in_int___if_this_row_has_something___label = flag__if_this_row_has_something___label.to(torch.int8)
-#         ii_row = flag_in_int___if_this_row_has_something___label.argmax()
-#         this_row___o = flag_eq___label_o[ii_row]
-#         assert this_row___o.any()#debug code
-    
-#         _temp_what_to_extend = iota_of_output_dim[this_row___o]
-#         list_of_output.extend(_temp_what_to_extend)
-#         ii_row_repeated = torch.empty_like(_temp_what_to_extend)
-#         ii_row_repeated.fill_(ii_row)
-#         list_of_label.extend(ii_row_repeated)
-    
-#         #tail 
-#         flag__if_this_row_has_something___label[ii_row] = False
-#         pass#while true
-#     return list_of_label.get_useful(), list_of_output.get_useful()
-#     #end of function.
-
-# def __repr__(self):
-#     return f"{self.data.__repr__()}, size:{self._size}, DNN output container 2026"
-# def __str__(self):
-#     return f"{self.data.__str__() }, size:{self._size}, DNN output container 2026"
-# pass#end of class
 
 
 

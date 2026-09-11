@@ -1081,7 +1081,10 @@ if "the optim part" and __DEBUG_ME__() and False:
 
 
 
-
+1w
+1w
+1w
+1w测一下 torch.Tensor.is_quantized()是干嘛的。
 if "report grad" and __DEBUG_ME__() and True:
     def ____test____report_grad():
         if "basic" and True:
@@ -1090,7 +1093,7 @@ if "report grad" and __DEBUG_ME__() and True:
                     for out_dim in [5,15]:
                         assert in_dim > out_dim
                         for layer_count in [3,6,11]:
-                            for gramo_every_n_layers in [0,1,2]:
+                            for gramo_every_n_layers in [0]:#,1,2]:       ????????????????
 
                                 model = dry_stack_test__DNN_model__2026(in_features = in_dim, out_features = out_dim, layer_count = layer_count, 
                                             gramo_every_n_layers = gramo_every_n_layers, _debug__with_inspectors = True)
@@ -1111,6 +1114,8 @@ if "report grad" and __DEBUG_ME__() and True:
 1w
 
 等隔壁。
+用all to all 看看，相等的情况是不是？？？
+或者，反正每一行每一列都只有一个。bool到序号，可能可以。
 
 完事了看看梯度消失的情况。
 
