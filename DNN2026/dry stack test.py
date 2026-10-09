@@ -8,7 +8,7 @@ from pytorch_yagaodirac_v2.Random import rand_sign
 from pytorch_yagaodirac_v2.Gramo_special_ver import Gramo_vec_len_to_scaling_factor, Grad_inspector
 from pytorch_yagaodirac_v2.Util_log10_related import log10_avg_safe
 from DNN2026.DNN_util import Index_container, partly_reasonable_label_from_input, \
-        _test___binary_accuracy___full_safety
+        _test___binary_accuracy___full_safety, _all_to_all___part_1___2_data_into_2d_bool_tensor
 from DNN2026.digitalmapping_layer___prototype_test import DigitalMapping_layer__2026#, optim_for___Digital
 from DNN2026.data_container_for_DNN_2026___prototype_test import DNN_input_container_2026, DNN_label_container_2026
 
@@ -512,34 +512,65 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
             pass
         return result
 
-    def _report_grad_from_inspector(self)->tuple[list[torch.Tensor], list[torch.Tensor], list[torch.Tensor]]:
-        '''return all_grad, grad_after___digital_mapping, grad_after___gramo
+    def _report_grad_from_inspector(self) \
+            ->tuple[list[torch.Tensor], list[torch.Tensor], list[torch.Tensor], 
+                    tuple[list[float],list[float],list[float]], 
+                    tuple[list[float],list[float],list[float]]]:
+        
+        '''#### return all_grad, grad_after___digital_mapping, grad_after___gramo, 
+            #### (log10_of__all_grad, log10_of__grad_after___digital_mapping, log10_of__grad_after___gramo), 
+            #### (avg_of_abs_of__all_grad, avg_of_abs_of__grad_after___digital_mapping, avg_of_abs_of__grad_after___gramo)
         
         [0] is the entrance. [__len__() -1 ] is the exit.'''
 
         all_grad                    :list[torch.Tensor] = []
+        log10_of__all_grad                    :list[float] = []
+        avg_of_abs_of__all_grad                    :list[float] = []
         grad_after___digital_mapping:list[torch.Tensor] = []
+        log10_of__grad_after___digital_mapping:list[float] = []
+        avg_of_abs_of__grad_after___digital_mapping:list[float] = []
         grad_after___gramo          :list[torch.Tensor] = []
+        log10_of__grad_after___gramo          :list[float] = []
+        avg_of_abs_of__grad_after___gramo          :list[float] = []
 
         #     2 easier lists. 
         for ii_layer in range(self._grad_inspector___following_digitalmapping.__len__()):
             the_layer = self._grad_inspector___following_digitalmapping[ii_layer]
             assert isinstance(the_layer, Grad_inspector)
             grad_after___digital_mapping.append(the_layer.fake_data.grad)
+            log10_of__grad_after___digital_mapping.append(the_layer.log10_avg_safe())
+            #              grad_after___digital_mapping.append(the_layer.fake_data.grad)       #spelling check only. 
+            #    log10_of__grad_after___digital_mapping.append(the_layer.log10_avg_safe())     #spelling check only. 
+            avg_of_abs_of__grad_after___digital_mapping.append(the_layer.fake_data.grad.abs().mean().item())
             pass
         for ii_layer in range(self._grad_inspector___following_gramo.__len__()):
             the_layer = self._grad_inspector___following_gramo[ii_layer]
             assert isinstance(the_layer, Grad_inspector)
             grad_after___gramo.append(the_layer.fake_data.grad)
+            log10_of__grad_after___gramo.append(the_layer.log10_avg_safe())
+            #              grad_after___gramo.append(the_layer.fake_data.grad)       #spelling check only. 
+            #    log10_of__grad_after___gramo.append(the_layer.log10_avg_safe())     #spelling check only. 
+            avg_of_abs_of__grad_after___gramo.append(the_layer.fake_data.grad.abs().mean().item())
             pass
 
         #     the complex one.
         all_grad.append(self._grad_inspector___entrance.fake_data.grad)
+        log10_of__all_grad.append(self._grad_inspector___entrance.log10_avg_safe())
+        #              all_grad.append(self._grad_inspector___entrance.fake_data.grad)       #spelling check only. 
+        #    log10_of__all_grad.append(self._grad_inspector___entrance.log10_avg_safe())     #spelling check only. 
+        avg_of_abs_of__all_grad.append(self._grad_inspector___entrance.fake_data.grad.abs().mean().item())
         if self._gramo_layers.__len__() == 0:
             #     no gramo. Only the digital mapping layers.
-            all_grad.extend(grad_after___digital_mapping)
+            all_grad.extend(               grad_after___digital_mapping)
+            log10_of__all_grad.extend(     log10_of__grad_after___digital_mapping)
+            #              all_grad.extend(               grad_after___digital_mapping)     #spelling check only. 
+            #    log10_of__all_grad.extend(     log10_of__grad_after___digital_mapping)     #spelling check only. 
+            avg_of_abs_of__all_grad.extend(avg_of_abs_of__grad_after___digital_mapping)
 
-            return all_grad, grad_after___digital_mapping, grad_after___gramo
+            assert False, "untested"
+            return all_grad, grad_after___digital_mapping, grad_after___gramo, 
+                    (log10_of__all_grad, log10_of__grad_after___digital_mapping, log10_of__grad_after___gramo), 
+                    (avg_of_abs_of__all_grad, avg_of_abs_of__grad_after___digital_mapping, avg_of_abs_of__grad_after___gramo)
         
         else:
             #    with both digital mapping layers and gramos.
@@ -556,6 +587,10 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
                     if self._grad_inspector___following_digitalmapping.__len__()>0:
                         grad_inspector_layer = self._grad_inspector___following_digitalmapping[_ii_digital_mapping_layer]
                         all_grad.append(grad_inspector_layer.fake_data.grad)
+                        log10_of__all_grad.append(grad_inspector_layer.log10_avg_safe())
+                        #              all_grad.append(grad_inspector_layer.fake_data.grad)       #spelling check only. 
+                        #    log10_of__all_grad.append(grad_inspector_layer.log10_avg_safe())     #spelling check only. 
+                        avg_of_abs_of__all_grad.append(grad_inspector_layer.fake_data.grad.abs().mean().item())
                         pass
 
                     #print(f"D {_ii_digital_mapping_layer}")
@@ -566,6 +601,12 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
                 if self._grad_inspector___following_gramo.__len__()>0:
                     grad_inspector_layer = self._grad_inspector___following_gramo[_ii_gramo_layer]
                     all_grad.append(grad_inspector_layer.fake_data.grad)
+                    log10_of__all_grad.append(grad_inspector_layer.log10_avg_safe())
+                    #              all_grad.append(grad_inspector_layer.fake_data.grad)       #spelling check only. 
+                    #    log10_of__all_grad.append(grad_inspector_layer.log10_avg_safe())     #spelling check only. 
+                    avg_of_abs_of__all_grad.append(grad_inspector_layer.fake_data.grad.abs().mean().item())
+
+
                     pass
                 
                 #print(f"     g {_ii_gramo_layer}")
@@ -586,6 +627,10 @@ class dry_stack_test__DNN_model__2026(torch.nn.Module):
                 if self._grad_inspector___following_digitalmapping.__len__()>0:
                     grad_inspector_layer = self._grad_inspector___following_digitalmapping[_ii_digital_mapping_layer]
                     all_grad.append(grad_inspector_layer.fake_data.grad)
+                    log10_of__all_grad.append(grad_inspector_layer.log10_avg_safe())
+                    #              all_grad.append(grad_inspector_layer.fake_data.grad)       #spelling check only. 
+                    #    log10_of__all_grad.append(grad_inspector_layer.log10_avg_safe())     #spelling check only. 
+                    avg_of_abs_of__all_grad.append(grad_inspector_layer.fake_data.grad.abs().mean().item())
                     pass
 
                 #print(f"D {_ii_digital_mapping_layer}")
@@ -1081,11 +1126,7 @@ if "the optim part" and __DEBUG_ME__() and False:
 
 
 
-1w
-1w
-1w
-1w测一下 torch.Tensor.is_quantized()是干嘛的。
-if "report grad" and __DEBUG_ME__() and True:
+if "report grad            好像无法检查具体的值。在后面再检查？" and __DEBUG_ME__() and True:
     def ____test____report_grad():
         if "basic" and True:
             for batch in [2,7]:
@@ -1093,45 +1134,112 @@ if "report grad" and __DEBUG_ME__() and True:
                     for out_dim in [5,15]:
                         assert in_dim > out_dim
                         for layer_count in [3,6,11]:
-                            for gramo_every_n_layers in [0]:#,1,2]:       ????????????????
+                            for gramo_every_n_layers in [0,1,2]:     
 
-                                model = dry_stack_test__DNN_model__2026(in_features = in_dim, out_features = out_dim, layer_count = layer_count, 
-                                            gramo_every_n_layers = gramo_every_n_layers, _debug__with_inspectors = True)
+                                model = dry_stack_test__DNN_model__2026(in_features = in_dim, out_features = out_dim, \
+                                            layer_count = layer_count, gramo_every_n_layers = gramo_every_n_layers, 
+                                                    _debug__with_inspectors = True)
                                 input___b_i = rand_sign(size=[batch, in_dim])
                                 input___b_i = input___b_i.requires_grad_()
                                 output___b_o = model(input___b_i)
-                                model.backward(output___b_o=output___b_o, label___b_o=rand_sign(size=[batch, out_dim]), 
+                                label___b_o=rand_sign(size=[batch, out_dim])
+                                model.backward(output___b_o = output___b_o, label___b_o = label___b_o, 
                                             _debug__if_the_input_needs_grad___assign_it_here = input___b_i)
 
-                                all_grad, grad_after___digital_mapping, grad_after___gramo = model._report_grad_from_inspector()
-                                assert all_grad                    .__len__() == model.digital_mapping_layers.__len__()+ model._gramo_layers.__len__()+1
+                                all_grad, grad_after___digital_mapping, grad_after___gramo, \
+                                        (log10_of__all_grad, log10_of__grad_after___digital_mapping, log10_of__grad_after___gramo), \
+                                        (avg_of_abs_of__all_grad, avg_of_abs_of__grad_after___digital_mapping, avg_of_abs_of__grad_after___gramo) = \
+                                                model._report_grad_from_inspector()
+                                assert all_grad                    .__len__() == model.digital_mapping_layers.__len__()+model._gramo_layers.__len__()+1
                                 assert grad_after___digital_mapping.__len__() == model.digital_mapping_layers.__len__()
-                                assert grad_after___gramo          .__len__() == model._gramo_layers         .__len__()
+                                assert grad_after___gramo          .__len__() == model._gramo_layers.__len__()
 
-1w
-1w
-1w
-1w
-
-等隔壁。
-用all to all 看看，相等的情况是不是？？？
-或者，反正每一行每一列都只有一个。bool到序号，可能可以。
-
-完事了看看梯度消失的情况。
-
-
-                                assert model._grad_inspector___entrance.fake_data.grad is not None
-                                for ii_digital in range(model.digital_mapping_layers.__len__()):
-                                    digital_mapping_layer = model.digital_mapping_layers[ii_digital]
-                                    assert isinstance(digital_mapping_layer, DigitalMapping_layer__2026)
-                                    assert digital_mapping_layer._raw_weight___oCAP_iCAP.grad is not None
-                                    assert model._grad_inspector___following_digitalmapping[ii_digital].fake_data.grad is not None
-                                    pass
-                                for ii_gramo in range(model._gramo_layers.__len__()):
-                                    assert model._grad_inspector___following_gramo[ii_gramo].fake_data.grad is not None
+                                #<  if this is this???
+                                for ii in range(all_grad.__len__()):
+                                    assert log10_avg_safe(all_grad[ii]).eq(                 log10_of__all_grad).all()
+                                    assert                all_grad[ii].abs().mean().eq(avg_of_abs_of__all_grad).all()
                                     pass
 
+                                for ii in range(grad_after___digital_mapping.__len__()):
+                                    assert log10_avg_safe(grad_after___digital_mapping[ii]).eq(                 log10_of__grad_after___digital_mapping).all()
+                                    assert                grad_after___digital_mapping[ii].abs().mean().eq(avg_of_abs_of__grad_after___digital_mapping).all()
+                                    pass
+
+                                for ii in range(grad_after___gramo.__len__()):
+                                    assert log10_avg_safe(grad_after___gramo[ii]).eq(                 log10_of__grad_after___gramo).all()
+                                    assert                grad_after___gramo[ii].abs().mean().eq(avg_of_abs_of__grad_after___gramo).all()
+                                    pass
+
+                                #<  if this in that???
+                                for some_log10_of__grad_after___digital_mapping in log10_of__grad_after___digital_mapping:
+                                    found = False
+                                    for some_log10_of__all_grad in log10_of__all_grad:
+                                        if some_log10_of__all_grad == some_log10_of__grad_after___digital_mapping:
+                                            found = True
+                                            break
+                                        pass
+                                    assert found == True
+                                    pass
+                                #this part does the same as the previous part. Except for this part is a bit more rigorous.
+                                flag_tensor, _ = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                                        label___b_label=torch.tensor(log10_of__grad_after___digital_mapping), 
+                                        output___b_o =torch.tensor(  log10_of__all_grad)
+                                aaaaa = flag_tensor.sum(dim=0)
+                                assert _tensor_equal(aaaaa, torch.ones_like(aaaaa))
+                                aaaaa = flag_tensor.sum(dim=1)
+                                assert _tensor_equal(aaaaa, torch.ones_like(aaaaa))
+
+
+                                for some_log10_of__grad_after___gramo in log10_of__grad_after___gramo:
+                                    found = False
+                                    for some_log10_of__all_grad in log10_of__all_grad:
+                                        if some_log10_of__all_grad == some_log10_of__grad_after___gramo:
+                                            found = True
+                                            break
+                                        pass
+                                    assert found == True
+                                    pass
+                                #this part does the same as the previous part. Except for this part is a bit more rigorous.
+                                flag_tensor, _ = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                                        label___b_label=torch.tensor(log10_of__grad_after___gramo), 
+                                        output___b_o =torch.tensor(  log10_of__all_grad)
+                                aaaaa = flag_tensor.sum(dim=0)
+                                assert _tensor_equal(aaaaa, torch.ones_like(aaaaa))
+                                aaaaa = flag_tensor.sum(dim=1)
+                                assert _tensor_equal(aaaaa, torch.ones_like(aaaaa))
+
+                                #when no gramo, these 2 lists are very similar.
+                                if model._gramo_layers.__len__() == 0:
+                                    for ii in range(grad_after___digital_mapping.__len__()):
+                                        grad_from_inspector_after_digital_layer = grad_after___digital_mapping[ii]
+                                        grad_from_all = all_grad[ii+1]
+                                        assert grad_from_inspector_after_digital_layer.eq(grad_from_all).all()
+                                        pass
+
+
+                                    pass#if model._gramo_layers.__len__() == 0:
+                                pass#for gramo_every_n_layers
+                            pass#for layer_count
+                        pass#for out_dim
+                    pass#for in_dim
+                pass#for batch
+                1wf
+                1wf
+                1wf
+                1wf来跑一下
             pass#/ test
+
+
+    ____test____report_grad()
+    pass
+
+1w完事了测量一下梯度消失的情况。
+1w完事了测量一下梯度消失的情况。
+1w完事了测量一下梯度消失的情况。
+1w完事了测量一下梯度消失的情况。
+
+
+
 
 
 

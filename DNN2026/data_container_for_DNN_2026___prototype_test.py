@@ -5,7 +5,8 @@ from pytorch_yagaodirac_v2.Util import _tensor_equal, _bool_equal___0_as_false, 
         _either_1_or_neg1, \
         iota
 from pytorch_yagaodirac_v2.Random import rand_sign
-from DNN2026.DNN_util import Index_container
+from DNN2026.DNN_util import Index_container, _all_to_all___part_1___2_data_into_2d_bool_tensor, \
+        bool_tensor_to_index_list
 
 import torch
 
@@ -540,69 +541,39 @@ class DNN_label_container_2026(torch.nn.Module):
             return flag_perfect___o, flag_good_enough___o
         #end of function
     
-    if "no plan for now" and False:
-        def detect_perfect_output___all_to_all(self, the_output:torch.Tensor)->tuple[torch.Tensor,torch.Tensor]:
-            '''return list_of_label, list_of_output
-            
-            return is the suggestion of which to remove.'''
-            #<  debug      shape
-            batch = self.batch()#debug code.
-            label_dim = self.out_dim()#debug code.
-            out_dim = the_output.shape[1]#debug code.
-            #<  data 
-            label___b_label = self.data___b_o
-            assert label___b_label.shape == torch.Size([batch, label_dim])#debug code.
-            output___b_o = the_output
-            assert output___b_o.shape == torch.Size([batch, out_dim])#debug code.
-            #<  calc step 1,     2 datasets to bool matrix.
+    def detect_perfect_output___all_to_all(self, output_posneg1___b_o:torch.Tensor,
+                good_threshold:torch.Tensor|float|None = None, inner_calc_dtype = torch.float32) \
+                        ->tuple[torch.Tensor, torch.Tensor, torch.Tensor|None, torch.Tensor|None]:
+        
+        '''#### return list_of__perfect__label, list_of__perfect__output, \
+                        list_of__good_enough__label, list_of__good_enough__output
+        when the param:good_threshold is None, the last 2 variable of outputs are None.
+        
+        This function is designed to detect if any halfway result in the model matches the 
+        final result well enough. This can lead to some deeper trick. But no plan for it for now.
 
-            #host is 111222333, or 1122
-            HOST__label___T___label_EXPANDo_b = label___b_label.T \
-                    .reshape([label___b_label.shape[1], 1, label___b_label.shape[0]]) \
-                    .expand([-1, output___b_o.shape[1], -1])
-            assert HOST__label___T___label_EXPANDo_b.shape == torch.Size([label_dim, out_dim, batch])#debug code.
-            #guest is 123123123, or 1212
-            GUEST__output___T___EXPANDlabel_o_b = output___b_o.T \
-                    .reshape([1, output___b_o.shape[1],  output___b_o.shape[0]]) \
-                    .expand([label___b_label.shape[1], -1, -1])
-            assert GUEST__output___T___EXPANDlabel_o_b.shape == torch.Size([label_dim, out_dim, batch])#debug code.
+        return is the suggestion of which to remove.'''
+        
+        flag_perfect___label_o, flag_good_enough___label_o = \
+                _all_to_all___part_1___2_data_into_2d_bool_tensor(label___b_label=self.data___b_o, 
+                        output___b_o = output_posneg1___b_o, good_threshold = good_threshold, 
+                        inner_calc_dtype = inner_calc_dtype)
 
-            flag_eq__before_all___label_o_b = HOST__label___T___label_EXPANDo_b.eq(GUEST__output___T___EXPANDlabel_o_b)
+        flag_perfect___label_o
 
-            flag_eq___label_o = flag_eq__before_all___label_o_b.all(dim=2)
-            assert flag_eq___label_o.shape == torch.Size([label_dim, out_dim])#debug code.
-            assert flag_eq___label_o.dtype == torch.bool#debug code.
-            #<  calc step 2,     2d bool to index list.
-            list_of_label  = Index_container()
-            list_of_output = Index_container()
-            
-            iota_of_output_dim = iota(out_dim)
-            
-            flag__if_this_row_has_something___label = flag_eq___label_o.any(dim=1)
-            assert flag__if_this_row_has_something___label.shape == torch.Size([label_dim])
-            while True:
-                if not flag__if_this_row_has_something___label.any():
-                    break
-                #loop body
-                flag_in_int___if_this_row_has_something___label = flag__if_this_row_has_something___label.to(torch.int8)
-                ii_row = flag_in_int___if_this_row_has_something___label.argmax()
-                this_row___o = flag_eq___label_o[ii_row]
-                assert this_row___o.any()#debug code
-            
-                _temp_what_to_extend = iota_of_output_dim[this_row___o]
-                list_of_output.extend(_temp_what_to_extend)
-                ii_row_repeated = torch.empty_like(_temp_what_to_extend)
-                ii_row_repeated.fill_(ii_row)
-                list_of_label.extend(ii_row_repeated)
-            
-                #tail 
-                flag__if_this_row_has_something___label[ii_row] = False
-                pass#while true
-            assert False, "untested"  
-            return list_of_label.get_useful(), list_of_output.get_useful()
-            #end of function.
-        pass
-
+        list_of__perfect__label, list_of__perfect__output = bool_tensor_to_index_list(flag_perfect___label_o)
+        if flag_good_enough___label_o is None:
+            list_of__good_enough__label = None
+            list_of__good_enough__output = None
+            pass
+        else:
+            list_of__good_enough__label, list_of__good_enough__output = \
+                    bool_tensor_to_index_list(flag_good_enough___label_o)
+            pass
+        assert False, "untested"
+        return list_of__perfect__label, list_of__perfect__output, \
+                list_of__good_enough__label, list_of__good_enough__output
+        #end of function
 
     '''stringify'''
 
@@ -1245,7 +1216,6 @@ if "detect perfect output         only the by position version" and __DEBUG_ME__
         return 
     ____detect_perfect_output___by_position____()
     pass
-
 
 if "device adaption" and __DEBUG_ME__() and True:
     def ____device_adaption____DNN_label_container_2026():

@@ -2,7 +2,8 @@ from typing import Literal
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from pytorch_yagaodirac_v2.Util import _tensor_equal, _bool_equal___0_as_false, _either_1_or_neg1, _tensor_shape_check, \
+from pytorch_yagaodirac_v2.Util import all_False, is_int, \
+        _tensor_equal, _bool_equal___0_as_false, _either_1_or_neg1, _tensor_shape_check, \
         iota, str_the_list
 from pytorch_yagaodirac_v2.Random import rand_sign
 
@@ -43,7 +44,7 @@ def DNN___to_posneg1(input:torch.Tensor, gt_0__true___ge_0__false = True, dtype 
     result = _temp_2*2 -1
     #assert _either_1_or_neg1(result)  debug code.
     return result
-if "test" and False:
+if "test" and __DEBUG_ME__() and False:
     def ____test____DNN___to_posneg1():
         for _ in range(33):
             a = torch.randn(size=[10000])
@@ -98,7 +99,7 @@ def _test___DNN_forward___full_safety(input___b_i:torch.Tensor, raw_weight___o_i
         assert _either_1_or_neg1(output_posneg1___b_o)
         pass
     return output_posneg1___b_o, index_of_max_of_raw_weight___o
-if "test" and False:
+if "test" and __DEBUG_ME__() and False:
     def ____test_____test___DNN_forward___full_safety():
         if "emmmm.  This should be enough.":
             batch = 5
@@ -178,7 +179,7 @@ def _test___binary_accuracy___full_safety(target___b_o:torch.Tensor, output_posn
         assert accuracy.le(1.).all()
         pass
     return accuracy, return_value_name
-if "test" and False:
+if "test" and __DEBUG_ME__() and False:
     def ____test_____test___binary_accuracy___full_safety():
 
         if "per_batch" and True:
@@ -319,7 +320,7 @@ def 好像没做对_test___optimizer_algo___full_safety(ori__raw_weight___o_i:to
         assert new__raw_weight___o_i.le(0.).all()
         pass
     return new__raw_weight___o_i
-if "test" and False:
+if "test" and __DEBUG_ME__() and False:
     def ____test_____test___optimizer_algo___full_safety():
         if "does it work???" and True: 
             import random
@@ -393,7 +394,7 @@ def partly_reasonable_label_from_input(input___b_i, out_dim:int, random_ratio:fl
         pass
     return target___b_o
 '''behavior test is in the test for _algo_test__backward_function'''
-if "basic test" and False:
+if "basic test" and __DEBUG_ME__() and False:
     def ____test____partly_reasonable_label_from_input():
         if "no random" and True:
             batch = 5
@@ -459,7 +460,7 @@ if "basic test" and False:
     ____test____partly_reasonable_label_from_input()
     pass
 
-if "device adaption" and True:
+if "device adaption" and __DEBUG_ME__() and True:
     def ____device_adaption____partly_reasonable_label_from_input():
 
         input___b_i = torch.ones(size=(5, 3), device='cuda')
@@ -640,6 +641,8 @@ class Index_container(torch.nn.Module):
 
     def add_repeating(self, what:torch.Tensor|int, times:torch.Tensor|int)->None:
         #<  safety and dtype
+        assert False, "untested"
+        
         if isinstance(what, torch.Tensor):
             assert what.nelement() == 1
             pass
@@ -651,13 +654,8 @@ class Index_container(torch.nn.Module):
             pass
 
         if isinstance(times, torch.Tensor):
-            assert times.is_quantized == True#????
-            assert times.dtype in [torch.int,   torch.int8,  torch.int16,  torch.int32,  torch.int64, 
-                                                torch.uint8, torch.uint16, torch.uint32, torch.uint64, ]
-            _temp___times = times.item()
-            times = int(times.item())
-            assert _temp___times == times
-            del _temp___times
+            assert times.is_quantized == True#maybe I should remove this line
+            assert is_int(times)
             pass
         elif type(times) == int:
             #do nothing
@@ -869,7 +867,9 @@ if "how to add element." and __DEBUG_ME__() and False:
 '''总共2个函数，故意从中间截断的，方便其他用途。最终这个要放到输出容器里面去。'''
 '''但是这个现在只能检测完美相同的情况。反正暂时也不用。'''
 
-if "prototype        detect perfect output         the all to all version           part 1          2_data_into_2d_bool_tensor" and False:
+''' prototype        detect perfect output         the all to all version   
+        part 1          2_data_into_2d_bool_tensor '''
+if "prototype        detect perfect output    ......" and __DEBUG_ME__() and False:
     def ____algo_prototype____all_to_all____part1():
 
         if "perfect detection        all to all      small ver with int" and True:
@@ -967,14 +967,19 @@ if "prototype        detect perfect output         the all to all version       
     ____algo_prototype____all_to_all____part1()
     pass
 
-def _all_to_all___part_1___2_data_into_2d_bool_tensor(label___b_label:torch.Tensor, output___b_o:torch.Tensor)->torch.Tensor:
+def _all_to_all___part_1___2_data_into_2d_bool_tensor(label___b_label:torch.Tensor, output___b_o:torch.Tensor, 
+            good_threshold:torch.Tensor|float|None = None, inner_calc_dtype = torch.float32) \
+                            ->tuple[torch.Tensor, torch.Tensor|None]:
     '''
     btw. The all-to-all only implemented detecting-the-perfect feature. 
 
     this function is the first part of a all-to-all equal calc.<br> Call this function, and then
     call the bool_tensor_to_index_list with the result from this function.
     <br>
-    ### return flag_eq___label_o
+
+    ### return flag_perfect___label_o, flag_good_enough___label_o / None  <br>
+        if good_threshold is None(not specified), the flag_good_enough___o is None
+
     #### code:
     ##### from DNN_util import import bool_tensor_to_index_list  <br>
     ##### the_2d_bool_tensor = _all_to_all___part_1___2_data_into_2d_bool_tensor(label___b_label, output___b_o)  <br>
@@ -982,84 +987,101 @@ def _all_to_all___part_1___2_data_into_2d_bool_tensor(label___b_label:torch.Tens
     '''
 
     #<  safety
+    if good_threshold is not None:
+        assert good_threshold > 0.5 and good_threshold < 1.
+        pass
+
     assert label___b_label.shape.__len__() == 2
     assert output___b_o.shape.__len__() == 2
     assert label___b_label.shape[0] == output___b_o.shape[0]#although this is duplicated, but let's keep it, bc this line provides better error info.
     assert label___b_label.dtype == output___b_o.dtype, "or maybe not so rigorous?"
     #<  real payload
-    #<  EXPAND!!!!!!!
-    #host is 111222333, or 1122
-    HOST_is_label____b_label_EXPANDo = label___b_label \
-            .reshape([label___b_label.shape[0], label___b_label.shape[1], 1]) \
-            .expand([-1, -1, output___b_o.shape[1]])
-    # assert _tensor_shape_check(HOST_is_label____b_label_EXPANDo, batch, label_dim, output_dim)
+    with torch.no_grad():
+        #<  EXPAND!!!!!!!
+        #host is 111222333, or 1122
+        HOST_is_label____b_label_EXPANDo = label___b_label \
+                .reshape([label___b_label.shape[0], label___b_label.shape[1], 1]) \
+                .expand([-1, -1, output___b_o.shape[1]])
+        # assert _tensor_shape_check(HOST_is_label____b_label_EXPANDo, batch, label_dim, output_dim)
 
-    #guest is 123123123, or 1212
-    GUEST_is_output____b_EXPANDlabel_o = output___b_o \
-            .reshape([output___b_o.shape[0], 1, output___b_o.shape[1]]) \
-            .expand([-1, label___b_label.shape[1], -1])
-    # assert _tensor_shape_check(GUEST_is_output____b_EXPANDlabel_o, batch, label_dim, output_dim)
+        #guest is 123123123, or 1212
+        GUEST_is_output____b_EXPANDlabel_o = output___b_o \
+                .reshape([output___b_o.shape[0], 1, output___b_o.shape[1]]) \
+                .expand([-1, label___b_label.shape[1], -1])
+        # assert _tensor_shape_check(GUEST_is_output____b_EXPANDlabel_o, batch, label_dim, output_dim)
 
-    #<  calc.
-    flag_eq__before_all___b_label_o = HOST_is_label____b_label_EXPANDo.eq(GUEST_is_output____b_EXPANDlabel_o)
-    # assert _tensor_shape_check(flag_eq__before_all___b_label_o, batch, label_dim, output_dim)
-    flag_eq___label_o = flag_eq__before_all___b_label_o.all(dim=0)
-    # assert _tensor_shape_check(flag_eq___label_o, label_dim, output_dim)
-    return flag_eq___label_o
+        #<  calc.
+        flag_eq__before_calc___b_label_o = HOST_is_label____b_label_EXPANDo.eq(GUEST_is_output____b_EXPANDlabel_o)
+        # assert _tensor_shape_check(flag_eq__before_calc___b_label_o, batch, label_dim, output_dim)
+        flag_perfect___label_o = flag_eq__before_calc___b_label_o.all(dim=0)
+        # assert _tensor_shape_check(flag_perfect___label_o, label_dim, output_dim)
 
-if "basic behavior" and False:
+
+        #<  good
+        if good_threshold is None:
+            flag_good_enough___label_o = None
+            pass
+        else:
+            mean_acc___o = flag_eq__before_calc___b_label_o.to(inner_calc_dtype).mean(dim=0)
+            flag_good_enough___label_o = mean_acc___o.ge(good_threshold)
+            flag_good_enough___label_o = flag_good_enough___label_o.logical_and(flag_perfect___label_o.logical_not())
+            pass
+        #assert flag_perfect___o.shape == torch.Size([flag_eq__before_mean___b_o.shape[1]])###################
+        #assert flag_perfect___o.shape == flag_good_enough___o.shape#########################################
+
+        return flag_perfect___label_o, flag_good_enough___label_o
+    #end of function
+
+if "basic behavior" and __DEBUG_ME__() and True:
     def ____test_____all_to_all___part_1___2_data_into_2d_bool_tensor():
-        if "manual cases" and True:  
+        if "the perfect part        manual cases" and True:  
             label___b_label = torch.tensor([[1, 2, 3,],
                                             [0, 0, 0,],])
             output___b_o = torch.tensor([   [1, 2, 3, 4, 5,],
                                             [0, 0, 0, 0, 0,],])
-            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+            flag_perfect___label_o, _ = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
                     label___b_label = label___b_label, output___b_o = output___b_o)
-            assert _bool_equal___0_as_false(flag_eq___label_o, [[1, 0, 0, 0, 0],
+            assert _bool_equal___0_as_false(flag_perfect___label_o, [[1, 0, 0, 0, 0],
                                                                 [0, 1, 0, 0, 0],
                                                                 [0, 0, 1, 0, 0],])
-            a =  flag_eq___label_o.to(torch.int32).sum()
-            assert flag_eq___label_o.to(torch.int32).sum() == 3
+            assert flag_perfect___label_o.to(torch.int32).sum() == 3
             
 
             label___b_label = torch.tensor([[1, 2, 3,],
                                             [1, 1, 1,],])
             output___b_o = torch.tensor([   [1, 2, 3, 4, 5,],
                                             [0, 0, 0, 0, 0,],])
-            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+            flag_perfect___label_o, _ = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
                     label___b_label = label___b_label, output___b_o = output___b_o)
-            assert flag_eq___label_o.any() == False
-            assert flag_eq___label_o.to(torch.int32).sum() == 0
+            assert all_False(flag_perfect___label_o)
 
             
             label___b_label = torch.tensor([[1, 2, 3,],
                                             [0, 0, 0,],])
             output___b_o = torch.tensor([   [1, 1, 1, 1, 1,],
                                             [0, 0, 0, 0, 0,],])  
-            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+            flag_perfect___label_o, _ = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
                     label___b_label = label___b_label, output___b_o = output___b_o)
-            assert _bool_equal___0_as_false(flag_eq___label_o, [[1, 1, 1, 1, 1],
+            assert _bool_equal___0_as_false(flag_perfect___label_o, [[1, 1, 1, 1, 1],
                                                                 [0, 0, 0, 0, 0],
                                                                 [0, 0, 0, 0, 0],])
-            assert flag_eq___label_o.to(torch.int32).sum() == 5
+            assert flag_perfect___label_o.to(torch.int32).sum() == 5
 
 
             label___b_label = torch.tensor([[1, 1, 1,],
                                             [0, 0, 0,],])
             output___b_o = torch.tensor([   [1, 2, 3, 4, 5,],
                                             [0, 0, 0, 0, 0,],])
-            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+            flag_perfect___label_o, _ = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
                     label___b_label = label___b_label, output___b_o = output___b_o)
-            assert _bool_equal___0_as_false(flag_eq___label_o, [[1, 0, 0, 0, 0],
+            assert _bool_equal___0_as_false(flag_perfect___label_o, [[1, 0, 0, 0, 0],
                                                                 [1, 0, 0, 0, 0],
                                                                 [1, 0, 0, 0, 0],])
-            assert flag_eq___label_o.to(torch.int32).sum() == 3
+            assert flag_perfect___label_o.to(torch.int32).sum() == 3
 
             pass#/ test
 
-
-        if "maybe wrong test" and True:
+        if "the perfect part         maybe wrong test" and True:
             
             for batch in [2,6,16]:
                 for label_dim in [3,5,13]:
@@ -1069,10 +1091,10 @@ if "basic behavior" and False:
                             label___b_label = torch.randn(size=[batch, label_dim])
                             output___b_o    = torch.randn(size=[batch, output_dim])
                             #<  calc
-                            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                            flag_perfect___label_o, _ = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
                                     label___b_label = label___b_label, output___b_o = output___b_o)
                             #<  assert
-                            assert flag_eq___label_o.to(torch.int32).sum() == 0   #may not stalbe.
+                            assert all_False(flag_perfect___label_o)      #may not stalbe.
                             pass#for _
                         pass#for output_dim
                     pass#for label_dim
@@ -1089,10 +1111,10 @@ if "basic behavior" and False:
                             #<  manually add some same element
                             output___b_o[:, random.randint(0, output_dim-1)] = label___b_label[:, random.randint(0, label_dim-1)]
                             #<  calc
-                            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                            flag_perfect___label_o, _ = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
                                     label___b_label = label___b_label, output___b_o = output___b_o)
                             #<  assert
-                            assert flag_eq___label_o.to(torch.int32).sum() == 1   #may not stalbe.
+                            assert flag_perfect___label_o.to(torch.int32).sum() == 1   #may not stalbe.
                             pass#for _
                         pass#for output_dim
                     pass#for label_dim
@@ -1111,10 +1133,10 @@ if "basic behavior" and False:
                             output___b_o[:, _temp_rand_of___output_dim  ] = label___b_label[:, _temp_rand_of___label_dim]
                             output___b_o[:, _temp_rand_of___output_dim+1] = label___b_label[:, _temp_rand_of___label_dim]
                             #<  calc
-                            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                            flag_perfect___label_o, _ = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
                                     label___b_label = label___b_label, output___b_o = output___b_o)
                             #<  assert
-                            assert flag_eq___label_o.to(torch.int32).sum() == 2   #may not stalbe.
+                            assert flag_perfect___label_o.to(torch.int32).sum() == 2   #may not stalbe.
                             pass#for _
                         pass#for output_dim
                     pass#for label_dim
@@ -1134,23 +1156,120 @@ if "basic behavior" and False:
                             output___b_o[:, _temp_rand_of___output_dim+1] = label___b_label[:, _temp_rand_of___label_dim  ]
                             label___b_label[:, _temp_rand_of___label_dim+1] = output___b_o[:, _temp_rand_of___output_dim  ]
                             #<  calc
-                            flag_eq___label_o = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                            flag_perfect___label_o, _ = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
                                     label___b_label = label___b_label, output___b_o = output___b_o)
                             #<  assert
-                            assert flag_eq___label_o.to(torch.int32).sum() == 4   #may not stalbe.
+                            assert flag_perfect___label_o.to(torch.int32).sum() == 4   #may not stalbe.
                             pass#for _
                         pass#for output_dim
                     pass#for label_dim
                 pass#for batch
             pass#/ test
 
+        if "the good part        manual cases" and True:  
+            label___b_label = torch.tensor([[1, 2, 3,],
+                                            [1, 2, 3,],
+                                            [1, 2, 3,],])
+            output___b_o = torch.tensor([   [1, 2, 3, 4, 5,],
+                                            [1, 2, 3, 4, 5,],
+                                            [1, 2, 3, 4, 5,],])
+            flag_perfect___label_o, flag_good_enough___label_o  = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                    label___b_label = label___b_label, output___b_o = output___b_o, good_threshold=0.65)
+            assert _bool_equal___0_as_false(flag_perfect___label_o,[[1, 0, 0, 0, 0],
+                                                                    [0, 1, 0, 0, 0],
+                                                                    [0, 0, 1, 0, 0],])
+            assert all_False(flag_good_enough___label_o)
+
+
+            label___b_label = torch.tensor([[ 1,  2,  3,],
+                                            [ 1,  2,  3,],
+                                            [11, 12,  3,],])
+            output___b_o = torch.tensor([   [1, 2, 3, 4, 5,],
+                                            [1, 2, 3, 4, 5,],
+                                            [1, 2, 3, 4, 5,],])
+            flag_perfect___label_o, flag_good_enough___label_o  = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                    label___b_label = label___b_label, output___b_o = output___b_o, good_threshold=0.65)
+            assert _bool_equal___0_as_false(flag_perfect___label_o,[[0, 0, 0, 0, 0],
+                                                                    [0, 0, 0, 0, 0],
+                                                                    [0, 0, 1, 0, 0],])
+            assert _bool_equal___0_as_false(flag_good_enough___label_o ,[   [1, 0, 0, 0, 0],
+                                                                            [0, 1, 0, 0, 0],
+                                                                            [0, 0, 0, 0, 0],])
+
+
+            label___b_label = torch.tensor([[ 1,  2,  3,],
+                                            [ 1,  2,  3,],
+                                            [11, 12,  3,],])
+            output___b_o = torch.tensor([   [1, 2, 3, 4, 5,],
+                                            [1, 2, 3, 4, 5,],
+                                            [1, 2, 3, 4, 5,],])
+            flag_perfect___label_o, flag_good_enough___label_o  = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                    label___b_label = label___b_label, output___b_o = output___b_o, good_threshold=0.95)
+            assert _bool_equal___0_as_false(flag_perfect___label_o,[[0, 0, 0, 0, 0],
+                                                                    [0, 0, 0, 0, 0],
+                                                                    [0, 0, 1, 0, 0],])
+            assert all_False(flag_good_enough___label_o)
+
+        if "threshold" and True:
+            #<  data
+            label___b_label = torch.tensor([ 
+                    [1, 2, 3,],
+                    [1, 2, 3,],
+                    [1, 2, 3,],
+                    [1, 2, 3,],
+                    [1, 2, 3.,],])
+            output___b_o = torch.tensor([   
+                    [1,-1,-1,-1,-1,-1 , 2, 3],
+                    [1, 1,-1,-1,-1,-1 , 2, 3],
+                    [1, 1, 1,-1,-1,-1 , 2, 3],
+                    [1, 1, 1, 1,-1,-1 , 2, 3],
+                    [1, 1, 1, 1, 1,-1., 2, 3],])
+            #assert _either_1_or_neg1(output_posneg1___b_o)    no needed in this case.
+            #<  calc
+            flag_perfect___label_o, flag_good_enough___label_o  = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                    label___b_label = label___b_label, output___b_o = output___b_o, good_threshold=0.55)
+            #<  assert
+            assert _bool_equal___0_as_false(flag_perfect___label_o,
+                    [   [1, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 1, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 1],])
+            assert _bool_equal___0_as_false(flag_good_enough___label_o ,
+                    [   [0, 1, 1, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 0],])
+
+
+            #<  data
+            label___b_label = torch.tensor([ 
+                    [1, 2, 3,],
+                    [1, 2, 3,],
+                    [1, 2, 3,],
+                    [1, 2, 3,],
+                    [1, 2, 3.,],])
+            output___b_o = torch.tensor([   
+                    [1,-1,-1,-1,-1,-1 , 2, 3],
+                    [1, 1,-1,-1,-1,-1 , 2, 3],
+                    [1, 1, 1,-1,-1,-1 , 2, 3],
+                    [1, 1, 1, 1,-1,-1 , 2, 3],
+                    [1, 1, 1, 1, 1,-1., 2, 3],])
+            #assert _either_1_or_neg1(output_posneg1___b_o)    no needed in this case.
+            #<  calc
+            flag_perfect___label_o, flag_good_enough___label_o  = _all_to_all___part_1___2_data_into_2d_bool_tensor( \
+                    label___b_label = label___b_label, output___b_o = output___b_o, good_threshold=0.75)
+            #<  assert
+            assert _bool_equal___0_as_false(flag_perfect___label_o,
+                    [   [1, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 1, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 1],])
+            assert _bool_equal___0_as_false(flag_good_enough___label_o ,
+                    [   [0, 1, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 0],])
+            pass#/ test
 
         return
     ____test_____all_to_all___part_1___2_data_into_2d_bool_tensor()
     pass
-
-
-
 
 
 

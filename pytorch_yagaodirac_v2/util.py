@@ -36,6 +36,66 @@ if "test" and False:
 '''assertions'''
 '''assertions'''
 
+def is_int(a:torch.Tensor)->bool:
+    result = a.dtype in [torch.int, torch.int8, torch.int16, torch.int32, torch.int64, 
+                torch.uint8, torch.uint16, torch.uint32, torch.uint64]
+    return result
+if "test" and __DEBUG_ME__() and True:
+    def ____test____is_int():
+        assert is_int(torch.tensor([1]))
+        assert is_int(torch.tensor([1], dtype=torch.int8))
+        assert is_int(torch.tensor([1], dtype=torch.uint32))
+        assert is_int(torch.tensor([1], dtype=torch.float32)) == False
+        assert is_int(torch.tensor([1], dtype=torch.bfloat16)) == False
+        assert is_int(torch.tensor([True])) == False
+        return
+    ____test____is_int()
+    pass
+
+def is_signed_int(a:torch.Tensor)->bool:
+    result = a.dtype in [torch.int, torch.int8, torch.int16, torch.int32, torch.int64]
+    return result
+if "test" and __DEBUG_ME__() and True:
+    def ____test____is_signed_int():
+        assert is_signed_int(torch.tensor([1]))
+        assert is_signed_int(torch.tensor([1], dtype=torch.int8))
+        assert is_signed_int(torch.tensor([1], dtype=torch.uint32)) == False
+        assert is_signed_int(torch.tensor([1], dtype=torch.float32)) == False
+        assert is_signed_int(torch.tensor([1], dtype=torch.bfloat16)) == False
+        assert is_signed_int(torch.tensor([True])) == False
+        return
+    ____test____is_signed_int()
+    pass
+    
+    
+def is_unsigned_int(a:torch.Tensor)->bool:
+    result = a.dtype in [torch.uint8, torch.uint16, torch.uint32, torch.uint64]
+    return result
+if "test" and __DEBUG_ME__() and True:
+    def ____test____is_unsigned_int():
+        assert is_unsigned_int(torch.tensor([1])) == False
+        assert is_unsigned_int(torch.tensor([1], dtype=torch.int8)) == False
+        assert is_unsigned_int(torch.tensor([1], dtype=torch.uint32))
+        assert is_unsigned_int(torch.tensor([1], dtype=torch.float32)) == False
+        assert is_unsigned_int(torch.tensor([1], dtype=torch.bfloat16)) == False
+        assert is_unsigned_int(torch.tensor([True])) == False
+        return
+    ____test____is_unsigned_int()
+    pass
+
+def all_False(a:torch.Tensor)->bool:
+    result = a.any().logical_not()
+    return result
+if "test" and __DEBUG_ME__() and True:
+    def ____test____all_False():
+        assert all_False(torch.tensor([False]))
+        assert all_False(torch.tensor([False, False]))
+        assert all_False(torch.tensor([[False, False],[False, False]]))
+        return
+    ____test____all_False()
+    pass
+
+
 def _float_equal(a:float|torch.Tensor, b:float, epsilon:float = 0.0001)->bool:
     if isinstance(a, torch.Tensor):
         a = a.item()
