@@ -2,7 +2,7 @@ from typing import Literal
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from pytorch_yagaodirac_v2.Util import _bool_equal___0_as_false
+from pytorch_yagaodirac_v2.Util import _bool_equal___0_as_false, all_False
 #         iota, str_the_list
 #from pytorch_yagaodirac_v2.Random import rand_sign
 import random
@@ -28,8 +28,10 @@ def _line_():
 
 
 
-
-def pos_of_first_one(input:int)->int:
+'tools   bool list in int'
+'tools   bool list in int'
+'tools   bool list in int'
+def pos_of_first_one__int(input:int)->int:
     '''0b10000 into 5'''
     assert input>=0
     result = 0
@@ -40,39 +42,39 @@ def pos_of_first_one(input:int)->int:
         pass
     return result
 if "test" and __DEBUG_ME__() and False:
-    def ____test____pos_of_first_one():
-        assert pos_of_first_one(0b0) == 0
-        assert pos_of_first_one(0b1) == 1
-        assert pos_of_first_one(0b10) == 2
-        assert pos_of_first_one(0b11) == 2
-        assert pos_of_first_one(0b100) == 3
-        assert pos_of_first_one(0b10000) == 5
-        assert pos_of_first_one(0b10010) == 5
-        assert pos_of_first_one(0b10110) == 5
+    def ____test____pos_of_first_one__int():
+        assert pos_of_first_one__int(0b0) == 0
+        assert pos_of_first_one__int(0b1) == 1
+        assert pos_of_first_one__int(0b10) == 2
+        assert pos_of_first_one__int(0b11) == 2
+        assert pos_of_first_one__int(0b100) == 3
+        assert pos_of_first_one__int(0b10000) == 5
+        assert pos_of_first_one__int(0b10010) == 5
+        assert pos_of_first_one__int(0b10110) == 5
 
         import random
         for _ in range(5):
             the_number = random.randint(0b100, 0b111)
-            assert pos_of_first_one(the_number) == 3
+            assert pos_of_first_one__int(the_number) == 3
             pass
 
         for _ in range(11):
             the_number = random.randint(0b1000, 0b1111)
-            assert pos_of_first_one(the_number) == 4
+            assert pos_of_first_one__int(the_number) == 4
             pass
 
         for nn in [0,1,2,3,5,7,10,15,22]:
             for _ in range(nn*10+1):
                 the_number = random.randint((1<<nn), (1<<(nn+1))-1)
-                assert pos_of_first_one(the_number) == nn +1
+                assert pos_of_first_one__int(the_number) == nn +1
                 pass
             pass
 
         return
-    ____test____pos_of_first_one()
+    ____test____pos_of_first_one__int()
     pass
 
-def how_many_ones(input:int)->int:
+def how_many_ones__int(input:int)->int:
     '''0b10000 into 1'''
     assert input>=0
     result = 0
@@ -85,15 +87,15 @@ def how_many_ones(input:int)->int:
         pass
     return result
 if "test" and __DEBUG_ME__() and False:
-    def ____test____how_many_ones():
-        assert how_many_ones(0b0) == 0
-        assert how_many_ones(0b1) == 1
-        assert how_many_ones(0b10) == 1
-        assert how_many_ones(0b11) == 2
-        assert how_many_ones(0b100) == 1
-        assert how_many_ones(0b10000) == 1
-        assert how_many_ones(0b10010) == 2
-        assert how_many_ones(0b10110) == 3
+    def ____test____how_many_ones__int():
+        assert how_many_ones__int(0b0) == 0
+        assert how_many_ones__int(0b1) == 1
+        assert how_many_ones__int(0b10) == 1
+        assert how_many_ones__int(0b11) == 2
+        assert how_many_ones__int(0b100) == 1
+        assert how_many_ones__int(0b10000) == 1
+        assert how_many_ones__int(0b10010) == 2
+        assert how_many_ones__int(0b10110) == 3
 
 
         MAX_of_something = 5
@@ -107,15 +109,16 @@ if "test" and __DEBUG_ME__() and False:
                     assert type(test_this) == int
                     assert isinstance(test_this, int)
                     pass
-                assert how_many_ones(test_this) == answer
+                assert how_many_ones__int(test_this) == answer
                 pass
             pass
 
         return
-    ____test____how_many_ones()
+    ____test____how_many_ones__int()
     pass
 
-def readable_binary(input:int, pad_to_length = 0)->str:
+def str_as_binary__int(input:int, pad_to_length = 0)->str:
+    assert type(input) == int
     raw_str = f"{input:b}"
     needs_zeros = pad_to_length - raw_str.__len__()
     if needs_zeros>0:
@@ -123,42 +126,37 @@ def readable_binary(input:int, pad_to_length = 0)->str:
     else:
         return raw_str
     pass#end of function
-if "test" and __DEBUG_ME__() and True:
-    def ____test____readable_binary():
-        assert readable_binary(0b1) == "1"
-        assert readable_binary(0b0) == "0"
-        #assert readable_binary(0b0, 3) == "000"
-        assert readable_binary(0b10) == "10"
-        assert readable_binary(0b1, 3) == "001"
-        assert readable_binary(0b0, 3) == "000"
-        assert readable_binary(0b10, 3) == "010"
-        assert readable_binary(0b10, 5) == "00010"
+if "test" and __DEBUG_ME__() and False:
+    def ____test____str_as_binary__int():
+        assert str_as_binary__int(0b1) == "1"
+        assert str_as_binary__int(0b0) == "0"
+        #assert str_as_binary__int(0b0, 3) == "000"
+        assert str_as_binary__int(0b10) == "10"
+        assert str_as_binary__int(0b1, 3) == "001"
+        assert str_as_binary__int(0b0, 3) == "000"
+        assert str_as_binary__int(0b10, 3) == "010"
+        assert str_as_binary__int(0b10, 5) == "00010"
 
         for _ in range(55):
             the_number = random.randint(0,255)
             pad_to = random.randint(0,10)
-            the_str = readable_binary(input = the_number, pad_to_length=pad_to)
+            the_str = str_as_binary__int(input = the_number, pad_to_length=pad_to)
             assert int(the_str, 2) == the_number
             pass
 
         for _ in range(355):
             the_number = random.randint(1<<6, 1<<12)
             pad_to = random.randint(0,22)
-            the_str = readable_binary(input = the_number, pad_to_length=pad_to)
+            the_str = str_as_binary__int(input = the_number, pad_to_length=pad_to)
             assert int(the_str, 2) == the_number
             pass
 
         return 
-    ____test____readable_binary()
+    ____test____str_as_binary__int()
     pass
 
-
-
-
-
-
 #still useful, but not used in the class.
-def assert_all_unused_bits_in_addr_are_zeros(bits_in_use_mask:int, fixed_addr:int)->bool:
+def assert_all_unused_bits_in_addr_are_zeros__int(bits_in_use_mask:int, fixed_addr:int)->bool:
     '''Checks if fixed_addr has no 1s outside the bits marked by bit_in_use_mask
     
     Mainly for debug.'''
@@ -167,17 +165,17 @@ def assert_all_unused_bits_in_addr_are_zeros(bits_in_use_mask:int, fixed_addr:in
     result = 0 == bitwise_and
     return result
 if "test" and __DEBUG_ME__() and True:
-    def ____test____assert_all_unused_bits_in_addr_are_zeros():
-        assert type(assert_all_unused_bits_in_addr_are_zeros(int("0",2), int("0",2))) == bool
-        assert assert_all_unused_bits_in_addr_are_zeros(int("0" ,2), int("0" ,2)) == True
-        assert assert_all_unused_bits_in_addr_are_zeros(int("0" ,2), int("1" ,2)) == False
-        assert assert_all_unused_bits_in_addr_are_zeros(int("1" ,2), int("0" ,2)) == True
-        assert assert_all_unused_bits_in_addr_are_zeros(int("1" ,2), int("1" ,2)) == True
-        assert assert_all_unused_bits_in_addr_are_zeros(int("1" ,2), int("10",2)) == False
-        assert assert_all_unused_bits_in_addr_are_zeros(int("10",2), int("10",2)) == True
-        assert assert_all_unused_bits_in_addr_are_zeros(int("10",2), int("11",2)) == False
-        assert assert_all_unused_bits_in_addr_are_zeros(int("10",2), int("1" ,2)) == False
-        assert assert_all_unused_bits_in_addr_are_zeros(int("10",2), int("0" ,2)) == True
+    def ____test____assert_all_unused_bits_in_addr_are_zeros__int():
+        assert type(assert_all_unused_bits_in_addr_are_zeros__int(int("0",2), int("0",2))) == bool
+        assert assert_all_unused_bits_in_addr_are_zeros__int(int("0" ,2), int("0" ,2)) == True
+        assert assert_all_unused_bits_in_addr_are_zeros__int(int("0" ,2), int("1" ,2)) == False
+        assert assert_all_unused_bits_in_addr_are_zeros__int(int("1" ,2), int("0" ,2)) == True
+        assert assert_all_unused_bits_in_addr_are_zeros__int(int("1" ,2), int("1" ,2)) == True
+        assert assert_all_unused_bits_in_addr_are_zeros__int(int("1" ,2), int("10",2)) == False
+        assert assert_all_unused_bits_in_addr_are_zeros__int(int("10",2), int("10",2)) == True
+        assert assert_all_unused_bits_in_addr_are_zeros__int(int("10",2), int("11",2)) == False
+        assert assert_all_unused_bits_in_addr_are_zeros__int(int("10",2), int("1" ,2)) == False
+        assert assert_all_unused_bits_in_addr_are_zeros__int(int("10",2), int("0" ,2)) == True
 
         for LENGTH in [2,4,8,16,50]:
             for _ in range(LENGTH*5+20):
@@ -185,6 +183,8 @@ if "test" and __DEBUG_ME__() and True:
                 bits_in_use_mask__list = ["0"]*LENGTH
                 fixed_addr__list       = ["0"]*LENGTH
                 # random it a bit.
+                # the mask can only init into 1 if touched. But the addr can convert into both 0 or 1. 
+                # but the untouched bits are always 0 for both var.
                 for __ in range(random.randint(LENGTH//5, LENGTH*2)):
                     rand_pos = random.randint(0,LENGTH-1)
                     bits_in_use_mask__list[rand_pos] = "1"
@@ -194,14 +194,349 @@ if "test" and __DEBUG_ME__() and True:
                     else:
                         fixed_addr__list[rand_pos] = "0"
                         pass
-                # convert
+                # convert      list into str into int
                 bits_in_use_mask__str = "".join(bits_in_use_mask__list)
                 fixed_addr__str       = "".join(fixed_addr__list)
                 bits_in_use_mask__number = int(bits_in_use_mask__str, 2)
                 fixed_addr__number       = int(fixed_addr__str, 2)
                 # assert
-                assert assert_all_unused_bits_in_addr_are_zeros( \
+                assert assert_all_unused_bits_in_addr_are_zeros__int( \
                         bits_in_use_mask=bits_in_use_mask__number, fixed_addr=fixed_addr__number) == True
+                pass#for _
+            pass#for LENGTH
+
+        return
+    ____test____assert_all_unused_bits_in_addr_are_zeros__int()
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'bool list in int   convert into   tensor.'
+'bool list in int   convert into   tensor.'
+'bool list in int   convert into   tensor.'
+"param:length doesn't affect the result. This detail is going into the function docstring."
+
+def int_into_bool_tensor(input:int, length:int)->torch.Tensor:
+    format_str = "{:0"+str(length)+"b}"
+    bits = format_str.format(input)
+    assert bits.__len__() == length, f"0b{input:b} is provided to get converted, but it needs longer length than the provided param:length, which is ({length})"
+    raw_result_list = [bit =="1" for bit in bits]
+    result = torch.tensor(raw_result_list)
+    return result
+    # old code below
+    #bits = list(f"{input:b}")
+    #raw_result_list = [bit =="1" for bit in bits]
+    # result = torch.zeros(size=[length], dtype=torch.bool)
+    # result[length-raw_result_list.__len__():] = torch.tensor(raw_result_list, dtype=torch.bool)
+    # return result
+if "test" and __DEBUG_ME__() and False:
+    def ____test____int_into_bool_tensor():
+        aaa = int_into_bool_tensor(input=0b1, length=3)
+        assert aaa.dtype == torch.bool
+        assert _bool_equal___0_as_false(aaa, [0,0,1])
+        aaa = int_into_bool_tensor(input=0b11, length=3)
+        assert _bool_equal___0_as_false(aaa, [0,1,1])
+        aaa = int_into_bool_tensor(input=0b101, length=3)
+        assert _bool_equal___0_as_false(aaa, [1,0,1])
+        aaa = int_into_bool_tensor(input=0b11, length=5)
+        assert _bool_equal___0_as_false(aaa, [0,0,0,1,1])
+        aaa = int_into_bool_tensor(input=0b101, length=5)
+        assert _bool_equal___0_as_false(aaa, [0,0,1,0,1])
+        aaa = int_into_bool_tensor(input=0b1010, length=5)
+        assert _bool_equal___0_as_false(aaa, [0,1,0,1,0])
+
+        # int_into_bool_tensor(input=0b11, length=1)#should not work
+        # int_into_bool_tensor(input=0b101, length=1)#should not work
+        # int_into_bool_tensor(input=0b101, length=2)#should not work
+
+
+        return 
+    ____test____int_into_bool_tensor()
+    pass
+
+def int_list_into_bool_tensor(input_list:list[int], length:int)->torch.Tensor:
+    format_str = "{:0"+str(length)+"b}"
+
+    temp_list_of_bits_list = []
+    for input in input_list:
+        bits = format_str.format(input)
+        assert bits.__len__() == length, f"0b{input:b} is provided to get converted, but it needs longer length than the provided param:length, which is ({length})"
+        temp_list_of_bits_list.append(list(bits))
+        pass
+
+    raw_result_list = []
+    for list_of_bits in temp_list_of_bits_list:
+        raw_result_list.append([bit =="1" for bit in list_of_bits])
+        pass
+
+    result = torch.tensor(raw_result_list)
+    return result
+if "test" and __DEBUG_ME__() and False:
+    def ____test____int_list_into_bool_tensor():
+
+        aaa = int_list_into_bool_tensor(input_list=[0b1, 0b11], length=3)
+        assert aaa.dtype == torch.bool
+        assert _bool_equal___0_as_false(aaa, [[0,0,1],[0,1,1]])
+
+        aaa = int_list_into_bool_tensor(input_list=[0b11,0b101,0b1010], length=5)
+        assert _bool_equal___0_as_false(aaa, [  [0,0,0,1,1],
+                                                [0,0,1,0,1],
+                                                [0,1,0,1,0]])
+
+        # int_list_into_bool_tensor(input_list=[0b1, 0b11], length=1)#should not work
+        # int_list_into_bool_tensor(input_list=[0b1, 0b11, 0b101], length=1)#should not work
+        # int_list_into_bool_tensor(input_list=[0b1, 0b11, 0b101], length=2)#should not work
+
+        return
+    ____test____int_list_into_bool_tensor()
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'tools   bool list in tensor'
+'tools   bool list in tensor'
+'tools   bool list in tensor'
+def pos_of_first_one(input:torch.Tensor)->torch.Tensor:
+    '''tensor([T,F,F,F,F]) into 5'''
+    assert input.dtype == torch.bool
+    assert input.shape.__len__() == 1
+    are_all_False = input.any().logical_not()
+    if are_all_False:
+        return torch.tensor(0)
+    
+    the_argmax = input.to(torch.int8).argmax()
+    result = input.shape[0]-the_argmax
+    return result
+if "test" and __DEBUG_ME__() and False:
+    def ____test____pos_of_first_one():
+
+        result = pos_of_first_one(int_into_bool_tensor(0b1, length = 3))
+        assert isinstance(result, torch.Tensor)
+        assert result.dtype == torch.int64
+
+        assert pos_of_first_one(int_into_bool_tensor(0b0, length = 1)) == 0
+        assert pos_of_first_one(int_into_bool_tensor(0b0, length = 2)) == 0
+        assert pos_of_first_one(int_into_bool_tensor(0b0, length = 3)) == 0
+        assert pos_of_first_one(int_into_bool_tensor(0b1, length = 1)) == 1
+        assert pos_of_first_one(int_into_bool_tensor(0b1, length = 2)) == 1
+        assert pos_of_first_one(int_into_bool_tensor(0b1, length = 3)) == 1
+        #assert pos_of_first_one(int_into_bool_tensor(0b10, length = 1)) == 2#length is too small
+        assert pos_of_first_one(int_into_bool_tensor(0b10, length = 2)) == 2
+        assert pos_of_first_one(int_into_bool_tensor(0b10, length = 3)) == 2
+        assert pos_of_first_one(int_into_bool_tensor(0b10, length = 4)) == 2
+        assert pos_of_first_one(int_into_bool_tensor(0b11, length = 2)) == 2
+        assert pos_of_first_one(int_into_bool_tensor(0b11, length = 4)) == 2
+        assert pos_of_first_one(int_into_bool_tensor(0b100, length = 3)) == 3
+        assert pos_of_first_one(int_into_bool_tensor(0b100, length = 10)) == 3
+        assert pos_of_first_one(int_into_bool_tensor(0b10000, length = 5))== 5
+        assert pos_of_first_one(int_into_bool_tensor(0b10000, length = 10)) == 5
+        assert pos_of_first_one(int_into_bool_tensor(0b10010, length = 10)) == 5
+        assert pos_of_first_one(int_into_bool_tensor(0b10110, length = 10)) == 5
+
+        for _ in range(5):
+            the_number = random.randint(0b100, 0b111)
+            assert pos_of_first_one(int_into_bool_tensor(the_number, length=random.randint(3,13))) == 3
+            pass
+
+        for _ in range(11):
+            the_number = random.randint(0b1000, 0b1111)
+            assert pos_of_first_one(int_into_bool_tensor(the_number, length=random.randint(4,13))) == 4
+            pass
+
+        for length_minus_1 in [0,1,2,3,5,7,10,15,22]:
+            for _ in range(length_minus_1*10+1):
+                the_number = random.randint((1<<length_minus_1), (1<<(length_minus_1+1))-1)
+                the_number_in_tensor = int_into_bool_tensor(the_number, length=random.randint(length_minus_1+1, length_minus_1+7))
+                assert pos_of_first_one(the_number_in_tensor) == length_minus_1+1
+                pass
+            pass
+
+        return
+    ____test____pos_of_first_one()
+    pass
+
+def how_many_ones(input:torch.Tensor)->torch.Tensor:
+    '''tensor([T,F,F,F,F]) into 1'''
+    assert input.dtype == torch.bool
+    assert input.shape.__len__() == 1
+    if input.shape[0]> 1<<30:
+        result = input.to(torch.int64).sum()
+        pass
+    else:
+        result = input.to(torch.int32).sum()
+        pass
+    return result
+if "test" and __DEBUG_ME__() and False:
+    def ____test____how_many_ones():
+        assert how_many_ones(int_into_bool_tensor(0b0, length=1)) == 0
+        assert how_many_ones(int_into_bool_tensor(0b0, length=3)) == 0
+        assert how_many_ones(int_into_bool_tensor(0b1, length=1)) == 1
+        assert how_many_ones(int_into_bool_tensor(0b1, length=3)) == 1
+        assert how_many_ones(int_into_bool_tensor(0b10, length=10)) == 1
+        assert how_many_ones(int_into_bool_tensor(0b11, length=10)) == 2
+        assert how_many_ones(int_into_bool_tensor(0b100, length=10)) == 1
+        assert how_many_ones(int_into_bool_tensor(0b10000, length=10)) == 1
+        assert how_many_ones(int_into_bool_tensor(0b10010, length=10)) == 2
+        assert how_many_ones(int_into_bool_tensor(0b10110, length=10)) == 3
+
+        MAX_of_something = 5
+        for answer in [0,1,2,3,5,7,10,15,22]:
+            for _ in range(answer*10+5):
+                test_this = 0
+                some_pos = -1
+                for _ in range(answer):
+                    some_pos+= random.randint(1,MAX_of_something)
+                    test_this |= (1<<some_pos)
+                    assert type(test_this) == int
+                    assert isinstance(test_this, int)
+                    pass
+                assert how_many_ones(int_into_bool_tensor(test_this, length=answer*6+11)) == answer
+                pass
+            pass
+
+        return
+    ____test____how_many_ones()
+    pass
+
+def str_bool_tensor_as_if_its_binary(input:torch.Tensor, pad_to_length = 0)->str:
+    assert isinstance(input, torch.Tensor)
+    bool_py_list = input.tolist()
+
+    char_py_list = []
+    for the_bool in bool_py_list:
+        if the_bool:
+            char_py_list.append("1")
+            pass
+        else:
+            char_py_list.append("0")
+            pass
+        pass#for the_bool
+    raw_str = "".join(char_py_list)
+
+    needs_zeros = pad_to_length - raw_str.__len__()
+    if needs_zeros>0:
+        return "0"*needs_zeros+raw_str
+    else:
+        return raw_str
+    pass#end of function
+if "test" and __DEBUG_ME__() and True:
+    def ____test____str_as_binary():
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b1, length=1)) == "1"
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b0, length=1)) == "0"
+        #assert str_as_binary(0b0, 3) == "000"
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b10, length=2)) == "10"
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b1, length=1), 3) == "001"
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b0, length=1), 3) == "000"
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b10, length=2), 3) == "010"
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b10, length=2), 5) == "00010"
+
+        for _ in range(55):
+            the_number = random.randint(0,255)# 0 to 8 bits
+            length = random.randint(8, 22)
+            pad_to = random.randint(0, 28)
+
+            the_str = str_bool_tensor_as_if_its_binary(input = int_into_bool_tensor(the_number, length=length), pad_to_length=pad_to)
+            assert int(the_str, 2) == the_number
+            pass
+
+        for _ in range(355):
+            the_number = random.randint(1<<6, 1<<12-1)# 6 to 11 bits
+            length = random.randint(11, 22)
+            pad_to = random.randint( 0, 33)
+
+            the_str = str_bool_tensor_as_if_its_binary(input = int_into_bool_tensor(the_number, length=length), pad_to_length=pad_to)
+            assert int(the_str, 2) == the_number
+            pass
+
+        return 
+    ____test____str_as_binary()
+    pass
+
+#still useful, but not used in the class.
+def assert_all_unused_bits_in_addr_are_zeros(bits_in_use_mask:torch.Tensor, fixed_addr:torch.Tensor)->torch.Tensor:
+    '''Checks if fixed_addr has no 1s outside the bits marked by bit_in_use_mask
+    
+    Mainly for debug.'''
+    assert bits_in_use_mask.dtype == torch.bool
+    assert bits_in_use_mask.shape.__len__() == 1
+    assert fixed_addr.dtype == torch.bool
+    assert fixed_addr.shape.__len__() == 1
+
+    bits_NOT_in_use_mask = bits_in_use_mask.logical_not()
+    unmasked_bits = fixed_addr[bits_NOT_in_use_mask]
+    result = unmasked_bits.any().logical_not()
+    return result
+if "test" and __DEBUG_ME__() and False:
+    def ____test____assert_all_unused_bits_in_addr_are_zeros():
+        result = assert_all_unused_bits_in_addr_are_zeros(torch.tensor([False]), torch.tensor([False]))
+        assert isinstance(result, torch.Tensor)
+        assert result.dtype == torch.bool
+
+
+        assert assert_all_unused_bits_in_addr_are_zeros( \
+            int_into_bool_tensor(0b0,1), int_into_bool_tensor(0b0,1)) == True
+        assert assert_all_unused_bits_in_addr_are_zeros( \
+            int_into_bool_tensor(0b0,1), int_into_bool_tensor(0b1,1)) == False
+        assert assert_all_unused_bits_in_addr_are_zeros( \
+            int_into_bool_tensor(0b1,1), int_into_bool_tensor(0b0,1)) == True
+        assert assert_all_unused_bits_in_addr_are_zeros( \
+            int_into_bool_tensor(0b1,1), int_into_bool_tensor(0b1,1)) == True
+        assert assert_all_unused_bits_in_addr_are_zeros( \
+            int_into_bool_tensor(0b01,2), int_into_bool_tensor(0b10,2)) == False
+        assert assert_all_unused_bits_in_addr_are_zeros( \
+            int_into_bool_tensor(0b10,2), int_into_bool_tensor(0b10,2)) == True
+        assert assert_all_unused_bits_in_addr_are_zeros( \
+            int_into_bool_tensor(0b10,2), int_into_bool_tensor(0b11,2)) == False
+        assert assert_all_unused_bits_in_addr_are_zeros( \
+            int_into_bool_tensor(0b10,2), int_into_bool_tensor(0b01,2)) == False
+        assert assert_all_unused_bits_in_addr_are_zeros( \
+            int_into_bool_tensor(0b10,2), int_into_bool_tensor(0b00,2)) == True
+
+
+
+        for LENGTH in [2,4,8,16,50]:
+            for _ in range(LENGTH*5+20):
+                # init
+                bits_in_use_mask = torch.zeros(size=[LENGTH], dtype=torch.bool)
+                fixed_addr       = torch.zeros(size=[LENGTH], dtype=torch.bool)
+                # random it a bit.
+                # the mask can only init into 1 if touched. But the addr can convert into both 0 or 1. 
+                # but the untouched bits are always 0 for both var.
+                for __ in range(random.randint(LENGTH//5, LENGTH*2)):
+                    rand_pos = random.randint(0,LENGTH-1)
+                    bits_in_use_mask[rand_pos] = True
+                    if random.random()<0.5:
+                        fixed_addr[rand_pos] = True
+                        pass
+                    else:
+                        fixed_addr[rand_pos] = False
+                        pass
+
+                # assert
+                assert assert_all_unused_bits_in_addr_are_zeros( \
+                        bits_in_use_mask=bits_in_use_mask, fixed_addr=fixed_addr) == True
                 pass#for _
             pass#for LENGTH
 
@@ -221,86 +556,91 @@ if "test" and __DEBUG_ME__() and True:
 
 
 
-
-
-
-
-
-
-
-
-
-def int_into_bool_tensor(input:int, length:int)->torch.Tensor:
-    format_str = "{:0"+str(length)+"b}"
-    bits = format_str.format(input)
-    raw_result_list = [bit =="1" for bit in bits]
-    result = torch.tensor(raw_result_list)
+'bool tensor      back into     int'
+'bool tensor      back into     int'
+'bool tensor      back into     int'
+def bool_tensor_into_int(input:torch.Tensor)->int:
+    temp_str = str_bool_tensor_as_if_its_binary(input)
+    result = int(temp_str, base=2)
     return result
-    # old code below
-    #bits = list(f"{input:b}")
-    #raw_result_list = [bit =="1" for bit in bits]
-    # result = torch.zeros(size=[length], dtype=torch.bool)
-    # result[length-raw_result_list.__len__():] = torch.tensor(raw_result_list, dtype=torch.bool)
-    # return result
 if "test" and __DEBUG_ME__() and True:
-    def ____test____int_into_bool_tensor():
-        aaa = int_into_bool_tensor(input=0b1, length=3)
-        assert aaa.dtype == torch.bool
-        assert _bool_equal___0_as_false(aaa, [0,0,1])
-        aaa = int_into_bool_tensor(input=0b11, length=3)
-        assert _bool_equal___0_as_false(aaa, [0,1,1])
-        aaa = int_into_bool_tensor(input=0b101, length=3)
-        assert _bool_equal___0_as_false(aaa, [1,0,1])
-        aaa = int_into_bool_tensor(input=0b11, length=5)
-        assert _bool_equal___0_as_false(aaa, [0,0,0,1,1])
-        aaa = int_into_bool_tensor(input=0b101, length=5)
-        assert _bool_equal___0_as_false(aaa, [0,0,1,0,1])
-        aaa = int_into_bool_tensor(input=0b1010, length=5)
-        assert _bool_equal___0_as_false(aaa, [0,1,0,1,0])
+    def ____test____bool_tensor_into_int():
+
+        for length in [0,1,2,3,6,11,18]:
+            for _ in range(length*5+11):
+                answer = random.randint(0, 1<<(length+1)-1)
+                the_tensor = int_into_bool_tensor(input = answer, length=random.randint(length, length+11))
+                back_into_int = bool_tensor_into_int(the_tensor)
+                assert back_into_int == answer
+                pass#for _ 
+            pass#for length
 
         return 
-    ____test____int_into_bool_tensor()
+    ____test____bool_tensor_into_int()
     pass
 
 
-def int_list_into_bool_tensor(input_list:list[int], length:int)->torch.Tensor:
-    format_str = "{:0"+str(length)+"b}"
 
-    bits_list = []
-    for input in input_list:
-        bits_list.append(list(format_str.format(input)))
-        pass
 
-    raw_result_list = []
-    for bits in bits_list:
-        raw_result_list.append([bit =="1" for bit in bits])
-        pass
 
-    result = torch.tensor(raw_result_list)
+
+
+
+
+
+
+'bool tensor       into       pos neg 1'
+'bool tensor       into       pos neg 1'
+'bool tensor       into       pos neg 1'
+
+def bool_tensor_into_posneg1(input:torch.Tensor, dtype = torch.int32)->torch.Tensor:
+    result = torch.where(condition=input, input=torch.ones(size=[1], dtype=dtype), other=torch.ones(size=[1], dtype=dtype)*-1)
+    assert result.dtype == dtype
     return result
 if "test" and __DEBUG_ME__() and True:
-    def ____test____int_list_into_bool_tensor():
+    def ____test____bool_tensor_into_posneg1():
+        1w
+        1w
+        1w
+        1w
+        1w
+        1w
+        1w
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b1, length=1)) == "1"
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b0, length=1)) == "0"
+        #assert str_as_binary(0b0, 3) == "000"
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b10, length=2)) == "10"
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b1, length=1), 3) == "001"
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b0, length=1), 3) == "000"
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b10, length=2), 3) == "010"
+        assert str_bool_tensor_as_if_its_binary(int_into_bool_tensor(0b10, length=2), 5) == "00010"
 
-        aaa = int_list_into_bool_tensor(input_list=[0b1, 0b11], length=3)
-        assert aaa.dtype == torch.bool
-        assert _bool_equal___0_as_false(aaa, [[0,0,1],[0,1,1]])
+        for _ in range(55):
+            the_number = random.randint(0,255)# 0 to 8 bits
+            length = random.randint(8, 22)
+            pad_to = random.randint(0, 28)
 
-        aaa = int_list_into_bool_tensor(input_list=[0b11,0b101,0b1010], length=5)
-        assert _bool_equal___0_as_false(aaa, [  [0,0,0,1,1],
-                                                [0,0,1,0,1],
-                                                [0,1,0,1,0]])
-        
-        return
-    ____test____int_list_into_bool_tensor()
+            the_str = str_bool_tensor_as_if_its_binary(input = int_into_bool_tensor(the_number, length=length), pad_to_length=pad_to)
+            assert int(the_str, 2) == the_number
+            pass
+
+        for _ in range(355):
+            the_number = random.randint(1<<6, 1<<12-1)# 6 to 11 bits
+            length = random.randint(11, 22)
+            pad_to = random.randint( 0, 33)
+
+            the_str = str_bool_tensor_as_if_its_binary(input = int_into_bool_tensor(the_number, length=length), pad_to_length=pad_to)
+            assert int(the_str, 2) == the_number
+            pass
+
+        return 
+    ____test____str_as_binary()
     pass
 
 
 
 
-1w
-1w
-1w
-1w然后把前面的工具改到torch上。
+
 
 
 
