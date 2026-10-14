@@ -321,7 +321,7 @@ if "test" and __DEBUG_ME__() and True:
 'tools   bool list in tensor'
 def pos_of_first_one(input:torch.Tensor)->torch.Tensor:
     '''tensor([T,F,F,F,F]) into 5'''
-    assert input.dtype == torch.bool
+    assert input.dtype == torch.bool, "if the input is int, call pos_of_first_one__int"
     assert input.shape.__len__() == 1
     are_all_False = input.any().logical_not()
     if are_all_False:
@@ -558,10 +558,19 @@ if "test" and __DEBUG_ME__() and True:
 'bool tensor      back into     int'
 'bool tensor      back into     int'
 'bool tensor      back into     int'
-def bool_tensor_into_int(input:torch.Tensor)->int:
+def bool_tensor_into_int(input:torch.Tensor, dtype = torch.int64)->torch.Tensor:
     '''notice, int("") doesn't work. So is input is empty, this function doesn't work.'''
-    temp_str = str_1d_bool_tensor_as_if_its_binary(input)
-    result = int(temp_str, base=2)# notice, int("") doesn't work. So is input is empty, this function doesn't work.
+    # temp_str = str_1d_bool_tensor_as_if_its_binary(input)
+    # result = int(temp_str, base=2)# notice, int("") doesn't work. So is input is empty, this function doesn't work.
+    # return result
+    #  ver 1 uppon
+    #  ver 2 below
+    #safety
+    assert input.shape.__len__() == 1
+    the_iota_power_of_2 = torch.vander(x=torch.tensor([2], dtype=dtype), N=input.shape[0], increasing=False) #https://docs.pytorch.org/docs/2.14/generated/torch.vander.html
+    the_iota_power_of_2 = the_iota_power_of_2.reshape([-1])#flatten
+    picked = the_iota_power_of_2[input]
+    result = picked.sum()
     return result
 if "test" and __DEBUG_ME__() and True:
     def ____test____bool_tensor_into_int():
@@ -579,16 +588,27 @@ if "test" and __DEBUG_ME__() and True:
     ____test____bool_tensor_into_int()
     pass
 
-def bool_tensor_into_int_list(input:torch.Tensor)->list[int]:
+def bool_tensor_into_int_list(input:torch.Tensor, dtype = torch.int64)->torch.Tensor:
     '''notice, int("") doesn't work. So is input is empty, this function doesn't work.'''
-    assert input.shape.__len__() == 2
-
-    result_list = []
-    for the_slice in input:
-        temp_str = str_1d_bool_tensor_as_if_its_binary(the_slice)
-        result_list.append(int(temp_str, base=2))# notice, int("") doesn't work. So is input is empty, this function doesn't work.
+    if "ver 1       not in use" and False and False:
+        # assert input.shape.__len__() == 2
+        # result_list = []
+        # for the_slice in input:
+        #     temp_str = str_1d_bool_tensor_as_if_its_binary(the_slice)
+        #     result_list.append(int(temp_str, base=2))# notice, int("") doesn't work. So is input is empty, this function doesn't work.
+        #     pass
+        # return result_list
         pass
-    return result_list
+    #  ver 2 below
+    #safety
+    assert input.shape.__len__() == 2
+    the_iota_power_of_2___1_l = torch.vander(x=torch.tensor([2], dtype=dtype), N=input.shape[1], increasing=False) #https://docs.pytorch.org/docs/2.14/generated/torch.vander.html
+    the_iota_power_of_2___EXPANDb_l = the_iota_power_of_2___1_l.expand_as(input)
+    #assert the_iota_power_of_2___EXPANDb_l.shape == input.shape#debug         111111111111111111111111111111111111111111
+    picked = torch.where(condition=input, input=the_iota_power_of_2___EXPANDb_l, other=torch.zeros(size=(), dtype=dtype))
+    result = picked.sum(dim=1)
+    #assert _tensor_shape_check(result, input.shape[0])#debug         111111111111111111111111111111111111111111
+    return result
 if "test" and __DEBUG_ME__() and True:
     def ____test____bool_tensor_into_int_list():
         for batch in [1,2,3,5,14]:
@@ -612,7 +632,6 @@ if "test" and __DEBUG_ME__() and True:
                     pass#for _ 
                 pass#for length
             pass#for batch
-        
 
         return 
     ____test____bool_tensor_into_int_list()
