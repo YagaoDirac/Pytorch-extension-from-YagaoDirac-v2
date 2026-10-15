@@ -36,6 +36,38 @@ if "test" and False:
 '''assertions'''
 '''assertions'''
 
+
+
+def _same_shape(tensor1:torch.Tensor, tensor2:torch.Tensor)->bool:
+    if tensor1.nelement() > 1:
+        return tensor1.shape == tensor2.shape
+    if tensor1.nelement() == 1:
+        return tensor2.nelement() == 1
+    if tensor1.nelement() == 0:
+        return tensor2.nelement() == 0
+    assert False, "unreachable"
+if "test" and __DEBUG_ME__() and True:
+    def ____test_____same_shape():
+        assert torch.empty(size=[0]).nelement() == 0
+        assert _same_shape(torch.empty(size=[0]), torch.empty(size=[0]))
+        assert _same_shape(torch.tensor(123), torch.tensor(321))
+        assert _same_shape(torch.tensor(123.), torch.tensor(321))
+        assert _same_shape(torch.tensor(True), torch.tensor(321))
+
+        assert _same_shape(torch.tensor([123]), torch.tensor(321))
+        assert _same_shape(torch.tensor((123)), torch.tensor(321))
+        assert _same_shape(torch.tensor([[123]]), torch.tensor(321))
+
+        assert _same_shape(torch.tensor([1,2]), torch.tensor((3,4)))
+        assert _same_shape(torch.tensor([[1,2], [3,4]]), torch.tensor(((3,4),(5,6))))
+
+        assert _same_shape(torch.tensor([[1,2,3,4]]), torch.tensor([[5,6],[7,8]])) == False
+        assert _same_shape(torch.tensor([[1,2,3,4]]), torch.tensor(((5,6),(7,8)))) == False
+
+        return
+    ____test_____same_shape()
+    pass
+
 def is_int(a:torch.Tensor)->bool:
     result = a.dtype in [torch.int, torch.int8, torch.int16, torch.int32, torch.int64, 
                 torch.uint8, torch.uint16, torch.uint32, torch.uint64]
@@ -66,8 +98,7 @@ if "test" and __DEBUG_ME__() and True:
         return
     ____test____is_signed_int()
     pass
-    
-    
+
 def is_unsigned_int(a:torch.Tensor)->bool:
     result = a.dtype in [torch.uint8, torch.uint16, torch.uint32, torch.uint64]
     return result
@@ -83,6 +114,7 @@ if "test" and __DEBUG_ME__() and True:
     ____test____is_unsigned_int()
     pass
 
+
 def all_False(a:torch.Tensor)->bool:
     result = a.any().logical_not()
     return result
@@ -94,7 +126,6 @@ if "test" and __DEBUG_ME__() and True:
         return
     ____test____all_False()
     pass
-
 
 def _float_equal(a:float|torch.Tensor, b:float, epsilon:float = 0.0001)->bool:
     if isinstance(a, torch.Tensor):
@@ -119,13 +150,12 @@ if "test" and __DEBUG_ME__() and False:
     pass
 
 
-
-# def my_function(*args):
-#     for arg in args:
-#         print(arg)
-# my_function(1, 2, 3, "a", "b", "c")
-
-
+if "python 可变参数语法测试" and False and False:
+    def my_function(*args):
+        for arg in args:
+            print(arg)
+    my_function(1, 2, 3, "a", "b", "c")
+    pass
 def _tensor_shape_check(the_tensor:torch.Tensor, *args)->bool:
     #assert isinstance(args, list)
     if (args.__len__() == 0) or (args.__len__() == 1 and args[0] == 1):
@@ -138,7 +168,6 @@ def _tensor_shape_check(the_tensor:torch.Tensor, *args)->bool:
         pass# if (args.__len__() == 0) or (args.__len__() == 1 and args[0] == 1):
     _temp_shape = torch.Size(args)
     return the_tensor.shape == _temp_shape
-
 if "test" and __DEBUG_ME__() and True:
     def ____test______tensor_shape_check():
         assert _tensor_shape_check(torch.rand(size=[]))
@@ -189,9 +218,6 @@ if "test" and __DEBUG_ME__() and True:
         return
     ____test______tensor_shape_check()
     pass
-
-
-
 
 
 
@@ -248,40 +274,64 @@ if "test" and __DEBUG_ME__() and False:
     ____test_____tensor_equal()
     pass
 
+if "pytorch dtype convertion test" and False and False:
+    'only 0 and 0. are converted into False. Anything else are into True.'
+    aaa = torch.tensor([1., 0., 2., -1, -2.], dtype=torch.float32)
+    aaa = aaa.to(torch.bool)
+    assert aaa.dtype == torch.bool
+    assert aaa.eq(torch.tensor([True, False, True, True, True])).all()
 
+    aaa = torch.tensor([1., 0., 2., -1, -2.], dtype=torch.bfloat16)
+    aaa = aaa.to(torch.bool)
+    assert aaa.dtype == torch.bool
+    assert aaa.eq(torch.tensor([True, False, True, True, True])).all()
 
+    aaa = torch.tensor([1, 0, 2, -1, -2], dtype=torch.int32)
+    aaa = aaa.to(torch.bool)
+    assert aaa.dtype == torch.bool
+    assert aaa.eq(torch.tensor([True, False, True, True, True])).all()
 
+    aaa = torch.tensor([1, 0, 2, -1, -2], dtype=torch.uint32)
+    aaa = aaa.to(torch.bool)
+    assert aaa.dtype == torch.bool
+    assert aaa.eq(torch.tensor([True, False, True, True, True])).all()
 
-
+    pass
 def _bool_equal___0_as_false(  a:torch.Tensor|list[int]|list[list[int]], \
                     b:torch.Tensor|list[int]|list[list[int]], )->bool:
     if not isinstance(a, torch.Tensor):
         a = torch.tensor(a, dtype = torch.bool)
         pass
+    if a.dtype != torch.bool:
+        a = a.to(torch.bool)  #1w 新加的 1111111111111111111111111111111111111111111111111111111111111111
+        pass 
+
     if not isinstance(b, torch.Tensor):
         b = torch.tensor(b, dtype = torch.bool)
         pass
+    if b.dtype != torch.bool:
+        b = b.to(torch.bool)  #1w 新加的 1111111111111111111111111111111111111111111111111111111111111111
+        pass 
     #check the shape.
-    if a.shape == torch.Size([]):
-        assert b.shape == torch.Size([]) or b.shape == torch.Size([1])
+    assert a.nelement()>0, "this function doesn't handle empty tensor."
+    assert b.nelement()>0, "this function doesn't handle empty tensor."
+    if a.nelement() == 1:
+        assert b.nelement() == 1
         pass
-    elif b.shape == torch.Size([]):#a is not Size([])
-        assert a.shape == torch.Size([1])
-        pass
-    else:#no Size([]), a normal check.
+    else:
         assert a.shape == b.shape
         pass
     
-    # maybe I should not do this???
+    # maybe I should not do this???   暂时还没见过这个需求。总之就是设备自适应。暂时不要.
     # if a.device.type!=b.device.type or a.device.index!=b.device.index:
     #     proxy_of_a = a.detach().clone().to(b.device)
     with torch.inference_mode():
-        result = a.eq(b).all()
+        result = a.eq(b).all()  
         return result
     pass#end of function
-if "test" and __DEBUG_ME__() and False:
-    def ____test____bool_equal____():
-        if "dtype test" and True:
+if "test" and __DEBUG_ME__() and True:
+    def ____test_____bool_equal___0_as_false():
+        if "dtype test            redundent" and True:
             int_test_1 = torch.tensor([1,  -1,  0], dtype=torch.int32)
             int_test_1 = int_test_1.to(torch.bool)
             assert int_test_1.dtype == torch.bool
@@ -309,19 +359,113 @@ if "test" and __DEBUG_ME__() and False:
             assert float_test_2[2] == False
             pass#/ test
 
-        if "function behavior" and True:
-            assert _tensor_equal(torch.tensor([1]), torch.tensor([1]))
-            assert _tensor_equal(torch.tensor([1, 1]), [1, 1])
-            assert _tensor_equal(torch.tensor(1), [1])
+        if "function behavior            dtype" and True:
+            assert _bool_equal___0_as_false(torch.tensor([1,0]), torch.tensor([1,0])        )
+            assert _bool_equal___0_as_false(torch.tensor([1,0]), torch.tensor([1.,0.])      )
+            assert _bool_equal___0_as_false(torch.tensor([1,0]), [1,0]                      )
+            assert _bool_equal___0_as_false(torch.tensor([1,0]), [1.,0.]                    )
+            assert _bool_equal___0_as_false(torch.tensor([1,0]), [1.,0]                     )
+            assert _bool_equal___0_as_false(torch.tensor([1,0]), torch.tensor([True, False]))
+            assert _bool_equal___0_as_false(torch.tensor([1,0]), [True, False]              )
 
-            assert _tensor_equal(torch.tensor([1]), torch.tensor([0])) == False
-            assert _tensor_equal(torch.tensor([1, 1]), [1, 0]) == False
-            assert _tensor_equal(torch.tensor([1, 1]), [0, 0]) == False
-            assert _tensor_equal(torch.tensor(1), [0]) == False
+            assert _bool_equal___0_as_false(torch.tensor([1,0])        , torch.tensor([1,0]))
+            assert _bool_equal___0_as_false(torch.tensor([1.,0.])      , torch.tensor([1,0]))
+            assert _bool_equal___0_as_false([1,0]                      , torch.tensor([1,0]))
+            assert _bool_equal___0_as_false([1.,0.]                    , torch.tensor([1,0]))
+            assert _bool_equal___0_as_false([1.,0]                     , torch.tensor([1,0]))
+            assert _bool_equal___0_as_false(torch.tensor([True, False]), torch.tensor([1,0]))
+            assert _bool_equal___0_as_false([True, False]              , torch.tensor([1,0]))
+            
+
+            assert _bool_equal___0_as_false(torch.tensor([1.,0.]), torch.tensor([1,0])          )
+            assert _bool_equal___0_as_false(torch.tensor([1.,0.]), torch.tensor([1.,0.])        )
+            assert _bool_equal___0_as_false(torch.tensor([1.,0.]), [1,0]                        )
+            assert _bool_equal___0_as_false(torch.tensor([1.,0.]), [1.,0.]                      )
+            assert _bool_equal___0_as_false(torch.tensor([1.,0.]), [1.,0]                       )
+            assert _bool_equal___0_as_false(torch.tensor([1.,0.]), torch.tensor([True, False])  )
+            assert _bool_equal___0_as_false(torch.tensor([1.,0.]), [True, False]                )
+
+            assert _bool_equal___0_as_false(torch.tensor([1,0])         , torch.tensor([1.,0.]))
+            assert _bool_equal___0_as_false(torch.tensor([1.,0.])       , torch.tensor([1.,0.]))
+            assert _bool_equal___0_as_false([1,0]                       , torch.tensor([1.,0.]))
+            assert _bool_equal___0_as_false([1.,0.]                     , torch.tensor([1.,0.]))
+            assert _bool_equal___0_as_false([1.,0]                      , torch.tensor([1.,0.]))
+            assert _bool_equal___0_as_false(torch.tensor([True, False]) , torch.tensor([1.,0.]))
+            assert _bool_equal___0_as_false([True, False]               , torch.tensor([1.,0.]))
+            
+
+            assert _bool_equal___0_as_false(torch.tensor([True, False]), torch.tensor([1,0])        )
+            assert _bool_equal___0_as_false(torch.tensor([True, False]), torch.tensor([1.,0.])      )
+            assert _bool_equal___0_as_false(torch.tensor([True, False]), [1,0]                      )
+            assert _bool_equal___0_as_false(torch.tensor([True, False]), [1.,0.]                    )
+            assert _bool_equal___0_as_false(torch.tensor([True, False]), [1.,0]                     )
+            assert _bool_equal___0_as_false(torch.tensor([True, False]), torch.tensor([True, False]))
+            assert _bool_equal___0_as_false(torch.tensor([True, False]), [True, False]              )
+
+            assert _bool_equal___0_as_false(torch.tensor([1,0])        , torch.tensor([True, False]))
+            assert _bool_equal___0_as_false(torch.tensor([1.,0.])      , torch.tensor([True, False]))
+            assert _bool_equal___0_as_false([1,0]                      , torch.tensor([True, False]))
+            assert _bool_equal___0_as_false([1.,0.]                    , torch.tensor([True, False]))
+            assert _bool_equal___0_as_false([1.,0]                     , torch.tensor([True, False]))
+            assert _bool_equal___0_as_false(torch.tensor([True, False]), torch.tensor([True, False]))
+            assert _bool_equal___0_as_false([True, False]              , torch.tensor([True, False]))
+            pass#/test
+
+        if "function behavior            shape" and True:
+            assert _bool_equal___0_as_false(torch.tensor([1])    , torch.tensor([True])    )
+            assert _bool_equal___0_as_false(torch.tensor([[1]])  , torch.tensor([True])    )
+            assert _bool_equal___0_as_false(torch.tensor([[[1]]]), torch.tensor([True])    )
+            assert _bool_equal___0_as_false(torch.tensor([1])    , torch.tensor([[True]])  )
+            assert _bool_equal___0_as_false(torch.tensor([[1]])  , torch.tensor([[True]])  )
+            assert _bool_equal___0_as_false(torch.tensor([[[1]]]), torch.tensor([[True]])  )
+            assert _bool_equal___0_as_false(torch.tensor([1])    , torch.tensor([[[True]]]))
+            assert _bool_equal___0_as_false(torch.tensor([[1]])  , torch.tensor([[[True]]]))
+            assert _bool_equal___0_as_false(torch.tensor([[[1]]]), torch.tensor([[[True]]]))
+
+            assert _bool_equal___0_as_false(torch.tensor([0])    , torch.tensor([False])    )
+            assert _bool_equal___0_as_false(torch.tensor([[0]])  , torch.tensor([False])    )
+            assert _bool_equal___0_as_false(torch.tensor([[[0]]]), torch.tensor([False])    )
+            assert _bool_equal___0_as_false(torch.tensor([0])    , torch.tensor([[False]])  )
+            assert _bool_equal___0_as_false(torch.tensor([[0]])  , torch.tensor([[False]])  )
+            assert _bool_equal___0_as_false(torch.tensor([[[0]]]), torch.tensor([[False]])  )
+            assert _bool_equal___0_as_false(torch.tensor([0])    , torch.tensor([[[False]]]))
+            assert _bool_equal___0_as_false(torch.tensor([[0]])  , torch.tensor([[[False]]]))
+            assert _bool_equal___0_as_false(torch.tensor([[[0]]]), torch.tensor([[[False]]]))
+
+            assert _bool_equal___0_as_false(torch.tensor(1)  , torch.tensor(True)  )
+            assert _bool_equal___0_as_false(torch.tensor(1)  , torch.tensor([True]))
+            assert _bool_equal___0_as_false(torch.tensor([1]), torch.tensor(True)  )
+
+            assert _bool_equal___0_as_false(1, True)
+            assert _bool_equal___0_as_false(1, [True])
+            assert _bool_equal___0_as_false([1], True)
+
+            #assert _bool_equal___0_as_false([1,1], [[1,1]])#should not work
+            #assert _bool_equal___0_as_false([1,1], [[1],[1]])#should not work
+
+            pass#/test
+
+        if "function behavior            they don't equal" and True:
+            assert _bool_equal___0_as_false([1], [0]    ) == False
+            assert _bool_equal___0_as_false([1], [False]) == False
+            assert _bool_equal___0_as_false([1], [0.]   ) == False
+
+            assert _bool_equal___0_as_false([True], [0]    ) == False
+            assert _bool_equal___0_as_false([True], [False]) == False
+            assert _bool_equal___0_as_false([True], [0.]   ) == False
+
+            assert _bool_equal___0_as_false([1.], [0]    ) == False
+            assert _bool_equal___0_as_false([1.], [False]) == False
+            assert _bool_equal___0_as_false([1.], [0.]   ) == False
+
+            assert _bool_equal___0_as_false(1  , 0  ) == False
+            assert _bool_equal___0_as_false([1], 0  ) == False
+            assert _bool_equal___0_as_false(1  , [0]) == False
+
             pass#/ test
 
         return  
-    ____test____bool_equal____()
+    ____test_____bool_equal___0_as_false()
     pass
 
 def _either_1_or_neg1(input:torch.Tensor)->torch.Tensor:
