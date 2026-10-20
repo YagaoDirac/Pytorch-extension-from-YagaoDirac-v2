@@ -59,7 +59,7 @@ from typing import Literal
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-# from pytorch_yagaodirac_v2.Util import all_False, is_int, \
+# from pytorch_yagaodirac_v2.Util import is_int, \
 #         _tensor_equal, _bool_equal___0_as_false, _either_1_or_neg1, _tensor_shape_check, \
 #         iota, str_the_list
 #from pytorch_yagaodirac_v2.Random import rand_sign

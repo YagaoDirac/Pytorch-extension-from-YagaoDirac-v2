@@ -248,7 +248,7 @@ if "algo prototype       sort the dataset" and __DEBUG_ME__() and True:
         return
     ____prototype____sort_the_dataset()
     pass
-def _prototype____dataset____sort(input___b_l:torch.Tensor, label___b:torch.Tensor, safety_check = False)->torch.Tensor:
+def _prototype____dataset____sort(input___b_l:torch.Tensor, label___b:torch.Tensor, safety_check = False)->tuple[torch.Tensor, torch.Tensor]:
     'return new_input___b_l, new_label___b'
 
     if safety_check:
@@ -861,7 +861,33 @@ if "test" and __DEBUG_ME__() and True:
 
 
 
-1w 好像可以写类了。然后是特殊的xor数据集的生成，可以用可视化看看了。
+
+def _prototype____dataset____split(input___b_l:torch.Tensor, label___b:torch.Tensor, split_pos:int)-> \
+        tuple[tuple[torch.Tensor,torch.Tensor],tuple[torch.Tensor,torch.Tensor]]:
+    '''return (False_child___input___b_l, False_child___label___b), (True_child___input___b_l, True_child___label___b)'''
+    1w
+    1w
+    1w
+    1w
+    
+    
+
+
+def _prototype____dataset____calc_xor_score(input___b_l:torch.Tensor, label___b:torch.Tensor, 
+                    dataset_already_sorted = False, safety_check = False)->torch.Tensor:
+    'return relativity___l'
+    if safety_check:
+        assert input___b_l.shape.__len__() == 2
+        assert label___b.shape.__len__() == 1
+        assert input___b_l.shape[0] == label___b.shape[0]
+        assert input___b_l.dtype == torch.bool
+        assert label___b.dtype == torch.bool
+        pass
+
+    if "now it only handles full dataset"
+
+    assert False, "jixu"
+    #if dataset_already_sorted:
 
 
 
@@ -869,3 +895,283 @@ if "test" and __DEBUG_ME__() and True:
 
 
 
+
+'''申请内存的函数单独拿出来，方便以后调整。'''
+def _only_for_Dataset_for_logic_learning_to_use____calc_bigger_capacity(
+        extra_batch:int, 
+        batch_now:int, length_now:int, recommended_min = 16)->int:
+    '''return new_capacity'''
+    total_in_dim_needed = extra_batch+batch_now
+    min_new_nelement = total_in_dim_needed*length_now
+    ONE_M = 1<<20
+    if min_new_nelement<ONE_M:
+        assert recommended_min>0
+        result = total_in_dim_needed*2+recommended_min
+        return result
+    ONE_G = 1<<30
+    if min_new_nelement<ONE_M:
+        return int(total_in_dim_needed*1.25)
+    return int(total_in_dim_needed*1.1)
+    #end of function
+if " test" and __DEBUG_ME__() and True:
+    "感觉不用很严格？"
+    def ____test_____only_for_Dataset_for_logic_learning_to_use____calc_bigger_capacity():
+        if "result must be greater than input combined" and True:
+
+            extra_batch = 0
+            batch_now   = 0
+            length_now  = 10
+
+            new_capacity = _only_for_Dataset_for_logic_learning_to_use____calc_bigger_capacity(
+                    extra_batch = extra_batch, batch_now = batch_now, length_now = length_now)
+            #<  assert
+            assert new_capacity >= extra_batch + batch_now
+            assert new_capacity < 50
+
+
+            extra_batch = 10
+            batch_now   = 10
+            length_now  = 10
+
+            new_capacity = _only_for_Dataset_for_logic_learning_to_use____calc_bigger_capacity(
+                    extra_batch = extra_batch, batch_now = batch_now, length_now = length_now)
+            #<  assert
+            assert new_capacity >= extra_batch + batch_now
+            assert new_capacity < 100
+
+
+            extra_batch = 100
+            batch_now   = 100
+            length_now  = 100
+
+            new_capacity = _only_for_Dataset_for_logic_learning_to_use____calc_bigger_capacity(
+                    extra_batch = extra_batch, batch_now = batch_now, length_now = length_now)
+            #<  assert
+            assert new_capacity >= extra_batch + batch_now
+            assert new_capacity < 500
+
+
+            extra_batch = 1000
+            batch_now   = 1000
+            length_now  = 1000
+
+            new_capacity = _only_for_Dataset_for_logic_learning_to_use____calc_bigger_capacity(
+                    extra_batch = extra_batch, batch_now = batch_now, length_now = length_now)
+            #<  assert
+            assert new_capacity >= extra_batch + batch_now
+            assert new_capacity < 3000
+
+
+            extra_batch = 10000
+            batch_now   = 10000
+            length_now  = 10000
+
+            new_capacity = _only_for_Dataset_for_logic_learning_to_use____calc_bigger_capacity(
+                    extra_batch = extra_batch, batch_now = batch_now, length_now = length_now)
+            #<  assert
+            assert new_capacity >= extra_batch + batch_now
+            assert new_capacity < 30000
+
+
+            extra_batch = 100000
+            batch_now   = 100000
+            length_now  = 100000
+
+            new_capacity = _only_for_Dataset_for_logic_learning_to_use____calc_bigger_capacity(
+                    extra_batch = extra_batch, batch_now = batch_now, length_now = length_now)
+            #<  assert
+            assert new_capacity >= extra_batch + batch_now
+            assert new_capacity < 300000
+
+        return
+    ____test_____only_for_Dataset_for_logic_learning_to_use____calc_bigger_capacity()
+    pass
+
+
+class Dataset_for_logic_learning(torch.Module):
+    batch:int
+    input___CAPb_l:torch.nn.Parameter
+    label___CAPb:torch.nn.Parameter
+    _calc_bigger_capacity:function
+    def __init__(self, length:int, init_capacity=16):
+        super().__init__()
+
+        self.batch = 0
+        self.input___CAPb_l = torch.nn.parameter(torch.empty(size=[init_capacity, length], dtype=torch.bool))
+        self.label___CAPb   = torch.nn.parameter(torch.empty(size=[init_capacity],         dtype=torch.bool))
+        # assert _tensor_shape_check(input___b_l, batch, length)
+        # assert _tensor_shape_check(label___b, batch)
+        self._calc_bigger_capacity = _only_for_Dataset_for_logic_learning_to_use____calc_bigger_capacity
+        assert False, "untested"
+        pass
+    def get_length(self)->int:
+        assert False, "untested"
+        return self.input___CAPb_l.shape[1]
+
+    @staticmethod
+    def new_with_data(input___b_l:torch.Tensor, label___b:torch.Tensor, detach_clone = True, recommend_capacity = 16)->'Dataset_for_logic_learning':
+        assert input___b_l.shape.__len__() == 2
+        assert label___b.  shape.__len__() == 1
+        assert input___b_l.shape[0] == label___b.shape[0]
+        length = input___b_l.shape[1]
+        batch  = label___b  .shape[0]
+
+        if recommend_capacity <= batch:#  recommend_capacity too small, ignored.
+            init_capacity = batch
+            pass#
+        else:#  recommend_capacity big enough, it's the init capacity
+            init_capacity = recommend_capacity
+            pass#
+        result = Dataset_for_logic_learning(length=length, init_capacity=init_capacity)
+
+        if detach_clone:
+            result.input___CAPb_l.data[batch] = input___b_l.detach().clone()
+            result.label___CAPb  .data[batch] = label___b  .detach().clone()
+            pass
+        else:
+            result.input___CAPb_l.data[batch] = input___b_l
+            result.label___CAPb  .data[batch] = label___b  
+            pass
+
+        assert False, "untested"
+        return result
+
+    def forward(self):
+        assert False, "This class is designed as a container, not a layer. Don't call this function."
+        pass# end of function
+
+    def get_useful___input___b_l(self)->torch.Tensor:
+        assert False, "untested"
+        return self.input___CAPb_l[:self.batch]
+    def get_useful___label___b(self)->torch.Tensor:
+        assert False, "untested"
+        return self.label___CAPb[:self.batch]
+
+    def append(self, new__input___l:int|torch.Tensor, new__label___s:bool|torch.Tensor)->None:
+        #  new input
+        if isinstance(new__input___l, int):
+            new__input___l = int_list_into_bool_tensor(input_list=[new__input___l], length = self.get_length())
+            pass
+        if isinstance(new__input___l, torch.Tensor):
+            new_element = new_element.reshape([1, -1])
+            pass
+        assert _tensor_shape_check(new__input___l, 1, self.get_length())
+        #  new label
+        if isinstance(new__label___s, bool):
+            new__label___s = torch.tensor([new__label___s])
+            pass
+        if isinstance(new__label___s, torch.Tensor):
+            new__label___s = new__label___s.reshape([1])
+            pass
+        assert _tensor_shape_check(new__label___s, 1)
+
+        self.extend(new__input___b_l = new__input___l, new__label___b = new__label___s)
+        return
+
+    def is_empty(self)->bool:
+        assert False, "untested"
+        return self.batch == 0
+    
+    def extend(self, new__input___b_l:torch.Tensor, new__label___b:torch.Tensor, safety = True)->None:
+        if safety:
+            assert new__input___b_l.shape.__len__() == 2
+            assert new__label___b.  shape.__len__() == 1
+            assert new__input___b_l.shape[0] == new__label___b.shape[0]
+            pass
+        new_batch = new__label___b.shape[0]
+
+        with torch.no_grad():
+            _temp__how_many_to_add = new_batch
+            _batch_after = self.batch + _temp__how_many_to_add
+            if _batch_after > self._capacity():# get a bigger new capacity first.
+                _temp___new_capacity = self._calc_bigger_capacity( \
+                        extra_batch = new_batch, batch_now = self.batch, length_now = self.get_length())
+                        #extra_batch:int,        batch_now:int,          length_now:int,       recommended_min = 16
+
+                _temp___new_container___for_input = torch.empty(size=[_temp___new_capacity, self.get_length()], 
+                        dtype=torch.bool, device=self.input___CAPb_l.device)
+                _temp___new_container___for_label = torch.empty(size=[_temp___new_capacity], 
+                        dtype=torch.bool, device=self.label___CAPb  .device)
+
+                _temp___new_container___for_input[0:self.batch] = self.get_useful___input___b_l()
+                _temp___new_container___for_label[0:self.batch] = self.get_useful___label___b()
+                self.input___CAPb_l = torch.nn.Parameter(_temp___new_container___for_input, requires_grad=False)
+                self.label___CAPb   = torch.nn.Parameter(_temp___new_container___for_label, requires_grad=False)
+                pass
+
+            self.input___CAPb_l[self.batch:self.batch + _temp__how_many_to_add] = new__input___b_l.detach().clone()
+            self.label___CAPb  [self.batch:self.batch + _temp__how_many_to_add] = new__label___b  .detach().clone()
+            self.batch = _batch_after
+            assert False, "untested"
+            return
+        pass#end of function
+
+
+    def merge____________xxxxxxxxxxxx____no_plan(self):
+        assert False, "no plan. Maybe later"
+        pass
+
+    def split(self, pos:int)->tuple['Dataset_for_logic_learning', 'Dataset_for_logic_learning']:
+
+        assert False, "wait for the prototype."
+        assert False, "untested"
+        return 
+
+
+
+
+    def shrink(self)->None:
+        self.input___CAPb_l = torch.nn.Parameter(self.get_useful___input___b_l())
+        self.label___CAPb   = torch.nn.Parameter(self.get_useful___label___b  ())
+        assert False, "untested"
+        pass
+
+    def calc_relativity(self, safety_check: bool = False) -> torch.Tensor:
+        result = _prototype____dataset____calc_relativity(input___b_l = self.get_useful___input___b_l(), 
+                label___b = self.get_useful___label___b(), safety_check=safety_check)
+        assert False, "untested"
+        return result
+
+    def sort(self, safety_check: bool = False) -> None:
+        new_input___b_l, new_label___b = _prototype____dataset____sort(input___b_l = self.get_useful___input___b_l(), 
+                label___b = self.get_useful___label___b(), safety_check=safety_check)
+        self.input___CAPb_l[self.batch] = new_input___b_l
+        self.label___CAPb  [self.batch] = new_label___b
+        assert False, "untested"
+        return 
+
+    def plt_show(self, force__log2_of_total_shown_points: int | None = None, safety: bool = True, plt_show: bool = True, 
+            heat_map_value_for_True: list[float] = [1, 1, 0.23],
+            heat_map_value_for_False: list[float] = [1, 0.1, 0.2],
+            heat_map_value_for_NA: list[float] = [0, 0, 0],
+            heat_map_title: str = "T:yellow, F:red, NA:black"
+                    ) -> torch.Tensor:
+
+        result = _prototype____dataset____plt_show(input___b_l = self.get_useful___input___b_l(), label___b = self.get_useful___label___b(),
+                force__log2_of_total_shown_points = force__log2_of_total_shown_points, safety = safety, plt_show = plt_show,
+                heat_map_value_for_True = heat_map_value_for_True, heat_map_value_for_False = heat_map_value_for_False,
+                heat_map_value_for_NA = heat_map_value_for_NA, heat_map_title = heat_map_title)
+        assert False, "untested"
+        return result
+
+
+
+    def safety___no_duplicated_input(self, assertion = True)->bool:
+        the_int_list = bool_tensor_into_int_list(self.get_useful___input___b_l())
+        the_int_set = set(the_int_list)
+        result = the_int_list.__len__() == the_int_set.__len__()
+        if assertion:
+            assert result
+            pass
+        assert False, "untested"
+        return result
+    
+
+
+
+
+
+#1w 还有就是在真的情况里面，如果有两个输入位的行为完全一致会如何。二叉树是否有能力自动的给优化掉？
+#1w 还有就是在真的情况里面，如果有两个输入位的行为完全一致会如何。二叉树是否有能力自动的给优化掉？
+#1w 还有就是在真的情况里面，如果有两个输入位的行为完全一致会如何。二叉树是否有能力自动的给优化掉？
+#1w 还有就是在真的情况里面，如果有两个输入位的行为完全一致会如何。二叉树是否有能力自动的给优化掉？
