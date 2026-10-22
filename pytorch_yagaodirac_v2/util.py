@@ -114,6 +114,65 @@ if "test" and __DEBUG_ME__() and True:
     ____test____is_unsigned_int()
     pass
 
+def is_list_int(the_list:list)->bool:
+    '''Only 1d list[int] returns True. 2d array like list[list[int]] returns False.'''
+    assert type(the_list) == list, "Only list is allowed."
+
+    for _element in the_list:
+        if type(_element) != int:
+            return False
+        pass
+    return True
+if "test" and __DEBUG_ME__() and True:
+    def ____test____is_list_int():
+
+        assert is_list_int([1,  2,  3]) == True
+        assert is_list_int([[1,  2,  3]]) == False
+        assert is_list_int([None,   2,  3]) == False
+        assert is_list_int([False,  2,  3]) == False
+        assert is_list_int([True,   2,  3]) == False
+        assert is_list_int([1., 2,  3]) == False
+        assert is_list_int([1,  2., 3]) == False
+        #is_list_int(1)      # doesn't work.
+        #is_list_int(None)   # doesn't work.
+        #is_list_int(True)   # doesn't work.
+        #is_list_int('True') # doesn't work.
+        return
+    ____test____is_list_int()
+    pass
+
+def is_list_float(the_list:list)->bool:
+    '''Only 1d list[float] returns True. 2d array like list[list[float]] returns False.'''
+    assert type(the_list) == list, "Only list is allowed."
+
+    for _element in the_list:
+        if type(_element) != float:
+            return False
+        pass
+    return True
+if "test" and __DEBUG_ME__() and True:
+    def ____test____is_list_float():
+
+        assert is_list_float([1., 2., 3.]) == True
+        assert is_list_float([[1., 2., 3.]]) == False
+        assert is_list_float([None,   2., 3.]) == False
+        assert is_list_float([False,   2., 3.]) == False
+        assert is_list_float([True,   2., 3.]) == False
+        assert is_list_float([1,  2., 3.]) == False
+        assert is_list_float([1., 2,  3.]) == False
+        #is_list_float(1.)     # doesn't work.
+        #is_list_float(None)   # doesn't work.
+        #is_list_float(True)   # doesn't work.
+        #is_list_float('True') # doesn't work.
+        return
+    ____test____is_list_float()
+    pass
+
+
+
+
+
+
 
 def all_False(a:torch.Tensor)->bool:
     result = a.any().logical_not()

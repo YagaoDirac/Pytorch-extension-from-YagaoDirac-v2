@@ -1713,6 +1713,9 @@ class Grad_inspector(torch.nn.Module):
             pass
         return 
 
+    def zero_grad(self)->None:
+        self.fake_data.grad = None
+        return 
 
     def abs_mean(self)->float:
         return self.fake_data.grad.abs().mean().item()
@@ -1807,13 +1810,26 @@ if "basic behavior" and False:
             output = the_inspector(input)
             assert the_inspector.fake_data.grad is None  # cleared
 
+
+            #zero_grad
+            input = torch.randn(size=size, dtype=dtype, device=device, requires_grad=True)
+            the_inspector = Grad_inspector(clear_grad_in___step=True)#default
+
+            output = the_inspector(input)
+            grad_in = torch.randn_like(output)
+            output.backward(gradient=grad_in, inputs=[input, the_inspector.fake_data])
+            assert isinstance(the_inspector.fake_data.grad, torch.Tensor)
+
+            the_inspector.zero_grad()
+            assert the_inspector.fake_data.grad is None  # cleared
+
             pass#/ test
 
         return
     ____equivalence____Grad_inspector()
     pass
 
-if "measure functions" and True:
+if "measure functions" and False:
     def ____measure_functions____Grad_inspector():
 
         if "abs mean" and True:
