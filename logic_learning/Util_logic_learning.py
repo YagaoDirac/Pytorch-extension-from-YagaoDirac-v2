@@ -1024,6 +1024,54 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
+'debug and print'
+'debug and print'
+'debug and print'
+def print_2d_bool_tensor(the_tensor:torch.Tensor, true_as = "1", false_as = "0", print_directly = True)->list[str]:
+    assert true_as  != "0"
+    assert false_as != "1"
+    _temp___some_special_chunk___in_list_int = bool_tensor_into_int_list(the_tensor)
+    length = the_tensor.shape[1]
+    all_the_str:list[str] = []
+    for _temp_element in _temp___some_special_chunk___in_list_int:
+        _temp__str = bin(_temp_element)[2:].rjust(length, "0")
+        _temp__str = _temp__str.replace("1", true_as)
+        _temp__str = _temp__str.replace("0", false_as)
+        all_the_str.append(_temp__str)
+        pass
+    if print_directly:
+        print_this = "\n".join(all_the_str)
+        print(print_this)
+        pass
+    return all_the_str#end of function
+if "test" and __DEBUG_ME__() and False:
+    def ____test____print_2d_bool_tensor():
+        print_2d_bool_tensor(int_list_into_bool_tensor([
+                0b011101,
+                0b011111,
+                0b011001,
+                ], length=8), true_as="x")
+
+        print_2d_bool_tensor(int_list_into_bool_tensor([
+                0b111110111110011110111110,
+                0b001000100000100000001000,
+                0b001000111100111100001000,
+                0b001000100000000010001000,
+                0b001000111110111100001000,
+                ], length=25), true_as="X", false_as=".")
+        return
+    ____test____print_2d_bool_tensor()
+    pass
+
+
+
+
+
+
+
+
+
+
 
 
 
