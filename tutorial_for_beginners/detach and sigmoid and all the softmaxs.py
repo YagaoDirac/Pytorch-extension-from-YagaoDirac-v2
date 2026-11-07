@@ -202,6 +202,532 @@ if "pytorch     detach feature test" and True:
     pass
 
 
+if "adaptive methods" and True:
+    def ____adaptive_methods():
+        '''conclusion:  in sub the max, only the max_element gets different grad.
+        Other NON_max elements get exactly the same grad. The math formula is very clear.
+        no_detach ver grad sum to 0.
+        detach ver equals to the g_in.'''
+        if "sub the max" and False:
+            for dim in [2,3,4,6,11,31]:
+                for _iii in range(66):
+                    input = torch.rand(size=[dim])
+                    grad___l = torch.rand(size=[dim])
+
+                    #  no_detach
+                    #  no_detach
+                    no_detach_input___d = input.detach().clone()
+                    no_detach_input___d.requires_grad_()
+                    max_index = no_detach_input___d.argmax()
+                    _temp___max_value = no_detach_input___d[max_index]   ###########     no detach    ###########
+                    no_detach_result___d = no_detach_input___d - _temp___max_value
+                    assert _tensor_equal(no_detach_result___d[max_index], [0.])
+
+                    no_detach_result___d.backward(gradient=grad___l, inputs=[no_detach_input___d])
+                    assert _tensor_equal(no_detach_input___d.grad.sum(), [0.])
+
+                    #  grad formula validation
+                        #  one_hot mask
+                    one_hot_of_max_index = torch.zeros(size=[dim], dtype=torch.bool)
+                    one_hot_of_max_index[max_index] = True
+                    reverse_of_one_hot = one_hot_of_max_index.logical_not()
+                    iota_of_dim = iota(dim)
+                        #  /one_hot mask
+
+                    partial_derivative__from_max_element_to_all___l = torch.zeros(size=[dim])
+                        #  from_max_element_to_all == from_max_element_to_max + from_max_element_to_NON_max
+                    partial_derivative__from_NON_max_element_to_max_element___l = torch.ones(size=[dim]) * -1.
+                    partial_derivative__from_NON_max_element_to_max_element___l[max_index] = 0.
+
+                    partial_derivative__from_NON_max_element_to_NON_max_element___same_element___l = torch.ones(size=[dim])
+                    partial_derivative__from_NON_max_element_to_NON_max_element___same_element___l[max_index] = 0.
+
+                    partial_derivative__from_NON_max_element_to_NON_max_element___different_element___l_l = torch.zeros(size=[dim, dim])
+                    partial_derivative__from_NON_max_element_to_NON_max_element___different_element___l_l[max_index, :] = 0.
+                    partial_derivative__from_NON_max_element_to_NON_max_element___different_element___l_l[:, max_index] = 0.
+                    partial_derivative__from_NON_max_element_to_NON_max_element___different_element___l_l[iota_of_dim, iota_of_dim] = 0.
+                        #  into a buffer
+                    buffer___d_d = partial_derivative__from_NON_max_element_to_NON_max_element___different_element___l_l.detach().clone()
+                    assert buffer___d_d.eq(0.).all()
+                    buffer___d_d[max_index, :] += partial_derivative__from_max_element_to_all___l
+                    buffer___d_d[:, max_index] += partial_derivative__from_NON_max_element_to_max_element___l
+                    buffer___d_d[iota_of_dim, iota_of_dim] += partial_derivative__from_NON_max_element_to_NON_max_element___same_element___l
+                        #  adaption to the g_in
+                        #  adaption to the g_in
+                    _temp___grad___l_EXPANDl = grad___l.reshape(shape=[dim, 1]).expand([dim, dim])
+                    assert _temp___grad___l_EXPANDl[0,0] == _temp___grad___l_EXPANDl[0,1]
+                    manual_grad_for___no_detach = (buffer___d_d*_temp___grad___l_EXPANDl).sum(dim=0) 
+                    del _temp___grad___l_EXPANDl
+                    #del buffer___d_d
+                    assert _tensor_equal(manual_grad_for___no_detach, no_detach_input___d.grad)
+
+
+
+
+                    #  with_detach
+                    #  with_detach
+                    with_detach_input___d = input.detach().clone()
+                    with_detach_input___d.requires_grad_()
+                    max_index = with_detach_input___d.argmax()
+                    _temp___max_value = with_detach_input___d[max_index].detach()   ###########     detach    ###########
+                    with_detach_result___d = with_detach_input___d - _temp___max_value
+                    assert _tensor_equal(with_detach_result___d[max_index], [0.])
+
+                    with_detach_result___d.backward(gradient=grad___l, inputs=[with_detach_input___d])
+                    assert _tensor_equal(with_detach_input___d.grad, grad___l)
+
+                    #  grad formula validation
+                        #  one_hot mask
+                    one_hot_of_max_index = torch.zeros(size=[dim], dtype=torch.bool)
+                    one_hot_of_max_index[max_index] = True
+                    reverse_of_one_hot = one_hot_of_max_index.logical_not()
+                    iota_of_dim = iota(dim)
+                        #  /one_hot mask
+
+                    partial_derivative___l = torch.ones(size=[dim])
+                    buffer___d_d = torch.zeros(size=[dim, dim])
+                    buffer___d_d[iota_of_dim, iota_of_dim] += partial_derivative___l
+                        #  adaption to the g_in
+                        #  adaption to the g_in
+                    _temp___grad___l_EXPANDl = grad___l.reshape(shape=[dim, 1]).expand([dim, dim])
+                    assert _temp___grad___l_EXPANDl[0,0] == _temp___grad___l_EXPANDl[0,1]
+                    manual_grad_for___with_detach = (buffer___d_d*_temp___grad___l_EXPANDl).sum(dim=0) 
+                    del _temp___grad___l_EXPANDl
+                    #del buffer___d_d
+                    assert _tensor_equal(manual_grad_for___with_detach, with_detach_input___d.grad)
+
+                    #  over all test
+                    #  over all test
+                    assert _tensor_equal(no_detach_result___d, with_detach_result___d)
+                    assert _tensor_equal(no_detach_input___d.grad.sum(), [0.])  # actually duplicated.
+                    assert _tensor_equal(no_detach_input___d.grad[reverse_of_one_hot], with_detach_input___d.grad[reverse_of_one_hot])
+
+
+                    # prin(no_detach_input___d.grad)
+                    # prin(with_detach_input___d.grad)
+                    # prin(input[max_index])
+                    # prin(max_index)
+
+                    pass#for _iii
+                pass#for dim
+
+            pass#/test
+        
+        
+        '''conclusion:  in sub the avg, 2 grad are different. The differece between them is a constant.
+        In other words, in grad_ver_1 - grad_ver_2, all elements are the same.'''
+        if "sub the avg" and False:
+            for dim in [3,2,4,6,11,31]:
+                for _iii in range(66):
+                    input = torch.rand(size=[dim])
+                    grad___l = torch.rand(size=[dim])
+
+                    #  no_detach
+                    #  no_detach
+                    no_detach_input___d = input.detach().clone()
+                    no_detach_input___d.requires_grad_()
+                    _temp___avg_value = no_detach_input___d.mean()   ###########     no detach    ###########
+                    no_detach_result___d = no_detach_input___d - _temp___avg_value
+                    assert _tensor_equal(no_detach_result___d.sum(), [0.])
+
+                    no_detach_result___d.backward(gradient=grad___l, inputs=[no_detach_input___d])
+                    assert _tensor_equal(no_detach_input___d.grad.sum(), [0.]) 
+
+                    #  grad formula validation
+                    iota_of_dim = iota(dim)
+
+                    partial_derivative__same_element___l      = torch.ones(size=[dim])*      (float(dim-1)/float(dim))
+                    partial_derivative__different_element___l_l = torch.ones(size=[dim, dim])* (    -1.     /float(dim))
+                    partial_derivative__different_element___l_l[iota_of_dim, iota_of_dim] = 0.
+                        #  into a buffer
+                    buffer___d_d = partial_derivative__different_element___l_l.detach().clone()
+                    buffer___d_d[iota_of_dim, iota_of_dim] += partial_derivative__same_element___l
+                        #  adaption to the g_in
+                        #  adaption to the g_in
+                    _temp___grad___l_EXPANDl = grad___l.reshape(shape=[dim, 1]).expand([dim, dim])
+                    assert _temp___grad___l_EXPANDl[0,0] == _temp___grad___l_EXPANDl[0,1]
+                    manual_grad_for___no_detach = (buffer___d_d*_temp___grad___l_EXPANDl).sum(dim=0) 
+                    del _temp___grad___l_EXPANDl
+                    #del buffer___d_d
+                    assert _tensor_equal(manual_grad_for___no_detach, no_detach_input___d.grad)
+
+
+
+
+                    #  with_detach
+                    #  with_detach
+                    with_detach_input___d = input.detach().clone()
+                    with_detach_input___d.requires_grad_()
+                    _temp___avg_value = with_detach_input___d.mean().detach()   ###########     detach    ###########
+                    with_detach_result___d = with_detach_input___d - _temp___avg_value
+                    assert _tensor_equal(with_detach_result___d.sum(), [0.])
+
+                    with_detach_result___d.backward(gradient=grad___l, inputs=[with_detach_input___d])
+                    assert _tensor_equal(with_detach_input___d.grad, grad___l)
+
+                    iota_of_dim = iota(dim)
+
+                    partial_derivative___l = torch.ones(size=[dim])
+                    buffer___d_d = torch.zeros(size=[dim, dim])
+                    buffer___d_d[iota_of_dim, iota_of_dim] += partial_derivative___l
+                        #  adaption to the g_in
+                        #  adaption to the g_in
+                    _temp___grad___l_EXPANDl = grad___l.reshape(shape=[dim, 1]).expand([dim, dim])
+                    assert _temp___grad___l_EXPANDl[0,0] == _temp___grad___l_EXPANDl[0,1]
+                    manual_grad_for___with_detach = (buffer___d_d*_temp___grad___l_EXPANDl).sum(dim=0) 
+                    del _temp___grad___l_EXPANDl
+                    #del buffer___d_d
+                    assert _tensor_equal(manual_grad_for___with_detach, with_detach_input___d.grad)
+                    #  over all test
+                    #  over all test
+                    assert _tensor_equal(with_detach_result___d, no_detach_result___d)
+                    assert _tensor_equal(no_detach_input___d.grad.sum(), [0.])  #  duplicated
+                        # the difference is a constant number.
+                    _temp__grad_diff___d = with_detach_input___d.grad - no_detach_input___d.grad
+                    _temp__first_element_of_grad_diff___s = _temp__grad_diff___d[0]
+                    _temp__first_element_of_grad_diff___EXPANDd = _temp__first_element_of_grad_diff___s.reshape(shape=[1]).expand(size=[dim])
+                    assert _tensor_equal(_temp__grad_diff___d, _temp__first_element_of_grad_diff___EXPANDd)
+
+                    # prin(no_detach_input___d.grad)
+                    # prin(with_detach_input___d.grad)
+                    # prin(with_detach_input___d.grad - no_detach_input___d.grad)
+
+                    pass#for _iii
+                pass#for dim
+            pass#/test
+            
+            
+        '''conclusion:  in abs, the adaptive behavior is automatically a detach ver, there's no no_detach ver.'''
+
+
+        '''conclusion:  in div the max abs, the adaptive behaviors are abs and max. The abs only has detach behavior. 
+        The only difference is the max behavior. Similar to the sub the max test. 
+        Only the special element gets different grad. And a lil bit extra consistance with the sign.'''
+        if "div the max abs" and False:
+            for dim in [5,2,4,6,11,31]:
+                for _iii in range(66):
+                    input = torch.randn(size=[dim])  #  randn, not rand.
+                    #input = torch.tensor([10., 1, 1, 1, 2])  #  randn, not rand.
+                    grad___l = torch.rand(size=[dim])#  positive only
+                    #grad___l = torch.tensor([113, 1, 1, 1, 1])
+
+
+
+                    #  no_detach
+                    #  no_detach
+                    no_detach_input___d = input.detach().clone()
+                    no_detach_input___d.requires_grad_()
+                    _temp___abs = no_detach_input___d.abs()
+                    max_index_of_abs = _temp___abs.argmax()
+                    sign_of_the_special_element = no_detach_input___d[max_index_of_abs].ge(0.).to(torch.int32)*2 -1# this is natually detach ver.
+                    from pytorch_yagaodirac_v2.Util import _either_1_or_neg1
+                    assert _either_1_or_neg1(sign_of_the_special_element)
+                    divide_this = no_detach_input___d[max_index_of_abs]*sign_of_the_special_element   #######    no detach   ########
+                    assert divide_this.ge(0.)
+                    no_detach_result___d = no_detach_input___d/divide_this
+                    assert no_detach_result___d.abs().le(1.).all()
+
+                        #  one_hot mask
+                    one_hot_of_max_index_of_abs = torch.zeros(size=[dim], dtype=torch.bool)
+                    one_hot_of_max_index_of_abs[max_index_of_abs] = True
+                    reverse_of_one_hot = one_hot_of_max_index_of_abs.logical_not()
+                    iota_of_dim = iota(dim)
+                        #  /one_hot mask
+
+                    no_detach_result___d.backward(gradient=grad___l, inputs=[no_detach_input___d])
+                        #  a bit assert
+                    sign_of___other_element_grad = no_detach_input___d.grad [reverse_of_one_hot].gt(0.).to(torch.int32)*2-1
+                    sign_of___other_g_in         = grad___l                 [reverse_of_one_hot].gt(0.).to(torch.int32)*2-1
+                    assert sign_of___other_element_grad.eq(sign_of___other_g_in).all()
+
+                    # this is unstable. I probably messed with the formula. no plan.
+                    # sign_of___special_element_grad = no_detach_input___d.grad[one_hot_of_max_index_of_abs].gt(0.).to(torch.int32)*2-1
+                    # _temp___special_element_of___input_mul_g_in = (grad___l*input)[one_hot_of_max_index_of_abs]
+                    # sign_of___special_element_of___input_mul_g_in = _temp___special_element_of___input_mul_g_in.gt(0.).to(torch.int32)*2-1
+
+                    # aaa = sign_of___special_element_grad*sign_of___special_element_of___input_mul_g_in*sign_of_the_special_element 
+                    # assert sign_of___special_element_grad*sign_of___special_element_of___input_mul_g_in*sign_of_the_special_element == -1
+
+
+                    #  grad formula validation
+                    #  grad formula validation
+                    
+                    partial_derivative__SPECIAL_element_to_all___d = torch.zeros(size=[dim])
+                            # partial_derivative__SPECIAL_element_to_all___l == partial_derivative__SPECIAL_element_to SPECIAL + to OTHER
+
+                    '''partial_derivative__other_element_to_SPECIAL_element___d'''
+                    _temp___original_of_special_element = no_detach_input___d[max_index_of_abs]
+                    partial_derivative__other_element_to_SPECIAL_element___d = \
+                            sign_of_the_special_element * no_detach_input___d * -1. /(_temp___original_of_special_element*_temp___original_of_special_element)
+                    partial_derivative__other_element_to_SPECIAL_element___d[max_index_of_abs] = 0.
+
+                    partial_derivative__other_element_to_other_element___same_element___d = torch.ones(size=[dim]) /divide_this
+                    partial_derivative__other_element_to_other_element___same_element___d[max_index_of_abs] = 0.
+
+                    partial_derivative__other_element_to_other_element___different_element___d_d = torch.zeros(size=[dim, dim])
+                    partial_derivative__other_element_to_other_element___different_element___d_d[max_index_of_abs, :] = 0.
+                    partial_derivative__other_element_to_other_element___different_element___d_d[:, max_index_of_abs] = 0.
+                    partial_derivative__other_element_to_other_element___different_element___d_d[iota_of_dim, iota_of_dim] = 0.
+                        #  into a buffer
+                    buffer___d_d = partial_derivative__other_element_to_other_element___different_element___d_d.detach().clone()
+                    buffer___d_d[max_index_of_abs, :] += partial_derivative__SPECIAL_element_to_all___d
+                    buffer___d_d[:, max_index_of_abs] += partial_derivative__other_element_to_SPECIAL_element___d
+                    buffer___d_d[iota_of_dim, iota_of_dim] += partial_derivative__other_element_to_other_element___same_element___d
+
+                    _temp_buffer___d_d = partial_derivative__other_element_to_other_element___different_element___d_d.detach().clone()
+                    _temp_buffer___d_d[max_index_of_abs, :] = torch.nan
+                    _temp_buffer___d_d[:, max_index_of_abs] = torch.nan
+                    _temp_buffer___d_d[iota_of_dim, iota_of_dim] = torch.nan
+                    assert buffer___d_d.eq(_temp_buffer___d_d).to(torch.int32).sum() == dim*dim -dim*3 +2
+
+                    _temp_buffer___d_d = torch.empty(size=[dim, dim], dtype=torch.float32)
+                    _temp_buffer___d_d.fill_(torch.nan)
+                    _temp_buffer___d_d[max_index_of_abs, :] = partial_derivative__SPECIAL_element_to_all___d
+                    assert buffer___d_d.eq(_temp_buffer___d_d).to(torch.int32).sum() == dim
+
+                    _temp_buffer___d_d = torch.empty(size=[dim, dim], dtype=torch.float32)
+                    _temp_buffer___d_d.fill_(torch.nan)
+                    _temp_buffer___d_d[:, max_index_of_abs] = partial_derivative__other_element_to_SPECIAL_element___d
+                    _temp_buffer___d_d[max_index_of_abs, max_index_of_abs] = torch.nan
+                    assert buffer___d_d.eq(_temp_buffer___d_d).to(torch.int32).sum() == dim -1
+
+                    _temp_buffer___d_d = torch.empty(size=[dim, dim], dtype=torch.float32)
+                    _temp_buffer___d_d.fill_(torch.nan)
+                    _temp_buffer___d_d[iota_of_dim, iota_of_dim] = partial_derivative__other_element_to_other_element___same_element___d
+                    _temp_buffer___d_d[max_index_of_abs, max_index_of_abs] = torch.nan
+                    assert buffer___d_d.eq(_temp_buffer___d_d).to(torch.int32).sum() == dim -1
+                        #  adaption to the g_in
+                        #  adaption to the g_in
+                    _temp___grad___l_EXPANDl = grad___l.reshape(shape=[dim, 1]).expand([dim, dim])
+                    assert _temp___grad___l_EXPANDl[0,0] == _temp___grad___l_EXPANDl[0,1]
+                    manual_grad_for___no_detach = (buffer___d_d*_temp___grad___l_EXPANDl).sum(dim=0) 
+                    del _temp___grad___l_EXPANDl
+                    #del buffer___d_d
+                    assert _tensor_equal(manual_grad_for___no_detach, no_detach_input___d.grad)
+
+
+
+
+                    #  with_detach
+                    #  with_detach
+                    with_detach_input___d = input.detach().clone()
+                    with_detach_input___d.requires_grad_()
+                    _temp___abs = with_detach_input___d.abs()
+                    max_index_of_abs = _temp___abs.argmax()
+                    sign_of_the_special_element = with_detach_input___d[max_index_of_abs].ge(0.).to(torch.int32)*2 -1# this is natually detach ver.
+                    assert _either_1_or_neg1(sign_of_the_special_element)
+                    divide_this = (with_detach_input___d[max_index_of_abs]*sign_of_the_special_element).detach()####### detach #######
+                    assert divide_this.ge(0.)
+                    with_detach_result___d = with_detach_input___d/divide_this
+                    assert with_detach_result___d.abs().le(1.).all()
+
+                    with_detach_result___d.backward(gradient=grad___l, inputs=[with_detach_input___d])
+                    #  grad formula validation
+                    #  grad formula validation
+                    manual_grad_for___with_detach = grad___l/divide_this
+                    assert _tensor_equal(manual_grad_for___with_detach, with_detach_input___d.grad)
+
+
+
+
+                    #  over all test
+                    #  over all test
+                    assert _tensor_equal(with_detach_result___d, no_detach_result___d)
+                    assert _tensor_equal(no_detach_input___d.grad[reverse_of_one_hot], with_detach_input___d.grad[reverse_of_one_hot])
+
+                    # prin(no_detach_input___d.grad)
+                    # prin(with_detach_input___d.grad)
+                    # prin(with_detach_input___d.grad - no_detach_input___d.grad)
+
+                    pass#for _iii
+                pass#for dim
+            pass#/test
+
+
+        '''This is also the vector length into 1.'''
+        if "div the rms" and False:
+            for dim in [3,2,4,6,11,31]:
+                iota_of_dim = iota(dim)
+                for _iii in range(66):
+                    input = torch.randn(size=[dim])  
+                    grad___l = torch.randn(size=[dim])
+
+
+
+                    #  no_detach
+                    #  no_detach
+                    no_detach_input___d = input.detach().clone()
+                    no_detach_input___d.requires_grad_()
+                    the_rms = (no_detach_input___d*no_detach_input___d).sum().sqrt()  #######   no detach   #######
+                    no_detach_result___d = no_detach_input___d/the_rms
+                        #  a bit assert
+                    _temp___result_rms = (no_detach_result___d*no_detach_result___d).sum().sqrt()
+                    assert _tensor_equal(_temp___result_rms, [1.])
+                    del _temp___result_rms
+
+                    no_detach_result___d.backward(gradient=grad___l, inputs=[no_detach_input___d])
+
+                    #  grad formula validation
+                    #  grad formula validation
+                    
+                    partial_derivative__same_element___d = (the_rms - no_detach_input___d*no_detach_input___d/the_rms)/(the_rms*the_rms)
+
+                    '''partial_derivative__different_element___d'''
+                    no_detach_input___d_EXPANDd = no_detach_input___d.reshape(shape=[dim, 1]).expand(size=[dim, dim])
+                    no_detach_input___EXPANDd_d = no_detach_input___d.reshape(shape=[1, dim]).expand(size=[dim, dim])
+                    partial_derivative__different_element___d = -1.*no_detach_input___d_EXPANDd*no_detach_input___EXPANDd_d/(the_rms*the_rms*the_rms)
+                    partial_derivative__different_element___d[iota_of_dim, iota_of_dim] = 0.
+
+                    buffer___d_d = partial_derivative__different_element___d.detach().clone()
+                    buffer___d_d[iota_of_dim, iota_of_dim] = partial_derivative__same_element___d
+                    buffer___d_d.eq(partial_derivative__same_element___d).to(torch.int32).sum() == dim
+                    buffer___d_d.eq(partial_derivative__different_element___d).to(torch.int32).sum() == dim*dim-dim
+                    
+                    assert buffer___d_d.eq(buffer___d_d.T).all()
+                        #  adaption to the g_in
+                        #  adaption to the g_in
+                    _temp___grad___l_EXPANDl = grad___l.reshape(shape=[dim, 1]).expand([dim, dim])
+                    assert _temp___grad___l_EXPANDl[0,0] == _temp___grad___l_EXPANDl[0,1]
+                    manual_grad_for___no_detach = (buffer___d_d*_temp___grad___l_EXPANDl).sum(dim=0) 
+                    del _temp___grad___l_EXPANDl
+                    #del buffer___d_d
+                    assert _tensor_equal(manual_grad_for___no_detach, no_detach_input___d.grad)
+
+
+                    #  with_detach
+                    #  with_detach
+                    with_detach_input___d = input.detach().clone()
+                    with_detach_input___d.requires_grad_()
+                    the_rms = (with_detach_input___d*with_detach_input___d).sum().sqrt().detach()  #######     detach   #######
+                    with_detach_result___d = with_detach_input___d/the_rms
+                        #  a bit assert
+                    _temp___result_rms = (with_detach_result___d*with_detach_result___d).sum().sqrt()
+                    assert _tensor_equal(_temp___result_rms, [1.])
+                    del _temp___result_rms
+
+                    with_detach_result___d.backward(gradient=grad___l, inputs=[with_detach_input___d])
+
+                    #  grad formula validation
+                    #  grad formula validation
+                    manual_grad_for___with_detach = grad___l/the_rms
+                    assert _tensor_equal(manual_grad_for___with_detach, with_detach_input___d.grad)
+
+
+                    #  over all test
+                    #  over all test
+                    assert _tensor_equal(with_detach_result___d, no_detach_result___d)
+
+                    # prin(no_detach_input___d.grad)
+                    # prin(with_detach_input___d.grad)
+                    # prin(with_detach_input___d.grad - no_detach_input___d.grad)
+
+                    pass#for _iii
+                pass#for dim
+            pass#/test
+
+
+        '''Anyway. There are 2 possible steps which can be detached. 
+        So in total, there are 4 possible versions of this into normal distribution.
+        No plan for this one. 
+        But even without any test, it's still possible to get some intuition.
+        In the previous test, sub the mean, or div the rms, the detach does something on both.
+        So, all the 4 versions probably don't share anything.
+        
+        conclusion:       ????????????         '''
+        if "into normal distribution" and False:
+            assert False, "unfinished, no plan."
+            for dim in [3,2,4,6,11,31]:
+                iota_of_dim = iota(dim)
+                for _iii in range(66):
+                    input = torch.randn(size=[dim])  
+                    grad___l = torch.randn(size=[dim])
+
+
+
+                    #  no_detach
+                    #  no_detach
+                    no_detach_input___d = input.detach().clone()
+                    no_detach_input___d.requires_grad_()
+                    the_mean = no_detach_input___d.mean()
+                    after_sub_the_mean___d = no_detach_input___d - the_mean
+                    the_rms = (after_sub_the_mean___d*after_sub_the_mean___d).sum().sqrt()  #######   no detach   #######
+                    no_detach_result___d = no_detach_input___d/the_rms
+                        #  a bit assert
+                    assert _tensor_equal(no_detach_result___d.sum(), [0.])
+                    _temp___result_rms = (no_detach_result___d*no_detach_result___d).sum().sqrt()
+                    assert _tensor_equal(_temp___result_rms, [1.])
+                    del _temp___result_rms
+
+                    no_detach_result___d.backward(gradient=grad___l, inputs=[no_detach_input___d])
+
+                    # #  grad formula validation
+                    # #  grad formula validation
+                    
+                    # partial_derivative__same_element___d = (the_rms - no_detach_input___d*no_detach_input___d/the_rms)/(the_rms*the_rms)
+
+                    # '''partial_derivative__different_element___d'''
+                    # no_detach_input___d_EXPANDd = no_detach_input___d.reshape(shape=[dim, 1]).expand(size=[dim, dim])
+                    # no_detach_input___EXPANDd_d = no_detach_input___d.reshape(shape=[1, dim]).expand(size=[dim, dim])
+                    # partial_derivative__different_element___d = -1.*no_detach_input___d_EXPANDd*no_detach_input___EXPANDd_d/(the_rms*the_rms*the_rms)
+                    # partial_derivative__different_element___d[iota_of_dim, iota_of_dim] = 0.
+
+                    # buffer___d_d = partial_derivative__different_element___d.detach().clone()
+                    # buffer___d_d[iota_of_dim, iota_of_dim] = partial_derivative__same_element___d
+                    # buffer___d_d.eq(partial_derivative__same_element___d).to(torch.int32).sum() == dim
+                    # buffer___d_d.eq(partial_derivative__different_element___d).to(torch.int32).sum() == dim*dim-dim
+                    
+                    # assert buffer___d_d.eq(buffer___d_d.T).all()
+                    #     #  adaption to the g_in
+                    #     #  adaption to the g_in
+                    # _temp___grad___l_EXPANDl = grad___l.reshape(shape=[dim, 1]).expand([dim, dim])
+                    # assert _temp___grad___l_EXPANDl[0,0] == _temp___grad___l_EXPANDl[0,1]
+                    # manual_grad_for___no_detach = (buffer___d_d*_temp___grad___l_EXPANDl).sum(dim=0) 
+                    # del _temp___grad___l_EXPANDl
+                    # #del buffer___d_d
+                    # assert _tensor_equal(manual_grad_for___no_detach, no_detach_input___d.grad)
+
+
+                    #  with_detach
+                    #  with_detach
+                    with_detach_input___d = input.detach().clone()
+                    with_detach_input___d.requires_grad_()
+                    the_rms = (with_detach_input___d*with_detach_input___d).sum().sqrt().detach()  #######     detach   #######
+                    with_detach_result___d = with_detach_input___d/the_rms
+                        #  a bit assert
+                    _temp___result_rms = (with_detach_result___d*with_detach_result___d).sum().sqrt()
+                    assert _tensor_equal(_temp___result_rms, [1.])
+                    del _temp___result_rms
+
+                    with_detach_result___d.backward(gradient=grad___l, inputs=[with_detach_input___d])
+
+                    #  grad formula validation
+                    #  grad formula validation
+                    manual_grad_for___with_detach = grad___l/the_rms
+                    assert _tensor_equal(manual_grad_for___with_detach, with_detach_input___d.grad)
+
+
+                    #  over all test
+                    #  over all test
+                    assert _tensor_equal(with_detach_result___d, no_detach_result___d)
+
+                    # prin(no_detach_input___d.grad)
+                    # prin(with_detach_input___d.grad)
+                    # prin(with_detach_input___d.grad - no_detach_input___d.grad)
+
+                    pass#for _iii
+                pass#for dim
+            pass#/test
+
+
+        return
+    ____adaptive_methods()
+    pass
+
+
+
+
+
+
 '''conclusion:  pytorch's softmax is safe softmax. 
 Otherwise if anything >89 in the input, the entire thing breaks.'''
 if "a lil bit fp32 test" and False:
@@ -216,6 +742,12 @@ if "a lil bit fp32 test" and False:
     ___fp32____softmax_test()
     pass
 
+
+'''conclusion:  2 adaptive steps can detach without break the forward formula.
+In total, 4 different backward pass possible.
+2 are mathmatically same. In total 3 different backward pass formula.
+The other 2 are similar, except for the max element gets different grad.
+Do we let the 2 adaptive steps also pass grad through the "adjust" branch of backward?'''
 
 if "all the softmax" and True:
     def all_possible_softmax_versions():
