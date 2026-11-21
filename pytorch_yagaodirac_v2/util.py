@@ -655,8 +655,7 @@ def accumulative_multiplication(input___b_d:torch.Tensor   )->torch.Tensor:
     result___b = input__sign___b * result__without_sign___b
 
     return result___b
-
-if "test" and __DEBUG_ME__() and True:
+if "test" and __DEBUG_ME__() and False:
     def ____test____accumulative_multiplication():
         if "equivalance" and True:
 
@@ -739,21 +738,11 @@ if "test" and __DEBUG_ME__() and True:
                             row_result = row_result.reshape(shape=[-1])
                             assert _tensor_equal(func_ver_result[ii_batch], row_result)
                             pass#for ii_batch
-                        
+
                         pass#for _ii 
                     pass#for dim
                 pass#for batch
             pass#/test
-        #batch
-
-
-
-
-
-
-
-
-
 
         return
     ____test____accumulative_multiplication()
