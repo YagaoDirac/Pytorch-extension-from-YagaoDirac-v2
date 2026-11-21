@@ -553,6 +553,213 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
+if "accumulative multiplication prototype" and __DEBUG_ME__() and False:
+    def ____prototype____accumulative_multiplication():
+        if "prototype" and True:
+            #  data
+            batch = 4
+            dim = 3
+            input___b_d = torch.tensor([[2., -3.,  5.], 
+                                        [2., -3., -7.],
+                                        [2., -3.,  0.],
+                                        [0., -3.,  0.],
+                                        
+                                        ])
+            assert _tensor_shape_check(input___b_d, batch, dim)
+
+            #  sign
+            input__is_neg___b_d = input___b_d.lt(0.)
+            assert _tensor_shape_check(input__is_neg___b_d, batch, dim)
+            assert _bool_equal___0_as_false(input__is_neg___b_d, [  [0,1,0],
+                                                                    [0,1,1],
+                                                                    [0,1,0],
+                                                                    [0,1,0],
+                                                                    ])
+
+            input__how_many_neg___b = input__is_neg___b_d.to(torch.int32).sum(dim=1)
+            assert _tensor_shape_check(input__how_many_neg___b, batch)
+            assert input__how_many_neg___b.ge(0).all()
+            assert _tensor_equal(input__how_many_neg___b, [1,2,1,1])
+
+            input__sign___b = input__how_many_neg___b.__mod__(2)*-2+1
+            assert _either_1_or_neg1(input__sign___b)
+            assert _tensor_equal(input__sign___b, [-1, 1, -1, -1])
+
+            # pytorch feature test
+            # assert _tensor_equal([torch.tensor(-torch.inf).exp()], 0.)
+            # assert torch.tensor(-torch.inf).exp() == 0.
+
+            #  abs
+            result__without_sign___b = input___b_d.abs().log().sum(dim=1).exp()
+            assert _tensor_shape_check(result__without_sign___b, batch)
+            assert _tensor_equal(result__without_sign___b, [30, 42, 0, 0])
+
+
+            result___b = input__sign___b * result__without_sign___b
+            assert _tensor_shape_check(result___b, batch)
+            assert _tensor_equal(result___b, [-30, 42, 0, 0])
+            pass#/test
+
+        if "simplification before into a function" and False and False:
+            #  data
+            # batch = 4
+            # dim = 3
+            # input___b_d = torch.tensor([[2., -3.,  5.], 
+            #                             [2., -3., -7.],
+            #                             [2., -3.,  0.],
+            #                             [0., -3.,  0.],
+                                        
+            #                             ])
+            assert _tensor_shape_check(input___b_d, batch, dim)
+
+
+            #  safety
+            assert input___b_d.shape.__len__() == 2, "The shape must be [batch, dim]"
+
+            #  sign
+            input__is_neg___b_d = input___b_d.lt(0.)
+            #assert _tensor_shape_check(input__is_neg___b_d, batch, dim)
+
+            input__how_many_neg___b = input__is_neg___b_d.to(torch.int32).sum(dim=1)
+            # assert _tensor_shape_check(input__how_many_neg___b, batch)
+            # assert input__how_many_neg___b.ge(0).all()
+
+            input__sign___b = input__how_many_neg___b.__mod__(2)*-2+1
+            # assert _either_1_or_neg1(input__sign___b)
+
+
+            #  abs
+            result__without_sign___b = input___b_d.abs().log().sum(dim=1).exp()
+            #assert _tensor_shape_check(result__without_sign___b, batch)
+
+            result___b = input__sign___b * result__without_sign___b
+            #assert _tensor_shape_check(result___b, batch)
+            pass#/test
+
+
+        return
+    ____prototype____accumulative_multiplication()
+    pass
+
+def accumulative_multiplication(input___b_d:torch.Tensor   )->torch.Tensor:
+    #  safety
+    assert input___b_d.shape.__len__() == 2, "The shape must be [batch, dim]"
+
+    #  sign
+    input__is_neg___b_d = input___b_d.lt(0.)
+    input__how_many_neg___b = input__is_neg___b_d.to(torch.int32).sum(dim=1)
+    input__sign___b = input__how_many_neg___b.__mod__(2)*-2+1
+
+    #  abs
+    result__without_sign___b = input___b_d.abs().log().sum(dim=1).exp()
+    result___b = input__sign___b * result__without_sign___b
+
+    return result___b
+
+if "test" and __DEBUG_ME__() and True:
+    def ____test____accumulative_multiplication():
+        if "equivalance" and True:
+
+            #  data
+            batch = 4
+            dim = 3
+            input___b_d = torch.tensor([[2., -3.,  5.], 
+                                        [2., -3., -7.],
+                                        [2., -3.,  0.],
+                                        [0., -3.,  0.],
+                                        
+                                        ])
+            assert _tensor_shape_check(input___b_d, batch, dim)
+
+            #  sign
+            input__is_neg___b_d = input___b_d.lt(0.)
+            assert _tensor_shape_check(input__is_neg___b_d, batch, dim)
+            assert _bool_equal___0_as_false(input__is_neg___b_d, [  [0,1,0],
+                                                                    [0,1,1],
+                                                                    [0,1,0],
+                                                                    [0,1,0],
+                                                                    ])
+
+            input__how_many_neg___b = input__is_neg___b_d.to(torch.int32).sum(dim=1)
+            assert _tensor_shape_check(input__how_many_neg___b, batch)
+            assert input__how_many_neg___b.ge(0).all()
+            assert _tensor_equal(input__how_many_neg___b, [1,2,1,1])
+
+            input__sign___b = input__how_many_neg___b.__mod__(2)*-2+1
+            assert _either_1_or_neg1(input__sign___b)
+            assert _tensor_equal(input__sign___b, [-1, 1, -1, -1])
+
+            #  abs
+            result__without_sign___b = input___b_d.abs().log().sum(dim=1).exp()
+            assert _tensor_shape_check(result__without_sign___b, batch)
+            assert _tensor_equal(result__without_sign___b, [30, 42, 0, 0])
+
+
+            result___b = input__sign___b * result__without_sign___b
+            assert _tensor_shape_check(result___b, batch)
+            assert _tensor_equal(result___b, [-30, 42, 0, 0])
+
+
+            #  func ver
+            #  func ver
+            func_ver_result = accumulative_multiplication(input___b_d)
+            assert _tensor_equal(result___b, func_ver_result)
+            pass#/test
+
+        if "test with random number" and True:
+
+            for dim in [1, 2,3,6,11]:
+                for _ii in range(11):
+
+                    input = torch.randn(size=[1, dim])
+                    result = input[0, 0].detach().clone()
+                    for ii in range(1, input.shape[1]):
+                        result *= input[0, ii]
+                        pass
+
+                    #  func ver
+                    #  func ver
+                    func_ver_result = accumulative_multiplication(input)
+                    assert _tensor_equal(result, func_ver_result)
+                    pass#for _ii 
+                pass#for dim
+            pass#/test
+        if "batch behavior" and True:
+
+
+            for batch in [2, 5, 11, 23]:
+                for dim in [3, 8, 15, 31]:
+                    for _ii in range(11):
+                        input = torch.randn(size=[batch, dim])
+                        func_ver_result = accumulative_multiplication(input)
+
+                        for ii_batch in range(batch):
+                            the_row = input[ii_batch]
+                            row_result = accumulative_multiplication(the_row.reshape(shape=[1, -1]))
+                            row_result = row_result.reshape(shape=[-1])
+                            assert _tensor_equal(func_ver_result[ii_batch], row_result)
+                            pass#for ii_batch
+                        
+                        pass#for _ii 
+                    pass#for dim
+                pass#for batch
+            pass#/test
+        #batch
+
+
+
+
+
+
+
+
+
+
+        return
+    ____test____accumulative_multiplication()
+    pass
+
+
 
 
 
@@ -3018,15 +3225,21 @@ def softmax_dim_1_from_yagaodirac(the_tensor:torch.Tensor, epi:Optional[torch.Te
     result = the_exp_b_d/sum_of_each_row__safe__b_1
     return result
 if "test" and __DEBUG_ME__() and True:
-    input = torch.tensor([[0.,1]],dtype=torch.float16)
-    print(softmax_dim_1_from_yagaodirac(input))
-    print(input.to(torch.float32).softmax(dim=1))
+    def ____maybe_old_test____softmax_dim_1_from_yagaodirac():
+        input = torch.tensor([[0.,1]],dtype=torch.float16)
+        assert False, "old code"
+        print(softmax_dim_1_from_yagaodirac(input))
+        print(input.to(torch.float32).softmax(dim=1))
+    ____maybe_old_test____softmax_dim_1_from_yagaodirac()
     pass
 if "test" and __DEBUG_ME__() and True:
-    dummy = torch.tensor([[0,1]],dtype=torch.int64)
-    import random
-    input = torch.randn((random.randint(2,5),random.randint(2,5)),dtype=torch.float16)
-    print(softmax_dim_1_from_yagaodirac(input))
-    print(input.to(torch.float32).softmax(dim=1))
+    def ____maybe_old_test____softmax_dim_1_from_yagaodirac_2():
+        dummy = torch.tensor([[0,1]],dtype=torch.int64)
+        import random
+        input = torch.randn((random.randint(2,5),random.randint(2,5)),dtype=torch.float16)
+        assert False, "old code"
+        print(softmax_dim_1_from_yagaodirac(input))
+        print(input.to(torch.float32).softmax(dim=1))
+    ____maybe_old_test____softmax_dim_1_from_yagaodirac_2()
     pass
 
