@@ -2,7 +2,7 @@ from typing import Literal
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from pytorch_yagaodirac_v2.Util import accumulative_multiplication, _bool_equal___0_as_false, all_False, \
+from pytorch_yagaodirac_v2.Util import accumulative_mul, _bool_equal___0_as_false, all_False, \
         _tensor_equal, _tensor_shape_check, iota, is_list_int, _float_equal
 #         iota, str_the_list
 
@@ -104,7 +104,7 @@ if "the behavior of the core" and __DEBUG_ME__() and False:
             # numerator___s = accumulative_multiplication(numerator__before_mul___s_a)
             # assert _tensor_shape_check(numerator___s, SCAN_STEPS)
             denominator__before_mul___EXPANDs_a = denominator__before_mul___1_a.expand(size=[SCAN_STEPS, ANCHOR_NUMBER])
-            result___s = accumulative_multiplication(numerator__before_mul___s_a/denominator__before_mul___EXPANDs_a)
+            result___s = accumulative_mul(numerator__before_mul___s_a/denominator__before_mul___EXPANDs_a)
             assert _tensor_shape_check(result___s, SCAN_STEPS)
 
             #to_plot___s = numerator___s/denominator___1
@@ -163,7 +163,7 @@ if "the behavior of the core" and __DEBUG_ME__() and False:
             numerator__before_mul___s_a = (scan_this_x___s_EXPANDa - other_x___EXPANDs_a)
 
             # result
-            result___s = accumulative_multiplication(numerator__before_mul___s_a/denominator__before_mul___EXPANDs_a)
+            result___s = accumulative_mul(numerator__before_mul___s_a/denominator__before_mul___EXPANDs_a)
             pass#/ simplification
 
         return
@@ -203,7 +203,7 @@ def _only_for__Lagrange_polynomial__to_use____calc_core(other_x___a : torch.Tens
     numerator__before_mul___s_a = (scan_this_x___s_EXPANDa - other_x___EXPANDs_a)
 
     # result
-    result___s = accumulative_multiplication(numerator__before_mul___s_a/denominator__before_mul___EXPANDs_a)
+    result___s = accumulative_mul(numerator__before_mul___s_a/denominator__before_mul___EXPANDs_a)
     return result___s
 
 if "test" and __DEBUG_ME__() and True:
@@ -234,7 +234,7 @@ if "test" and __DEBUG_ME__() and True:
                     assert _tensor_shape_check(numerator__before_mul___s_a, SCAN_STEPS, ANCHOR_NUMBER)
 
                     denominator__before_mul___EXPANDs_a = denominator__before_mul___1_a.expand(size=[SCAN_STEPS, ANCHOR_NUMBER])
-                    result___s = accumulative_multiplication(numerator__before_mul___s_a/denominator__before_mul___EXPANDs_a)
+                    result___s = accumulative_mul(numerator__before_mul___s_a/denominator__before_mul___EXPANDs_a)
                     assert _tensor_shape_check(result___s, SCAN_STEPS)
 
                     #  func ver

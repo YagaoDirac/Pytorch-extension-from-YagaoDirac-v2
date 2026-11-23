@@ -553,6 +553,8 @@ if "test" and __DEBUG_ME__() and False:
 
 
 
+
+'''accumulative multiplication'''
 if "accumulative multiplication prototype" and __DEBUG_ME__() and False:
     def ____prototype____accumulative_multiplication():
         if "prototype" and True:
@@ -641,7 +643,10 @@ if "accumulative multiplication prototype" and __DEBUG_ME__() and False:
     ____prototype____accumulative_multiplication()
     pass
 
-def accumulative_multiplication(input___b_d:torch.Tensor   )->torch.Tensor:
+def accumulative_mul(input___b_d:torch.Tensor)->torch.Tensor:
+    '''return result___b
+    
+    Remember the safety.'''
     #  safety
     assert input___b_d.shape.__len__() == 2, "The shape must be [batch, dim]"
 
@@ -658,7 +663,6 @@ def accumulative_multiplication(input___b_d:torch.Tensor   )->torch.Tensor:
 if "test" and __DEBUG_ME__() and False:
     def ____test____accumulative_multiplication():
         if "equivalance" and True:
-
             #  data
             batch = 4
             dim = 3
@@ -701,12 +705,11 @@ if "test" and __DEBUG_ME__() and False:
 
             #  func ver
             #  func ver
-            func_ver_result = accumulative_multiplication(input___b_d)
+            func_ver_result = accumulative_mul(input___b_d)
             assert _tensor_equal(result___b, func_ver_result)
             pass#/test
 
         if "test with random number" and True:
-
             for dim in [1, 2,3,6,11]:
                 for _ii in range(11):
 
@@ -718,23 +721,22 @@ if "test" and __DEBUG_ME__() and False:
 
                     #  func ver
                     #  func ver
-                    func_ver_result = accumulative_multiplication(input)
+                    func_ver_result = accumulative_mul(input)
                     assert _tensor_equal(result, func_ver_result)
                     pass#for _ii 
                 pass#for dim
             pass#/test
+
         if "batch behavior" and True:
-
-
             for batch in [2, 5, 11, 23]:
                 for dim in [3, 8, 15, 31]:
                     for _ii in range(11):
                         input = torch.randn(size=[batch, dim])
-                        func_ver_result = accumulative_multiplication(input)
+                        func_ver_result = accumulative_mul(input)
 
                         for ii_batch in range(batch):
                             the_row = input[ii_batch]
-                            row_result = accumulative_multiplication(the_row.reshape(shape=[1, -1]))
+                            row_result = accumulative_mul(the_row.reshape(shape=[1, -1]))
                             row_result = row_result.reshape(shape=[-1])
                             assert _tensor_equal(func_ver_result[ii_batch], row_result)
                             pass#for ii_batch
@@ -747,6 +749,67 @@ if "test" and __DEBUG_ME__() and False:
         return
     ____test____accumulative_multiplication()
     pass
+
+
+if "pytorch feature test" and __DEBUG_ME__() and False:
+    def ____pytorch_feature____sort_inside_batch():
+        aaa = torch.tensor([[4., 3, 5], [8,7,6]]).sort(dim=1).values
+        assert _tensor_equal(aaa, [[3., 4, 5], [6, 7, 8]])
+
+        bbb = torch.tensor([[8,7,6], [4., 3, 5]]).sort(dim=1).values
+        assert _tensor_equal(bbb, [[6, 7, 8], [3., 4, 5]])
+        return
+    ____pytorch_feature____sort_inside_batch()
+    pass
+
+def div_then_accumulative_mul(numerator___b_d:torch.Tensor, denominator___b_d:torch.Tensor)->torch.Tensor:
+    #  safety
+    assert numerator___b_d.shape.__len__() == 2, "The shape must be [batch, dim]"
+    assert numerator___b_d.shape == denominator___b_d.shape
+
+    #  sign
+    numerator__is_neg___b_d = numerator___b_d.lt(0.)
+    numerator__how_many_neg___b = numerator__is_neg___b_d.to(torch.int32).sum(dim=1)
+    denominator__is_neg___b_d = denominator___b_d.lt(0.)
+    denominator__how_many_neg___b = denominator__is_neg___b_d.to(torch.int32).sum(dim=1)
+
+    result__sign___b = (numerator__how_many_neg___b+denominator__how_many_neg___b).__mod__(2)*-2+1
+
+    #  abs
+    numerator__without_sign__unsorted___b_d = numerator___b_d.abs()
+    numerator__without_sign___b_d = numerator__without_sign__unsorted___b_d.sort(dim=1).values#see the feature test above
+
+    denominator__without_sign__unsorted___b_d = denominator___b_d.abs()
+    denominator__without_sign___b_d = denominator__without_sign__unsorted___b_d.sort(dim=1).values#see the feature test above
+
+    #  div before accumulative mul
+    result__before_accumulative_mul___b_d = numerator__without_sign___b_d/denominator__without_sign___b_d
+    result__without_sign___b = accumulative_mul(result__before_accumulative_mul___b_d)
+    result___b = result__sign___b*result__without_sign___b
+    return result___b
+if "test" and __DEBUG_ME__() and False:
+    def ____test____div_then_accumulative_mul():
+        for batch in [2,6,13]:
+            for dim in [3,8,21]:
+                for _ii in range(111):
+                    dim = 3
+                    size = [batch, dim]
+                    numerator   = torch.randn(size = size)/math.sqrt(dim)
+                    denominator = torch.randn(size = size)/math.sqrt(dim)
+
+                    plain_method_result = accumulative_mul(numerator)/accumulative_mul(denominator)
+                    new_method_result = div_then_accumulative_mul(numerator___b_d=numerator, denominator___b_d=denominator)
+
+                    assert _tensor_equal(plain_method_result, new_method_result, epsilon=plain_method_result.abs()/100000.)
+                                                                                                    #1000000 is unstable
+                    pass#for _ii
+                pass#for dim
+            pass#for batch
+        return
+    ____test____div_then_accumulative_mul()
+    pass
+
+
 
 
 
